@@ -36,6 +36,9 @@ func main() {
 	// Service API with Frontend
 	r.GET("/tasks/status", vulnerability.ListStatus)
 	r.GET("/tasks/summary-vulnerability", vulnerability.ListTaskVulnSummary)
+	r.GET("/vulnerabilities/list", vulnerability.ListVulnerability)
+	r.GET("/assets/risk", vulnerability.ListAssetRisk)
+	r.GET("/devices/risk", vulnerability.ListDeviceRisk)
 
 	// Protected routes
 	authorized := r.Group("")

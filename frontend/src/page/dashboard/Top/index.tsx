@@ -51,7 +51,7 @@ const courses: CourseItem[] = [
 
 const TopPerforming: React.FC = () => {
   return (
-    <section className="rounded-[22px] bg-[#f7f7f8] border border-gray-200/80 shadow-sm p-5 sm:p-6 h-full">
+    <section className="rounded-[22px] bg-white border border-gray-200/80 shadow-sm p-5 sm:p-6 h-full">
       {/* Header */}
       <div className="flex items-center justify-between gap-3 mb-4">
         <h2 className="text-[20px] sm:text-[22px] font-semibold text-[#1f2240] tracking-tight">

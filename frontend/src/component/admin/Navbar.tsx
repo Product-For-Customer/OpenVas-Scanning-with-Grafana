@@ -129,7 +129,7 @@ const Navbar: React.FC = () => {
           className="
             w-full h-21 sm:h-22
             rounded-[22px]
-            bg-[#f7f7f8]
+            bg-white
             border border-gray-200/80
             shadow-sm
             flex items-center justify-between

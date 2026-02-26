@@ -112,7 +112,7 @@ const Value: React.FC = () => {
         title: "Medium",
         value: loading ? "..." : totals.medium.toLocaleString(),
         subtitle: makeSubtitle(totals.medium),
-        icon: <FiMinusCircle />,
+        icon: <FiInfo />,
 
         bg: "bg-gradient-to-br from-[#0f0b02] via-[#2a1a05] to-[#854d0e]",
         ring: "ring-1 ring-[#fde68a]/25 border border-white/10",
@@ -125,7 +125,7 @@ const Value: React.FC = () => {
         title: "Low",
         value: loading ? "..." : totals.low.toLocaleString(),
         subtitle: makeSubtitle(totals.low),
-        icon: <FiShield />,
+        icon: <FiMinusCircle />,
 
         bg: "bg-gradient-to-br from-[#03120b] via-[#052e1e] to-[#065f46]",
         ring: "ring-1 ring-[#86efac]/25 border border-white/10",
@@ -138,7 +138,7 @@ const Value: React.FC = () => {
         title: "Info",
         value: loading ? "..." : totals.info.toLocaleString(),
         subtitle: makeSubtitle(totals.info),
-        icon: <FiInfo />,
+        icon: <FiShield />,
 
         bg: "bg-gradient-to-br from-[#020b16] via-[#06243a] to-[#075985]",
         ring: "ring-1 ring-[#7dd3fc]/25 border border-white/10",
@@ -152,7 +152,7 @@ const Value: React.FC = () => {
   );
 
   return (
-    <section className="rounded-[22px] bg-[#f7f7f8] border border-gray-200/80 shadow-sm p-3 sm:p-3.5">
+    <section className="rounded-[22px] bg-white border border-gray-200/80 shadow-sm p-3 sm:p-3.5">
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-2.5 sm:gap-3">
         {stats.map((item) => {
           const rawNumber =

@@ -3,7 +3,7 @@ import { FiPlus } from "react-icons/fi";
 
 const Introduction: React.FC = () => {
   return (
-    <section className="rounded-[22px] bg-[#f7f7f8] border border-gray-200/80 shadow-sm p-5 sm:p-6 md:p-8 h-full overflow-hidden">
+    <section className="rounded-[22px] bg-white border border-gray-200/80 shadow-sm p-5 sm:p-6 md:p-8 h-full overflow-hidden">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center h-full">
         {/* Left content */}
         <div className="min-w-0">

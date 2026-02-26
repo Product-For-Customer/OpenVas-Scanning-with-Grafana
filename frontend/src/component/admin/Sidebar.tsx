@@ -163,7 +163,7 @@ const Sidebar: React.FC = () => {
       >
         <div
           className="
-            h-full rounded-3xl bg-[#f7f7f8] border border-gray-200/80 shadow-sm
+            h-full rounded-3xl bg-white border border-gray-200/80 shadow-sm
             flex flex-col overflow-visible
           "
         >

@@ -91,3 +91,98 @@ export const ListTaskVulnSummary = async (): Promise<TaskVulnSummaryDTO[] | null
     return null;
   }
 };
+
+export type VulnerabilityLevelDTO = {
+  task_id: string;
+  mac_address: string;
+  vulnerability_name: string;
+  level: "Critical" | "High" | "Medium" | "Low" | "Info";
+  total: number;
+};
+
+export const ListVulnerability = async (): Promise<VulnerabilityLevelDTO[] | null> => {
+  try {
+    const response = await axios.get(`${apiUrl}/vulnerabilities/list`, {
+      headers: {
+        "Content-Type": "application/json",
+        ...getAuthHeader(),
+      },
+      timeout: 15000,
+    });
+
+    if (response.status === 200) {
+      // backend อาจคืน array ตรงๆ หรือ {data: [...]}
+      const data = response.data?.data ?? response.data;
+      return data as VulnerabilityLevelDTO[];
+    }
+
+    console.error("Unexpected status:", response.status);
+    return null;
+  } catch (error) {
+    console.error("Error fetching vulnerabilities list:", error);
+    return null;
+  }
+};
+
+// services/assetRisk.ts
+export type AssetRiskDTO = {
+  task_name: string;
+  mac_address: string;
+  aging_day: number;
+  vulnerability_total: number;
+  risk_score: number;
+};
+
+export const ListAssetRisk = async (): Promise<AssetRiskDTO[] | null> => {
+  try {
+    const response = await axios.get(`${apiUrl}/assets/risk`, {
+      headers: {
+        "Content-Type": "application/json",
+        ...getAuthHeader(),
+      },
+      timeout: 15000,
+    });
+
+    if (response.status === 200) {
+      const data = response.data?.data ?? response.data;
+      return data as AssetRiskDTO[];
+    }
+
+    console.error("Unexpected status:", response.status);
+    return null;
+  } catch (error) {
+    console.error("Error fetching asset risk list:", error);
+    return null;
+  }
+};
+
+export type DeviceRiskDTO = {
+  task_name: string;
+  ip_address: string;
+  firmware_version: string;
+  risk_score: number;
+  vulnerability_total: number;
+};
+
+export const ListDeviceRisk = async (): Promise<DeviceRiskDTO[] | null> => {
+  try {
+    const response = await axios.get(`${apiUrl}/devices/risk`, {
+      headers: {
+        "Content-Type": "application/json",
+        ...getAuthHeader(),
+      },
+      timeout: 15000,
+    });
+
+    if (response.status === 200) {
+      const data = response.data?.data ?? response.data;
+      return data as DeviceRiskDTO[];
+    }
+
+    console.error("Unexpected status:", response.status);
+    return null;
+  } catch (error) {
+    console.error("Error fetching device risk list:", error);
+    return null;
+  }
+};
