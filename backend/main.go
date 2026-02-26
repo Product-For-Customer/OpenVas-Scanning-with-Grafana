@@ -1,0 +1,74 @@
+package main
+
+import (
+	"log"
+	"net/http"
+
+	"github.com/Tawunchai/openvas/config"
+	"github.com/Tawunchai/openvas/controller"
+	middlewares "github.com/Tawunchai/openvas/middleware"
+	"github.com/gin-gonic/gin"
+)
+
+const PORT = "9000"
+
+func main() {
+	config.ConnectDB()
+	config.SetupDatabase()
+	config.SeedDatabase()
+
+	// ✅ เริ่ม background listener สำหรับ LINE status (อยู่ใน controller ตามที่ต้องการ)
+	go controller.StartLineStatusListener()
+
+	r := gin.Default()
+	r.Use(CORSMiddleware())
+
+	// Health check
+	r.GET("/", func(c *gin.Context) {
+		c.String(http.StatusOK, "API RUNNING... PORT: %s", PORT)
+	})
+
+	// (optional) endpoint ทดสอบส่ง LINE
+	// GET /line/test?message=hello
+	r.GET("/line/test", controller.TestSendLineHandler)
+
+	// ✅ Automation endpoint สำหรับ n8n (Method A)
+	r.POST("/automation/feed/update", controller.TriggerFeedUpdateHandler)
+
+	// (optional) endpoint เช็กสถานะล่าสุด
+	r.GET("/automation/feed/status", controller.GetFeedUpdateStatusHandler)
+
+	r.GET("/api/report", controller.GetReportCSVSourceHandler)
+
+	// Protected routes
+	authorized := r.Group("")
+	authorized.Use(middlewares.Authorizes())
+	{
+		// ใส่ route ที่ต้อง auth ตรงนี้
+	}
+
+	log.Printf("✅ Server starting on port %s\n", PORT)
+
+	if err := r.Run(":" + PORT); err != nil {
+		log.Fatalf("❌ Failed to run server: %v", err)
+	}
+}
+
+func CORSMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+		c.Writer.Header().Set(
+			"Access-Control-Allow-Headers",
+			"Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With, X-Automation-Token",
+		)
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE, PATCH")
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+
+		c.Next()
+	}
+}
