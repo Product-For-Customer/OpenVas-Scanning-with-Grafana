@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { ListTaskVulnSummary, type TaskVulnSummaryDTO } from "../../../services";
 
 type SeverityKey = "Critical" | "High" | "Medium" | "Low" | "Info";
 type RangeKey = "This Week" | "This Month" | "This Year";
@@ -12,24 +13,17 @@ type SeverityItem = {
 
 const RANGE_OPTIONS: RangeKey[] = ["This Week", "This Month", "This Year"];
 
-/** ✅ ข้อมูลตัวอย่าง (คุณจะเปลี่ยนเป็น data จาก API ได้ทีหลัง) */
-const MOCK_DATA: Record<RangeKey, Record<SeverityKey, number>> = {
-  "This Week": { Critical: 120, High: 360, Medium: 280, Low: 160, Info: 80 },
-  "This Month": { Critical: 420, High: 980, Medium: 760, Low: 540, Info: 260 },
-  "This Year": { Critical: 2400, High: 6800, Medium: 5200, Low: 4100, Info: 1900 },
-};
-
+// ✅ สีให้เหมือน Bar chart เป๊ะ
 const COLORS: Record<SeverityKey, string> = {
-  Critical: "#EF4444",
-  High: "#7C5CFC",
-  Medium: "#60A5FA",
-  Low: "#84CC16",
-  Info: "#94A3B8",
+  Critical: "#ef4444",
+  High: "#f97316",
+  Medium: "#eab308",
+  Low: "#22c55e",
+  Info: "#3b82f6",
 };
 
 const formatPercent = (percent: number) => `${(percent * 100).toFixed(0)}%`;
 
-/** ✅ เลี่ยง TooltipProps ของ recharts เพื่อไม่ชน version/type */
 type CustomTooltipProps = {
   active?: boolean;
   payload?: Array<{ payload?: SeverityItem }>;
@@ -64,24 +58,74 @@ const DeliveryAnalysis: React.FC = () => {
   const [range, setRange] = useState<RangeKey>("This Week");
   const [open, setOpen] = useState(false);
 
+  const [rows, setRows] = useState<TaskVulnSummaryDTO[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let alive = true;
+
+    (async () => {
+      setLoading(true);
+      const res = await ListTaskVulnSummary();
+      if (!alive) return;
+
+      setRows(res ?? []);
+      setLoading(false);
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const totals = useMemo(() => {
+    let critical = 0,
+      high = 0,
+      medium = 0,
+      low = 0,
+      info = 0;
+
+    for (const r of rows) {
+      critical += Number(r.critical || 0);
+      high += Number(r.high || 0);
+      medium += Number(r.medium || 0);
+      low += Number(r.low || 0);
+      info += Number(r.info || 0);
+    }
+
+    return { critical, high, medium, low, info };
+  }, [rows]);
+
   const data = useMemo<SeverityItem[]>(() => {
-    const raw = MOCK_DATA[range];
-    return (Object.keys(raw) as SeverityKey[]).map((k) => ({
-      name: k,
-      value: raw[k],
-      color: COLORS[k],
-    }));
-  }, [range]);
+    const items: SeverityItem[] = [
+      { name: "Critical", value: totals.critical, color: COLORS.Critical },
+      { name: "High", value: totals.high, color: COLORS.High },
+      { name: "Medium", value: totals.medium, color: COLORS.Medium },
+      { name: "Low", value: totals.low, color: COLORS.Low },
+      { name: "Info", value: totals.info, color: COLORS.Info },
+    ];
+
+    const nonZero = items.filter((i) => i.value > 0);
+    return nonZero.length > 0 ? nonZero : items;
+  }, [totals]);
 
   const total = useMemo(() => data.reduce((sum, d) => sum + d.value, 0), [data]);
 
+  const subtitle = useMemo(() => {
+    if (loading) return "Loading from API...";
+    return "Latest snapshot from database";
+  }, [loading, range]);
+
   return (
-    <section className="rounded-[22px] bg-[#f7f7f8] border border-gray-200/80 shadow-sm p-4 sm:p-5 md:p-6 h-full">
+    <section className="rounded-[22px] bg-white border border-gray-200/80 shadow-sm p-4 sm:p-5 md:p-6 h-full">
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
-        <h3 className="text-[18px] sm:text-[20px] font-semibold text-[#1f2240]">
-          Delivery Analysis
-        </h3>
+        <div className="min-w-0">
+          <h3 className="text-[18px] sm:text-[20px] font-semibold text-[#1f2240]">
+            Vulnerability Analysis
+          </h3>
+          <p className="mt-1 text-[12.5px] text-gray-500">{subtitle}</p>
+        </div>
 
         {/* Dropdown */}
         <div className="relative">
@@ -91,7 +135,7 @@ const DeliveryAnalysis: React.FC = () => {
             className="
               h-10 px-4 rounded-xl
               bg-white border border-gray-200/80
-              text-[13px] font-medium text-gray-500
+              text-[13px] font-medium text-gray-600
               inline-flex items-center gap-2
               hover:bg-gray-50 transition
             "
@@ -111,7 +155,7 @@ const DeliveryAnalysis: React.FC = () => {
                     setRange(opt);
                     setOpen(false);
                   }}
-                  className="w-full text-left px-4 py-2.5 text-[13px] hover:bg-gray-50 transition text-gray-600"
+                  className="w-full text-left px-4 py-2.5 text-[13px] hover:bg-gray-50 transition text-gray-700"
                 >
                   {opt}
                 </button>
@@ -122,11 +166,20 @@ const DeliveryAnalysis: React.FC = () => {
       </div>
 
       {/* Chart */}
-      <div className="mt-4 sm:mt-5 h-64 sm:h-72">
+      <div className="mt-4 sm:mt-5 h-64 sm:h-72 relative">
+        {/* Center label */}
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-[22px] sm:text-[26px] font-semibold text-[#1f2240] tabular-nums">
+              {loading ? "..." : total.toLocaleString()}
+            </div>
+            <div className="mt-1 text-[12px] text-gray-500">Total findings</div>
+          </div>
+        </div>
+
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Tooltip
-              // ✅ cast เป็น any เพื่อให้เข้ากับ recharts ทุกเวอร์ชัน + ไม่ error TS
               content={(props: any) => <CustomTooltip {...props} total={total} />}
               cursor={false}
             />
@@ -134,10 +187,11 @@ const DeliveryAnalysis: React.FC = () => {
               data={data}
               dataKey="value"
               nameKey="name"
-              innerRadius="48%"
-              outerRadius="78%"
-              paddingAngle={0}
-              stroke="transparent"
+              innerRadius="55%"
+              outerRadius="82%"
+              paddingAngle={2}
+              stroke="white"
+              strokeWidth={2}
               isAnimationActive={true}
             >
               {data.map((entry) => (
@@ -152,17 +206,32 @@ const DeliveryAnalysis: React.FC = () => {
       <div className="mt-4 sm:mt-5">
         <div
           className="
-            rounded-2xl bg-white border border-gray-200/80 shadow-sm
+            rounded-2xl bg-white border border-gray-200/80
             px-4 py-3
             flex flex-wrap items-center justify-center gap-x-6 gap-y-3
           "
         >
-          {data.map((item) => (
-            <div key={item.name} className="flex items-center gap-2">
-              <span className="h-4 w-4 rounded-sm" style={{ background: item.color }} />
-              <span className="text-[13px] font-medium text-[#1f2240]">{item.name}</span>
-            </div>
-          ))}
+          {(["Critical", "High", "Medium", "Low", "Info"] as SeverityKey[]).map((k) => {
+            const item = data.find((d) => d.name === k) || {
+              name: k,
+              value: 0,
+              color: COLORS[k],
+            };
+            const p = total > 0 ? item.value / total : 0;
+
+            return (
+              <div key={k} className="flex items-center gap-2">
+                <span className="h-4 w-4 rounded-sm" style={{ background: COLORS[k] }} />
+                <span className="text-[13px] font-medium text-[#1f2240]">{k}</span>
+                <span className="text-[12px] text-gray-500 tabular-nums">
+                  {loading ? "..." : item.value.toLocaleString()}
+                </span>
+                <span className="text-[12px] text-gray-400 tabular-nums">
+                  {loading ? "" : `(${formatPercent(p)})`}
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>

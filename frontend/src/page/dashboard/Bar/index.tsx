@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ResponsiveContainer,
   BarChart,
@@ -11,19 +11,12 @@ import {
   Cell,
 } from "recharts";
 
+import { ListTaskVulnSummary, type TaskVulnSummaryDTO } from "../../../services";
+
 type SeverityRow = {
   name: "Critical" | "High" | "Medium" | "Low" | "Info";
-  current: number;
-  previous: number;
+  current: number; // latest scan only
 };
-
-const data: SeverityRow[] = [
-  { name: "Critical", current: 12, previous: 8 },
-  { name: "High", current: 26, previous: 18 },
-  { name: "Medium", current: 34, previous: 27 },
-  { name: "Low", current: 22, previous: 30 },
-  { name: "Info", current: 16, previous: 12 },
-];
 
 const severityColors: Record<SeverityRow["name"], string> = {
   Critical: "#ef4444",
@@ -32,8 +25,6 @@ const severityColors: Record<SeverityRow["name"], string> = {
   Low: "#22c55e",
   Info: "#3b82f6",
 };
-
-const previousBarColor = "#cbd5e1";
 
 const CustomTooltip = ({
   active,
@@ -65,14 +56,74 @@ const CustomTooltip = ({
 };
 
 const BarSeverityChart: React.FC = () => {
+  const [rows, setRows] = useState<TaskVulnSummaryDTO[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let alive = true;
+
+    (async () => {
+      setLoading(true);
+      const res = await ListTaskVulnSummary();
+      if (!alive) return;
+
+      setRows(res ?? []);
+      setLoading(false);
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const totals = useMemo(() => {
+    let critical = 0,
+      high = 0,
+      medium = 0,
+      low = 0,
+      info = 0;
+
+    for (const r of rows) {
+      critical += Number(r.critical || 0);
+      high += Number(r.high || 0);
+      medium += Number(r.medium || 0);
+      low += Number(r.low || 0);
+      info += Number(r.info || 0);
+    }
+
+    return { critical, high, medium, low, info };
+  }, [rows]);
+
+  const data: SeverityRow[] = useMemo(
+    () => [
+      { name: "Critical", current: totals.critical },
+      { name: "High", current: totals.high },
+      { name: "Medium", current: totals.medium },
+      { name: "Low", current: totals.low },
+      { name: "Info", current: totals.info },
+    ],
+    [totals]
+  );
+
+  const totalAll = useMemo(
+    () => totals.critical + totals.high + totals.medium + totals.low + totals.info,
+    [totals]
+  );
+
   return (
-    // ✅ เพิ่ม h-full + ทำเป็น flex column เพื่อให้กราฟกินพื้นที่ที่เหลือ
-    <section className="h-full rounded-[22px] bg-[#f7f7f8] border border-gray-200/80 shadow-sm p-4 sm:p-5 md:p-6 flex flex-col">
+    <section className="h-full rounded-[22px] bg-white border border-gray-200/80 shadow-sm p-4 sm:p-5 md:p-6 flex flex-col">
       {/* Header */}
       <div className="flex items-start sm:items-center justify-between gap-3 mb-4 sm:mb-5">
-        <h2 className="text-[20px] sm:text-[22px] font-semibold text-[#1f2240] tracking-tight">
-          Severity activity
-        </h2>
+        <div className="min-w-0">
+          <h2 className="text-[20px] sm:text-[22px] font-semibold text-[#1f2240] tracking-tight">
+            Severity activity
+          </h2>
+          <p className="mt-1 text-[12.5px] text-gray-500">
+            {loading
+              ? "Loading from API..."
+              : `Latest scan snapshot • Total: ${totalAll.toLocaleString()}`}
+          </p>
+        </div>
 
         <span
           className="
@@ -81,11 +132,11 @@ const BarSeverityChart: React.FC = () => {
             text-[13px] text-gray-400
           "
         >
-          30 Days
+          Latest
         </span>
       </div>
 
-      {/* ✅ Chart: จากเดิม h-85/h-95 -> ใช้ flex-1 เพื่อให้สูงเท่ากล่องอื่น */}
+      {/* Chart */}
       <div className="flex-1 min-h-65">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
@@ -127,20 +178,7 @@ const BarSeverityChart: React.FC = () => {
               formatter={(value) => <span style={{ color: "#4b5563" }}>{value}</span>}
             />
 
-            <Bar
-              dataKey="previous"
-              name="Previous Scan"
-              radius={[8, 8, 0, 0]}
-              maxBarSize={26}
-              fill={previousBarColor}
-            />
-
-            <Bar
-              dataKey="current"
-              name="Current Scan"
-              radius={[8, 8, 0, 0]}
-              maxBarSize={26}
-            >
+            <Bar dataKey="current" name="" radius={[8, 8, 0, 0]} maxBarSize={28}>
               {data.map((entry, index) => (
                 <Cell key={`cell-${entry.name}-${index}`} fill={severityColors[entry.name]} />
               ))}

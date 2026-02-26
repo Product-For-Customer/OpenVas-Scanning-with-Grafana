@@ -6,6 +6,7 @@ import (
 
 	"github.com/Tawunchai/openvas/config"
 	"github.com/Tawunchai/openvas/controller"
+	"github.com/Tawunchai/openvas/controller/vulnerability"
 	middlewares "github.com/Tawunchai/openvas/middleware"
 	"github.com/gin-gonic/gin"
 )
@@ -27,18 +28,14 @@ func main() {
 	r.GET("/", func(c *gin.Context) {
 		c.String(http.StatusOK, "API RUNNING... PORT: %s", PORT)
 	})
-
-	// (optional) endpoint ทดสอบส่ง LINE
-	// GET /line/test?message=hello
 	r.GET("/line/test", controller.TestSendLineHandler)
-
-	// ✅ Automation endpoint สำหรับ n8n (Method A)
 	r.POST("/automation/feed/update", controller.TriggerFeedUpdateHandler)
-
-	// (optional) endpoint เช็กสถานะล่าสุด
 	r.GET("/automation/feed/status", controller.GetFeedUpdateStatusHandler)
-
 	r.GET("/api/report", controller.GetReportCSVSourceHandler)
+
+	// Service API with Frontend
+	r.GET("/tasks/status", vulnerability.ListStatus)
+	r.GET("/tasks/summary-vulnerability", vulnerability.ListTaskVulnSummary)
 
 	// Protected routes
 	authorized := r.Group("")
