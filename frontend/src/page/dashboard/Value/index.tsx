@@ -16,14 +16,15 @@ type StatCard = {
   title: SeverityKey;
   value: string;
   subtitle: string;
-
   icon: React.ReactNode;
 
-  bg: string;     // gradient background (เข้ม)
+  // ✅ คลาสแบบ Light + Dark อยู่ใน string เดียว (ใช้ dark: แยก)
+  bg: string;     // background
   ring: string;   // ring/border
   glow: string;   // shadow glow
   pill: string;   // badge style
-  bar: string;    // progress bar gradient
+  bar: string;    // progress bar
+  iconBox: string; // icon container
 };
 
 const Value: React.FC = () => {
@@ -75,7 +76,6 @@ const Value: React.FC = () => {
   const makeSubtitle = (n: number) =>
     loading ? "Loading from API..." : `${percent(n)}% of total findings`;
 
-  // ✅ ช่วยให้ bar มีความหมาย (กว้างตาม %)
   const barWidth = (n: number) => `${percent(n)}%`;
 
   const stats: StatCard[] = useMemo(
@@ -87,12 +87,31 @@ const Value: React.FC = () => {
         subtitle: makeSubtitle(totals.critical),
         icon: <FiAlertOctagon />,
 
-        // 🔥 เข้มมากขึ้น
-        bg: "bg-gradient-to-br from-[#120408] via-[#3a0a12] to-[#7f1d1d]",
-        ring: "ring-1 ring-[#fb7185]/30 border border-white/10",
-        glow: "shadow-[0_18px_44px_-18px_rgba(239,68,68,0.60)]",
-        pill: "bg-white/10 text-white border border-white/15",
-        bar: "bg-gradient-to-r from-[#fb7185] via-[#ef4444] to-[#991b1b]",
+        // ✅ Light (สว่าง อ่านง่าย) + Dark (เข้มแบบเดิม)
+        bg: [
+          "bg-gradient-to-br from-[#fff1f2] via-[#ffe4e6] to-[#fecdd3]",
+          "dark:bg-gradient-to-br dark:from-[#120408] dark:via-[#3a0a12] dark:to-[#7f1d1d]",
+        ].join(" "),
+        ring: [
+          "border border-rose-200/70 ring-1 ring-rose-300/35",
+          "dark:border-white/10 dark:ring-[#fb7185]/30",
+        ].join(" "),
+        glow: [
+          "shadow-[0_18px_44px_-18px_rgba(239,68,68,0.20)]",
+          "dark:shadow-[0_18px_44px_-18px_rgba(239,68,68,0.60)]",
+        ].join(" "),
+        pill: [
+          "bg-white/70 text-rose-700 border border-rose-200/80",
+          "dark:bg-white/10 dark:text-white dark:border-white/15",
+        ].join(" "),
+        bar: [
+          "bg-gradient-to-r from-[#fb7185] via-[#ef4444] to-[#991b1b]",
+          "dark:bg-gradient-to-r dark:from-[#fb7185] dark:via-[#ef4444] dark:to-[#991b1b]",
+        ].join(" "),
+        iconBox: [
+          "bg-white/70 border border-rose-200/70 text-rose-700",
+          "dark:bg-white/10 dark:border-white/10 dark:text-white",
+        ].join(" "),
       },
       {
         id: 2,
@@ -101,11 +120,30 @@ const Value: React.FC = () => {
         subtitle: makeSubtitle(totals.high),
         icon: <FiAlertTriangle />,
 
-        bg: "bg-gradient-to-br from-[#0f0703] via-[#3a1607] to-[#9a3412]",
-        ring: "ring-1 ring-[#fdba74]/28 border border-white/10",
-        glow: "shadow-[0_18px_44px_-18px_rgba(249,115,22,0.55)]",
-        pill: "bg-white/10 text-white border border-white/15",
-        bar: "bg-gradient-to-r from-[#fdba74] via-[#f97316] to-[#c2410c]",
+        bg: [
+          "bg-gradient-to-br from-[#fff7ed] via-[#ffedd5] to-[#fed7aa]",
+          "dark:bg-gradient-to-br dark:from-[#0f0703] dark:via-[#3a1607] dark:to-[#9a3412]",
+        ].join(" "),
+        ring: [
+          "border border-orange-200/70 ring-1 ring-orange-300/35",
+          "dark:border-white/10 dark:ring-[#fdba74]/28",
+        ].join(" "),
+        glow: [
+          "shadow-[0_18px_44px_-18px_rgba(249,115,22,0.20)]",
+          "dark:shadow-[0_18px_44px_-18px_rgba(249,115,22,0.55)]",
+        ].join(" "),
+        pill: [
+          "bg-white/70 text-orange-700 border border-orange-200/80",
+          "dark:bg-white/10 dark:text-white dark:border-white/15",
+        ].join(" "),
+        bar: [
+          "bg-gradient-to-r from-[#fdba74] via-[#f97316] to-[#c2410c]",
+          "dark:bg-gradient-to-r dark:from-[#fdba74] dark:via-[#f97316] dark:to-[#c2410c]",
+        ].join(" "),
+        iconBox: [
+          "bg-white/70 border border-orange-200/70 text-orange-700",
+          "dark:bg-white/10 dark:border-white/10 dark:text-white",
+        ].join(" "),
       },
       {
         id: 3,
@@ -114,11 +152,30 @@ const Value: React.FC = () => {
         subtitle: makeSubtitle(totals.medium),
         icon: <FiInfo />,
 
-        bg: "bg-gradient-to-br from-[#0f0b02] via-[#2a1a05] to-[#854d0e]",
-        ring: "ring-1 ring-[#fde68a]/25 border border-white/10",
-        glow: "shadow-[0_18px_44px_-18px_rgba(250,204,21,0.45)]",
-        pill: "bg-white/10 text-white border border-white/15",
-        bar: "bg-gradient-to-r from-[#fde68a] via-[#facc15] to-[#a16207]",
+        bg: [
+          "bg-gradient-to-br from-[#fffbeb] via-[#fef3c7] to-[#fde68a]",
+          "dark:bg-gradient-to-br dark:from-[#0f0b02] dark:via-[#2a1a05] dark:to-[#854d0e]",
+        ].join(" "),
+        ring: [
+          "border border-amber-200/70 ring-1 ring-amber-300/35",
+          "dark:border-white/10 dark:ring-[#fde68a]/25",
+        ].join(" "),
+        glow: [
+          "shadow-[0_18px_44px_-18px_rgba(250,204,21,0.16)]",
+          "dark:shadow-[0_18px_44px_-18px_rgba(250,204,21,0.45)]",
+        ].join(" "),
+        pill: [
+          "bg-white/70 text-amber-800 border border-amber-200/80",
+          "dark:bg-white/10 dark:text-white dark:border-white/15",
+        ].join(" "),
+        bar: [
+          "bg-gradient-to-r from-[#fde68a] via-[#facc15] to-[#a16207]",
+          "dark:bg-gradient-to-r dark:from-[#fde68a] dark:via-[#facc15] dark:to-[#a16207]",
+        ].join(" "),
+        iconBox: [
+          "bg-white/70 border border-amber-200/70 text-amber-800",
+          "dark:bg-white/10 dark:border-white/10 dark:text-white",
+        ].join(" "),
       },
       {
         id: 4,
@@ -127,11 +184,30 @@ const Value: React.FC = () => {
         subtitle: makeSubtitle(totals.low),
         icon: <FiMinusCircle />,
 
-        bg: "bg-gradient-to-br from-[#03120b] via-[#052e1e] to-[#065f46]",
-        ring: "ring-1 ring-[#86efac]/25 border border-white/10",
-        glow: "shadow-[0_18px_44px_-18px_rgba(34,197,94,0.45)]",
-        pill: "bg-white/10 text-white border border-white/15",
-        bar: "bg-gradient-to-r from-[#86efac] via-[#22c55e] to-[#15803d]",
+        bg: [
+          "bg-gradient-to-br from-[#ecfdf5] via-[#d1fae5] to-[#a7f3d0]",
+          "dark:bg-gradient-to-br dark:from-[#03120b] dark:via-[#052e1e] dark:to-[#065f46]",
+        ].join(" "),
+        ring: [
+          "border border-emerald-200/70 ring-1 ring-emerald-300/35",
+          "dark:border-white/10 dark:ring-[#86efac]/25",
+        ].join(" "),
+        glow: [
+          "shadow-[0_18px_44px_-18px_rgba(34,197,94,0.18)]",
+          "dark:shadow-[0_18px_44px_-18px_rgba(34,197,94,0.45)]",
+        ].join(" "),
+        pill: [
+          "bg-white/70 text-emerald-800 border border-emerald-200/80",
+          "dark:bg-white/10 dark:text-white dark:border-white/15",
+        ].join(" "),
+        bar: [
+          "bg-gradient-to-r from-[#86efac] via-[#22c55e] to-[#15803d]",
+          "dark:bg-gradient-to-r dark:from-[#86efac] dark:via-[#22c55e] dark:to-[#15803d]",
+        ].join(" "),
+        iconBox: [
+          "bg-white/70 border border-emerald-200/70 text-emerald-800",
+          "dark:bg-white/10 dark:border-white/10 dark:text-white",
+        ].join(" "),
       },
       {
         id: 5,
@@ -140,11 +216,30 @@ const Value: React.FC = () => {
         subtitle: makeSubtitle(totals.info),
         icon: <FiShield />,
 
-        bg: "bg-gradient-to-br from-[#020b16] via-[#06243a] to-[#075985]",
-        ring: "ring-1 ring-[#7dd3fc]/25 border border-white/10",
-        glow: "shadow-[0_18px_44px_-18px_rgba(56,189,248,0.45)]",
-        pill: "bg-white/10 text-white border border-white/15",
-        bar: "bg-gradient-to-r from-[#7dd3fc] via-[#38bdf8] to-[#0284c7]",
+        bg: [
+          "bg-gradient-to-br from-[#eff6ff] via-[#dbeafe] to-[#bfdbfe]",
+          "dark:bg-gradient-to-br dark:from-[#020b16] dark:via-[#06243a] dark:to-[#075985]",
+        ].join(" "),
+        ring: [
+          "border border-sky-200/70 ring-1 ring-sky-300/35",
+          "dark:border-white/10 dark:ring-[#7dd3fc]/25",
+        ].join(" "),
+        glow: [
+          "shadow-[0_18px_44px_-18px_rgba(56,189,248,0.16)]",
+          "dark:shadow-[0_18px_44px_-18px_rgba(56,189,248,0.45)]",
+        ].join(" "),
+        pill: [
+          "bg-white/70 text-sky-800 border border-sky-200/80",
+          "dark:bg-white/10 dark:text-white dark:border-white/15",
+        ].join(" "),
+        bar: [
+          "bg-gradient-to-r from-[#7dd3fc] via-[#38bdf8] to-[#0284c7]",
+          "dark:bg-gradient-to-r dark:from-[#7dd3fc] dark:via-[#38bdf8] dark:to-[#0284c7]",
+        ].join(" "),
+        iconBox: [
+          "bg-white/70 border border-sky-200/70 text-sky-800",
+          "dark:bg-white/10 dark:border-white/10 dark:text-white",
+        ].join(" "),
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -152,7 +247,13 @@ const Value: React.FC = () => {
   );
 
   return (
-    <section className="rounded-[22px] bg-white border border-gray-200/80 shadow-sm p-3 sm:p-3.5">
+    <section
+      className={[
+        "rounded-[22px] p-3 sm:p-3.5",
+        "bg-white border border-gray-200/80 shadow-sm",
+        "dark:bg-white/5 dark:border-white/10 dark:ring-1 dark:ring-white/10 dark:shadow-none",
+      ].join(" ")}
+    >
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-2.5 sm:gap-3">
         {stats.map((item) => {
           const rawNumber =
@@ -172,24 +273,39 @@ const Value: React.FC = () => {
             <div
               key={item.id}
               className={[
-                "min-w-0 rounded-2xl p-3 sm:p-3.5 text-white relative overflow-hidden",
+                "min-w-0 rounded-2xl p-3 sm:p-3.5 relative overflow-hidden",
                 "transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-xl",
+                // ✅ text light/dark
+                "text-slate-900 dark:text-white",
                 item.bg,
                 item.ring,
                 item.glow,
               ].join(" ")}
             >
-              {/* overlay grid */}
-              <div className="pointer-events-none absolute inset-0 opacity-20 [background:linear-gradient(to_right,rgba(255,255,255,0.10)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.10)_1px,transparent_1px)] bg-size-[16px_16px]" />
+              {/* overlay grid (ปรับให้เหมาะกับ light/dark) */}
+              <div
+                className={[
+                  "pointer-events-none absolute inset-0 opacity-35",
+                  "dark:opacity-20",
+                  "[background:linear-gradient(to_right,rgba(15,23,42,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(15,23,42,0.08)_1px,transparent_1px)]",
+                  "dark:[background:linear-gradient(to_right,rgba(255,255,255,0.10)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.10)_1px,transparent_1px)]",
+                  "bg-size-[16px_16px]",
+                ].join(" ")}
+              />
               {/* soft corner glow */}
-              <div className="pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
+              <div className="pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full bg-white/35 dark:bg-white/10 blur-3xl" />
 
               <div className="relative flex flex-col justify-between min-h-26">
                 {/* top row */}
                 <div className="flex items-start justify-between gap-2 min-w-0">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <div className="h-9 w-9 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-center text-[18px]">
+                      <div
+                        className={[
+                          "h-9 w-9 rounded-2xl flex items-center justify-center text-[18px]",
+                          item.iconBox,
+                        ].join(" ")}
+                      >
                         {item.icon}
                       </div>
 
@@ -197,7 +313,7 @@ const Value: React.FC = () => {
                         <h3 className="min-w-0 truncate text-[12.5px] sm:text-[13px] leading-[1.15] font-semibold tracking-wide">
                           {item.title}
                         </h3>
-                        <p className="mt-0.5 text-[11px] text-white/75 truncate">
+                        <p className="mt-0.5 text-[11px] text-slate-600/80 dark:text-white/75 truncate">
                           Severity summary
                         </p>
                       </div>
@@ -221,14 +337,14 @@ const Value: React.FC = () => {
                     {item.value}
                   </p>
 
-                  <p className="mt-1 text-[11.5px] text-white/80">
+                  <p className="mt-1 text-[11.5px] text-slate-700/80 dark:text-white/80">
                     {item.subtitle}
                   </p>
                 </div>
 
                 {/* progress bar */}
                 <div className="mt-3">
-                  <div className="h-2.5 w-full rounded-full bg-white/10 overflow-hidden border border-white/10">
+                  <div className="h-2.5 w-full rounded-full bg-black/5 dark:bg-white/10 overflow-hidden border border-black/10 dark:border-white/10">
                     <div
                       className={["h-full rounded-full transition-all duration-700", item.bar].join(
                         " "
@@ -244,13 +360,13 @@ const Value: React.FC = () => {
       </div>
 
       {!loading && (
-        <div className="mt-3 px-1 text-[12px] text-gray-500">
+        <div className="mt-3 px-1 text-[12px] text-gray-500 dark:text-white/55">
           Total findings:{" "}
-          <span className="font-medium text-gray-700">
+          <span className="font-medium text-gray-700 dark:text-white/80">
             {totals.totalAll.toLocaleString()}
           </span>{" "}
           • Tasks:{" "}
-          <span className="font-medium text-gray-700">
+          <span className="font-medium text-gray-700 dark:text-white/80">
             {rows.length.toLocaleString()}
           </span>
         </div>

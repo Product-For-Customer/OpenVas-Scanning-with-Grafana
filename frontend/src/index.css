@@ -1,1 +1,4 @@
 @import "tailwindcss";
+
+/* ✅ Tailwind v4: กำหนด dark variant ให้ใช้ class .dark */
+@custom-variant dark (&:where(.dark, .dark *));

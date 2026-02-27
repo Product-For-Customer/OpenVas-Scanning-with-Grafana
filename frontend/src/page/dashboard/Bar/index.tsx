@@ -1,3 +1,4 @@
+// BarSeverityChart.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ResponsiveContainer,
@@ -15,7 +16,7 @@ import { ListTaskVulnSummary, type TaskVulnSummaryDTO } from "../../../services"
 
 type SeverityRow = {
   name: "Critical" | "High" | "Medium" | "Low" | "Info";
-  current: number; // latest scan only
+  current: number;
 };
 
 const severityColors: Record<SeverityRow["name"], string> = {
@@ -38,8 +39,10 @@ const CustomTooltip = ({
   if (!active || !payload || !payload.length) return null;
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white shadow-md px-3 py-2">
-      <p className="text-[13px] font-semibold text-[#1f2240] mb-1">{label}</p>
+    <div className="rounded-xl border border-gray-200 bg-white shadow-md px-3 py-2 dark:border-white/10 dark:bg-[#0B1220] dark:shadow-none">
+      <p className="text-[13px] font-semibold text-[#1f2240] dark:text-white/90 mb-1">
+        {label}
+      </p>
 
       {payload.map((item, index) => (
         <div key={index} className="flex items-center gap-2 text-[12px]">
@@ -47,8 +50,10 @@ const CustomTooltip = ({
             className="inline-block h-2.5 w-2.5 rounded-full"
             style={{ backgroundColor: item.color }}
           />
-          <span className="text-gray-500">{item.name}:</span>
-          <span className="font-semibold text-[#1f2240]">{item.value}</span>
+          <span className="text-gray-500 dark:text-white/55">{item.name}:</span>
+          <span className="font-semibold text-[#1f2240] dark:text-white/85 tabular-nums">
+            {item.value}
+          </span>
         </div>
       ))}
     </div>
@@ -111,14 +116,20 @@ const BarSeverityChart: React.FC = () => {
   );
 
   return (
-    <section className="h-full rounded-[22px] bg-white border border-gray-200/80 shadow-sm p-4 sm:p-5 md:p-6 flex flex-col">
+    <section
+      className={[
+        "h-full rounded-[22px] p-4 sm:p-5 md:p-6 flex flex-col",
+        "bg-white border border-gray-200/80 shadow-sm",
+        "dark:bg-white/5 dark:border-white/10 dark:ring-1 dark:ring-white/10 dark:shadow-none",
+      ].join(" ")}
+    >
       {/* Header */}
       <div className="flex items-start sm:items-center justify-between gap-3 mb-4 sm:mb-5">
         <div className="min-w-0">
-          <h2 className="text-[20px] sm:text-[22px] font-semibold text-[#1f2240] tracking-tight">
+          <h2 className="text-[20px] sm:text-[22px] font-semibold text-[#1f2240] dark:text-white/90 tracking-tight">
             Severity activity
           </h2>
-          <p className="mt-1 text-[12.5px] text-gray-500">
+          <p className="mt-1 text-[12.5px] text-gray-500 dark:text-white/55">
             {loading
               ? "Loading from API..."
               : `Latest scan snapshot • Total: ${totalAll.toLocaleString()}`}
@@ -126,11 +137,11 @@ const BarSeverityChart: React.FC = () => {
         </div>
 
         <span
-          className="
-            shrink-0 rounded-full border border-gray-200 bg-white
-            h-9 px-4 inline-flex items-center justify-center
-            text-[13px] text-gray-400
-          "
+          className={[
+            "shrink-0 rounded-full h-9 px-4 inline-flex items-center justify-center text-[13px]",
+            "border border-gray-200 bg-white text-gray-400",
+            "dark:border-white/10 dark:bg-white/5 dark:text-white/50",
+          ].join(" ")}
         >
           Latest
         </span>
@@ -144,7 +155,12 @@ const BarSeverityChart: React.FC = () => {
             margin={{ top: 8, right: 10, left: 0, bottom: 18 }}
             barCategoryGap="28%"
           >
-            <CartesianGrid strokeDasharray="0" vertical={false} stroke="#ececf1" />
+            <CartesianGrid
+              strokeDasharray="0"
+              vertical={false}
+              stroke="#ececf1"
+              className="dark:opacity-30"
+            />
 
             <XAxis
               dataKey="name"

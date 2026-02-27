@@ -1,3 +1,4 @@
+// RiskScoreGraph.tsx
 import React, { useMemo, useState } from "react";
 import {
   ResponsiveContainer,
@@ -52,16 +53,20 @@ const CustomTooltip = ({
   if (!active || !payload || !payload.length) return null;
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white shadow-md px-3 py-2">
-      <p className="text-[13px] font-semibold text-[#1f2240] mb-1">{label}</p>
+    <div className="rounded-xl border border-gray-200 bg-white shadow-md px-3 py-2 dark:border-white/10 dark:bg-[#0B1220] dark:shadow-none">
+      <p className="text-[13px] font-semibold text-[#1f2240] dark:text-white/90 mb-1">
+        {label}
+      </p>
       {payload.map((p, idx) => (
         <div key={idx} className="flex items-center gap-2 text-[12px]">
           <span
             className="inline-block h-2.5 w-2.5 rounded-full"
             style={{ backgroundColor: p.color }}
           />
-          <span className="text-gray-500">{p.name}:</span>
-          <span className="font-semibold text-[#1f2240]">{p.value}</span>
+          <span className="text-gray-500 dark:text-white/55">{p.name}:</span>
+          <span className="font-semibold text-[#1f2240] dark:text-white/85 tabular-nums">
+            {p.value}
+          </span>
         </div>
       ))}
     </div>
@@ -77,15 +82,21 @@ const RiskScoreGraph: React.FC = () => {
   }, [range]);
 
   return (
-    <section className="h-full rounded-[22px] bg-[#f7f7f8] border border-gray-200/80 shadow-sm p-4 sm:p-5 md:p-6 flex flex-col">
+    <section
+      className={[
+        "h-full rounded-[22px] p-4 sm:p-5 md:p-6 flex flex-col",
+        "bg-white border border-gray-200/80 shadow-sm",
+        "dark:bg-white/5 dark:border-white/10 dark:ring-1 dark:ring-white/10 dark:shadow-none",
+      ].join(" ")}
+    >
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-[20px] sm:text-[22px] font-semibold text-[#1f2240] tracking-tight">
+          <h2 className="text-[20px] sm:text-[22px] font-semibold text-[#1f2240] dark:text-white/90 tracking-tight">
             Order Status
           </h2>
 
-          <div className="mt-4 flex items-center gap-8 text-[13px] text-gray-500">
+          <div className="mt-4 flex items-center gap-8 text-[13px] text-gray-500 dark:text-white/55">
             <div className="flex items-center gap-2">
               <span className="h-2.5 w-5 rounded-full bg-[#6f5be8]" />
               <span>Orders</span>
@@ -102,20 +113,18 @@ const RiskScoreGraph: React.FC = () => {
           <button
             type="button"
             onClick={() => setOpen((s) => !s)}
-            className="
-              h-10 px-4 rounded-xl
-              bg-white border border-gray-200/80
-              text-[13px] font-medium text-gray-500
-              inline-flex items-center gap-2
-              hover:bg-gray-50 transition
-            "
+            className={[
+              "h-10 px-4 rounded-xl inline-flex items-center gap-2 transition",
+              "bg-white border border-gray-200/80 text-[13px] font-medium text-gray-500 hover:bg-gray-50",
+              "dark:bg-white/5 dark:border-white/10 dark:text-white/65 dark:hover:bg-white/10",
+            ].join(" ")}
           >
             {range}
-            <span className="text-gray-400">▾</span>
+            <span className="text-gray-400 dark:text-white/45">▾</span>
           </button>
 
           {open && (
-            <div className="absolute right-0 mt-2 w-40 rounded-xl border border-gray-200 bg-white shadow-lg overflow-hidden z-20">
+            <div className="absolute right-0 mt-2 w-40 rounded-xl border border-gray-200 bg-white shadow-lg overflow-hidden z-20 dark:border-white/10 dark:bg-[#0B1220] dark:shadow-none">
               {RANGE_OPTIONS.map((opt) => (
                 <button
                   key={opt}
@@ -124,7 +133,7 @@ const RiskScoreGraph: React.FC = () => {
                     setRange(opt);
                     setOpen(false);
                   }}
-                  className="w-full text-left px-4 py-2.5 text-[13px] hover:bg-gray-50 transition text-gray-600"
+                  className="w-full text-left px-4 py-2.5 text-[13px] hover:bg-gray-50 transition text-gray-600 dark:text-white/70 dark:hover:bg-white/8"
                 >
                   {opt}
                 </button>
@@ -138,7 +147,7 @@ const RiskScoreGraph: React.FC = () => {
       <div className="mt-4 flex-1 min-h-65">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="6 6" vertical={false} stroke="#ececf1" />
+            <CartesianGrid strokeDasharray="6 6" vertical={false} stroke="#ececf1" className="dark:opacity-30" />
             <XAxis
               dataKey="month"
               tick={{ fill: "#5b6170", fontSize: 12 }}
@@ -156,7 +165,6 @@ const RiskScoreGraph: React.FC = () => {
             />
             <Tooltip content={<CustomTooltip />} />
 
-            {/* gradient area */}
             <defs>
               <linearGradient id="riskFill" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#6f5be8" stopOpacity={0.22} />
@@ -164,7 +172,6 @@ const RiskScoreGraph: React.FC = () => {
               </linearGradient>
             </defs>
 
-            {/* soft area under delivery line (เหมือนรูป) */}
             <Area
               type="monotone"
               dataKey="deliveryScore"
@@ -173,7 +180,6 @@ const RiskScoreGraph: React.FC = () => {
               fill="url(#riskFill)"
             />
 
-            {/* lines */}
             <Line
               type="monotone"
               dataKey="riskScore"

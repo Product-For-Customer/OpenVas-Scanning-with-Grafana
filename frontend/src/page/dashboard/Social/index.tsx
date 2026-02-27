@@ -1,3 +1,4 @@
+// Social.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import { FiMoreHorizontal } from "react-icons/fi";
 import { ListAssetRisk, type AssetRiskDTO } from "../../../services";
@@ -5,9 +6,9 @@ import { ListAssetRisk, type AssetRiskDTO } from "../../../services";
 type RowItem = {
   id: string;
   name: string;
-  valueLeft: string;  // เช่น "60" หรือ "Total Tasks"
-  valueRight: string; // เช่น "2.60" หรือ "Avg Risk"
-  percent?: number;   // ถ้าต้องการ bar (optional)
+  valueLeft: string;
+  valueRight: string;
+  percent?: number;
   icon: React.ReactNode;
 };
 
@@ -42,15 +43,11 @@ const Social: React.FC = () => {
     };
   }, []);
 
-  // ✅ summary
   const summary = useMemo(() => {
     const list = data ?? [];
     const taskCount = list.length;
 
-    const totalVuln = list.reduce(
-      (sum, x) => sum + (Number(x.vulnerability_total) || 0),
-      0
-    );
+    const totalVuln = list.reduce((sum, x) => sum + (Number(x.vulnerability_total) || 0), 0);
 
     const avgRisk =
       taskCount === 0
@@ -60,11 +57,9 @@ const Social: React.FC = () => {
     return { taskCount, totalVuln, avgRisk };
   }, [data]);
 
-  // ✅ rows: เอา 3 ตัว summary ไปรวมกับ list เดียวกัน (อยู่บนสุด)
   const rows: RowItem[] = useMemo(() => {
     const list = data ?? [];
 
-    // ทำ percent ให้ bar วิ่งตาม risk (ถ้าอยากใช้)
     const maxRisk = list.reduce((m, x) => Math.max(m, Number(x.risk_score) || 0), 0);
     const maxVuln = list.reduce((m, x) => Math.max(m, Number(x.vulnerability_total) || 0), 0);
 
@@ -84,44 +79,46 @@ const Social: React.FC = () => {
           valueLeft: formatNumber(vuln),
           valueRight: formatRisk(risk),
           percent: clamp(percent, 0, 100),
-          icon: <span className="text-[12px] font-bold text-gray-600">{initials}</span>,
+          icon: (
+            <span className="text-[12px] font-bold text-gray-600 dark:text-white/70">
+              {initials}
+            </span>
+          ),
         };
       })
       .sort((a, b) => {
-        // sort ตาม risk ก่อน (valueRight เป็น string แล้ว) -> ใช้ risk จากต้นทางแทน
-        const ar = Number((a.valueRight as unknown as string).replace(",", "")) || 0;
-        const br = Number((b.valueRight as unknown as string).replace(",", "")) || 0;
+        const ar = Number(String(a.valueRight).replace(",", "")) || 0;
+        const br = Number(String(b.valueRight).replace(",", "")) || 0;
         if (br !== ar) return br - ar;
 
-        const av = Number((a.valueLeft as unknown as string).replace(",", "")) || 0;
-        const bv = Number((b.valueLeft as unknown as string).replace(",", "")) || 0;
+        const av = Number(String(a.valueLeft).replace(",", "")) || 0;
+        const bv = Number(String(b.valueLeft).replace(",", "")) || 0;
         if (bv !== av) return bv - av;
 
         return a.name.localeCompare(b.name);
       });
 
-    // ✅ 3 แถว summary (อยู่บนสุด) — ใช้ UI แบบเดียวกับแถว task
     const summaryRows: RowItem[] = [
       {
         id: "__summary_tasks__",
         name: "Total Tasks",
         valueLeft: formatNumber(summary.taskCount),
         valueRight: "",
-        icon: <span className="text-[12px] font-bold text-gray-600">TT</span>,
+        icon: <span className="text-[12px] font-bold text-gray-600 dark:text-white/70">TT</span>,
       },
       {
         id: "__summary_avg_risk__",
         name: "Avg Risk Score",
         valueLeft: formatRisk(summary.avgRisk),
         valueRight: "",
-        icon: <span className="text-[12px] font-bold text-gray-600">AR</span>,
+        icon: <span className="text-[12px] font-bold text-gray-600 dark:text-white/70">AR</span>,
       },
       {
         id: "__summary_total_vulns__",
         name: "Total Vulns",
         valueLeft: formatNumber(summary.totalVuln),
         valueRight: "",
-        icon: <span className="text-[12px] font-bold text-gray-600">TV</span>,
+        icon: <span className="text-[12px] font-bold text-gray-600 dark:text-white/70">TV</span>,
       },
     ];
 
@@ -129,57 +126,88 @@ const Social: React.FC = () => {
   }, [data, summary]);
 
   return (
-    <section className="rounded-[22px] bg-white border border-gray-200/80 shadow-sm p-4 sm:p-5 md:p-6 h-full">
+    <section
+      className={[
+        "rounded-[22px] p-4 sm:p-5 md:p-6 h-full",
+        "bg-white border border-gray-200/80 shadow-sm",
+        "dark:bg-white/5 dark:border-white/10 dark:ring-1 dark:ring-white/10 dark:shadow-none",
+      ].join(" ")}
+    >
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="text-[18px] sm:text-[20px] font-semibold text-[#1f2240]">
+          <h3 className="text-[18px] sm:text-[20px] font-semibold text-[#1f2240] dark:text-white/90">
             Asset risk overview
           </h3>
-          <p className="text-[12px] sm:text-[13px] text-gray-500 mt-1">
+          <p className="text-[12px] sm:text-[13px] text-gray-500 dark:text-white/55 mt-1">
             Summary + task list (same row style)
           </p>
         </div>
 
         <button
           type="button"
-          className="h-9 w-9 rounded-xl hover:bg-white active:bg-gray-100 text-gray-500 inline-flex items-center justify-center"
+          className={[
+            "h-9 w-9 rounded-xl inline-flex items-center justify-center transition-colors",
+            "text-gray-500 hover:bg-gray-100 active:bg-gray-200",
+            "dark:text-white/55 dark:hover:bg-white/10 dark:active:bg-white/15",
+          ].join(" ")}
           aria-label="More"
         >
           <FiMoreHorizontal />
         </button>
       </div>
 
-      {/* rows (ไม่มีหัว Task/Vuln/Risk แล้ว) */}
+      {/* rows */}
       <div className="mt-4 space-y-3">
         {loading ? (
-          <div className="rounded-2xl border border-gray-200/80 bg-white px-4 py-4 text-[13px] text-gray-500">
+          <div
+            className={[
+              "rounded-2xl px-4 py-4 text-[13px]",
+              "border border-gray-200/80 bg-white text-gray-500",
+              "dark:border-white/10 dark:bg-white/5 dark:text-white/55",
+            ].join(" ")}
+          >
             Loading...
           </div>
         ) : rows.length === 0 ? (
-          <div className="rounded-2xl border border-gray-200/80 bg-white px-4 py-4 text-[13px] text-gray-500">
+          <div
+            className={[
+              "rounded-2xl px-4 py-4 text-[13px]",
+              "border border-gray-200/80 bg-white text-gray-500",
+              "dark:border-white/10 dark:bg-white/5 dark:text-white/55",
+            ].join(" ")}
+          >
             No Data
           </div>
         ) : (
           rows.map((s) => (
             <div
               key={s.id}
-              className="rounded-2xl border border-gray-200/80 bg-white px-3.5 sm:px-4 py-3 flex items-center gap-3"
+              className={[
+                "rounded-2xl px-3.5 sm:px-4 py-3 flex items-center gap-3",
+                "border border-gray-200/80 bg-white",
+                "dark:border-white/10 dark:bg-white/5",
+              ].join(" ")}
             >
               {/* icon */}
-              <div className="h-10 w-10 rounded-2xl border border-gray-200/80 bg-[#fbfbfc] flex items-center justify-center shrink-0">
+              <div
+                className={[
+                  "h-10 w-10 rounded-2xl flex items-center justify-center shrink-0",
+                  "border border-gray-200/80 bg-[#fbfbfc]",
+                  "dark:border-white/10 dark:bg-white/8",
+                ].join(" ")}
+              >
                 {s.icon}
               </div>
 
               {/* name */}
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[13px] sm:text-[14px] font-medium text-[#1f2240]">
+                <p className="truncate text-[13px] sm:text-[14px] font-medium text-[#1f2240] dark:text-white/85">
                   {s.name}
                 </p>
 
-                {/* optional bar: แสดงเฉพาะ task rows ที่มี percent */}
                 {typeof s.percent === "number" && (
-                  <div className="mt-2 h-2.5 rounded-full bg-[#eef0f6] overflow-hidden">
+                  <div className="mt-2 h-2.5 rounded-full bg-[#eef0f6] dark:bg-white/10 overflow-hidden">
                     <div
                       className="h-full rounded-full"
                       style={{
@@ -192,18 +220,17 @@ const Social: React.FC = () => {
                 )}
               </div>
 
-              {/* values: ถ้าเป็น summary จะมีแค่ valueLeft; ถ้าเป็น task จะมี 2 ค่า */}
+              {/* values */}
               <div className="shrink-0 flex items-center gap-6">
                 <div className="w-16 text-right">
-                  <p className="text-[13px] sm:text-[14px] font-semibold text-[#1f2240]">
+                  <p className="text-[13px] sm:text-[14px] font-semibold text-[#1f2240] dark:text-white/85 tabular-nums">
                     {s.valueLeft}
                   </p>
                 </div>
 
-                {/* valueRight: ถ้าว่างไม่ต้องแสดง (summary) */}
                 {s.valueRight !== "" && (
                   <div className="w-16 text-right">
-                    <p className="text-[13px] sm:text-[14px] font-semibold text-[#1f2240]">
+                    <p className="text-[13px] sm:text-[14px] font-semibold text-[#1f2240] dark:text-white/85 tabular-nums">
                       {s.valueRight}
                     </p>
                   </div>

@@ -117,14 +117,24 @@ const DeliveryAnalysis: React.FC = () => {
   }, [loading, range]);
 
   return (
-    <section className="rounded-[22px] bg-white border border-gray-200/80 shadow-sm p-4 sm:p-5 md:p-6 h-full">
+    <section
+      className={[
+        "rounded-[22px] p-4 sm:p-5 md:p-6 h-full",
+        // ✅ Light
+        "bg-white border border-gray-200/80 shadow-sm",
+        // ✅ Dark
+        "dark:bg-white/5 dark:border-white/10 dark:ring-1 dark:ring-white/10 dark:shadow-none",
+      ].join(" ")}
+    >
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="text-[18px] sm:text-[20px] font-semibold text-[#1f2240]">
+          <h3 className="text-[18px] sm:text-[20px] font-semibold text-[#1f2240] dark:text-white/90">
             Vulnerability Analysis
           </h3>
-          <p className="mt-1 text-[12.5px] text-gray-500">{subtitle}</p>
+          <p className="mt-1 text-[12.5px] text-gray-500 dark:text-white/55">
+            {subtitle}
+          </p>
         </div>
 
         {/* Dropdown */}
@@ -132,21 +142,29 @@ const DeliveryAnalysis: React.FC = () => {
           <button
             type="button"
             onClick={() => setOpen((s) => !s)}
-            className="
-              h-10 px-4 rounded-xl
-              bg-white border border-gray-200/80
-              text-[13px] font-medium text-gray-600
-              inline-flex items-center gap-2
-              hover:bg-gray-50 transition
-            "
+            className={[
+              "h-10 px-4 rounded-xl inline-flex items-center gap-2 transition",
+              // ✅ Light
+              "bg-white border border-gray-200/80 text-[13px] font-medium text-gray-600 hover:bg-gray-50",
+              // ✅ Dark
+              "dark:bg-white/5 dark:border-white/10 dark:text-white/70 dark:hover:bg-white/10",
+            ].join(" ")}
             aria-label="Select range"
           >
             {range}
-            <span className="text-gray-400">▾</span>
+            <span className="text-gray-400 dark:text-white/45">▾</span>
           </button>
 
           {open && (
-            <div className="absolute right-0 mt-2 w-40 rounded-xl border border-gray-200 bg-white shadow-lg overflow-hidden z-20">
+            <div
+              className={[
+                "absolute right-0 mt-2 w-40 rounded-xl overflow-hidden z-20",
+                // ✅ Light
+                "border border-gray-200 bg-white shadow-lg",
+                // ✅ Dark
+                "dark:border-white/10 dark:bg-[#0B1220] dark:shadow-none",
+              ].join(" ")}
+            >
               {RANGE_OPTIONS.map((opt) => (
                 <button
                   key={opt}
@@ -155,7 +173,13 @@ const DeliveryAnalysis: React.FC = () => {
                     setRange(opt);
                     setOpen(false);
                   }}
-                  className="w-full text-left px-4 py-2.5 text-[13px] hover:bg-gray-50 transition text-gray-700"
+                  className={[
+                    "w-full text-left px-4 py-2.5 text-[13px] transition",
+                    // ✅ Light
+                    "text-gray-700 hover:bg-gray-50",
+                    // ✅ Dark
+                    "dark:text-white/75 dark:hover:bg-white/8",
+                  ].join(" ")}
                 >
                   {opt}
                 </button>
@@ -170,10 +194,12 @@ const DeliveryAnalysis: React.FC = () => {
         {/* Center label */}
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <div className="text-center">
-            <div className="text-[22px] sm:text-[26px] font-semibold text-[#1f2240] tabular-nums">
+            <div className="text-[22px] sm:text-[26px] font-semibold text-[#1f2240] dark:text-white/90 tabular-nums">
               {loading ? "..." : total.toLocaleString()}
             </div>
-            <div className="mt-1 text-[12px] text-gray-500">Total findings</div>
+            <div className="mt-1 text-[12px] text-gray-500 dark:text-white/55">
+              Total findings
+            </div>
           </div>
         </div>
 
@@ -190,6 +216,7 @@ const DeliveryAnalysis: React.FC = () => {
               innerRadius="55%"
               outerRadius="82%"
               paddingAngle={2}
+              // ✅ ให้เข้ากับพื้นหลัง light/dark (ใช้สีที่ต่างกันด้วย CSS ไม่ได้โดยตรงใน recharts)
               stroke="white"
               strokeWidth={2}
               isAnimationActive={true}
@@ -205,11 +232,13 @@ const DeliveryAnalysis: React.FC = () => {
       {/* Legend */}
       <div className="mt-4 sm:mt-5">
         <div
-          className="
-            rounded-2xl bg-white border border-gray-200/80
-            px-4 py-3
-            flex flex-wrap items-center justify-center gap-x-6 gap-y-3
-          "
+          className={[
+            "rounded-2xl px-4 py-3 flex flex-wrap items-center justify-center gap-x-6 gap-y-3",
+            // ✅ Light
+            "bg-white border border-gray-200/80",
+            // ✅ Dark
+            "dark:bg-white/5 dark:border-white/10",
+          ].join(" ")}
         >
           {(["Critical", "High", "Medium", "Low", "Info"] as SeverityKey[]).map((k) => {
             const item = data.find((d) => d.name === k) || {
@@ -222,11 +251,13 @@ const DeliveryAnalysis: React.FC = () => {
             return (
               <div key={k} className="flex items-center gap-2">
                 <span className="h-4 w-4 rounded-sm" style={{ background: COLORS[k] }} />
-                <span className="text-[13px] font-medium text-[#1f2240]">{k}</span>
-                <span className="text-[12px] text-gray-500 tabular-nums">
+                <span className="text-[13px] font-medium text-[#1f2240] dark:text-white/85">
+                  {k}
+                </span>
+                <span className="text-[12px] text-gray-500 dark:text-white/55 tabular-nums">
                   {loading ? "..." : item.value.toLocaleString()}
                 </span>
-                <span className="text-[12px] text-gray-400 tabular-nums">
+                <span className="text-[12px] text-gray-400 dark:text-white/40 tabular-nums">
                   {loading ? "" : `(${formatPercent(p)})`}
                 </span>
               </div>

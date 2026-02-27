@@ -6,7 +6,7 @@ import Loadable from "../component/third-patry/Loadable";
 const Dashboard = Loadable(lazy(() => import("../page/dashboard/index")));
 const Account = Loadable(lazy(() => import("../page/Account/index")));
 const Target = Loadable(lazy(() => import("../page/target/index")));
-const Vulnerability = Loadable(lazy(() => import("../page/vulnerability/index")));
+const Vulnerability = Loadable(lazy(() => import("../page/Vulnerability/index")));
 const LineNotification = Loadable(lazy(() => import("../page/line/index")));
 const User = Loadable(lazy(() => import("../page/user/index")));
 const MainLayout = Loadable(lazy(() => import("../component/admin/MainLayout")));
