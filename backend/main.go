@@ -39,6 +39,7 @@ func main() {
 	r.GET("/vulnerabilities/list", vulnerability.ListVulnerability)
 	r.GET("/assets/risk", vulnerability.ListAssetRisk)
 	r.GET("/devices/risk", vulnerability.ListDeviceRisk)
+	r.GET("/vulnerabilities/detail/by-name", vulnerability.ListVulnerabilityDetailByName)
 
 	// Protected routes
 	authorized := r.Group("")

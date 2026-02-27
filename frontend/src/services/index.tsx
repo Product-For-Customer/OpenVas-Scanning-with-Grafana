@@ -93,11 +93,14 @@ export const ListTaskVulnSummary = async (): Promise<TaskVulnSummaryDTO[] | null
 };
 
 export type VulnerabilityLevelDTO = {
+  vulnerability_id: string; // ✅ added
   task_id: string;
   mac_address: string;
+  vulnerability_family: string;
   vulnerability_name: string;
   level: "Critical" | "High" | "Medium" | "Low" | "Info";
   total: number;
+  detected_time: string; // ISO string จาก backend
 };
 
 export const ListVulnerability = async (): Promise<VulnerabilityLevelDTO[] | null> => {
@@ -183,6 +186,52 @@ export const ListDeviceRisk = async (): Promise<DeviceRiskDTO[] | null> => {
     return null;
   } catch (error) {
     console.error("Error fetching device risk list:", error);
+    return null;
+  }
+};
+
+export type VulnerabilityDetailDTO = {
+  task_name: string; // ✅ เปลี่ยนจาก hostname
+  vulnerability_id: string;
+  vulnerability_name: string;
+
+  detected_date: string; // ISO string
+
+  severity: number; // ✅ 2 ตำแหน่งจาก backend แล้ว
+
+  cve_list: string; // ✅ เหลือแค่ cve_list
+
+  summary: string;
+  impact: string;
+  affected: string;
+  insight: string;
+  solution: string;
+  solution_type: string;
+};
+
+export const ListVulnerabilityDetailByName = async (
+  task_id: string,
+  name: string
+): Promise<VulnerabilityDetailDTO[] | null> => {
+  try {
+    const response = await axios.get(`${apiUrl}/vulnerabilities/detail/by-name`, {
+      params: { task_id, name }, // ✅ ให้ axios encode ให้เอง
+      headers: {
+        "Content-Type": "application/json",
+        ...getAuthHeader(),
+      },
+      timeout: 20000,
+    });
+
+    if (response.status === 200) {
+      const data = response.data?.data ?? response.data;
+      return data as VulnerabilityDetailDTO[];
+    }
+
+    console.error("Unexpected status:", response.status);
+    return null;
+  } catch (error) {
+    console.error("Error fetching vulnerability detail:", error);
     return null;
   }
 };

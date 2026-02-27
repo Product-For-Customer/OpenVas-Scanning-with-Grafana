@@ -1,1 +1,1 @@
-# First Project Co-op Network Scanning by Openvas with Grafana Dashboard
+# First Project Co-op Network Scanning by Openvas

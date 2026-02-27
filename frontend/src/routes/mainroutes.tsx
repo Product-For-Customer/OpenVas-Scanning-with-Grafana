@@ -9,6 +9,7 @@ const Target = Loadable(lazy(() => import("../page/target/index")));
 const Vulnerability = Loadable(lazy(() => import("../page/Vulnerability/index")));
 const LineNotification = Loadable(lazy(() => import("../page/line/index")));
 const User = Loadable(lazy(() => import("../page/user/index")));
+const VulnerabilityDetail = Loadable(lazy(() => import("../page/Vulnerability/List/Detail/index")));
 const MainLayout = Loadable(lazy(() => import("../component/admin/MainLayout")));
 
 // ======================= ROUTES =======================
@@ -34,6 +35,7 @@ const MainRoutes = (): RouteObject[] => [
       { path: "vulnerability", element: <Vulnerability /> }, // /admin/vulnerability
       { path: "line notification", element: <LineNotification /> }, // /admin/line-notification
       { path: "user", element: <User /> }, // /admin/user
+      { path: "vulnerability-detail", element: <VulnerabilityDetail /> }, // /admin/vulnerability-detail
     ],
   },
 ];

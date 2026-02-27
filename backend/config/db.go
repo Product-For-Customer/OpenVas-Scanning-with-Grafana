@@ -6,10 +6,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/Tawunchai/openvas/entity" // ✅ แก้เป็น path module ของคุณจริง ๆ
+	"github.com/Tawunchai/openvas/entity"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger" // ✅ ADD
 )
 
 var db *gorm.DB
@@ -19,12 +20,21 @@ func DB() *gorm.DB {
 }
 
 func ConnectDB() {
-	// แนะนำให้ใช้ env ก่อน ถ้าไม่มีค่อย fallback
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
-		// ตัวอย่าง local dev / docker network
 		dsn = "host=pg-gvm port=5432 user=pbi password=Pbi12345 dbname=gvmd sslmode=disable"
 	}
+
+	// ✅ ปิดการพิมพ์ SQL + ปิดสี (ไม่ให้มี query สีม่วง)
+	newLogger := logger.New(
+		log.New(os.Stdout, "\r\n", log.LstdFlags),
+		logger.Config{
+			SlowThreshold:             2 * time.Second, // จะเตือนช้าก็ต่อเมื่อช้ามาก
+			LogLevel:                  logger.Silent,   // ✅ สำคัญ: ไม่พิมพ์ SQL
+			IgnoreRecordNotFoundError: true,
+			Colorful:                  false, // ✅ ปิดสี
+		},
+	)
 
 	var database *gorm.DB
 	var err error
@@ -33,11 +43,13 @@ func ConnectDB() {
 	retryDelay := 2 * time.Second
 
 	for i := 1; i <= maxRetries; i++ {
-		database, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
+		database, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
+			Logger: newLogger, // ✅ ใส่ตรงนี้
+		})
+
 		if err == nil {
 			sqlDB, err2 := database.DB()
 			if err2 == nil {
-				// Connection pool config
 				sqlDB.SetMaxIdleConns(5)
 				sqlDB.SetMaxOpenConns(20)
 				sqlDB.SetConnMaxLifetime(30 * time.Minute)
@@ -84,28 +96,25 @@ func SeedDatabase() {
 		log.Fatal("❌ database is nil, call ConnectDB() before SeedDatabase()")
 	}
 
-	// Group
 	group1 := entity.AppGroup{GroupName: "ITS Group"}
 	db.FirstOrCreate(&group1, &entity.AppGroup{GroupName: "ITS Group"})
 
-	// LineMaster
 	lineMaster1 := entity.AppLineMaster{Token: "G4crCc/2gMnvX+hZErxIhg7WcI0ML+MRLlAj086lTtrdL7VYURieWPRXKd6/9Zl8RxcaME5vQ3I1BW82d1/ZYezvWklVMUk+EGGfXRmI4jwtA28iaHU8MkneAGQSibyr/yp0eetvASPPtplCXWrb7gdB04t89/1O/w1cDnyilFU="}
-	db.FirstOrCreate(&lineMaster1, &entity.AppLineMaster{Token: "G4crCc/2gMnvX+hZErxIhg7WcI0ML+MRLlAj086lTtrdL7VYURieWPRXKd6/9Zl8RxcaME5vQ3I1BW82d1/ZYezvWklVMUk+EGGfXRmI4jwtA28iaHU8MkneAGQSibyr/yp0eetvASPPtplCXWrb7gdB04t89/1O/w1cDnyilFU="})
+	db.FirstOrCreate(&lineMaster1, &entity.AppLineMaster{Token: lineMaster1.Token})
 
-	// Notification (GroupID เป็น *uint ต้องใส่ pointer)
 	notification1 := entity.Notification{
-		Name:         "Get on Technology",
-		UserID:       "U3af93a2f92b1048757172584d47571c8",
-		Alert:        true,
-		AppGroupID:   &group1.ID,      // ✅ เปลี่ยนตรงนี้
+		Name:           "Get on Technology",
+		UserID:         "U3af93a2f92b1048757172584d47571c8",
+		Alert:          true,
+		AppGroupID:     &group1.ID,
 		AppLineMasterID: lineMaster1.ID,
 	}
 
 	db.FirstOrCreate(&notification1, &entity.Notification{
-		Name:         "Get on Technology",
-		UserID:       "U3af93a2f92b1048757172584d47571c8",
-		Alert:        true,
-		AppGroupID:   &group1.ID,      // ✅ เปลี่ยนตรงนี้
+		Name:           notification1.Name,
+		UserID:         notification1.UserID,
+		Alert:          notification1.Alert,
+		AppGroupID:     &group1.ID,
 		AppLineMasterID: lineMaster1.ID,
 	})
 

@@ -1,68 +1,85 @@
-import React, { useEffect, useState } from "react";
+// Notification.tsx
+import React, { useEffect, useMemo, useState } from "react";
 import { MdOutlineCancel } from "react-icons/md";
 import { FaTrash } from "react-icons/fa";
-import { Button } from ".";
+import { FiBell, FiShield, FiWifi } from "react-icons/fi";
 import { Image } from "antd";
+import { useStateContext } from "../../contexts/ContextProvider";
 
 type ReportUser = {
   FirstName?: string;
   LastName?: string;
-  Profile?: string; // optional (mock)
+  Profile?: string;
 };
 
 type ReportItem = {
   ID?: number;
   Status?: "Pending" | "Complete";
   Description?: string;
-  Picture?: string; // optional (mock)
+  Picture?: string;
   User?: ReportUser;
 };
 
-// ✅ Mock data fix ไว้แทน API
+// ✅ Mock data: แนว Network Scanning / Vulnerability / Findings
 const mockReports: ReportItem[] = [
   {
-    ID: 1,
-    Status: "Pending",
-    Description: "หัวชาร์จ EV Cabinet A มีการเชื่อมต่อไม่เสถียร กรุณาตรวจสอบสายและพอร์ต",
-    User: {
-      FirstName: "Tawunchai",
-      LastName: "B.",
-    },
-  },
-  {
-    ID: 2,
-    Status: "Complete",
-    Description: "ตรวจสอบ Solar Module แล้ว ระบบทำงานปกติ ไม่มีความผิดปกติ",
-    User: {
-      FirstName: "Admin",
-      LastName: "System",
-    },
-  },
-  {
-    ID: 3,
+    ID: 101,
     Status: "Pending",
     Description:
-      "มีการแจ้งเตือนกระแสไฟฟ้าสูงกว่าค่าปกติใน EV Station #2 ช่วงเวลา 14:20 น.",
-    User: {
-      FirstName: "Operator",
-      LastName: "EV",
-    },
+      "Scan Task: weekly-internal\nพบ Host 10.10.22.15 เปิดพอร์ต 22/80/443 (SSH/HTTP/HTTPS)",
+    User: { FirstName: "Scanner", LastName: "Engine" },
+  },
+  {
+    ID: 102,
+    Status: "Pending",
+    Description:
+      "Vulnerability Alert: TLS Weak Cipher\nHost: 10.10.22.40:443",
+    User: { FirstName: "SecOps", LastName: "Bot" },
+  },
+  {
+    ID: 103,
+    Status: "Complete",
+    Description:
+      "Scan Completed: dmz-servers\nสรุป: 24 hosts / 3 high / 7 medium / 12 low",
+    User: { FirstName: "Admin", LastName: "System" },
+  },
+  {
+    ID: 104,
+    Status: "Pending",
+    Description:
+      "Credentialed Scan Warning\nHost: 10.10.22.77\nสาเหตุ: login failed (SSH)",
+    User: { FirstName: "Task", LastName: "Scheduler" },
+  },
+  {
+    ID: 105,
+    Status: "Pending",
+    Description:
+      "New Service Detected\nHost: 10.10.22.18\nService: SMB (445) เปิดใช้งาน",
+    User: { FirstName: "Network", LastName: "Monitor" },
   },
 ];
 
 const Notification: React.FC = () => {
-  const [reports, setReports] = useState<ReportItem[]>([]);
+  // ✅ ปิดได้จริง: ปิด flag ใน context + local open กันเหนียว
+  const ctx = useStateContext() as any;
+  const isClicked = ctx?.isClicked;
+  const setIsClicked = ctx?.setIsClicked;
 
-  // ✅ โหลดจาก mock data แทน service
+  const [reports, setReports] = useState<ReportItem[]>([]);
+  const [open, setOpen] = useState(true);
+
+  useEffect(() => {
+    if (isClicked?.notification) setOpen(true);
+  }, [isClicked?.notification]);
+
   useEffect(() => {
     setReports(mockReports);
   }, []);
 
   const handleStatusChange = (id: number, currentStatus: string) => {
     const newStatus = currentStatus === "Pending" ? "Complete" : "Pending";
-
     setReports((prev) =>
-      prev.map((r) => (r.ID === id ? { ...r, Status: newStatus as "Pending" | "Complete" } : r))
+      prev.map((r) => (r.ID === id ? { ...r, Status: newStatus as any } : r))
     );
   };
 
@@ -70,97 +87,145 @@ const Notification: React.FC = () => {
     setReports((prev) => prev.filter((r) => r.ID !== id));
   };
 
-  const avatarFallback =
-    "data:image/svg+xml;utf8," +
-    encodeURIComponent(
-      `<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80'>
-        <rect width='100%' height='100%' rx='12' fill='#eef2ff'/>
-        <text x='50%' y='54%' dominant-baseline='middle' text-anchor='middle' font-size='20' fill='#3b82f6' font-family='Arial'>EV</text>
-      </svg>`
-    );
+  const close = () => {
+    if (typeof setIsClicked === "function") {
+      setIsClicked((prev: any) => ({ ...(prev || {}), notification: false }));
+    }
+    setOpen(false);
+  };
 
-  const photoFallback =
-    "data:image/svg+xml;utf8," +
-    encodeURIComponent(
-      `<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80'>
-        <rect width='100%' height='100%' rx='8' fill='#eff6ff'/>
-        <text x='50%' y='54%' dominant-baseline='middle' text-anchor='middle' font-size='14' fill='#2563eb' font-family='Arial'>No Photo</text>
-      </svg>`
-    );
+  const avatarFallback = useMemo(
+    () =>
+      "data:image/svg+xml;utf8," +
+      encodeURIComponent(
+        `<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80'>
+          <defs>
+            <linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>
+              <stop offset='0%' stop-color='#f8fafc'/>
+              <stop offset='100%' stop-color='#e2e8f0'/>
+            </linearGradient>
+          </defs>
+          <rect width='100%' height='100%' rx='14' fill='url(#g)'/>
+          <text x='50%' y='54%' dominant-baseline='middle' text-anchor='middle'
+            font-size='16' fill='#64748b' font-family='Arial'>SCAN</text>
+        </svg>`
+      ),
+    []
+  );
+
+  const photoFallback = useMemo(
+    () =>
+      "data:image/svg+xml;utf8," +
+      encodeURIComponent(
+        `<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80'>
+          <rect width='100%' height='100%' rx='10' fill='#f1f5f9'/>
+          <text x='50%' y='54%' dominant-baseline='middle' text-anchor='middle'
+            font-size='12' fill='#64748b' font-family='Arial'>No Photo</text>
+        </svg>`
+      ),
+    []
+  );
+
+  if (!open) return null;
 
   return (
     <div
-      className="
-        nav-item fixed right-3 top-16 z-50
-        w-[calc(100vw-24px)] max-w-sm
-        rounded-2xl overflow-hidden
-        bg-white/80 backdrop-blur-xl
-        border border-blue-100 shadow-[0_12px_36px_rgba(37,99,235,0.18)]
-      "
+      className={[
+        "nav-item fixed right-3 top-16 z-50",
+        "w-[calc(100vw-24px)] max-w-sm",
+        "rounded-[22px] overflow-hidden",
+        // ✅ modal ขาวเหมือนเดิม (ไม่ตาม dark)
+        "bg-white border border-gray-200/80 shadow-[0_10px_30px_-18px_rgba(15,23,42,0.25)]",
+      ].join(" ")}
       style={{ paddingTop: "max(0px, env(safe-area-inset-top))" }}
     >
-      {/* Header — EV Blue */}
-      <div className="relative">
-        <div className="bg-linear-to-br from-blue-600 to-blue-500 h-12" />
-        <div className="absolute inset-0 flex items-center justify-between px-3">
-          <div className="flex items-center gap-2">
-            <p className="text-white text-sm font-semibold">Report Notifications</p>
-            <span className="text-[11px] px-2 py-0.5 rounded-md bg-white/20 text-white border border-white/30">
-              {reports.length} New
-            </span>
+      {/* Header */}
+      <div className="flex items-center justify-between px-3 py-3 border-b border-gray-200/80">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-gray-100 text-gray-700">
+            <FiBell className="text-[18px]" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-[13px] font-semibold text-gray-800 leading-5 truncate">
+              Scan Notifications
+            </p>
+            <p className="text-[12px] text-gray-500 leading-4 truncate">
+              findings / status / alerts
+            </p>
           </div>
-          <Button
-            icon={<MdOutlineCancel />}
-            color="#ffffff"
-            bgHoverColor="rgba(255,255,255,0.18)"
-            size="2xl"
-            borderRadius="50%"
-          />
+          <span className="ml-2 inline-flex items-center justify-center h-6 px-2 rounded-full text-[11px] font-bold bg-[#6f5be8] text-white">
+            {reports.length > 99 ? "99+" : reports.length}
+          </span>
         </div>
+
+        <button
+          type="button"
+          onClick={close}
+          aria-label="Close notifications"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-xl transition-colors text-gray-600 hover:bg-gray-100 active:bg-gray-200"
+        >
+          <MdOutlineCancel className="text-[20px]" />
+        </button>
       </div>
 
       {/* List */}
-      <div
-        className="p-3 space-y-3"
-        style={{ maxHeight: 420, overflowY: "auto" }}
-      >
+      <div className="p-3 space-y-3" style={{ maxHeight: 420, overflowY: "auto" }}>
         {reports.map((item) => {
-          // ✅ ไม่ใช้ apiUrlPicture แล้ว ใช้ fallback/local string เท่านั้น
           const profileSrc = item.User?.Profile?.trim() ? item.User.Profile : avatarFallback;
           const reportImageSrc = item.Picture?.trim() ? item.Picture : photoFallback;
+          const statusIsPending = (item.Status || "Pending") === "Pending";
 
           return (
             <div
               key={item.ID}
-              className="
-                rounded-xl bg-white/80 border border-blue-100
-                p-3 shadow-sm hover:shadow-md transition-shadow
-              "
+              className="rounded-2xl p-3 border border-gray-200/80 bg-white hover:bg-gray-50 transition-colors"
             >
               <div className="flex items-start gap-3">
                 {/* Avatar */}
-                <img
-                  src={profileSrc}
-                  alt={`${item.User?.FirstName || ""} ${item.User?.LastName || ""}`}
-                  className="h-10 w-10 rounded-lg object-cover ring-1 ring-blue-100 bg-blue-50 shrink-0"
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).src = avatarFallback;
-                  }}
-                />
+                <div className="relative shrink-0">
+                  <img
+                    src={profileSrc}
+                    alt={`${item.User?.FirstName || ""} ${item.User?.LastName || ""}`}
+                    className="h-10 w-10 rounded-xl object-cover ring-1 ring-gray-200 bg-white"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src = avatarFallback;
+                    }}
+                  />
+                  {/* tiny badge icon */}
+                  <span className="absolute -right-1 -bottom-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-white ring-1 ring-gray-200">
+                    {statusIsPending ? (
+                      <FiWifi className="text-[12px] text-violet-600" />
+                    ) : (
+                      <FiShield className="text-[12px] text-emerald-600" />
+                    )}
+                  </span>
+                </div>
 
                 {/* Content */}
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-gray-900 truncate">
-                    {item.User?.FirstName || "Guest"} {item.User?.LastName || ""}
-                  </p>
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-[13px] font-semibold text-gray-900 truncate">
+                      {item.User?.FirstName || "Guest"} {item.User?.LastName || ""}
+                    </p>
 
-                  {/* Photo (optional) */}
+                    <span
+                      className={[
+                        "shrink-0 inline-flex items-center h-6 px-2 rounded-full text-[11px] font-semibold border",
+                        statusIsPending
+                          ? "bg-violet-50 text-violet-700 border-violet-200"
+                          : "bg-emerald-50 text-emerald-700 border-emerald-200",
+                      ].join(" ")}
+                    >
+                      {item.Status || "Pending"}
+                    </span>
+                  </div>
+
                   {item.Picture && (
                     <div className="mt-2">
                       <Image
-                        width={64}
-                        height={64}
-                        className="rounded-md object-cover ring-1 ring-blue-100"
+                        width={72}
+                        height={72}
+                        className="rounded-xl object-cover ring-1 ring-gray-200"
                         src={reportImageSrc}
                         alt="Report"
                         fallback={photoFallback}
@@ -169,37 +234,22 @@ const Notification: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Description */}
                   <p className="mt-2 text-[13px] text-gray-600 whitespace-pre-line">
                     {item.Description || "-"}
                   </p>
 
-                  {/* Actions */}
-                  <div className="mt-3 flex items-center gap-8">
-                    {/* Status toggle */}
+                  <div className="mt-3 flex items-center gap-2">
                     <button
                       onClick={() => handleStatusChange(item.ID!, item.Status || "Pending")}
-                      className={`
-                        inline-flex items-center h-7 px-3 rounded-full text-[11px] font-semibold
-                        border transition
-                        ${
-                          item.Status === "Pending"
-                            ? "bg-blue-50 text-blue-800 border-blue-200 hover:bg-blue-100"
-                            : "bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
-                        }
-                      `}
+                      className="inline-flex items-center h-8 px-3 rounded-xl text-[12px] font-semibold border transition-colors text-gray-700 border-gray-200 hover:bg-gray-100 active:bg-gray-200"
                     >
-                      {item.Status || "Pending"}
+                      เปลี่ยนสถานะ
                     </button>
 
-                    {/* Delete */}
                     <button
                       onClick={() => handleDelete(item.ID!)}
                       title="Delete Report"
-                      className="
-                        inline-flex items-center h-7 px-3 rounded-lg text-[12px] font-semibold
-                        border border-red-200 text-red-600 bg-white hover:bg-red-50 active:scale-95 transition
-                      "
+                      className="ml-auto inline-flex items-center h-8 px-3 rounded-xl text-[12px] font-semibold border transition-colors border-red-200 text-red-600 bg-white hover:bg-red-50 active:bg-red-100"
                     >
                       <FaTrash className="mr-1.5" size={12} />
                       Delete
@@ -213,7 +263,7 @@ const Notification: React.FC = () => {
 
         {reports.length === 0 && (
           <div className="text-center text-gray-500 text-sm py-10">
-            ยังไม่มีการแจ้งรายงานใหม่
+            ยังไม่มีการแจ้งเตือนใหม่
           </div>
         )}
       </div>
