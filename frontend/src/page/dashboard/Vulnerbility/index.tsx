@@ -1,5 +1,9 @@
-// TopVulnerability.tsx
 import React, { useEffect, useMemo, useState } from "react";
+import {
+  FiShield,
+  FiChevronRight,
+  FiAlertTriangle,
+} from "react-icons/fi";
 import type { VulnerabilityLevelDTO } from "../../../services";
 import { ListVulnerability } from "../../../services";
 
@@ -11,11 +15,31 @@ type VulnRow = {
 };
 
 const badgeClasses: Record<VulnRow["severity"], string> = {
-  CRITICAL: "bg-[#d94b3e] text-white",
-  HIGH: "bg-[#f97316] text-white",
-  MEDIUM: "bg-[#eab308] text-white",
-  LOW: "bg-[#22c55e] text-white",
-  INFO: "bg-[#3b82f6] text-white",
+  CRITICAL:
+    "bg-[#ef4444] text-white shadow-[0_8px_20px_rgba(239,68,68,0.25)]",
+  HIGH: "bg-[#f97316] text-white shadow-[0_8px_20px_rgba(249,115,22,0.22)]",
+  MEDIUM:
+    "bg-[#eab308] text-white shadow-[0_8px_20px_rgba(234,179,8,0.20)]",
+  LOW: "bg-[#22c55e] text-white shadow-[0_8px_20px_rgba(34,197,94,0.20)]",
+  INFO: "bg-[#3b82f6] text-white shadow-[0_8px_20px_rgba(59,130,246,0.22)]",
+};
+
+const dotClasses: Record<VulnRow["severity"], string> = {
+  CRITICAL: "bg-[#ef4444]",
+  HIGH: "bg-[#f97316]",
+  MEDIUM: "bg-[#eab308]",
+  LOW: "bg-[#22c55e]",
+  INFO: "bg-[#3b82f6]",
+};
+
+const rowGlowClasses: Record<VulnRow["severity"], string> = {
+  CRITICAL:
+    "hover:border-red-200 hover:bg-red-50/60 dark:hover:border-red-400/20 dark:hover:bg-red-500/5",
+  HIGH: "hover:border-orange-200 hover:bg-orange-50/60 dark:hover:border-orange-400/20 dark:hover:bg-orange-500/5",
+  MEDIUM:
+    "hover:border-yellow-200 hover:bg-yellow-50/60 dark:hover:border-yellow-400/20 dark:hover:bg-yellow-500/5",
+  LOW: "hover:border-green-200 hover:bg-green-50/60 dark:hover:border-green-400/20 dark:hover:bg-green-500/5",
+  INFO: "hover:border-blue-200 hover:bg-blue-50/60 dark:hover:border-blue-400/20 dark:hover:bg-blue-500/5",
 };
 
 const toSeverity = (level: VulnerabilityLevelDTO["level"]): VulnRow["severity"] => {
@@ -105,75 +129,191 @@ const TopVulnerability: React.FC = () => {
     return merged;
   }, [data]);
 
+  const topCriticalCount = useMemo(
+    () => rows.filter((r) => r.severity === "CRITICAL").length,
+    [rows]
+  );
+
+  const statusText = useMemo(() => {
+    if (loading) return "Syncing threat feed...";
+    if (rows.length === 0) return "No vulnerability signatures detected";
+    if (topCriticalCount > 0) return `${topCriticalCount} critical threats require attention`;
+    return "Latest vulnerability queue loaded";
+  }, [loading, rows.length, topCriticalCount]);
+
   return (
     <section
       className={[
-        "rounded-[22px] p-4 sm:p-5 md:p-6 h-full",
+        "relative overflow-hidden rounded-[22px] p-4 sm:p-5 md:p-6 h-full",
         "bg-white border border-gray-200/80 shadow-sm",
         "dark:bg-white/5 dark:border-white/10 dark:ring-1 dark:ring-white/10 dark:shadow-none",
       ].join(" ")}
     >
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <h3 className="text-[14px] font-semibold text-gray-400 dark:text-white/55 tracking-wide">
-          TOP VULNERABILITIES
-        </h3>
-
-        {loading ? (
-          <span className="text-[12px] text-gray-400 dark:text-white/45">Loading...</span>
-        ) : (
-          <span className="text-[12px] text-gray-400 dark:text-white/45">
-            {rows.length > 0 ? `${rows.length} items` : "No Data"}
-          </span>
-        )}
+      {/* background */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -top-16 -right-10 h-44 w-44 rounded-full bg-cyan-400/10 blur-3xl" />
+        <div className="absolute -bottom-16 -left-10 h-44 w-44 rounded-full bg-violet-500/10 blur-3xl" />
+        <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.06]">
+          <div
+            className="h-full w-full"
+            style={{
+              backgroundImage: `
+                linear-gradient(to right, currentColor 1px, transparent 1px),
+                linear-gradient(to bottom, currentColor 1px, transparent 1px)
+              `,
+              backgroundSize: "26px 26px",
+            }}
+          />
+        </div>
       </div>
 
-      <div
-        className={[
-          "rounded-2xl overflow-hidden",
-          "border border-gray-200/80 bg-white",
-          "dark:border-white/10 dark:bg-white/5",
-        ].join(" ")}
-      >
-        <div className="max-h-96 overflow-y-auto">
-          {loading ? (
-            <div className="p-4 text-[13px] text-gray-500 dark:text-white/55">Loading...</div>
-          ) : rows.length === 0 ? (
-            <div className="p-4 text-[13px] text-gray-500 dark:text-white/55">No Data</div>
-          ) : (
-            rows.map((r, idx) => (
+      <div className="relative z-10">
+        {/* Header */}
+        <div className="mb-4 flex flex-col gap-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <div
+                  className={[
+                    "inline-flex items-center gap-2 rounded-full px-3 py-1.5",
+                    "bg-cyan-50 text-cyan-700 border border-cyan-200/80",
+                    "dark:bg-cyan-500/10 dark:text-cyan-300 dark:border-cyan-400/20",
+                  ].join(" ")}
+                >
+                  <FiShield className="text-[14px]" />
+                  <span className="text-[12px] font-semibold tracking-wide">
+                    Threat Feed
+                  </span>
+                </div>
+              </div>
+
+              <h3 className="text-[18px] sm:text-[20px] font-semibold text-[#1f2240] dark:text-white/90">
+                Top Vulnerabilities
+              </h3>
+              <p className="mt-1 text-[12.5px] text-gray-500 dark:text-white/55">
+                {statusText}
+              </p>
+            </div>
+
+            {!loading && topCriticalCount > 0 ? (
               <div
-                key={r.id}
                 className={[
-                  "flex items-center gap-3 px-3.5 sm:px-4 py-3",
-                  idx !== 0 ? "border-t border-gray-200/70 dark:border-white/10" : "",
+                  "shrink-0 inline-flex items-center gap-2 rounded-2xl px-3 py-2",
+                  "bg-red-50 border border-red-200 text-red-600",
+                  "dark:bg-red-500/10 dark:border-red-400/20 dark:text-red-300",
                 ].join(" ")}
               >
-                <span
-                  className={[
-                    "shrink-0 rounded-md px-2.5 py-1 text-[11px] font-bold",
-                    badgeClasses[r.severity],
-                  ].join(" ")}
-                >
-                  {r.severity}
-                </span>
-
-                <p className="min-w-0 flex-1 truncate text-[13px] sm:text-[14px] font-medium text-[#1f2240] dark:text-white/85">
-                  {r.title}
-                </p>
-
-                <span
-                  className={[
-                    "shrink-0 h-6 min-w-6 px-1.5 rounded-md border inline-flex items-center justify-center",
-                    "text-[12px] tabular-nums",
-                    "border-gray-200 bg-[#fbfbfc] text-gray-600",
-                    "dark:border-white/10 dark:bg-white/8 dark:text-white/70",
-                  ].join(" ")}
-                >
-                  {r.count}
+                <FiAlertTriangle className="text-[14px]" />
+                <span className="text-[12px] font-semibold">
+                  {topCriticalCount} Critical
                 </span>
               </div>
-            ))
-          )}
+            ) : null}
+          </div>
+        </div>
+
+        {/* List */}
+        <div
+          className={[
+            "rounded-2xl overflow-hidden",
+            "border border-gray-200/80 bg-white/70 backdrop-blur-sm",
+            "dark:border-white/10 dark:bg-white/3",
+          ].join(" ")}
+        >
+          <div className="max-h-114 overflow-y-auto p-3 sm:p-3.5">
+            {loading ? (
+              <div className="space-y-3">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className={[
+                      "rounded-2xl border px-4 py-3 animate-pulse",
+                      "border-gray-200 bg-gray-50/80",
+                      "dark:border-white/10 dark:bg-white/4",
+                    ].join(" ")}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="h-6 w-20 rounded-md bg-gray-200 dark:bg-white/10" />
+                      <div className="h-4 flex-1 rounded bg-gray-200 dark:bg-white/10" />
+                      <div className="h-7 w-10 rounded-md bg-gray-200 dark:bg-white/10" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : rows.length === 0 ? (
+              <div
+                className={[
+                  "rounded-2xl border px-4 py-8 text-center",
+                  "border-gray-200 bg-gray-50/70 text-gray-500",
+                  "dark:border-white/10 dark:bg-white/4 dark:text-white/55",
+                ].join(" ")}
+              >
+                <div className="text-[14px] font-medium">No Data</div>
+                <div className="mt-1 text-[12px] opacity-80">
+                  No vulnerabilities were returned from the latest query
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {rows.map((r) => (
+                  <div
+                    key={r.id}
+                    className={[
+                      "group rounded-2xl border px-3.5 sm:px-4 py-3 transition-all duration-200",
+                      "border-gray-200/80 bg-white hover:shadow-sm",
+                      "dark:border-white/10 dark:bg-white/3 dark:hover:bg-white/5",
+                      rowGlowClasses[r.severity],
+                      ].join(" ")}
+                    >
+                    <div className="flex items-center gap-3">
+                      {/* left colored line / dot */}
+                      <div className="flex items-center gap-3 shrink-0">
+                        <span
+                          className={`h-2.5 w-2.5 rounded-full ${dotClasses[r.severity]}`}
+                        />
+                        <span
+                          className={[
+                            "shrink-0 rounded-md px-2.5 py-1 text-[11px] font-bold tracking-wide",
+                            badgeClasses[r.severity],
+                          ].join(" ")}
+                        >
+                          {r.severity}
+                        </span>
+                      </div>
+
+                      {/* title */}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[13px] sm:text-[14px] font-medium text-[#1f2240] dark:text-white/85">
+                          {r.title}
+                        </p>
+                        <div className="mt-1 flex items-center gap-2 text-[11px] text-gray-400 dark:text-white/40">
+                          <span>Vulnerability signature</span>
+                          <span className="h-1 w-1 rounded-full bg-current" />
+                          <span>Detected in scan results</span>
+                        </div>
+                      </div>
+
+                      {/* count */}
+                      <div className="shrink-0 flex items-center gap-2">
+                        <span
+                          className={[
+                            "h-8 min-w-8 px-2 rounded-lg border inline-flex items-center justify-center",
+                            "text-[12px] font-semibold tabular-nums",
+                            "border-gray-200 bg-[#fbfbfc] text-gray-700",
+                            "dark:border-white/10 dark:bg-white/8 dark:text-white/75",
+                          ].join(" ")}
+                        >
+                          {r.count}
+                        </span>
+
+                        <FiChevronRight className="text-gray-300 dark:text-white/20 group-hover:text-gray-500 dark:group-hover:text-white/45 transition-colors" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </section>

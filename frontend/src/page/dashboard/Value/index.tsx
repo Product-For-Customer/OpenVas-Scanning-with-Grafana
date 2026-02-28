@@ -5,6 +5,8 @@ import {
   FiMinusCircle,
   FiShield,
   FiInfo,
+  FiRadio,
+  FiActivity,
 } from "react-icons/fi";
 
 import { ListTaskVulnSummary, type TaskVulnSummaryDTO } from "../../../services";
@@ -17,14 +19,16 @@ type StatCard = {
   value: string;
   subtitle: string;
   icon: React.ReactNode;
-
-  // ✅ คลาสแบบ Light + Dark อยู่ใน string เดียว (ใช้ dark: แยก)
-  bg: string;     // background
-  ring: string;   // ring/border
-  glow: string;   // shadow glow
-  pill: string;   // badge style
-  bar: string;    // progress bar
-  iconBox: string; // icon container
+  accent: string;
+  softAccent: string;
+  dot: string;
+  bg: string;
+  ring: string;
+  glow: string;
+  pill: string;
+  bar: string;
+  iconBox: string;
+  chip: string;
 };
 
 const Value: React.FC = () => {
@@ -74,9 +78,17 @@ const Value: React.FC = () => {
   };
 
   const makeSubtitle = (n: number) =>
-    loading ? "Loading from API..." : `${percent(n)}% of total findings`;
+    loading ? "Synchronizing scan telemetry..." : `${percent(n)}% of total findings`;
 
   const barWidth = (n: number) => `${percent(n)}%`;
+
+  const highestSeverity = useMemo<SeverityKey>(() => {
+    if (totals.critical > 0) return "Critical";
+    if (totals.high > 0) return "High";
+    if (totals.medium > 0) return "Medium";
+    if (totals.low > 0) return "Low";
+    return "Info";
+  }, [totals]);
 
   const stats: StatCard[] = useMemo(
     () => [
@@ -86,31 +98,33 @@ const Value: React.FC = () => {
         value: loading ? "..." : totals.critical.toLocaleString(),
         subtitle: makeSubtitle(totals.critical),
         icon: <FiAlertOctagon />,
-
-        // ✅ Light (สว่าง อ่านง่าย) + Dark (เข้มแบบเดิม)
+        accent: "#ef4444",
+        softAccent: "#fb7185",
+        dot: "bg-red-500",
         bg: [
-          "bg-gradient-to-br from-[#fff1f2] via-[#ffe4e6] to-[#fecdd3]",
-          "dark:bg-gradient-to-br dark:from-[#120408] dark:via-[#3a0a12] dark:to-[#7f1d1d]",
+          "bg-[radial-gradient(circle_at_top_right,rgba(239,68,68,0.18),transparent_34%),linear-gradient(135deg,#fff5f5_0%,#ffe4e6_45%,#fecdd3_100%)]",
+          "dark:bg-[radial-gradient(circle_at_top_right,rgba(251,113,133,0.16),transparent_34%),linear-gradient(135deg,#120408_0%,#3a0a12_45%,#7f1d1d_100%)]",
         ].join(" "),
         ring: [
-          "border border-rose-200/70 ring-1 ring-rose-300/35",
-          "dark:border-white/10 dark:ring-[#fb7185]/30",
+          "border border-rose-200/75 ring-1 ring-rose-300/35",
+          "dark:border-white/10 dark:ring-rose-400/20",
         ].join(" "),
         glow: [
-          "shadow-[0_18px_44px_-18px_rgba(239,68,68,0.20)]",
-          "dark:shadow-[0_18px_44px_-18px_rgba(239,68,68,0.60)]",
+          "shadow-[0_16px_40px_-18px_rgba(239,68,68,0.25)]",
+          "dark:shadow-[0_16px_40px_-18px_rgba(239,68,68,0.55)]",
         ].join(" "),
         pill: [
-          "bg-white/70 text-rose-700 border border-rose-200/80",
+          "bg-white/75 text-rose-700 border border-rose-200/80",
           "dark:bg-white/10 dark:text-white dark:border-white/15",
         ].join(" "),
-        bar: [
-          "bg-gradient-to-r from-[#fb7185] via-[#ef4444] to-[#991b1b]",
-          "dark:bg-gradient-to-r dark:from-[#fb7185] dark:via-[#ef4444] dark:to-[#991b1b]",
-        ].join(" "),
+        bar: "bg-gradient-to-r from-[#fb7185] via-[#ef4444] to-[#991b1b]",
         iconBox: [
-          "bg-white/70 border border-rose-200/70 text-rose-700",
+          "bg-white/75 border border-rose-200/80 text-rose-700",
           "dark:bg-white/10 dark:border-white/10 dark:text-white",
+        ].join(" "),
+        chip: [
+          "bg-red-50 border-red-200 text-red-600",
+          "dark:bg-red-500/10 dark:border-red-400/20 dark:text-red-300",
         ].join(" "),
       },
       {
@@ -119,30 +133,33 @@ const Value: React.FC = () => {
         value: loading ? "..." : totals.high.toLocaleString(),
         subtitle: makeSubtitle(totals.high),
         icon: <FiAlertTriangle />,
-
+        accent: "#f97316",
+        softAccent: "#fdba74",
+        dot: "bg-orange-500",
         bg: [
-          "bg-gradient-to-br from-[#fff7ed] via-[#ffedd5] to-[#fed7aa]",
-          "dark:bg-gradient-to-br dark:from-[#0f0703] dark:via-[#3a1607] dark:to-[#9a3412]",
+          "bg-[radial-gradient(circle_at_top_right,rgba(249,115,22,0.18),transparent_34%),linear-gradient(135deg,#fff7ed_0%,#ffedd5_45%,#fed7aa_100%)]",
+          "dark:bg-[radial-gradient(circle_at_top_right,rgba(253,186,116,0.16),transparent_34%),linear-gradient(135deg,#0f0703_0%,#3a1607_45%,#9a3412_100%)]",
         ].join(" "),
         ring: [
-          "border border-orange-200/70 ring-1 ring-orange-300/35",
-          "dark:border-white/10 dark:ring-[#fdba74]/28",
+          "border border-orange-200/75 ring-1 ring-orange-300/35",
+          "dark:border-white/10 dark:ring-orange-300/20",
         ].join(" "),
         glow: [
-          "shadow-[0_18px_44px_-18px_rgba(249,115,22,0.20)]",
-          "dark:shadow-[0_18px_44px_-18px_rgba(249,115,22,0.55)]",
+          "shadow-[0_16px_40px_-18px_rgba(249,115,22,0.25)]",
+          "dark:shadow-[0_16px_40px_-18px_rgba(249,115,22,0.5)]",
         ].join(" "),
         pill: [
-          "bg-white/70 text-orange-700 border border-orange-200/80",
+          "bg-white/75 text-orange-700 border border-orange-200/80",
           "dark:bg-white/10 dark:text-white dark:border-white/15",
         ].join(" "),
-        bar: [
-          "bg-gradient-to-r from-[#fdba74] via-[#f97316] to-[#c2410c]",
-          "dark:bg-gradient-to-r dark:from-[#fdba74] dark:via-[#f97316] dark:to-[#c2410c]",
-        ].join(" "),
+        bar: "bg-gradient-to-r from-[#fdba74] via-[#f97316] to-[#c2410c]",
         iconBox: [
-          "bg-white/70 border border-orange-200/70 text-orange-700",
+          "bg-white/75 border border-orange-200/80 text-orange-700",
           "dark:bg-white/10 dark:border-white/10 dark:text-white",
+        ].join(" "),
+        chip: [
+          "bg-orange-50 border-orange-200 text-orange-600",
+          "dark:bg-orange-500/10 dark:border-orange-400/20 dark:text-orange-300",
         ].join(" "),
       },
       {
@@ -151,30 +168,33 @@ const Value: React.FC = () => {
         value: loading ? "..." : totals.medium.toLocaleString(),
         subtitle: makeSubtitle(totals.medium),
         icon: <FiInfo />,
-
+        accent: "#eab308",
+        softAccent: "#fde68a",
+        dot: "bg-yellow-500",
         bg: [
-          "bg-gradient-to-br from-[#fffbeb] via-[#fef3c7] to-[#fde68a]",
-          "dark:bg-gradient-to-br dark:from-[#0f0b02] dark:via-[#2a1a05] dark:to-[#854d0e]",
+          "bg-[radial-gradient(circle_at_top_right,rgba(234,179,8,0.18),transparent_34%),linear-gradient(135deg,#fffbeb_0%,#fef3c7_45%,#fde68a_100%)]",
+          "dark:bg-[radial-gradient(circle_at_top_right,rgba(253,230,138,0.14),transparent_34%),linear-gradient(135deg,#0f0b02_0%,#2a1a05_45%,#854d0e_100%)]",
         ].join(" "),
         ring: [
-          "border border-amber-200/70 ring-1 ring-amber-300/35",
-          "dark:border-white/10 dark:ring-[#fde68a]/25",
+          "border border-amber-200/75 ring-1 ring-amber-300/35",
+          "dark:border-white/10 dark:ring-amber-300/20",
         ].join(" "),
         glow: [
-          "shadow-[0_18px_44px_-18px_rgba(250,204,21,0.16)]",
-          "dark:shadow-[0_18px_44px_-18px_rgba(250,204,21,0.45)]",
+          "shadow-[0_16px_40px_-18px_rgba(234,179,8,0.22)]",
+          "dark:shadow-[0_16px_40px_-18px_rgba(250,204,21,0.42)]",
         ].join(" "),
         pill: [
-          "bg-white/70 text-amber-800 border border-amber-200/80",
+          "bg-white/75 text-amber-800 border border-amber-200/80",
           "dark:bg-white/10 dark:text-white dark:border-white/15",
         ].join(" "),
-        bar: [
-          "bg-gradient-to-r from-[#fde68a] via-[#facc15] to-[#a16207]",
-          "dark:bg-gradient-to-r dark:from-[#fde68a] dark:via-[#facc15] dark:to-[#a16207]",
-        ].join(" "),
+        bar: "bg-gradient-to-r from-[#fde68a] via-[#facc15] to-[#a16207]",
         iconBox: [
-          "bg-white/70 border border-amber-200/70 text-amber-800",
+          "bg-white/75 border border-amber-200/80 text-amber-800",
           "dark:bg-white/10 dark:border-white/10 dark:text-white",
+        ].join(" "),
+        chip: [
+          "bg-yellow-50 border-yellow-200 text-yellow-700",
+          "dark:bg-yellow-500/10 dark:border-yellow-400/20 dark:text-yellow-300",
         ].join(" "),
       },
       {
@@ -183,30 +203,33 @@ const Value: React.FC = () => {
         value: loading ? "..." : totals.low.toLocaleString(),
         subtitle: makeSubtitle(totals.low),
         icon: <FiMinusCircle />,
-
+        accent: "#22c55e",
+        softAccent: "#86efac",
+        dot: "bg-green-500",
         bg: [
-          "bg-gradient-to-br from-[#ecfdf5] via-[#d1fae5] to-[#a7f3d0]",
-          "dark:bg-gradient-to-br dark:from-[#03120b] dark:via-[#052e1e] dark:to-[#065f46]",
+          "bg-[radial-gradient(circle_at_top_right,rgba(34,197,94,0.18),transparent_34%),linear-gradient(135deg,#ecfdf5_0%,#d1fae5_45%,#a7f3d0_100%)]",
+          "dark:bg-[radial-gradient(circle_at_top_right,rgba(134,239,172,0.14),transparent_34%),linear-gradient(135deg,#03120b_0%,#052e1e_45%,#065f46_100%)]",
         ].join(" "),
         ring: [
-          "border border-emerald-200/70 ring-1 ring-emerald-300/35",
-          "dark:border-white/10 dark:ring-[#86efac]/25",
+          "border border-emerald-200/75 ring-1 ring-emerald-300/35",
+          "dark:border-white/10 dark:ring-emerald-300/20",
         ].join(" "),
         glow: [
-          "shadow-[0_18px_44px_-18px_rgba(34,197,94,0.18)]",
-          "dark:shadow-[0_18px_44px_-18px_rgba(34,197,94,0.45)]",
+          "shadow-[0_16px_40px_-18px_rgba(34,197,94,0.22)]",
+          "dark:shadow-[0_16px_40px_-18px_rgba(34,197,94,0.42)]",
         ].join(" "),
         pill: [
-          "bg-white/70 text-emerald-800 border border-emerald-200/80",
+          "bg-white/75 text-emerald-800 border border-emerald-200/80",
           "dark:bg-white/10 dark:text-white dark:border-white/15",
         ].join(" "),
-        bar: [
-          "bg-gradient-to-r from-[#86efac] via-[#22c55e] to-[#15803d]",
-          "dark:bg-gradient-to-r dark:from-[#86efac] dark:via-[#22c55e] dark:to-[#15803d]",
-        ].join(" "),
+        bar: "bg-gradient-to-r from-[#86efac] via-[#22c55e] to-[#15803d]",
         iconBox: [
-          "bg-white/70 border border-emerald-200/70 text-emerald-800",
+          "bg-white/75 border border-emerald-200/80 text-emerald-800",
           "dark:bg-white/10 dark:border-white/10 dark:text-white",
+        ].join(" "),
+        chip: [
+          "bg-green-50 border-green-200 text-green-700",
+          "dark:bg-green-500/10 dark:border-green-400/20 dark:text-green-300",
         ].join(" "),
       },
       {
@@ -215,94 +238,163 @@ const Value: React.FC = () => {
         value: loading ? "..." : totals.info.toLocaleString(),
         subtitle: makeSubtitle(totals.info),
         icon: <FiShield />,
-
+        accent: "#3b82f6",
+        softAccent: "#7dd3fc",
+        dot: "bg-blue-500",
         bg: [
-          "bg-gradient-to-br from-[#eff6ff] via-[#dbeafe] to-[#bfdbfe]",
-          "dark:bg-gradient-to-br dark:from-[#020b16] dark:via-[#06243a] dark:to-[#075985]",
+          "bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.18),transparent_34%),linear-gradient(135deg,#eff6ff_0%,#dbeafe_45%,#bfdbfe_100%)]",
+          "dark:bg-[radial-gradient(circle_at_top_right,rgba(125,211,252,0.14),transparent_34%),linear-gradient(135deg,#020b16_0%,#06243a_45%,#075985_100%)]",
         ].join(" "),
         ring: [
-          "border border-sky-200/70 ring-1 ring-sky-300/35",
-          "dark:border-white/10 dark:ring-[#7dd3fc]/25",
+          "border border-sky-200/75 ring-1 ring-sky-300/35",
+          "dark:border-white/10 dark:ring-sky-300/20",
         ].join(" "),
         glow: [
-          "shadow-[0_18px_44px_-18px_rgba(56,189,248,0.16)]",
-          "dark:shadow-[0_18px_44px_-18px_rgba(56,189,248,0.45)]",
+          "shadow-[0_16px_40px_-18px_rgba(56,189,248,0.22)]",
+          "dark:shadow-[0_16px_40px_-18px_rgba(56,189,248,0.42)]",
         ].join(" "),
         pill: [
-          "bg-white/70 text-sky-800 border border-sky-200/80",
+          "bg-white/75 text-sky-800 border border-sky-200/80",
           "dark:bg-white/10 dark:text-white dark:border-white/15",
         ].join(" "),
-        bar: [
-          "bg-gradient-to-r from-[#7dd3fc] via-[#38bdf8] to-[#0284c7]",
-          "dark:bg-gradient-to-r dark:from-[#7dd3fc] dark:via-[#38bdf8] dark:to-[#0284c7]",
-        ].join(" "),
+        bar: "bg-gradient-to-r from-[#7dd3fc] via-[#38bdf8] to-[#0284c7]",
         iconBox: [
-          "bg-white/70 border border-sky-200/70 text-sky-800",
+          "bg-white/75 border border-sky-200/80 text-sky-800",
           "dark:bg-white/10 dark:border-white/10 dark:text-white",
+        ].join(" "),
+        chip: [
+          "bg-blue-50 border-blue-200 text-blue-700",
+          "dark:bg-blue-500/10 dark:border-blue-400/20 dark:text-blue-300",
         ].join(" "),
       },
     ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [loading, totals]
   );
 
   return (
     <section
       className={[
-        "rounded-[22px] p-3 sm:p-3.5",
+        "relative overflow-hidden rounded-3xl p-3 sm:p-3.5",
         "bg-white border border-gray-200/80 shadow-sm",
         "dark:bg-white/5 dark:border-white/10 dark:ring-1 dark:ring-white/10 dark:shadow-none",
       ].join(" ")}
     >
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-2.5 sm:gap-3">
-        {stats.map((item) => {
-          const rawNumber =
-            item.title === "Critical"
-              ? totals.critical
-              : item.title === "High"
-              ? totals.high
-              : item.title === "Medium"
-              ? totals.medium
-              : item.title === "Low"
-              ? totals.low
-              : totals.info;
+      {/* background */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -top-16 -right-12 h-44 w-44 rounded-full bg-cyan-400/8 blur-3xl" />
+        <div className="absolute -bottom-16 -left-12 h-44 w-44 rounded-full bg-violet-500/8 blur-3xl" />
+        <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.06]">
+          <div
+            className="h-full w-full"
+            style={{
+              backgroundImage: `
+                linear-gradient(to right, currentColor 1px, transparent 1px),
+                linear-gradient(to bottom, currentColor 1px, transparent 1px)
+              `,
+              backgroundSize: "24px 24px",
+            }}
+          />
+        </div>
+      </div>
 
-          const w = loading ? "0%" : barWidth(rawNumber);
-
-          return (
+      <div className="relative z-10">
+        {/* top status */}
+        <div className="mb-3 flex flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-2">
             <div
-              key={item.id}
               className={[
-                "min-w-0 rounded-2xl p-3 sm:p-3.5 relative overflow-hidden",
-                "transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-xl",
-                // ✅ text light/dark
-                "text-slate-900 dark:text-white",
-                item.bg,
-                item.ring,
-                item.glow,
+                "inline-flex items-center gap-2 rounded-full px-3 py-1.5",
+                "bg-cyan-50 text-cyan-700 border border-cyan-200/80",
+                "dark:bg-cyan-500/10 dark:text-cyan-300 dark:border-cyan-400/20",
               ].join(" ")}
             >
-              {/* overlay grid (ปรับให้เหมาะกับ light/dark) */}
-              <div
-                className={[
-                  "pointer-events-none absolute inset-0 opacity-35",
-                  "dark:opacity-20",
-                  "[background:linear-gradient(to_right,rgba(15,23,42,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(15,23,42,0.08)_1px,transparent_1px)]",
-                  "dark:[background:linear-gradient(to_right,rgba(255,255,255,0.10)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.10)_1px,transparent_1px)]",
-                  "bg-size-[16px_16px]",
-                ].join(" ")}
-              />
-              {/* soft corner glow */}
-              <div className="pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full bg-white/35 dark:bg-white/10 blur-3xl" />
+              <FiShield className="text-[13px]" />
+              <span className="text-[12px] font-semibold tracking-wide">
+                Security Severity Matrix
+              </span>
+            </div>
 
-              <div className="relative flex flex-col justify-between min-h-26">
-                {/* top row */}
-                <div className="flex items-start justify-between gap-2 min-w-0">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
+            <div
+              className={[
+                "inline-flex items-center gap-2 rounded-full px-3 py-1.5",
+                "bg-slate-50 text-slate-600 border border-slate-200/80",
+                "dark:bg-white/5 dark:text-white/65 dark:border-white/10",
+              ].join(" ")}
+            >
+              <FiRadio className="text-[12px] text-cyan-500" />
+              <span className="text-[12px] font-medium">
+                {loading ? "Scanner Syncing" : `${highestSeverity} activity detected`}
+              </span>
+            </div>
+
+            <div
+              className={[
+                "inline-flex items-center gap-2 rounded-full px-3 py-1.5",
+                "bg-slate-50 text-slate-600 border border-slate-200/80",
+                "dark:bg-white/5 dark:text-white/65 dark:border-white/10",
+              ].join(" ")}
+            >
+              <FiActivity className="text-[12px] text-violet-500" />
+              <span className="text-[12px] font-medium">
+                {loading ? "Fetching telemetry..." : `${totals.totalAll.toLocaleString()} total findings`}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* cards */}
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-2.5 sm:gap-3">
+          {stats.map((item) => {
+            const rawNumber =
+              item.title === "Critical"
+                ? totals.critical
+                : item.title === "High"
+                ? totals.high
+                : item.title === "Medium"
+                ? totals.medium
+                : item.title === "Low"
+                ? totals.low
+                : totals.info;
+
+            const w = loading ? "0%" : barWidth(rawNumber);
+
+            return (
+              <div
+                key={item.id}
+                className={[
+                  "min-w-0 rounded-[22px] p-3.5 sm:p-4 relative overflow-hidden",
+                  "transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-xl",
+                  "text-slate-900 dark:text-white",
+                  item.bg,
+                  item.ring,
+                  item.glow,
+                ].join(" ")}
+              >
+                {/* overlay */}
+                <div
+                  className={[
+                    "pointer-events-none absolute inset-0 opacity-35",
+                    "dark:opacity-18",
+                    "[background:linear-gradient(to_right,rgba(15,23,42,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(15,23,42,0.08)_1px,transparent_1px)]",
+                    "dark:[background:linear-gradient(to_right,rgba(255,255,255,0.10)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.10)_1px,transparent_1px)]",
+                    "bg-size-[16px_16px]",
+                  ].join(" ")}
+                />
+                <div className="pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full bg-white/35 dark:bg-white/10 blur-3xl" />
+                <div
+                  className="pointer-events-none absolute top-0 left-0 h-1 w-full"
+                  style={{
+                    background: `linear-gradient(90deg, ${item.softAccent}, ${item.accent})`,
+                  }}
+                />
+
+                <div className="relative flex flex-col justify-between min-h-43">
+                  {/* header */}
+                  <div className="flex items-start justify-between gap-2 min-w-0">
+                    <div className="min-w-0 flex items-start gap-2.5">
                       <div
                         className={[
-                          "h-9 w-9 rounded-2xl flex items-center justify-center text-[18px]",
+                          "h-10 w-10 rounded-2xl flex items-center justify-center text-[18px] shrink-0",
                           item.iconBox,
                         ].join(" ")}
                       >
@@ -310,67 +402,78 @@ const Value: React.FC = () => {
                       </div>
 
                       <div className="min-w-0">
-                        <h3 className="min-w-0 truncate text-[12.5px] sm:text-[13px] leading-[1.15] font-semibold tracking-wide">
-                          {item.title}
-                        </h3>
-                        <p className="mt-0.5 text-[11px] text-slate-600/80 dark:text-white/75 truncate">
-                          Severity summary
+                        <div className="flex items-center gap-2">
+                          <span className={`h-2 w-2 rounded-full ${item.dot}`} />
+                          <h3 className="min-w-0 truncate text-[13px] sm:text-[13.5px] leading-[1.15] font-semibold tracking-wide">
+                            {item.title}
+                          </h3>
+                        </div>
+
+                        <p className="mt-1 text-[11px] text-slate-700/80 dark:text-white/75 truncate">
+                          Network scan severity
                         </p>
                       </div>
                     </div>
+
+                    <span
+                      className={[
+                        "shrink-0 rounded-full h-6 px-2.5 inline-flex items-center justify-center",
+                        "text-[10px] font-medium backdrop-blur border",
+                        item.pill,
+                      ].join(" ")}
+                    >
+                      {loading ? "Sync" : `${percent(rawNumber)}%`}
+                    </span>
                   </div>
 
-                  <span
-                    className={[
-                      "shrink-0 rounded-full h-6 px-2.5 inline-flex items-center justify-center",
-                      "text-[10px] font-medium backdrop-blur",
-                      item.pill,
-                    ].join(" ")}
-                  >
-                    {loading ? "Syncing" : `${percent(rawNumber)}%`}
-                  </span>
-                </div>
+                  {/* value */}
+                  <div className="mt-4">
+                    <div className="flex items-end justify-between gap-3">
+                      <p className="truncate text-[22px] sm:text-[24px] font-semibold tracking-tight leading-none">
+                        {item.value}
+                      </p>
 
-                {/* value */}
-                <div className="mt-3">
-                  <p className="truncate text-[20px] sm:text-[22px] font-semibold tracking-tight">
-                    {item.value}
-                  </p>
+                      <span
+                        className={[
+                          "shrink-0 rounded-full px-2 py-1 text-[10px] font-semibold border",
+                          item.chip,
+                        ].join(" ")}
+                      >
+                        {loading
+                          ? "Loading"
+                          : rawNumber > 0
+                          ? "Detected"
+                          : "Clear"}
+                      </span>
+                    </div>
 
-                  <p className="mt-1 text-[11.5px] text-slate-700/80 dark:text-white/80">
-                    {item.subtitle}
-                  </p>
-                </div>
+                    <p className="mt-2 text-[11.5px] leading-5 text-slate-700/80 dark:text-white/80">
+                      {item.subtitle}
+                    </p>
+                  </div>
 
-                {/* progress bar */}
-                <div className="mt-3">
-                  <div className="h-2.5 w-full rounded-full bg-black/5 dark:bg-white/10 overflow-hidden border border-black/10 dark:border-white/10">
-                    <div
-                      className={["h-full rounded-full transition-all duration-700", item.bar].join(
-                        " "
-                      )}
-                      style={{ width: w }}
-                    />
+                  {/* progress */}
+                  <div className="mt-4">
+                    <div className="mb-1.5 flex items-center justify-between text-[10.5px] text-slate-700/75 dark:text-white/65">
+                      <span>Scan intensity</span>
+                      <span>{loading ? "..." : `${percent(rawNumber)}%`}</span>
+                    </div>
+
+                    <div className="h-2.5 w-full rounded-full bg-black/5 dark:bg-white/10 overflow-hidden border border-black/10 dark:border-white/10">
+                      <div
+                        className={["h-full rounded-full transition-all duration-700", item.bar].join(
+                          " "
+                        )}
+                        style={{ width: w }}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {!loading && (
-        <div className="mt-3 px-1 text-[12px] text-gray-500 dark:text-white/55">
-          Total findings:{" "}
-          <span className="font-medium text-gray-700 dark:text-white/80">
-            {totals.totalAll.toLocaleString()}
-          </span>{" "}
-          • Tasks:{" "}
-          <span className="font-medium text-gray-700 dark:text-white/80">
-            {rows.length.toLocaleString()}
-          </span>
+            );
+          })}
         </div>
-      )}
+      </div>
     </section>
   );
 };
