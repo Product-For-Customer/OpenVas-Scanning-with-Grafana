@@ -1,0 +1,644 @@
+import React, { useMemo, useState } from "react";
+import {
+  FiShield,
+  FiLock,
+  FiEye,
+  FiEyeOff,
+  FiArrowRight,
+  FiArrowLeft,
+  FiRadio,
+  FiCpu,
+  FiActivity,
+  FiCheckCircle,
+  FiRefreshCw,
+  FiKey,
+} from "react-icons/fi";
+
+const Index: React.FC = () => {
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const passwordStrength = useMemo(() => {
+    return 78;
+  }, []);
+
+  const inputClass = [
+    "w-full h-12 rounded-2xl border pl-11 pr-12 text-[14px] outline-none transition-all duration-200",
+    "border-slate-200 bg-white text-slate-800 placeholder:text-slate-400",
+    "focus:border-cyan-300 focus:ring-4 focus:ring-cyan-100/80",
+    "dark:border-white/10 dark:bg-white/[0.04] dark:text-white dark:placeholder:text-white/30",
+    "dark:focus:border-cyan-400/30 dark:focus:ring-cyan-500/10",
+  ].join(" ");
+
+  return (
+    <div className="w-full min-h-screen bg-[#f7f8fc] dark:bg-[#07101b]">
+      <div className="w-full min-h-screen p-3 sm:p-4 md:p-6 lg:p-8">
+        <div
+          className={[
+            "w-full min-h-[calc(100vh-24px)] sm:min-h-[calc(100vh-32px)] md:min-h-[calc(100vh-48px)] lg:min-h-[calc(100vh-64px)]",
+            "rounded-3xl sm:rounded-[28px] overflow-hidden",
+            "border border-slate-200/80 bg-[#fbfbfd]",
+            "shadow-[0_18px_60px_rgba(15,23,42,0.06)]",
+            "dark:bg-[#08111f] dark:border-white/10 dark:shadow-none",
+          ].join(" ")}
+        >
+          <div className="grid w-full min-h-full grid-cols-1 xl:grid-cols-[1.08fr_0.92fr]">
+            {/* LEFT SIDE */}
+            <section className="relative flex min-h-110 w-full items-center justify-center px-5 py-10 sm:px-8 md:px-10 lg:px-14 xl:min-h-full">
+              <div className="pointer-events-none absolute inset-0 overflow-hidden">
+                <div className="absolute left-[10%] top-[10%] h-44 w-44 rounded-full bg-cyan-400/10 blur-3xl" />
+                <div className="absolute right-[12%] top-[20%] h-56 w-56 rounded-full bg-violet-500/10 blur-3xl" />
+                <div className="absolute bottom-[10%] left-[28%] h-44 w-44 rounded-full bg-sky-500/10 blur-3xl" />
+              </div>
+
+              <div className="relative z-10 flex w-full max-w-190 flex-col items-center text-center">
+                <div
+                  className={[
+                    "mb-5 inline-flex items-center gap-2 rounded-full px-4 py-2",
+                    "bg-cyan-50 text-cyan-700 border border-cyan-200/80",
+                    "dark:bg-cyan-500/10 dark:text-cyan-300 dark:border-cyan-400/20",
+                  ].join(" ")}
+                >
+                  <FiShield className="text-[15px]" />
+                  <span className="text-[13px] sm:text-[14px] font-semibold tracking-wide">
+                    Secure Credential Reset
+                  </span>
+                </div>
+
+                {/* NEW NETWORK ILLUSTRATION */}
+                <div className="w-full max-w-162.5">
+                  <svg
+                    viewBox="0 0 760 520"
+                    className="w-full h-auto"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    aria-label="reset password network illustration"
+                  >
+                    <defs>
+                      <linearGradient id="resetMainStroke" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stopColor="#22d3ee" />
+                        <stop offset="50%" stopColor="#38bdf8" />
+                        <stop offset="100%" stopColor="#8b5cf6" />
+                      </linearGradient>
+
+                      <linearGradient id="resetPanelGlow" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stopColor="#0ea5e9" stopOpacity="0.14" />
+                        <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.16" />
+                      </linearGradient>
+
+                      <radialGradient id="resetCoreGlow" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.22" />
+                        <stop offset="100%" stopColor="#22d3ee" stopOpacity="0" />
+                      </radialGradient>
+                    </defs>
+
+                    {/* main shell */}
+                    <rect
+                      x="148"
+                      y="98"
+                      width="464"
+                      height="274"
+                      rx="34"
+                      fill="url(#resetPanelGlow)"
+                      stroke="url(#resetMainStroke)"
+                      strokeOpacity="0.3"
+                      strokeWidth="1.6"
+                    />
+
+                    {/* center security core */}
+                    <rect
+                      x="292"
+                      y="148"
+                      width="176"
+                      height="120"
+                      rx="24"
+                      fill="#ffffff"
+                      stroke="#D6E4F0"
+                      className="dark:fill-[#0b1728] dark:stroke-white/10"
+                    />
+                    <rect
+                      x="292"
+                      y="148"
+                      width="176"
+                      height="24"
+                      rx="24"
+                      fill="#EEF6FF"
+                      className="dark:fill-white/5"
+                    />
+                    <circle cx="311" cy="160" r="3.5" fill="#22d3ee" />
+                    <circle cx="324" cy="160" r="3.5" fill="#60a5fa" />
+                    <circle cx="337" cy="160" r="3.5" fill="#8b5cf6" />
+
+                    <circle cx="380" cy="220" r="46" fill="url(#resetCoreGlow)" />
+                    <circle
+                      cx="380"
+                      cy="220"
+                      r="32"
+                      stroke="#22d3ee"
+                      strokeOpacity="0.82"
+                      strokeWidth="2.2"
+                    />
+                    <circle
+                      cx="380"
+                      cy="220"
+                      r="18"
+                      stroke="#38bdf8"
+                      strokeOpacity="0.68"
+                      strokeWidth="1.8"
+                    />
+                    <circle cx="380" cy="220" r="5.5" fill="#22d3ee" />
+
+                    {/* key icon in center */}
+                    <circle
+                      cx="380"
+                      cy="220"
+                      r="13"
+                      fill="#0ea5e9"
+                      fillOpacity="0.10"
+                      stroke="#22d3ee"
+                      strokeWidth="1.8"
+                    />
+                    <path
+                      d="M380 214.5C382.5 214.5 384.5 216.5 384.5 219C384.5 221.5 382.5 223.5 380 223.5C377.5 223.5 375.5 221.5 375.5 219C375.5 216.5 377.5 214.5 380 214.5Z"
+                      stroke="#22d3ee"
+                      strokeWidth="1.8"
+                    />
+                    <path
+                      d="M384 219H390L392 217V221L394 219V223"
+                      stroke="#22d3ee"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+
+                    {/* top shield */}
+                    <path
+                      d="M380 46L414 62V94C414 120 397 137 380 144C363 137 346 120 346 94V62L380 46Z"
+                      fill="#0ea5e9"
+                      fillOpacity="0.12"
+                      stroke="#22d3ee"
+                      strokeWidth="2"
+                    />
+                    <path
+                      d="M368 95L377 104L394 85"
+                      stroke="#22d3ee"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+
+                    {/* top connection */}
+                    <path
+                      d="M380 148V144"
+                      stroke="url(#resetMainStroke)"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                    />
+
+                    {/* left secure node */}
+                    <rect
+                      x="176"
+                      y="154"
+                      width="104"
+                      height="74"
+                      rx="20"
+                      fill="#ffffff"
+                      stroke="#D6E4F0"
+                      className="dark:fill-[#0b1728] dark:stroke-white/10"
+                    />
+                    <rect x="195" y="177" width="42" height="8" rx="4" fill="#22d3ee" />
+                    <rect x="195" y="191" width="60" height="6" rx="3" fill="#BAE6FD" />
+                    <circle cx="244" cy="181" r="8" fill="#0ea5e9" fillOpacity="0.12" />
+                    <path
+                      d="M241 181L243 183L247 178"
+                      stroke="#22d3ee"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+
+                    {/* right verification node */}
+                    <rect
+                      x="480"
+                      y="154"
+                      width="104"
+                      height="74"
+                      rx="20"
+                      fill="#ffffff"
+                      stroke="#D6E4F0"
+                      className="dark:fill-[#0b1728] dark:stroke-white/10"
+                    />
+                    <rect x="499" y="177" width="46" height="8" rx="4" fill="#8b5cf6" />
+                    <rect x="499" y="191" width="64" height="6" rx="3" fill="#DDD6FE" />
+                    <path
+                      d="M501 206L513 196L524 203L538 190L550 197"
+                      stroke="#8b5cf6"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+
+                    {/* bottom-left password node */}
+                    <rect
+                      x="182"
+                      y="284"
+                      width="126"
+                      height="84"
+                      rx="22"
+                      fill="#ffffff"
+                      stroke="#D6E4F0"
+                      className="dark:fill-[#0b1728] dark:stroke-white/10"
+                    />
+                    <circle cx="214" cy="326" r="13" fill="#22d3ee" fillOpacity="0.12" />
+                    <rect
+                      x="208"
+                      y="322"
+                      width="12"
+                      height="10"
+                      rx="3"
+                      fill="#ffffff"
+                      stroke="#22d3ee"
+                      strokeWidth="1.8"
+                    />
+                    <path
+                      d="M210 322V318.5C210 316.01 212.01 314 214.5 314C216.99 314 219 316.01 219 318.5V322"
+                      stroke="#22d3ee"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                    />
+                    <rect x="236" y="317" width="46" height="8" rx="4" fill="#22d3ee" />
+                    <rect x="236" y="331" width="34" height="6" rx="3" fill="#BAE6FD" />
+
+                    {/* bottom-right refresh node */}
+                    <rect
+                      x="452"
+                      y="284"
+                      width="126"
+                      height="84"
+                      rx="22"
+                      fill="#ffffff"
+                      stroke="#D6E4F0"
+                      className="dark:fill-[#0b1728] dark:stroke-white/10"
+                    />
+                    <circle cx="485" cy="326" r="13" fill="#8b5cf6" fillOpacity="0.12" />
+                    <path
+                      d="M479 322C481 319 486 318 490 321C493 323 494 327 492 331"
+                      stroke="#8b5cf6"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                    />
+                    <path
+                      d="M492 331L492 326L487 326"
+                      stroke="#8b5cf6"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <rect x="506" y="317" width="46" height="8" rx="4" fill="#8b5cf6" />
+                    <rect x="506" y="331" width="34" height="6" rx="3" fill="#DDD6FE" />
+
+                    {/* bottom center status card */}
+                    <rect
+                      x="324"
+                      y="392"
+                      width="112"
+                      height="70"
+                      rx="20"
+                      fill="#ffffff"
+                      stroke="#D6E4F0"
+                      className="dark:fill-[#0b1728] dark:stroke-white/10"
+                    />
+                    <rect x="344" y="415" width="46" height="8" rx="4" fill="#22d3ee" />
+                    <rect x="344" y="429" width="64" height="6" rx="3" fill="#BAE6FD" />
+                    <circle cx="406" cy="419" r="10" fill="#0ea5e9" fillOpacity="0.12" />
+                    <path
+                      d="M401 419L405 423L411 415"
+                      stroke="#22d3ee"
+                      strokeWidth="2.3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+
+                    {/* connecting lines */}
+                    <path
+                      d="M334 206L280 194"
+                      stroke="url(#resetMainStroke)"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeDasharray="8 8"
+                    />
+                    <path
+                      d="M426 206L480 194"
+                      stroke="url(#resetMainStroke)"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeDasharray="8 8"
+                    />
+                    <path
+                      d="M338 245L308 284"
+                      stroke="url(#resetMainStroke)"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeDasharray="8 8"
+                    />
+                    <path
+                      d="M422 245L452 284"
+                      stroke="url(#resetMainStroke)"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeDasharray="8 8"
+                    />
+                    <path
+                      d="M380 268V392"
+                      stroke="url(#resetMainStroke)"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeDasharray="8 8"
+                    />
+
+                    {/* side float nodes */}
+                    <circle cx="114" cy="222" r="24" fill="#E0F2FE" className="dark:fill-cyan-500/10" />
+                    <circle cx="646" cy="222" r="24" fill="#EDE9FE" className="dark:fill-violet-500/10" />
+                    <circle cx="278" cy="436" r="18" fill="#DBEAFE" className="dark:fill-sky-500/10" />
+                    <circle cx="482" cy="436" r="18" fill="#ECFEFF" className="dark:fill-cyan-500/10" />
+
+                    <circle cx="114" cy="222" r="7" fill="#22d3ee" />
+                    <circle cx="646" cy="222" r="7" fill="#8b5cf6" />
+                    <circle cx="278" cy="436" r="5.5" fill="#60a5fa" />
+                    <circle cx="482" cy="436" r="5.5" fill="#22d3ee" />
+
+                    <path
+                      d="M138 222C160 222 174 222 195 222"
+                      stroke="#22d3ee"
+                      strokeOpacity="0.75"
+                      strokeWidth="2.5"
+                      strokeDasharray="6 7"
+                    />
+                    <path
+                      d="M565 222C587 222 602 222 622 222"
+                      stroke="#8b5cf6"
+                      strokeOpacity="0.75"
+                      strokeWidth="2.5"
+                      strokeDasharray="6 7"
+                    />
+
+                    {/* decor dots */}
+                    <circle cx="246" cy="98" r="4" fill="#22d3ee" fillOpacity="0.85" />
+                    <circle cx="515" cy="98" r="3.5" fill="#8b5cf6" fillOpacity="0.85" />
+                    <circle cx="306" cy="474" r="4" fill="#60a5fa" fillOpacity="0.85" />
+                    <circle cx="452" cy="474" r="4" fill="#22d3ee" fillOpacity="0.85" />
+                  </svg>
+                </div>
+
+                <h1 className="mt-4 text-[28px] sm:text-[36px] lg:text-[42px] font-bold tracking-tight text-slate-900 dark:text-white">
+                  Create a strong new password
+                </h1>
+
+                <p className="mt-4 max-w-140 text-[14px] sm:text-[16px] leading-7 text-slate-600 dark:text-white/60">
+                  Update your credentials to restore protected access and keep
+                  your network scanning environment secure from unauthorized use.
+                </p>
+
+                <div className="mt-7 flex flex-wrap justify-center gap-3">
+                  <div
+                    className={[
+                      "inline-flex items-center gap-2 rounded-2xl px-4 py-3",
+                      "bg-slate-50 border border-slate-200 text-slate-700",
+                      "dark:bg-white/4 dark:border-white/10 dark:text-white/75",
+                    ].join(" ")}
+                  >
+                    <FiRadio className="text-cyan-500 text-[18px]" />
+                    <span className="text-[14px] font-medium">Access Recovery</span>
+                  </div>
+
+                  <div
+                    className={[
+                      "inline-flex items-center gap-2 rounded-2xl px-4 py-3",
+                      "bg-slate-50 border border-slate-200 text-slate-700",
+                      "dark:bg-white/4 dark:border-white/10 dark:text-white/75",
+                    ].join(" ")}
+                  >
+                    <FiCpu className="text-sky-500 text-[18px]" />
+                    <span className="text-[14px] font-medium">Protected Update</span>
+                  </div>
+
+                  <div
+                    className={[
+                      "inline-flex items-center gap-2 rounded-2xl px-4 py-3",
+                      "bg-slate-50 border border-slate-200 text-slate-700",
+                      "dark:bg-white/4 dark:border-white/10 dark:text-white/75",
+                    ].join(" ")}
+                  >
+                    <FiActivity className="text-violet-500 text-[18px]" />
+                    <span className="text-[14px] font-medium">Security Hardening</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* RIGHT SIDE */}
+            <section className="relative flex min-h-135 w-full items-center justify-center px-4 py-8 sm:px-6 md:px-8 lg:px-10">
+              <div className="pointer-events-none absolute inset-0 overflow-hidden">
+                <div className="absolute right-[12%] top-[14%] h-40 w-40 rounded-full bg-cyan-400/10 blur-3xl" />
+                <div className="absolute left-[8%] bottom-[10%] h-36 w-36 rounded-full bg-violet-500/10 blur-3xl" />
+              </div>
+
+              <div className="relative z-10 w-full max-w-130">
+                <div
+                  className={[
+                    "rounded-[28px] p-5 sm:p-6 md:p-8",
+                    "border border-slate-200/80 bg-white",
+                    "shadow-[0_18px_60px_rgba(15,23,42,0.07)]",
+                    "dark:bg-[#0b1320]/90 dark:border-white/10 dark:shadow-none",
+                  ].join(" ")}
+                >
+                  <div
+                    className={[
+                      "mb-4 inline-flex items-center gap-2 rounded-full px-3.5 py-1.5",
+                      "bg-violet-50 text-violet-700 border border-violet-200/80",
+                      "dark:bg-violet-500/10 dark:text-violet-300 dark:border-violet-400/20",
+                    ].join(" ")}
+                  >
+                    <FiShield className="text-[13px]" />
+                    <span className="text-[12px] font-semibold tracking-wide">
+                      Password Reset
+                    </span>
+                  </div>
+
+                  <h2 className="text-[28px] sm:text-[34px] font-bold tracking-tight text-slate-900 dark:text-white">
+                    Create a New Password
+                  </h2>
+
+                  <p className="mt-2 text-[14px] leading-7 text-slate-500 dark:text-white/55">
+                    Choose a new secure password for your account and confirm it
+                    to complete the protected recovery process.
+                  </p>
+
+                  <form className="mt-7 space-y-5">
+                    {/* New password */}
+                    <div>
+                      <label className="mb-2 block text-[14px] font-medium text-slate-700 dark:text-white/75">
+                        New Password
+                      </label>
+                      <div className="relative">
+                        <FiLock className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[17px] text-slate-400 dark:text-white/35" />
+                        <input
+                          type={showNewPassword ? "text" : "password"}
+                          placeholder="New Password"
+                          className={inputClass}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPassword((prev) => !prev)}
+                          className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-600 dark:text-white/35 dark:hover:text-white/70"
+                          aria-label={showNewPassword ? "Hide new password" : "Show new password"}
+                        >
+                          {showNewPassword ? (
+                            <FiEyeOff className="text-[18px]" />
+                          ) : (
+                            <FiEye className="text-[18px]" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Confirm password */}
+                    <div>
+                      <label className="mb-2 block text-[14px] font-medium text-slate-700 dark:text-white/75">
+                        Confirm Password
+                      </label>
+                      <div className="relative">
+                        <FiKey className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[17px] text-slate-400 dark:text-white/35" />
+                        <input
+                          type={showConfirmPassword ? "text" : "password"}
+                          placeholder="Confirm Password"
+                          className={inputClass}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword((prev) => !prev)}
+                          className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-600 dark:text-white/35 dark:hover:text-white/70"
+                          aria-label={
+                            showConfirmPassword
+                              ? "Hide confirm password"
+                              : "Show confirm password"
+                          }
+                        >
+                          {showConfirmPassword ? (
+                            <FiEyeOff className="text-[18px]" />
+                          ) : (
+                            <FiEye className="text-[18px]" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* password status */}
+                    <div
+                      className={[
+                        "rounded-2xl px-4 py-3",
+                        "bg-slate-50 border border-slate-200",
+                        "dark:bg-white/4 dark:border-white/10",
+                      ].join(" ")}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="mt-0.5 rounded-xl bg-cyan-50 p-2 text-cyan-600 dark:bg-cyan-500/10 dark:text-cyan-300">
+                          <FiRefreshCw className="text-[15px]" />
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[13px] font-semibold text-slate-700 dark:text-white/80">
+                            Credential hardening
+                          </p>
+                          <p className="mt-1 text-[12px] leading-6 text-slate-500 dark:text-white/50">
+                            Use at least 8 characters with uppercase, lowercase,
+                            numbers, and symbols for stronger protection.
+                          </p>
+
+                          <div className="mt-3">
+                            <div className="mb-2 flex items-center justify-between gap-3">
+                              <span className="text-[11px] font-medium text-slate-500 dark:text-white/45">
+                                Password strength
+                              </span>
+                              <span className="text-[11px] font-semibold text-cyan-600 dark:text-cyan-300">
+                                Strong
+                              </span>
+                            </div>
+
+                            <div className="h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-white/10">
+                              <div
+                                className="h-full rounded-full bg-linear-to-r from-cyan-500 via-sky-500 to-violet-500"
+                                style={{ width: `${passwordStrength}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* submit */}
+                    <button
+                      type="submit"
+                      className={[
+                        "group inline-flex w-full items-center justify-center gap-2 rounded-2xl h-12 sm:h-13 px-6",
+                        "bg-linear-to-r from-cyan-500 via-sky-500 to-violet-500",
+                        "text-white text-[15px] sm:text-[16px] font-semibold",
+                        "shadow-[0_12px_32px_rgba(14,165,233,0.24)]",
+                        "hover:scale-[1.01] active:scale-[0.99] transition-all duration-200",
+                        "focus:outline-none focus:ring-4 focus:ring-cyan-200/60",
+                      ].join(" ")}
+                    >
+                      <span>Confirm Password Reset</span>
+                      <FiArrowRight className="text-[18px] transition-transform duration-200 group-hover:translate-x-0.5" />
+                    </button>
+
+                    {/* back */}
+                    <div className="pt-1 text-[14px] text-slate-500 dark:text-white/55">
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-2 font-medium text-violet-600 transition hover:text-violet-700 dark:text-violet-300 dark:hover:text-violet-200"
+                      >
+                        <FiArrowLeft className="text-[15px]" />
+                        Back to Sign In
+                      </button>
+                    </div>
+                  </form>
+
+                  {/* bottom status */}
+                  <div
+                    className={[
+                      "mt-6 rounded-2xl px-4 py-3",
+                      "bg-slate-50 border border-slate-200",
+                      "dark:bg-white/4 dark:border-white/10",
+                    ].join(" ")}
+                  >
+                    <div className="flex flex-wrap items-center gap-3">
+                      <div className="inline-flex items-center gap-2">
+                        <span className="relative flex h-2.5 w-2.5">
+                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-400 opacity-75" />
+                          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-cyan-500" />
+                        </span>
+                        <span className="text-[12px] font-medium text-slate-700 dark:text-white/75">
+                          Password update channel active
+                        </span>
+                      </div>
+
+                      <div className="hidden h-4 w-px bg-slate-200 dark:bg-white/10 sm:block" />
+
+                      <div className="inline-flex items-center gap-2 text-[12px] text-slate-500 dark:text-white/45">
+                        <FiCheckCircle className="text-cyan-500" />
+                        Reset environment secured
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Index;

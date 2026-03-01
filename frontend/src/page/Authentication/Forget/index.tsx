@@ -1,0 +1,560 @@
+import React from "react";
+import {
+  FiShield,
+  FiMail,
+  FiArrowRight,
+  FiArrowLeft,
+  FiRadio,
+  FiCpu,
+  FiActivity,
+  FiCheckCircle,
+  FiRefreshCw,
+} from "react-icons/fi";
+
+const Index: React.FC = () => {
+  const inputClass = [
+    "w-full h-12 rounded-2xl border pl-11 pr-4 text-[14px] outline-none transition-all duration-200",
+    "border-slate-200 bg-white text-slate-800 placeholder:text-slate-400",
+    "focus:border-cyan-300 focus:ring-4 focus:ring-cyan-100/80",
+    "dark:border-white/10 dark:bg-white/[0.04] dark:text-white dark:placeholder:text-white/30",
+    "dark:focus:border-cyan-400/30 dark:focus:ring-cyan-500/10",
+  ].join(" ");
+
+  return (
+    <div className="w-full min-h-screen bg-[#f7f8fc] dark:bg-[#07101b]">
+      <div className="w-full min-h-screen p-3 sm:p-4 md:p-6 lg:p-8">
+        <div
+          className={[
+            "w-full min-h-[calc(100vh-24px)] sm:min-h-[calc(100vh-32px)] md:min-h-[calc(100vh-48px)] lg:min-h-[calc(100vh-64px)]",
+            "rounded-3xl sm:rounded-[28px] overflow-hidden",
+            "border border-slate-200/80 bg-[#fbfbfd]",
+            "shadow-[0_18px_60px_rgba(15,23,42,0.06)]",
+            "dark:bg-[#08111f] dark:border-white/10 dark:shadow-none",
+          ].join(" ")}
+        >
+          <div className="grid w-full min-h-full grid-cols-1 xl:grid-cols-[1.08fr_0.92fr]">
+            {/* LEFT SIDE */}
+            <section className="relative flex min-h-110 w-full items-center justify-center px-5 py-10 sm:px-8 md:px-10 lg:px-14 xl:min-h-full">
+              <div className="pointer-events-none absolute inset-0 overflow-hidden">
+                <div className="absolute left-[10%] top-[12%] h-44 w-44 rounded-full bg-cyan-400/10 blur-3xl" />
+                <div className="absolute right-[12%] top-[22%] h-56 w-56 rounded-full bg-violet-500/10 blur-3xl" />
+                <div className="absolute bottom-[8%] left-[28%] h-44 w-44 rounded-full bg-sky-500/10 blur-3xl" />
+              </div>
+
+              <div className="relative z-10 flex w-full max-w-190 flex-col items-center text-center">
+                <div
+                  className={[
+                    "mb-5 inline-flex items-center gap-2 rounded-full px-4 py-2",
+                    "bg-cyan-50 text-cyan-700 border border-cyan-200/80",
+                    "dark:bg-cyan-500/10 dark:text-cyan-300 dark:border-cyan-400/20",
+                  ].join(" ")}
+                >
+                  <FiShield className="text-[15px]" />
+                  <span className="text-[13px] sm:text-[14px] font-semibold tracking-wide">
+                    Recovery Access Control
+                  </span>
+                </div>
+
+                {/* NEW NETWORK ILLUSTRATION */}
+                <div className="w-full max-w-162.5">
+                  <svg
+                    viewBox="0 0 760 520"
+                    className="w-full h-auto"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    aria-label="forgot password network recovery illustration"
+                  >
+                    <defs>
+                      <linearGradient id="forgotMainStroke" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stopColor="#22d3ee" />
+                        <stop offset="50%" stopColor="#38bdf8" />
+                        <stop offset="100%" stopColor="#8b5cf6" />
+                      </linearGradient>
+
+                      <linearGradient id="forgotPanelGlow" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stopColor="#0ea5e9" stopOpacity="0.14" />
+                        <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.16" />
+                      </linearGradient>
+
+                      <radialGradient id="forgotCoreGlow" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.22" />
+                        <stop offset="100%" stopColor="#22d3ee" stopOpacity="0" />
+                      </radialGradient>
+                    </defs>
+
+                    {/* main recovery platform */}
+                    <rect
+                      x="152"
+                      y="102"
+                      width="456"
+                      height="270"
+                      rx="34"
+                      fill="url(#forgotPanelGlow)"
+                      stroke="url(#forgotMainStroke)"
+                      strokeOpacity="0.32"
+                      strokeWidth="1.6"
+                    />
+
+                    {/* center secure core */}
+                    <circle cx="380" cy="228" r="86" fill="url(#forgotCoreGlow)" />
+                    <circle
+                      cx="380"
+                      cy="228"
+                      r="62"
+                      stroke="#22d3ee"
+                      strokeOpacity="0.8"
+                      strokeWidth="2.3"
+                    />
+                    <circle
+                      cx="380"
+                      cy="228"
+                      r="38"
+                      stroke="#38bdf8"
+                      strokeOpacity="0.65"
+                      strokeWidth="1.9"
+                    />
+                    <circle
+                      cx="380"
+                      cy="228"
+                      r="18"
+                      fill="#22d3ee"
+                      fillOpacity="0.12"
+                      stroke="#22d3ee"
+                      strokeWidth="2"
+                    />
+
+                    {/* lock */}
+                    <rect
+                      x="364"
+                      y="222"
+                      width="32"
+                      height="28"
+                      rx="8"
+                      fill="#ffffff"
+                      stroke="#22d3ee"
+                      strokeWidth="2"
+                      className="dark:fill-[#0b1728]"
+                    />
+                    <path
+                      d="M370 222V214C370 208.477 374.477 204 380 204C385.523 204 390 208.477 390 214V222"
+                      stroke="#22d3ee"
+                      strokeWidth="2.4"
+                      strokeLinecap="round"
+                    />
+
+                    {/* recovery arrow ring accent */}
+                    <path
+                      d="M414 214C417 222 417 234 412 244"
+                      stroke="#8b5cf6"
+                      strokeWidth="2.6"
+                      strokeLinecap="round"
+                    />
+                    <path
+                      d="M406 243L412 244L414 238"
+                      stroke="#8b5cf6"
+                      strokeWidth="2.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+
+                    {/* top email node */}
+                    <rect
+                      x="322"
+                      y="48"
+                      width="116"
+                      height="74"
+                      rx="20"
+                      fill="#ffffff"
+                      stroke="#D6E4F0"
+                      className="dark:fill-[#0b1728] dark:stroke-white/10"
+                    />
+                    <rect x="344" y="72" width="54" height="8" rx="4" fill="#22d3ee" />
+                    <rect x="344" y="86" width="74" height="6" rx="3" fill="#BAE6FD" />
+                    <path
+                      d="M404 68L416 76L428 68"
+                      stroke="#8b5cf6"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+
+                    {/* connection up */}
+                    <path
+                      d="M380 166V122"
+                      stroke="url(#forgotMainStroke)"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeDasharray="8 8"
+                    />
+
+                    {/* left device card */}
+                    <rect
+                      x="170"
+                      y="154"
+                      width="116"
+                      height="78"
+                      rx="20"
+                      fill="#ffffff"
+                      stroke="#D6E4F0"
+                      className="dark:fill-[#0b1728] dark:stroke-white/10"
+                    />
+                    <rect x="190" y="177" width="46" height="8" rx="4" fill="#22d3ee" />
+                    <rect x="190" y="191" width="66" height="6" rx="3" fill="#DDD6FE" />
+                    <circle cx="250" cy="181" r="8" fill="#0ea5e9" fillOpacity="0.12" />
+                    <circle cx="250" cy="181" r="3.8" fill="#22d3ee" />
+
+                    {/* right device card */}
+                    <rect
+                      x="474"
+                      y="154"
+                      width="116"
+                      height="78"
+                      rx="20"
+                      fill="#ffffff"
+                      stroke="#D6E4F0"
+                      className="dark:fill-[#0b1728] dark:stroke-white/10"
+                    />
+                    <rect x="495" y="177" width="48" height="8" rx="4" fill="#8b5cf6" />
+                    <rect x="495" y="191" width="68" height="6" rx="3" fill="#DDD6FE" />
+                    <path
+                      d="M496 207L509 198L521 204L535 192L549 200"
+                      stroke="#8b5cf6"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+
+                    {/* bottom-left mail verification */}
+                    <rect
+                      x="182"
+                      y="288"
+                      width="128"
+                      height="84"
+                      rx="22"
+                      fill="#ffffff"
+                      stroke="#D6E4F0"
+                      className="dark:fill-[#0b1728] dark:stroke-white/10"
+                    />
+                    <circle cx="214" cy="330" r="13" fill="#22d3ee" fillOpacity="0.12" />
+                    <path
+                      d="M206 325L214 331L224 320"
+                      stroke="#22d3ee"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <rect x="236" y="321" width="44" height="8" rx="4" fill="#22d3ee" />
+                    <rect x="236" y="335" width="32" height="6" rx="3" fill="#BAE6FD" />
+
+                    {/* bottom-right reset status */}
+                    <rect
+                      x="450"
+                      y="288"
+                      width="132"
+                      height="84"
+                      rx="22"
+                      fill="#ffffff"
+                      stroke="#D6E4F0"
+                      className="dark:fill-[#0b1728] dark:stroke-white/10"
+                    />
+                    <circle cx="482" cy="330" r="13" fill="#8b5cf6" fillOpacity="0.12" />
+                    <path
+                      d="M482 322C487 322 491 326 491 331"
+                      stroke="#8b5cf6"
+                      strokeWidth="2.3"
+                      strokeLinecap="round"
+                    />
+                    <path
+                      d="M490 330L491 336L485 336"
+                      stroke="#8b5cf6"
+                      strokeWidth="2.3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <rect x="504" y="321" width="46" height="8" rx="4" fill="#8b5cf6" />
+                    <rect x="504" y="335" width="34" height="6" rx="3" fill="#DDD6FE" />
+
+                    {/* center bottom status panel */}
+                    <rect
+                      x="316"
+                      y="392"
+                      width="128"
+                      height="72"
+                      rx="20"
+                      fill="#ffffff"
+                      stroke="#D6E4F0"
+                      className="dark:fill-[#0b1728] dark:stroke-white/10"
+                    />
+                    <rect x="338" y="415" width="52" height="8" rx="4" fill="#22d3ee" />
+                    <rect x="338" y="429" width="72" height="6" rx="3" fill="#BAE6FD" />
+                    <circle cx="412" cy="419" r="10" fill="#0ea5e9" fillOpacity="0.12" />
+                    <path
+                      d="M407 419L411 423L417 415"
+                      stroke="#22d3ee"
+                      strokeWidth="2.4"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+
+                    {/* links */}
+                    <path
+                      d="M338 199L286 193"
+                      stroke="url(#forgotMainStroke)"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeDasharray="8 8"
+                    />
+                    <path
+                      d="M422 199L474 193"
+                      stroke="url(#forgotMainStroke)"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeDasharray="8 8"
+                    />
+                    <path
+                      d="M336 260L289 302"
+                      stroke="url(#forgotMainStroke)"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeDasharray="8 8"
+                    />
+                    <path
+                      d="M424 260L450 288"
+                      stroke="url(#forgotMainStroke)"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeDasharray="8 8"
+                    />
+                    <path
+                      d="M380 290V392"
+                      stroke="url(#forgotMainStroke)"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeDasharray="8 8"
+                    />
+
+                    {/* floating side nodes */}
+                    <circle cx="112" cy="232" r="24" fill="#E0F2FE" className="dark:fill-cyan-500/10" />
+                    <circle cx="648" cy="232" r="24" fill="#EDE9FE" className="dark:fill-violet-500/10" />
+                    <circle cx="268" cy="438" r="18" fill="#DBEAFE" className="dark:fill-sky-500/10" />
+                    <circle cx="496" cy="438" r="18" fill="#ECFEFF" className="dark:fill-cyan-500/10" />
+
+                    <circle cx="112" cy="232" r="7" fill="#22d3ee" />
+                    <circle cx="648" cy="232" r="7" fill="#8b5cf6" />
+                    <circle cx="268" cy="438" r="5.5" fill="#60a5fa" />
+                    <circle cx="496" cy="438" r="5.5" fill="#22d3ee" />
+
+                    <path
+                      d="M136 232C160 232 176 232 198 232"
+                      stroke="#22d3ee"
+                      strokeOpacity="0.75"
+                      strokeWidth="2.5"
+                      strokeDasharray="6 7"
+                    />
+                    <path
+                      d="M562 232C585 232 602 232 624 232"
+                      stroke="#8b5cf6"
+                      strokeOpacity="0.75"
+                      strokeWidth="2.5"
+                      strokeDasharray="6 7"
+                    />
+
+                    {/* decor dots */}
+                    <circle cx="244" cy="98" r="4" fill="#22d3ee" fillOpacity="0.85" />
+                    <circle cx="520" cy="96" r="3.5" fill="#8b5cf6" fillOpacity="0.85" />
+                    <circle cx="300" cy="472" r="4" fill="#60a5fa" fillOpacity="0.85" />
+                    <circle cx="456" cy="472" r="4" fill="#22d3ee" fillOpacity="0.85" />
+                  </svg>
+                </div>
+
+                <h1 className="mt-4 text-[28px] sm:text-[36px] lg:text-[42px] font-bold tracking-tight text-slate-900 dark:text-white">
+                  Recover secure access
+                </h1>
+
+                <p className="mt-4 max-w-140 text-[14px] sm:text-[16px] leading-7 text-slate-600 dark:text-white/60">
+                  Reset your password to regain access to the scanning platform,
+                  restore your protected session, and continue monitoring network
+                  security safely.
+                </p>
+
+                <div className="mt-7 flex flex-wrap justify-center gap-3">
+                  <div
+                    className={[
+                      "inline-flex items-center gap-2 rounded-2xl px-4 py-3",
+                      "bg-slate-50 border border-slate-200 text-slate-700",
+                      "dark:bg-white/4 dark:border-white/10 dark:text-white/75",
+                    ].join(" ")}
+                  >
+                    <FiRadio className="text-cyan-500 text-[18px]" />
+                    <span className="text-[14px] font-medium">Recovery Signal</span>
+                  </div>
+
+                  <div
+                    className={[
+                      "inline-flex items-center gap-2 rounded-2xl px-4 py-3",
+                      "bg-slate-50 border border-slate-200 text-slate-700",
+                      "dark:bg-white/4 dark:border-white/10 dark:text-white/75",
+                    ].join(" ")}
+                  >
+                    <FiCpu className="text-sky-500 text-[18px]" />
+                    <span className="text-[14px] font-medium">Protected Reset</span>
+                  </div>
+
+                  <div
+                    className={[
+                      "inline-flex items-center gap-2 rounded-2xl px-4 py-3",
+                      "bg-slate-50 border border-slate-200 text-slate-700",
+                      "dark:bg-white/4 dark:border-white/10 dark:text-white/75",
+                    ].join(" ")}
+                  >
+                    <FiActivity className="text-violet-500 text-[18px]" />
+                    <span className="text-[14px] font-medium">Access Restore</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* RIGHT SIDE */}
+            <section className="relative flex min-h-130 w-full items-center justify-center px-4 py-8 sm:px-6 md:px-8 lg:px-10">
+              <div className="pointer-events-none absolute inset-0 overflow-hidden">
+                <div className="absolute right-[12%] top-[14%] h-40 w-40 rounded-full bg-cyan-400/10 blur-3xl" />
+                <div className="absolute left-[8%] bottom-[10%] h-36 w-36 rounded-full bg-violet-500/10 blur-3xl" />
+              </div>
+
+              <div className="relative z-10 w-full max-w-130">
+                <div
+                  className={[
+                    "rounded-[28px] p-5 sm:p-6 md:p-8",
+                    "border border-slate-200/80 bg-white",
+                    "shadow-[0_18px_60px_rgba(15,23,42,0.07)]",
+                    "dark:bg-[#0b1320]/90 dark:border-white/10 dark:shadow-none",
+                  ].join(" ")}
+                >
+                  <div
+                    className={[
+                      "mb-4 inline-flex items-center gap-2 rounded-full px-3.5 py-1.5",
+                      "bg-violet-50 text-violet-700 border border-violet-200/80",
+                      "dark:bg-violet-500/10 dark:text-violet-300 dark:border-violet-400/20",
+                    ].join(" ")}
+                  >
+                    <FiShield className="text-[13px]" />
+                    <span className="text-[12px] font-semibold tracking-wide">
+                      Password Recovery
+                    </span>
+                  </div>
+
+                  <h2 className="text-[30px] sm:text-[34px] font-bold tracking-tight text-slate-900 dark:text-white">
+                    Forgot Password
+                  </h2>
+
+                  <p className="mt-2 text-[14px] leading-7 text-slate-500 dark:text-white/55">
+                    Enter your email to receive a secure recovery link and restore
+                    access to your network scanning account.
+                  </p>
+
+                  <form className="mt-7 space-y-5">
+                    {/* Email */}
+                    <div>
+                      <label className="mb-2 block text-[14px] font-medium text-slate-700 dark:text-white/75">
+                        Email
+                      </label>
+                      <div className="relative">
+                        <FiMail className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[17px] text-slate-400 dark:text-white/35" />
+                        <input
+                          type="email"
+                          placeholder="debra.holt@example.com"
+                          className={inputClass}
+                        />
+                      </div>
+                    </div>
+
+                    {/* action note */}
+                    <div
+                      className={[
+                        "rounded-2xl px-4 py-3",
+                        "bg-slate-50 border border-slate-200",
+                        "dark:bg-white/4 dark:border-white/10",
+                      ].join(" ")}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="mt-0.5 rounded-xl bg-cyan-50 p-2 text-cyan-600 dark:bg-cyan-500/10 dark:text-cyan-300">
+                          <FiRefreshCw className="text-[15px]" />
+                        </div>
+                        <div>
+                          <p className="text-[13px] font-semibold text-slate-700 dark:text-white/80">
+                            Secure recovery process
+                          </p>
+                          <p className="mt-1 text-[12px] leading-6 text-slate-500 dark:text-white/50">
+                            We&apos;ll send a protected reset link to your email so you
+                            can safely update your password.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* submit */}
+                    <button
+                      type="submit"
+                      className={[
+                        "group inline-flex w-full items-center justify-center gap-2 rounded-2xl h-12 sm:h-13 px-6",
+                        "bg-linear-to-r from-cyan-500 via-sky-500 to-violet-500",
+                        "text-white text-[15px] sm:text-[16px] font-semibold",
+                        "shadow-[0_12px_32px_rgba(14,165,233,0.24)]",
+                        "hover:scale-[1.01] active:scale-[0.99] transition-all duration-200",
+                        "focus:outline-none focus:ring-4 focus:ring-cyan-200/60",
+                      ].join(" ")}
+                    >
+                      <span>Send Recovery Link</span>
+                      <FiArrowRight className="text-[18px] transition-transform duration-200 group-hover:translate-x-0.5" />
+                    </button>
+
+                    {/* back */}
+                    <div className="pt-1 text-[14px] text-slate-500 dark:text-white/55">
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-2 font-medium text-violet-600 transition hover:text-violet-700 dark:text-violet-300 dark:hover:text-violet-200"
+                      >
+                        <FiArrowLeft className="text-[15px]" />
+                        Back to Sign In
+                      </button>
+                    </div>
+                  </form>
+
+                  {/* bottom status */}
+                  <div
+                    className={[
+                      "mt-6 rounded-2xl px-4 py-3",
+                      "bg-slate-50 border border-slate-200",
+                      "dark:bg-white/4 dark:border-white/10",
+                    ].join(" ")}
+                  >
+                    <div className="flex flex-wrap items-center gap-3">
+                      <div className="inline-flex items-center gap-2">
+                        <span className="relative flex h-2.5 w-2.5">
+                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-400 opacity-75" />
+                          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-cyan-500" />
+                        </span>
+                        <span className="text-[12px] font-medium text-slate-700 dark:text-white/75">
+                          Recovery channel active
+                        </span>
+                      </div>
+
+                      <div className="hidden h-4 w-px bg-slate-200 dark:bg-white/10 sm:block" />
+
+                      <div className="inline-flex items-center gap-2 text-[12px] text-slate-500 dark:text-white/45">
+                        <FiCheckCircle className="text-cyan-500" />
+                        Reset environment ready
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Index;

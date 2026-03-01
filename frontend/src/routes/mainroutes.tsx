@@ -12,6 +12,11 @@ const User = Loadable(lazy(() => import("../page/user/index")));
 const VulnerabilityDetail = Loadable(lazy(() => import("../page/Vulnerability/List/Detail/index")));
 const MainLayout = Loadable(lazy(() => import("../component/admin/MainLayout")));
 
+// ===== Login Pages =====
+const SignIn = Loadable(lazy(() => import("../page/Authentication/Signin/index")));
+const SignUp = Loadable(lazy(() => import("../page/Authentication/Signup/index")));
+const Forget = Loadable(lazy(() => import("../page/Authentication/Forget/index")));
+const Reset = Loadable(lazy(() => import("../page/Authentication/Reset/index")));
 // ======================= ROUTES =======================
 const MainRoutes = (): RouteObject[] => [
   // หน้าแรก
@@ -22,6 +27,11 @@ const MainRoutes = (): RouteObject[] => [
       { index: true, element: <Dashboard /> }, 
     ],
   },
+
+  { path: "login", element: <SignIn /> }, // /login
+  { path: "signup", element: <SignUp /> }, // /signup
+  { path: "forget", element: <Forget /> }, // /forget
+  { path: "reset", element: <Reset /> }, // /reset
 
   // กลุ่ม /admin
   {

@@ -25,19 +25,35 @@ $$;
 GRANT CONNECT ON DATABASE gvmd TO pbi;
 GRANT USAGE ON SCHEMA public TO pbi;
 
+-- ให้สิทธิ์อ่านทุกตาราง/sequence ที่มีอยู่ใน schema public ตอนนี้
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO pbi;
 GRANT SELECT ON ALL SEQUENCES IN SCHEMA public TO pbi;
 
+-- ✅ Grant แบบเจาะจงตารางสำคัญที่ backend ใช้งาน
+-- เผื่อบางกรณี table ถูก recreate / restore / owner เปลี่ยน
+GRANT SELECT ON TABLE public.tasks TO pbi;
+GRANT SELECT ON TABLE public.targets TO pbi;
+GRANT SELECT ON TABLE public.reports TO pbi;
+GRANT SELECT ON TABLE public.results TO pbi;
+GRANT SELECT ON TABLE public.nvts TO pbi;
+
+-- ถ้ามีตารางอื่นที่ backend ใช้อ่านบ่อย จะใส่เพิ่มตรงนี้ได้
+-- ตัวอย่าง:
+-- GRANT SELECT ON TABLE public.hosts TO pbi;
+-- GRANT SELECT ON TABLE public.port_lists TO pbi;
+
+-- =========================================================
+-- 3) Default privileges สำหรับ object ใหม่ในอนาคต
+-- หมายเหตุ: คำสั่งนี้มีผลกับ object ใหม่ที่ถูกสร้าง "โดย role ที่รันคำสั่งนี้"
+-- =========================================================
 ALTER DEFAULT PRIVILEGES IN SCHEMA public
 GRANT SELECT ON TABLES TO pbi;
 
 ALTER DEFAULT PRIVILEGES IN SCHEMA public
 GRANT SELECT ON SEQUENCES TO pbi;
 
--- (ถ้าในอนาคต backend ต้องเขียนข้อมูลจริง ค่อยเพิ่ม INSERT/UPDATE เฉพาะตารางที่จำเป็น)
-
 -- =========================================================
--- 3) ลบทริกเกอร์/ฟังก์ชันเก่า (ของเดิม)
+-- 4) ลบทริกเกอร์/ฟังก์ชันเก่า (ของเดิม)
 -- =========================================================
 DROP TRIGGER IF EXISTS trigger_scan_running ON public.tasks;
 DROP TRIGGER IF EXISTS trigger_scan_status_notify ON public.tasks;
@@ -46,7 +62,7 @@ DROP FUNCTION IF EXISTS public.notify_scan_running();
 DROP FUNCTION IF EXISTS public.notify_scan_status();
 
 -- =========================================================
--- 4) สร้างฟังก์ชัน notify scan status ใหม่
+-- 5) สร้างฟังก์ชัน notify scan status ใหม่
 -- =========================================================
 CREATE FUNCTION public.notify_scan_status()
 RETURNS trigger AS $function$
@@ -95,7 +111,7 @@ END;
 $function$ LANGUAGE plpgsql;
 
 -- =========================================================
--- 5) สร้าง trigger ใหม่ (ตัวเดียว)
+-- 6) สร้าง trigger ใหม่ (ตัวเดียว)
 -- =========================================================
 CREATE TRIGGER trigger_scan_status_notify
 AFTER UPDATE ON public.tasks
@@ -103,7 +119,7 @@ FOR EACH ROW
 EXECUTE FUNCTION public.notify_scan_status();
 
 -- =========================================================
--- 6) (Optional) แสดงผลยืนยันใน log db-init
+-- 7) แสดงผลยืนยันใน log db-init
 -- =========================================================
 DO $$
 BEGIN
