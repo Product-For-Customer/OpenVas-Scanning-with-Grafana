@@ -6,11 +6,10 @@ import { TooltipComponent } from "@syncfusion/ej2-react-popups";
 import { Notification, UserProfile } from ".";
 import { useStateContext } from "../../contexts/ContextProvider";
 
-import { FiSearch, FiSettings } from "react-icons/fi";
+import { FiSearch, FiSettings, FiShield } from "react-icons/fi";
 import { LuClock3 } from "react-icons/lu";
 import { HiOutlineMoon, HiOutlineSun } from "react-icons/hi2";
 
-/* ---------- ปุ่มเมนู/ไอคอน ---------- */
 type NavBtnProps = {
   title: string;
   onClick?: () => void;
@@ -36,7 +35,7 @@ const NavButton: React.FC<NavBtnProps> = ({
       aria-label={ariaLabel ?? title}
       onClick={onClick}
       className={[
-        "relative inline-flex h-10 w-10 items-center justify-center rounded-xl text-[19px] transition-colors",
+        "relative inline-flex h-10 w-10 items-center justify-center rounded-2xl text-[19px] transition-all duration-200",
         "text-gray-600 hover:bg-gray-100 active:bg-gray-200",
         "dark:text-white/75 dark:hover:bg-white/10 dark:active:bg-white/15",
         className,
@@ -54,7 +53,7 @@ const NavButton: React.FC<NavBtnProps> = ({
           className={[
             "absolute -right-1 -top-1 min-w-4.5 h-4.5 px-1",
             "inline-flex items-center justify-center rounded-full",
-            "bg-[#6f5be8] text-white text-[10px] font-bold leading-none",
+            "bg-linear-to-r from-cyan-500 to-violet-500 text-white text-[10px] font-bold leading-none shadow-sm",
           ].join(" ")}
         >
           {badgeCount > 99 ? "99+" : badgeCount}
@@ -103,13 +102,13 @@ const Navbar: React.FC = () => {
         <svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'>
           <defs>
             <linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>
-              <stop offset='0%' stop-color='#f8fafc'/>
-              <stop offset='100%' stop-color='#e2e8f0'/>
+              <stop offset='0%' stop-color='#dbeafe'/>
+              <stop offset='100%' stop-color='#c4b5fd'/>
             </linearGradient>
           </defs>
           <rect width='100%' height='100%' rx='14' ry='14' fill='url(#g)'/>
-          <circle cx='32' cy='24' r='10' fill='#94a3b8'/>
-          <path d='M16 50c2-8 10-12 16-12s14 4 16 12' fill='#94a3b8'/>
+          <circle cx='32' cy='24' r='10' fill='#475569'/>
+          <path d='M16 50c2-8 10-12 16-12s14 4 16 12' fill='#475569'/>
         </svg>
       `),
     []
@@ -125,20 +124,26 @@ const Navbar: React.FC = () => {
       <div className="px-3 sm:px-4 md:px-5 pt-3 pb-3">
         <div
           className={[
-            "w-full h-21 sm:h-22 rounded-[22px] flex items-center justify-between overflow-hidden",
-            "bg-white border border-gray-200/80 shadow-[0_10px_30px_-18px_rgba(15,23,42,0.25)]",
-            "dark:bg-white/5 dark:border-white/10 dark:ring-1 dark:ring-white/10 dark:shadow-none",
+            "relative w-full min-h-21 rounded-[26px] flex items-center justify-between overflow-hidden",
+            "bg-white/92 border border-gray-200/80 shadow-[0_16px_40px_-24px_rgba(15,23,42,0.28)] backdrop-blur",
+            "dark:bg-[#08111f]/80 dark:border-white/10 dark:ring-1 dark:ring-cyan-400/10 dark:shadow-none",
           ].join(" ")}
         >
+          {/* glow background */}
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            <div className="absolute -top-12 right-10 h-32 w-32 rounded-full bg-cyan-400/10 blur-3xl" />
+            <div className="absolute -bottom-12 left-16 h-32 w-32 rounded-full bg-violet-500/10 blur-3xl" />
+          </div>
+
           {/* Left */}
-          <div className="flex items-center gap-3 sm:gap-4 pl-4 sm:pl-5 min-w-0 flex-1">
+          <div className="relative z-10 flex items-center gap-3 sm:gap-4 pl-4 sm:pl-5 min-w-0 flex-1">
             <TooltipComponent content={activeMenu ? "Hide menu" : "Open menu"} position="BottomCenter">
               <button
                 type="button"
                 aria-label="Toggle menu"
                 onClick={handleActiveMenu}
                 className={[
-                  "inline-flex h-10 w-10 items-center justify-center rounded-xl transition-colors",
+                  "inline-flex h-11 w-11 items-center justify-center rounded-2xl transition-all duration-200",
                   "text-gray-600 hover:bg-gray-100 active:bg-gray-200",
                   "dark:text-white/75 dark:hover:bg-white/10 dark:active:bg-white/15",
                 ].join(" ")}
@@ -147,12 +152,20 @@ const Navbar: React.FC = () => {
               </button>
             </TooltipComponent>
 
+            {/* status chips */}
+            <div className="hidden lg:flex items-center gap-2 shrink-0">
+              <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1.5 text-[12px] font-semibold text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-300">
+                <FiShield className="text-[13px]" />
+                Security Command
+              </div>
+            </div>
+
             {/* Search desktop */}
             <div
               className={[
-                "hidden sm:flex items-center h-12 w-full max-w-90 lg:max-w-95 rounded-full px-4",
-                "border border-gray-200 bg-[#f5f6fa]",
-                "shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]",
+                "hidden sm:flex items-center h-12 w-full max-w-90 lg:max-w-105 rounded-full px-4",
+                "border border-gray-200 bg-[#f6f8fc]",
+                "shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]",
                 "dark:border-white/10 dark:bg-white/5 dark:shadow-none",
               ].join(" ")}
             >
@@ -161,7 +174,7 @@ const Navbar: React.FC = () => {
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search..."
+                placeholder="Search assets, hosts, tasks, vulnerabilities..."
                 className={[
                   "flex-1 bg-transparent outline-none border-none text-[14px]",
                   "text-gray-700 placeholder:text-gray-400",
@@ -176,11 +189,10 @@ const Navbar: React.FC = () => {
           </div>
 
           {/* Right */}
-          <div className="flex items-center h-full shrink-0">
+          <div className="relative z-10 flex items-center h-full shrink-0">
             <div className="flex items-center gap-1 px-2 sm:px-3 md:px-4">
               <NavButton title="Recent activity" icon={<LuClock3 />} onClick={() => {}} />
 
-              {/* ✅ Toggle Theme */}
               <NavButton
                 title={currentMode === "Dark" ? "Light mode" : "Dark mode"}
                 aria-label="Toggle theme"
@@ -194,13 +206,13 @@ const Navbar: React.FC = () => {
                 title="Notifications"
                 aria-label="Open notifications"
                 badgeCount={0}
-                dotColor="#9ca3af"
+                dotColor="#22d3ee"
                 onClick={() => handleClick("notification")}
                 icon={<RiNotification3Line />}
               />
             </div>
 
-            <div className="h-full w-px bg-gray-200/90 dark:bg-white/10" />
+            <div className="h-10 w-px bg-gray-200/90 dark:bg-white/10" />
 
             <div className="px-3 sm:px-4">
               <TooltipComponent content="Profile" position="BottomCenter">
@@ -214,15 +226,25 @@ const Navbar: React.FC = () => {
                   ].join(" ")}
                   aria-label="Open profile"
                 >
-                  <img
-                    src={avatarSrc}
-                    alt="user"
-                    className="h-10 w-10 rounded-full object-cover ring-1 ring-gray-200 bg-white dark:ring-white/15 dark:bg-white/10"
-                    onError={() => setProfileError(true)}
-                  />
-                  <span className="hidden sm:block text-[14px] font-semibold text-gray-700 dark:text-white/80 truncate max-w-22.5 md:max-w-30">
-                    {firstnameUser}...
-                  </span>
+                  <div className="relative">
+                    <img
+                      src={avatarSrc}
+                      alt="user"
+                      className="h-10 w-10 rounded-full object-cover ring-1 ring-gray-200 bg-white dark:ring-white/15 dark:bg-white/10"
+                      onError={() => setProfileError(true)}
+                    />
+                    <span className="absolute -right-0.5 -bottom-0.5 h-3 w-3 rounded-full bg-cyan-400 ring-2 ring-white dark:ring-[#08111f]" />
+                  </div>
+
+                  <div className="hidden sm:block text-left">
+                    <span className="block text-[13px] text-gray-500 dark:text-white/45">
+                      Analyst
+                    </span>
+                    <span className="block text-[14px] font-semibold text-gray-700 dark:text-white/80 truncate max-w-22.5 md:max-w-30">
+                      {firstnameUser}...
+                    </span>
+                  </div>
+
                   <MdKeyboardArrowDown className="hidden sm:block text-gray-400 dark:text-white/45 group-hover:text-gray-600 dark:group-hover:text-white/70 text-[20px]" />
                 </button>
               </TooltipComponent>
