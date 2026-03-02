@@ -2,7 +2,7 @@
 import axios from "axios";
 
 // ✅ ปรับให้ตรงกับโปรเจกต์คุณ
-const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:9000";
+const apiUrl = import.meta.env.VITE_API_URL || "https://0fbe-49-0-82-165.ngrok-free.app";
 
 // =======================
 // Types
