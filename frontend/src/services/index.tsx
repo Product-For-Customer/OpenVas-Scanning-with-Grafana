@@ -22,7 +22,6 @@ const getAuthHeader = () => {
   const token = localStorage.getItem("token");
   const tokenType = localStorage.getItem("token_type");
 
-  // กันกรณีไม่มี token
   if (!token || !tokenType) return {};
   return { Authorization: `${tokenType} ${token}` };
 };
@@ -41,9 +40,8 @@ export const ListTaskStatus = async (): Promise<TaskStatusDTO[] | null> => {
     });
 
     if (response.status === 200) {
-      // backend อาจคืน array ตรงๆ หรือ {data: [...]}
       const data = response.data?.data ?? response.data;
-      return data as TaskStatusDTO[];
+      return Array.isArray(data) ? data : [];
     }
 
     console.error("Unexpected status:", response.status);
@@ -58,7 +56,6 @@ export type TaskVulnSummaryDTO = {
   task_id: string;
   task_name: string;
   mac_address: string;
-
   total: number;
   critical: number;
   high: number;
@@ -66,7 +63,6 @@ export type TaskVulnSummaryDTO = {
   low: number;
   info: number;
 };
-
 
 export const ListTaskVulnSummary = async (): Promise<TaskVulnSummaryDTO[] | null> => {
   try {
@@ -79,9 +75,8 @@ export const ListTaskVulnSummary = async (): Promise<TaskVulnSummaryDTO[] | null
     });
 
     if (response.status === 200) {
-      // backend อาจคืน array ตรงๆ หรือ {data: [...]}
       const data = response.data?.data ?? response.data;
-      return data as TaskVulnSummaryDTO[];
+      return Array.isArray(data) ? data : [];
     }
 
     console.error("Unexpected status:", response.status);
@@ -93,14 +88,14 @@ export const ListTaskVulnSummary = async (): Promise<TaskVulnSummaryDTO[] | null
 };
 
 export type VulnerabilityLevelDTO = {
-  vulnerability_id: string; // ✅ added
+  vulnerability_id: string;
   task_id: string;
   mac_address: string;
   vulnerability_family: string;
   vulnerability_name: string;
   level: "Critical" | "High" | "Medium" | "Low" | "Info";
   total: number;
-  detected_time: string; // ISO string จาก backend
+  detected_time: string;
 };
 
 export const ListVulnerability = async (): Promise<VulnerabilityLevelDTO[] | null> => {
@@ -114,9 +109,8 @@ export const ListVulnerability = async (): Promise<VulnerabilityLevelDTO[] | nul
     });
 
     if (response.status === 200) {
-      // backend อาจคืน array ตรงๆ หรือ {data: [...]}
       const data = response.data?.data ?? response.data;
-      return data as VulnerabilityLevelDTO[];
+      return Array.isArray(data) ? data : [];
     }
 
     console.error("Unexpected status:", response.status);
@@ -148,7 +142,7 @@ export const ListAssetRisk = async (): Promise<AssetRiskDTO[] | null> => {
 
     if (response.status === 200) {
       const data = response.data?.data ?? response.data;
-      return data as AssetRiskDTO[];
+      return Array.isArray(data) ? data : [];
     }
 
     console.error("Unexpected status:", response.status);
@@ -179,7 +173,7 @@ export const ListDeviceRisk = async (): Promise<DeviceRiskDTO[] | null> => {
 
     if (response.status === 200) {
       const data = response.data?.data ?? response.data;
-      return data as DeviceRiskDTO[];
+      return Array.isArray(data) ? data : [];
     }
 
     console.error("Unexpected status:", response.status);
@@ -191,16 +185,12 @@ export const ListDeviceRisk = async (): Promise<DeviceRiskDTO[] | null> => {
 };
 
 export type VulnerabilityDetailDTO = {
-  task_name: string; // ✅ เปลี่ยนจาก hostname
+  task_name: string;
   vulnerability_id: string;
   vulnerability_name: string;
-
-  detected_date: string; // ISO string
-
-  severity: number; // ✅ 2 ตำแหน่งจาก backend แล้ว
-
-  cve_list: string; // ✅ เหลือแค่ cve_list
-
+  detected_date: string;
+  severity: number;
+  cve_list: string;
   summary: string;
   impact: string;
   affected: string;
@@ -215,7 +205,7 @@ export const ListVulnerabilityDetailByName = async (
 ): Promise<VulnerabilityDetailDTO[] | null> => {
   try {
     const response = await axios.get(`${apiUrl}/vulnerabilities/detail/by-name`, {
-      params: { task_id, name }, // ✅ ให้ axios encode ให้เอง
+      params: { task_id, name },
       headers: {
         "Content-Type": "application/json",
         ...getAuthHeader(),
@@ -225,7 +215,7 @@ export const ListVulnerabilityDetailByName = async (
 
     if (response.status === 200) {
       const data = response.data?.data ?? response.data;
-      return data as VulnerabilityDetailDTO[];
+      return Array.isArray(data) ? data : [];
     }
 
     console.error("Unexpected status:", response.status);
