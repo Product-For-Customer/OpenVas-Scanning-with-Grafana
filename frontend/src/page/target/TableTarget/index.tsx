@@ -156,8 +156,8 @@ const TableTarget: React.FC = () => {
   }, []);
 
   const rows: Row[] = useMemo(() => {
-    const list = data ?? [];
-    const maxRisk = list.reduce((m, x) => Math.max(m, Number(x.risk_score) || 0), 0);
+  const list = Array.isArray(data) ? data : [];
+  const maxRisk = list.reduce((m, x) => Math.max(m, Number(x.risk_score) || 0), 0);
 
     const mapped: Row[] = list.map((x, idx) => {
       const risk = Number(x.risk_score) || 0;

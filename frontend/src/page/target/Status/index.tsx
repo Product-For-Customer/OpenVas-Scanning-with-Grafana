@@ -43,6 +43,7 @@ const StatusTarget: React.FC = () => {
     (async () => {
       setLoading(true);
       const res = await ListTaskStatus();
+      console.log("Fetched task status:", res);
       if (!alive) return;
 
       setRows(res ?? []);

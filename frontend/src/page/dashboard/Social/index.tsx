@@ -108,7 +108,7 @@ const Social: React.FC = () => {
   }, []);
 
   const summary = useMemo(() => {
-    const list = data ?? [];
+  const list = Array.isArray(data) ? data : [];
     const taskCount = list.length;
 
     const totalVuln = list.reduce(

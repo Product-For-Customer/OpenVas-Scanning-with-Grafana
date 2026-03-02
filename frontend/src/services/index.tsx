@@ -2,18 +2,7 @@
 import axios from "axios";
 
 // ✅ ปรับให้ตรงกับโปรเจกต์คุณ
-const apiUrl = "https://17fa-180-183-245-221.ngrok-free.app";
-
-// =======================
-// Types
-// =======================
-export type TaskStatusDTO = {
-  task_id: string;
-  task_name: string;
-  mac_address: string;
-  status: "Done" | "Running" | "New" | "Stopped" | string;
-  count: number;
-};
+const apiUrl = "https://6154-58-8-148-185.ngrok-free.app";
 
 // =======================
 // Auth header helper
@@ -27,31 +16,57 @@ const getAuthHeader = () => {
 };
 
 // =======================
+// Common header helper
+// =======================
+const getCommonHeaders = () => {
+  return {
+    "Content-Type": "application/json",
+    "ngrok-skip-browser-warning": "true",
+    ...getAuthHeader(),
+  };
+};
+
+// =======================
 // API: GET /tasks/status
 // =======================
+export type TaskStatusDTO = {
+  task_id: string;
+  task_name: string;
+  mac_address: string;
+  status: string;
+  count: number;
+};
+
 export const ListTaskStatus = async (): Promise<TaskStatusDTO[] | null> => {
   try {
     const response = await axios.get(`${apiUrl}/tasks/status`, {
-      headers: {
-        "Content-Type": "application/json",
-        ...getAuthHeader(),
-      },
+      headers: getCommonHeaders(),
       timeout: 15000,
     });
 
-    if (response.status === 200) {
-      const data = response.data?.data ?? response.data;
-      return Array.isArray(data) ? data : [];
+    console.log("Task status raw response:", response.data);
+
+    if (Array.isArray(response.data)) {
+      return response.data as TaskStatusDTO[];
     }
 
-    console.error("Unexpected status:", response.status);
+    const data = response.data?.data ?? response.data;
+
+    if (Array.isArray(data)) {
+      return data as TaskStatusDTO[];
+    }
+
+    console.error("Expected array but got:", response.data);
     return null;
   } catch (error) {
-    console.error("Error fetching task status:", error);
+    console.error("ListTaskStatus error:", error);
     return null;
   }
 };
 
+// =======================
+// API: GET /tasks/summary-vulnerability
+// =======================
 export type TaskVulnSummaryDTO = {
   task_id: string;
   task_name: string;
@@ -67,16 +82,13 @@ export type TaskVulnSummaryDTO = {
 export const ListTaskVulnSummary = async (): Promise<TaskVulnSummaryDTO[] | null> => {
   try {
     const response = await axios.get(`${apiUrl}/tasks/summary-vulnerability`, {
-      headers: {
-        "Content-Type": "application/json",
-        ...getAuthHeader(),
-      },
+      headers: getCommonHeaders(),
       timeout: 15000,
     });
 
     if (response.status === 200) {
       const data = response.data?.data ?? response.data;
-      return Array.isArray(data) ? data : [];
+      return Array.isArray(data) ? (data as TaskVulnSummaryDTO[]) : [];
     }
 
     console.error("Unexpected status:", response.status);
@@ -87,6 +99,9 @@ export const ListTaskVulnSummary = async (): Promise<TaskVulnSummaryDTO[] | null
   }
 };
 
+// =======================
+// API: GET /vulnerabilities/list
+// =======================
 export type VulnerabilityLevelDTO = {
   vulnerability_id: string;
   task_id: string;
@@ -101,16 +116,13 @@ export type VulnerabilityLevelDTO = {
 export const ListVulnerability = async (): Promise<VulnerabilityLevelDTO[] | null> => {
   try {
     const response = await axios.get(`${apiUrl}/vulnerabilities/list`, {
-      headers: {
-        "Content-Type": "application/json",
-        ...getAuthHeader(),
-      },
+      headers: getCommonHeaders(),
       timeout: 15000,
     });
 
     if (response.status === 200) {
       const data = response.data?.data ?? response.data;
-      return Array.isArray(data) ? data : [];
+      return Array.isArray(data) ? (data as VulnerabilityLevelDTO[]) : [];
     }
 
     console.error("Unexpected status:", response.status);
@@ -121,7 +133,9 @@ export const ListVulnerability = async (): Promise<VulnerabilityLevelDTO[] | nul
   }
 };
 
-// services/assetRisk.ts
+// =======================
+// API: GET /assets/risk
+// =======================
 export type AssetRiskDTO = {
   task_name: string;
   mac_address: string;
@@ -133,16 +147,13 @@ export type AssetRiskDTO = {
 export const ListAssetRisk = async (): Promise<AssetRiskDTO[] | null> => {
   try {
     const response = await axios.get(`${apiUrl}/assets/risk`, {
-      headers: {
-        "Content-Type": "application/json",
-        ...getAuthHeader(),
-      },
+      headers: getCommonHeaders(),
       timeout: 15000,
     });
 
     if (response.status === 200) {
       const data = response.data?.data ?? response.data;
-      return Array.isArray(data) ? data : [];
+      return Array.isArray(data) ? (data as AssetRiskDTO[]) : [];
     }
 
     console.error("Unexpected status:", response.status);
@@ -153,6 +164,9 @@ export const ListAssetRisk = async (): Promise<AssetRiskDTO[] | null> => {
   }
 };
 
+// =======================
+// API: GET /devices/risk
+// =======================
 export type DeviceRiskDTO = {
   task_name: string;
   ip_address: string;
@@ -164,16 +178,13 @@ export type DeviceRiskDTO = {
 export const ListDeviceRisk = async (): Promise<DeviceRiskDTO[] | null> => {
   try {
     const response = await axios.get(`${apiUrl}/devices/risk`, {
-      headers: {
-        "Content-Type": "application/json",
-        ...getAuthHeader(),
-      },
+      headers: getCommonHeaders(),
       timeout: 15000,
     });
 
     if (response.status === 200) {
       const data = response.data?.data ?? response.data;
-      return Array.isArray(data) ? data : [];
+      return Array.isArray(data) ? (data as DeviceRiskDTO[]) : [];
     }
 
     console.error("Unexpected status:", response.status);
@@ -184,6 +195,9 @@ export const ListDeviceRisk = async (): Promise<DeviceRiskDTO[] | null> => {
   }
 };
 
+// =======================
+// API: GET /vulnerabilities/detail/by-name
+// =======================
 export type VulnerabilityDetailDTO = {
   task_name: string;
   vulnerability_id: string;
@@ -206,16 +220,13 @@ export const ListVulnerabilityDetailByName = async (
   try {
     const response = await axios.get(`${apiUrl}/vulnerabilities/detail/by-name`, {
       params: { task_id, name },
-      headers: {
-        "Content-Type": "application/json",
-        ...getAuthHeader(),
-      },
+      headers: getCommonHeaders(),
       timeout: 20000,
     });
 
     if (response.status === 200) {
       const data = response.data?.data ?? response.data;
-      return Array.isArray(data) ? data : [];
+      return Array.isArray(data) ? (data as VulnerabilityDetailDTO[]) : [];
     }
 
     console.error("Unexpected status:", response.status);
