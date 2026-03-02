@@ -1,4 +1,10 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   FiShield,
   FiChevronRight,
@@ -42,7 +48,9 @@ const rowGlowClasses: Record<VulnRow["severity"], string> = {
   INFO: "hover:border-blue-200 hover:bg-blue-50/60 dark:hover:border-blue-400/20 dark:hover:bg-blue-500/5",
 };
 
-const toSeverity = (level: VulnerabilityLevelDTO["level"]): VulnRow["severity"] => {
+const toSeverity = (
+  level: VulnerabilityLevelDTO["level"]
+): VulnRow["severity"] => {
   switch (level) {
     case "Critical":
       return "CRITICAL";
@@ -65,9 +73,18 @@ const severityRank: Record<VulnRow["severity"], number> = {
   INFO: 5,
 };
 
+const TARGET_VISIBLE_ROWS = 6;
+const LIST_GAP_PX = 12; // space-y-3 = 0.75rem = 12px
+const SCROLL_PADDING_PX = 28; // p-3 / p-3.5 โดยประมาณ เผื่อด้านบนล่าง
+
 const TopVulnerability: React.FC = () => {
   const [data, setData] = useState<VulnerabilityLevelDTO[] | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [listHeight, setListHeight] = useState<number | undefined>(undefined);
+
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const headerRef = useRef<HTMLDivElement | null>(null);
+  const firstRowRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -137,16 +154,73 @@ const TopVulnerability: React.FC = () => {
   const statusText = useMemo(() => {
     if (loading) return "Syncing threat feed...";
     if (rows.length === 0) return "No vulnerability signatures detected";
-    if (topCriticalCount > 0) return `${topCriticalCount} critical threats require attention`;
+    if (topCriticalCount > 0) {
+      return `${topCriticalCount} critical threats require attention`;
+    }
     return "Latest vulnerability queue loaded";
   }, [loading, rows.length, topCriticalCount]);
 
+  useLayoutEffect(() => {
+    const updateHeights = () => {
+      const sectionEl = sectionRef.current;
+      const headerEl = headerRef.current;
+      const rowEl = firstRowRef.current;
+
+      if (!sectionEl || !headerEl) {
+        setListHeight(undefined);
+        return;
+      }
+
+      const sectionRect = sectionEl.getBoundingClientRect();
+      const headerRect = headerEl.getBoundingClientRect();
+
+      const availableHeight = Math.max(
+        sectionRect.height - headerRect.height,
+        160
+      );
+
+      if (!rowEl) {
+        setListHeight(availableHeight);
+        return;
+      }
+
+      const rowRect = rowEl.getBoundingClientRect();
+      const singleRowHeight = rowRect.height || 64;
+
+      const tenRowsHeight =
+        singleRowHeight * TARGET_VISIBLE_ROWS +
+        LIST_GAP_PX * (TARGET_VISIBLE_ROWS - 1) +
+        SCROLL_PADDING_PX;
+
+      setListHeight(Math.min(availableHeight, tenRowsHeight));
+    };
+
+    updateHeights();
+
+    const resizeObserver = new ResizeObserver(() => {
+      updateHeights();
+    });
+
+    if (sectionRef.current) resizeObserver.observe(sectionRef.current);
+    if (headerRef.current) resizeObserver.observe(headerRef.current);
+    if (firstRowRef.current) resizeObserver.observe(firstRowRef.current);
+
+    window.addEventListener("resize", updateHeights);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", updateHeights);
+    };
+  }, [rows, loading]);
+
   return (
     <section
+      ref={sectionRef}
       className={[
-        "relative overflow-hidden rounded-[22px] p-4 sm:p-5 md:p-6 h-full",
+        "relative h-full min-h-0 overflow-hidden rounded-[22px] p-4 sm:p-5 md:p-6",
         "bg-white border border-gray-200/80 shadow-sm",
         "dark:bg-white/5 dark:border-white/10 dark:ring-1 dark:ring-white/10 dark:shadow-none",
+        "flex flex-col",
       ].join(" ")}
     >
       {/* background */}
@@ -167,12 +241,12 @@ const TopVulnerability: React.FC = () => {
         </div>
       </div>
 
-      <div className="relative z-10">
+      <div className="relative z-10 flex h-full min-h-0 flex-col">
         {/* Header */}
-        <div className="mb-4 flex flex-col gap-3">
+        <div ref={headerRef} className="mb-4 flex shrink-0 flex-col gap-3">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2 mb-3">
+              <div className="mb-3 flex flex-wrap items-center gap-2">
                 <div
                   className={[
                     "inline-flex items-center gap-2 rounded-full px-3 py-1.5",
@@ -215,12 +289,16 @@ const TopVulnerability: React.FC = () => {
         {/* List */}
         <div
           className={[
-            "rounded-2xl overflow-hidden",
+            "min-h-0 w-full rounded-2xl overflow-hidden",
             "border border-gray-200/80 bg-white/70 backdrop-blur-sm",
             "dark:border-white/10 dark:bg-white/3",
           ].join(" ")}
+          style={{
+            height: listHeight ? `${listHeight}px` : undefined,
+            maxHeight: "100%",
+          }}
         >
-          <div className="max-h-114 overflow-y-auto p-3 sm:p-3.5">
+          <div className="h-full overflow-y-auto p-3 sm:p-3.5">
             {loading ? (
               <div className="space-y-3">
                 {Array.from({ length: 6 }).map((_, i) => (
@@ -255,16 +333,17 @@ const TopVulnerability: React.FC = () => {
               </div>
             ) : (
               <div className="space-y-3">
-                {rows.map((r) => (
+                {rows.map((r, index) => (
                   <div
                     key={r.id}
+                    ref={index === 0 ? firstRowRef : undefined}
                     className={[
                       "group rounded-2xl border px-3.5 sm:px-4 py-3 transition-all duration-200",
                       "border-gray-200/80 bg-white hover:shadow-sm",
                       "dark:border-white/10 dark:bg-white/3 dark:hover:bg-white/5",
                       rowGlowClasses[r.severity],
-                      ].join(" ")}
-                    >
+                    ].join(" ")}
+                  >
                     <div className="flex items-center gap-3">
                       {/* left colored line / dot */}
                       <div className="flex items-center gap-3 shrink-0">
