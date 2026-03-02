@@ -6,12 +6,11 @@ import Loadable from "../component/third-patry/Loadable";
 const Dashboard = Loadable(lazy(() => import("../page/dashboard/index")));
 const Account = Loadable(lazy(() => import("../page/Account/index")));
 const Target = Loadable(lazy(() => import("../page/target/index")));
-const Vulnerability = Loadable(lazy(() => import("../page/Vulnerability/index")));
 const LineNotification = Loadable(lazy(() => import("../page/line/index")));
 const User = Loadable(lazy(() => import("../page/user/index")));
-const VulnerabilityDetail = Loadable(lazy(() => import("../page/Vulnerability/List/Detail/index")));
 const MainLayout = Loadable(lazy(() => import("../component/admin/MainLayout")));
-
+import Vulnerability from "../page/vulnerability/index";
+import VulnerabilityDetail from "../page/vulnerability/List/Detail/index";
 // ===== Login Pages =====
 const SignIn = Loadable(lazy(() => import("../page/Authentication/Signin/index")));
 const SignUp = Loadable(lazy(() => import("../page/Authentication/Signup/index")));
