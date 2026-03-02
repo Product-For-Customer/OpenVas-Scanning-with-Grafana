@@ -5,7 +5,7 @@ import axios from "axios";
 const apiUrl = "https://6154-58-8-148-185.ngrok-free.app";
 
 // =======================
-// Auth header helper
+// Auth header helper test
 // =======================
 const getAuthHeader = () => {
   const token = localStorage.getItem("token");
