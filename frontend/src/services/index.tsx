@@ -2,8 +2,8 @@
 import axios from "axios";
 
 // ✅ ปรับให้ตรงกับโปรเจกต์คุณ
-// apiUrl ควรเป็น URL ของ backend API ของคุณ เช่น http://localhost:9000 หรือ https://6154-58-8-148-185.ngrok-free.app 
-const apiUrl = "http://localhost:9000";
+// apiUrl ควรเป็น URL ของ backend API ของคุณ เช่น http://localhost:9000 หรือ https://2751-49-0-82-165.ngrok-free.app 
+const apiUrl = "https://2751-49-0-82-165.ngrok-free.app";
 
 // =======================
 // Auth header helper test

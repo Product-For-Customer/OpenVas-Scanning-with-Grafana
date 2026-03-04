@@ -81,11 +81,8 @@ func SetupDatabase() {
 
 	err := db.AutoMigrate(
 		&entity.AppGroup{},
-		&entity.AppRole{},
 		&entity.AppLineMaster{},
-		&entity.AppStatusNotify{},
 		&entity.Notification{},
-		&entity.AppUser{},
 	)
 	if err != nil {
 		log.Fatalf("❌ AutoMigrate failed: %v", err)
