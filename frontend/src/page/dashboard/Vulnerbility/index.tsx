@@ -1,10 +1,4 @@
-import React, {
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   FiShield,
   FiChevronRight,
@@ -73,29 +67,37 @@ const severityRank: Record<VulnRow["severity"], number> = {
   INFO: 5,
 };
 
-const TARGET_VISIBLE_ROWS = 6;
-const LIST_GAP_PX = 12; // space-y-3 = 0.75rem = 12px
-const SCROLL_PADDING_PX = 28; // p-3 / p-3.5 โดยประมาณ เผื่อด้านบนล่าง
-
 const TopVulnerability: React.FC = () => {
   const [data, setData] = useState<VulnerabilityLevelDTO[] | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const [listHeight, setListHeight] = useState<number | undefined>(undefined);
-
-  const sectionRef = useRef<HTMLElement | null>(null);
-  const headerRef = useRef<HTMLDivElement | null>(null);
-  const firstRowRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let mounted = true;
 
-    (async () => {
-      setLoading(true);
-      const res = await ListVulnerability();
-      if (!mounted) return;
-      setData(res);
-      setLoading(false);
-    })();
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const res = await ListVulnerability();
+
+        if (!mounted) return;
+
+        if (Array.isArray(res)) {
+          setData(res);
+        } else {
+          setData([]);
+        }
+      } catch (error) {
+        console.error("Error fetching vulnerabilities:", error);
+        if (!mounted) return;
+        setData([]);
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchData();
 
     return () => {
       mounted = false;
@@ -103,7 +105,7 @@ const TopVulnerability: React.FC = () => {
   }, []);
 
   const rows: VulnRow[] = useMemo(() => {
-    const list = data ?? [];
+    const list = Array.isArray(data) ? data : [];
 
     const map = new Map<
       string,
@@ -111,7 +113,7 @@ const TopVulnerability: React.FC = () => {
     >();
 
     for (const item of list) {
-      const titleRaw = (item.vulnerability_name ?? "").trim();
+      const titleRaw = (item?.vulnerability_name ?? "").trim();
       if (!titleRaw) continue;
 
       const key = titleRaw.toLowerCase();
@@ -119,8 +121,13 @@ const TopVulnerability: React.FC = () => {
       const cnt = Number(item.total ?? 0);
 
       const prev = map.get(key);
+
       if (!prev) {
-        map.set(key, { title: titleRaw, count: cnt, topSeverity: sev });
+        map.set(key, {
+          title: titleRaw,
+          count: cnt,
+          topSeverity: sev,
+        });
       } else {
         prev.count += cnt;
         if (severityRank[sev] < severityRank[prev.topSeverity]) {
@@ -129,27 +136,28 @@ const TopVulnerability: React.FC = () => {
       }
     }
 
-    const merged: VulnRow[] = Array.from(map.entries()).map(([key, v]) => ({
+    const merged: VulnRow[] = Array.from(map.entries()).map(([key, value]) => ({
       id: key,
-      severity: v.topSeverity,
-      title: v.title,
-      count: v.count,
+      severity: value.topSeverity,
+      title: value.title,
+      count: value.count,
     }));
 
     merged.sort((a, b) => {
-      const s = severityRank[a.severity] - severityRank[b.severity];
-      if (s !== 0) return s;
+      const severityDiff = severityRank[a.severity] - severityRank[b.severity];
+      if (severityDiff !== 0) return severityDiff;
+
       if (b.count !== a.count) return b.count - a.count;
+
       return a.title.localeCompare(b.title);
     });
 
     return merged;
   }, [data]);
 
-  const topCriticalCount = useMemo(
-    () => rows.filter((r) => r.severity === "CRITICAL").length,
-    [rows]
-  );
+  const topCriticalCount = useMemo(() => {
+    return rows.filter((row) => row.severity === "CRITICAL").length;
+  }, [rows]);
 
   const statusText = useMemo(() => {
     if (loading) return "Syncing threat feed...";
@@ -160,64 +168,10 @@ const TopVulnerability: React.FC = () => {
     return "Latest vulnerability queue loaded";
   }, [loading, rows.length, topCriticalCount]);
 
-  useLayoutEffect(() => {
-    const updateHeights = () => {
-      const sectionEl = sectionRef.current;
-      const headerEl = headerRef.current;
-      const rowEl = firstRowRef.current;
-
-      if (!sectionEl || !headerEl) {
-        setListHeight(undefined);
-        return;
-      }
-
-      const sectionRect = sectionEl.getBoundingClientRect();
-      const headerRect = headerEl.getBoundingClientRect();
-
-      const availableHeight = Math.max(
-        sectionRect.height - headerRect.height,
-        160
-      );
-
-      if (!rowEl) {
-        setListHeight(availableHeight);
-        return;
-      }
-
-      const rowRect = rowEl.getBoundingClientRect();
-      const singleRowHeight = rowRect.height || 64;
-
-      const tenRowsHeight =
-        singleRowHeight * TARGET_VISIBLE_ROWS +
-        LIST_GAP_PX * (TARGET_VISIBLE_ROWS - 1) +
-        SCROLL_PADDING_PX;
-
-      setListHeight(Math.min(availableHeight, tenRowsHeight));
-    };
-
-    updateHeights();
-
-    const resizeObserver = new ResizeObserver(() => {
-      updateHeights();
-    });
-
-    if (sectionRef.current) resizeObserver.observe(sectionRef.current);
-    if (headerRef.current) resizeObserver.observe(headerRef.current);
-    if (firstRowRef.current) resizeObserver.observe(firstRowRef.current);
-
-    window.addEventListener("resize", updateHeights);
-
-    return () => {
-      resizeObserver.disconnect();
-      window.removeEventListener("resize", updateHeights);
-    };
-  }, [rows, loading]);
-
   return (
     <section
-      ref={sectionRef}
       className={[
-        "relative h-full min-h-0 overflow-hidden rounded-[22px] p-4 sm:p-5 md:p-6",
+        "relative w-full min-h-105 overflow-hidden rounded-[22px] p-4 sm:p-5 md:p-6",
         "bg-white border border-gray-200/80 shadow-sm",
         "dark:bg-white/5 dark:border-white/10 dark:ring-1 dark:ring-white/10 dark:shadow-none",
         "flex flex-col",
@@ -243,7 +197,7 @@ const TopVulnerability: React.FC = () => {
 
       <div className="relative z-10 flex h-full min-h-0 flex-col">
         {/* Header */}
-        <div ref={headerRef} className="mb-4 flex shrink-0 flex-col gap-3">
+        <div className="mb-4 flex shrink-0 flex-col gap-3">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -286,21 +240,17 @@ const TopVulnerability: React.FC = () => {
           </div>
         </div>
 
-        {/* List */}
-        <div
-          className={[
-            "min-h-0 w-full rounded-2xl overflow-hidden",
-            "border border-gray-200/80 bg-white/70 backdrop-blur-sm",
-            "dark:border-white/10 dark:bg-white/3",
-          ].join(" ")}
-          style={{
-            height: listHeight ? `${listHeight}px` : undefined,
-            maxHeight: "100%",
-          }}
-        >
-          <div className="h-full overflow-y-auto p-3 sm:p-3.5">
-            {loading ? (
-              <div className="space-y-3">
+        {/* Content */}
+        <div className="min-h-0 flex-1">
+          {loading ? (
+            <div
+              className={[
+                "h-full min-h-70 rounded-2xl overflow-hidden",
+                "border border-gray-200/80 bg-white/70 backdrop-blur-sm",
+                "dark:border-white/10 dark:bg-white/3",
+              ].join(" ")}
+            >
+              <div className="space-y-3 p-3 sm:p-3.5">
                 {Array.from({ length: 6 }).map((_, i) => (
                   <div
                     key={i}
@@ -318,81 +268,92 @@ const TopVulnerability: React.FC = () => {
                   </div>
                 ))}
               </div>
-            ) : rows.length === 0 ? (
-              <div
-                className={[
-                  "rounded-2xl border px-4 py-8 text-center",
-                  "border-gray-200 bg-gray-50/70 text-gray-500",
-                  "dark:border-white/10 dark:bg-white/4 dark:text-white/55",
-                ].join(" ")}
-              >
+            </div>
+          ) : rows.length === 0 ? (
+            <div
+              className={[
+                "flex min-h-70 items-center justify-center rounded-2xl px-4 py-8 text-center",
+                "border border-gray-200 bg-gray-50/70 text-gray-500",
+                "dark:border-white/10 dark:bg-white/4 dark:text-white/55",
+              ].join(" ")}
+            >
+              <div>
                 <div className="text-[14px] font-medium">No Data</div>
                 <div className="mt-1 text-[12px] opacity-80">
                   No vulnerabilities were returned from the latest query
                 </div>
               </div>
-            ) : (
-              <div className="space-y-3">
-                {rows.map((r, index) => (
-                  <div
-                    key={r.id}
-                    ref={index === 0 ? firstRowRef : undefined}
-                    className={[
-                      "group rounded-2xl border px-3.5 sm:px-4 py-3 transition-all duration-200",
-                      "border-gray-200/80 bg-white hover:shadow-sm",
-                      "dark:border-white/10 dark:bg-white/3 dark:hover:bg-white/5",
-                      rowGlowClasses[r.severity],
-                    ].join(" ")}
-                  >
-                    <div className="flex items-center gap-3">
-                      {/* left colored line / dot */}
-                      <div className="flex items-center gap-3 shrink-0">
-                        <span
-                          className={`h-2.5 w-2.5 rounded-full ${dotClasses[r.severity]}`}
-                        />
-                        <span
-                          className={[
-                            "shrink-0 rounded-md px-2.5 py-1 text-[11px] font-bold tracking-wide",
-                            badgeClasses[r.severity],
-                          ].join(" ")}
-                        >
-                          {r.severity}
-                        </span>
-                      </div>
+            </div>
+          ) : (
+            <div
+              className={[
+                "h-full max-h-105 rounded-2xl overflow-hidden",
+                "border border-gray-200/80 bg-white/70 backdrop-blur-sm",
+                "dark:border-white/10 dark:bg-white/3",
+              ].join(" ")}
+            >
+              <div className="h-full overflow-y-auto p-3 sm:p-3.5">
+                <div className="space-y-3">
+                  {rows.map((row) => (
+                    <div
+                      key={row.id}
+                      className={[
+                        "group rounded-2xl border px-3.5 sm:px-4 py-3 transition-all duration-200",
+                        "border-gray-200/80 bg-white hover:shadow-sm",
+                        "dark:border-white/10 dark:bg-white/3 dark:hover:bg-white/5",
+                        rowGlowClasses[row.severity],
+                      ].join(" ")}
+                    >
+                      <div className="flex items-center gap-3">
+                        {/* left */}
+                        <div className="flex shrink-0 items-center gap-3">
+                          <span
+                            className={`h-2.5 w-2.5 rounded-full ${dotClasses[row.severity]}`}
+                          />
+                          <span
+                            className={[
+                              "shrink-0 rounded-md px-2.5 py-1 text-[11px] font-bold tracking-wide",
+                              badgeClasses[row.severity],
+                            ].join(" ")}
+                          >
+                            {row.severity}
+                          </span>
+                        </div>
 
-                      {/* title */}
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-[13px] sm:text-[14px] font-medium text-[#1f2240] dark:text-white/85">
-                          {r.title}
-                        </p>
-                        <div className="mt-1 flex items-center gap-2 text-[11px] text-gray-400 dark:text-white/40">
-                          <span>Vulnerability signature</span>
-                          <span className="h-1 w-1 rounded-full bg-current" />
-                          <span>Detected in scan results</span>
+                        {/* title */}
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-[13px] sm:text-[14px] font-medium text-[#1f2240] dark:text-white/85">
+                            {row.title}
+                          </p>
+                          <div className="mt-1 flex items-center gap-2 text-[11px] text-gray-400 dark:text-white/40">
+                            <span>Vulnerability signature</span>
+                            <span className="h-1 w-1 rounded-full bg-current" />
+                            <span>Detected in scan results</span>
+                          </div>
+                        </div>
+
+                        {/* count */}
+                        <div className="shrink-0 flex items-center gap-2">
+                          <span
+                            className={[
+                              "inline-flex h-8 min-w-8 items-center justify-center rounded-lg border px-2",
+                              "text-[12px] font-semibold tabular-nums",
+                              "border-gray-200 bg-[#fbfbfc] text-gray-700",
+                              "dark:border-white/10 dark:bg-white/8 dark:text-white/75",
+                            ].join(" ")}
+                          >
+                            {row.count}
+                          </span>
+
+                          <FiChevronRight className="text-gray-300 transition-colors dark:text-white/20 group-hover:text-gray-500 dark:group-hover:text-white/45" />
                         </div>
                       </div>
-
-                      {/* count */}
-                      <div className="shrink-0 flex items-center gap-2">
-                        <span
-                          className={[
-                            "h-8 min-w-8 px-2 rounded-lg border inline-flex items-center justify-center",
-                            "text-[12px] font-semibold tabular-nums",
-                            "border-gray-200 bg-[#fbfbfc] text-gray-700",
-                            "dark:border-white/10 dark:bg-white/8 dark:text-white/75",
-                          ].join(" ")}
-                        >
-                          {r.count}
-                        </span>
-
-                        <FiChevronRight className="text-gray-300 dark:text-white/20 group-hover:text-gray-500 dark:group-hover:text-white/45 transition-colors" />
-                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </section>
