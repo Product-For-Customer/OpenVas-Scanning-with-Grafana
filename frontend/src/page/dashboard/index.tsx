@@ -17,21 +17,21 @@ const DashboardIndex: React.FC = () => {
       </div>
 
       {/* ✅ Top section: ซ้าย Introduction / ขวา DeliveryAnalysis */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 sm:gap-5 mb-4 sm:mb-5">
-        <div className="xl:col-span-7">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 sm:gap-5 mb-4 sm:mb-5 items-stretch">
+        <div className="xl:col-span-7 h-full">
           <Introduction />
         </div>
-        <div className="xl:col-span-5">
+        <div className="xl:col-span-5 h-full">
           <DeliveryAnalysis />
         </div>
       </div>
 
-      {/* Middle section */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 sm:gap-5 mb-4 sm:mb-5">
-        <div className="xl:col-span-8">
+      {/* ✅ Middle section */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 sm:gap-5 mb-4 sm:mb-5 items-stretch">
+        <div className="xl:col-span-8 h-full">
           <AverageEnrollment />
         </div>
-        <div className="xl:col-span-4">
+        <div className="xl:col-span-4 h-full">
           <TopPerforming />
         </div>
       </div>

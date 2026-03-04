@@ -1,6 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { FiMoreHorizontal, FiActivity, FiChevronDown } from "react-icons/fi";
-import { MdRouter, MdDevices, MdImportantDevices, MdMemory, MdSecurity } from "react-icons/md";
+import {
+  MdRouter,
+  MdDevices,
+  MdImportantDevices,
+  MdMemory,
+  MdSecurity,
+} from "react-icons/md";
+import { useNavigate } from "react-router-dom";
 import { ListAssetRisk, type AssetRiskDTO } from "../../../services";
 
 type RangeKey = "This Month" | "This Year";
@@ -8,6 +15,7 @@ const RANGE_OPTIONS: RangeKey[] = ["This Month", "This Year"];
 
 type Row = {
   id: string;
+  taskID: string;
   name: string;
   vulnTotal: number;
   mac: string;
@@ -50,12 +58,21 @@ const DEVICE_ICONS = [
 
 const stableIconIndex = (seed: string) => {
   let h = 0;
-  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  for (let i = 0; i < seed.length; i++) {
+    h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  }
   return h % DEVICE_ICONS.length;
 };
 
-const formatNumber = (n: number) => (!Number.isFinite(n) ? "0" : n.toLocaleString());
-const formatRisk = (n: number) => (!Number.isFinite(n) ? "0.00" : n.toFixed(2));
+const formatNumber = (n: number) => {
+  if (!Number.isFinite(n)) return "0";
+  return n.toLocaleString();
+};
+
+const formatRisk = (n: number) => {
+  if (!Number.isFinite(n)) return "0.00";
+  return n.toFixed(2);
+};
 
 const getRiskMeta = (value: number, max: number) => {
   const ratio = max > 0 ? value / max : 0;
@@ -126,6 +143,8 @@ const DangerDots: React.FC<{ value: number; max: number }> = ({ value, max }) =>
 };
 
 const RiskScoreTable: React.FC = () => {
+  const navigate = useNavigate();
+
   const [range, setRange] = useState<RangeKey>("This Month");
   const [open, setOpen] = useState(false);
 
@@ -137,13 +156,17 @@ const RiskScoreTable: React.FC = () => {
   useEffect(() => {
     let mounted = true;
 
-    (async () => {
+    const fetchData = async () => {
       setLoading(true);
       const res = await ListAssetRisk();
+
       if (!mounted) return;
-      setData(res);
+
+      setData(Array.isArray(res) ? res : []);
       setLoading(false);
-    })();
+    };
+
+    fetchData();
 
     return () => {
       mounted = false;
@@ -163,22 +186,28 @@ const RiskScoreTable: React.FC = () => {
   }, []);
 
   const { rows, maxRisk } = useMemo(() => {
-    const list = data ?? [];
-    const max = list.reduce((m, x) => Math.max(m, Number(x.risk_score) || 0), 0);
+    const list = Array.isArray(data) ? data : [];
+
+    const max = list.reduce((m, x) => {
+      const risk = Number(x?.risk_score) || 0;
+      return Math.max(m, risk);
+    }, 0);
 
     const mapped: Row[] = list.map((x, idx) => {
-      const name = x.task_name ?? "-";
-      const mac = x.mac_address ?? "";
-      const vuln = Number(x.vulnerability_total) || 0;
-      const risk = Number(x.risk_score) || 0;
+      const taskID = String(x?.task_id ?? "");
+      const name = String(x?.task_name ?? "-");
+      const mac = String(x?.mac_address ?? "");
+      const vulnTotal = Number(x?.vulnerability_total) || 0;
+      const risk = Number(x?.risk_score) || 0;
 
       return {
-        id: `${mac || name}-${idx}`,
+        id: `${taskID}-${mac || name}-${idx}`,
+        taskID,
         name,
-        vulnTotal: vuln,
         mac,
+        vulnTotal,
         risk,
-        iconIndex: stableIconIndex(`${mac}-${name}`),
+        iconIndex: stableIconIndex(`${taskID}-${mac}-${name}`),
       };
     });
 
@@ -188,8 +217,28 @@ const RiskScoreTable: React.FC = () => {
       return a.name.localeCompare(b.name);
     });
 
-    return { rows: mapped, maxRisk: max };
+    return {
+      rows: mapped,
+      maxRisk: max,
+    };
   }, [data, range]);
+
+  const goToDevice = (taskID: string) => {
+    const cleanTaskID = String(taskID || "").trim();
+
+    if (!cleanTaskID) {
+      console.warn("Cannot navigate: task_id is empty");
+      return;
+    }
+
+    console.log("Navigate with state task_id:", cleanTaskID);
+
+    navigate("/admin/vulnerability-by-device", {
+      state: {
+        task_id: cleanTaskID,
+      },
+    });
+  };
 
   return (
     <section
@@ -199,7 +248,6 @@ const RiskScoreTable: React.FC = () => {
         "dark:bg-white/5 dark:border-white/10 dark:ring-1 dark:ring-white/10 dark:shadow-none",
       ].join(" ")}
     >
-      {/* background */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -top-16 -right-12 h-44 w-44 rounded-full bg-cyan-400/10 blur-3xl" />
         <div className="absolute -bottom-16 -left-12 h-44 w-44 rounded-full bg-violet-500/10 blur-3xl" />
@@ -218,12 +266,9 @@ const RiskScoreTable: React.FC = () => {
       </div>
 
       <div className="relative z-10 flex h-full flex-col">
-        {/* Header */}
         <div className="flex flex-col gap-4">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              
-
               <h2 className="text-[20px] sm:text-[22px] font-semibold text-[#1f2240] dark:text-white/90 tracking-tight">
                 Top Devices Risk
               </h2>
@@ -233,11 +278,10 @@ const RiskScoreTable: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-2">
-              {/* Dropdown */}
               <div className="relative" ref={dropdownRef}>
                 <button
                   type="button"
-                  onClick={() => setOpen((s) => !s)}
+                  onClick={() => setOpen((prev) => !prev)}
                   className={[
                     "h-10 px-4 rounded-2xl inline-flex items-center gap-2 transition",
                     "bg-white border border-gray-200/80 text-[13px] font-medium text-gray-600 hover:bg-gray-50",
@@ -290,7 +334,6 @@ const RiskScoreTable: React.FC = () => {
             </div>
           </div>
 
-          {/* status bar */}
           <div
             className={[
               "rounded-2xl px-4 py-3 flex flex-wrap items-center gap-3",
@@ -317,7 +360,6 @@ const RiskScoreTable: React.FC = () => {
           </div>
         </div>
 
-        {/* List */}
         <div className="mt-4 flex-1">
           {loading ? (
             <div className="space-y-3">
@@ -355,14 +397,24 @@ const RiskScoreTable: React.FC = () => {
                 return (
                   <div
                     key={p.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => goToDevice(p.taskID)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        goToDevice(p.taskID);
+                      }
+                    }}
                     className={[
-                      "rounded-2xl px-3.5 sm:px-4 py-3.5 border transition-all duration-200",
-                      "border-gray-200/80 bg-white hover:shadow-sm",
-                      "dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/[0.07]",
+                      "rounded-2xl px-3.5 sm:px-4 py-3.5 border transition-all duration-200 cursor-pointer select-none",
+                      "border-gray-200/80 bg-white hover:shadow-sm hover:border-cyan-200/80",
+                      "focus:outline-none focus:ring-2 focus:ring-cyan-400/40",
+                      "dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/[0.07] dark:hover:border-cyan-400/20 dark:focus:ring-cyan-300/30",
                     ].join(" ")}
+                    title={p.taskID ? `Open vulnerabilities for task_id=${p.taskID}` : "No task_id"}
                   >
-                    <div className="flex items-center justify-between gap-3">
-                      {/* left */}
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         <div
                           className={[
@@ -390,6 +442,10 @@ const RiskScoreTable: React.FC = () => {
                               <span className={`h-1.5 w-1.5 rounded-full ${riskMeta.dot}`} />
                               {riskMeta.label}
                             </span>
+
+                            <span className="text-[11px] text-gray-400 dark:text-white/35">
+                              • task_id: {p.taskID || "-"}
+                            </span>
                           </div>
 
                           <p className="mt-1 text-[12.5px] sm:text-[13px] text-gray-500 dark:text-white/55 truncate">
@@ -410,13 +466,16 @@ const RiskScoreTable: React.FC = () => {
                         </div>
                       </div>
 
-                      {/* right */}
-                      <div className="flex items-center gap-3 sm:gap-4 shrink-0">
+                      <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 shrink-0">
                         <div className="text-right">
-                          <p className={`text-[15px] sm:text-[16px] font-semibold tabular-nums ${riskMeta.text}`}>
+                          <p
+                            className={`text-[15px] sm:text-[16px] font-semibold tabular-nums ${riskMeta.text}`}
+                          >
                             {formatRisk(p.risk)}
                           </p>
-                          <p className="text-[11.5px] text-gray-400 dark:text-white/45">Risk Score</p>
+                          <p className="text-[11.5px] text-gray-400 dark:text-white/45">
+                            Risk Score
+                          </p>
                         </div>
 
                         <DangerDots value={p.risk} max={maxRisk} />
@@ -433,4 +492,4 @@ const RiskScoreTable: React.FC = () => {
   );
 };
 
-export default RiskScoreTable;
+export default RiskScoreTable; 

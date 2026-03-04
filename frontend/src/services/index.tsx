@@ -2,6 +2,7 @@
 import axios from "axios";
 
 // ✅ ปรับให้ตรงกับโปรเจกต์คุณ
+// apiUrl ควรเป็น URL ของ backend API ของคุณ เช่น http://localhost:9000 หรือ https://6154-58-8-148-185.ngrok-free.app 
 const apiUrl = "https://6154-58-8-148-185.ngrok-free.app";
 
 // =======================
@@ -137,8 +138,10 @@ export const ListVulnerability = async (): Promise<VulnerabilityLevelDTO[] | nul
 // API: GET /assets/risk
 // =======================
 export type AssetRiskDTO = {
+  task_id: string;
   task_name: string;
   mac_address: string;
+  detected_date: string;
   aging_day: number;
   vulnerability_total: number;
   risk_score: number;
@@ -233,6 +236,36 @@ export const ListVulnerabilityDetailByName = async (
     return null;
   } catch (error) {
     console.error("Error fetching vulnerability detail:", error);
+    return null;
+  }
+};
+
+export const ListVulnerabilityByTaskID = async (
+  taskID: string
+): Promise<VulnerabilityLevelDTO[] | null> => {
+  try {
+    if (!taskID || !taskID.trim()) {
+      console.error("taskID is required");
+      return [];
+    }
+
+    const response = await axios.get(
+      `${apiUrl}/vulnerabilities/${encodeURIComponent(taskID.trim())}`,
+      {
+        headers: getCommonHeaders(),
+        timeout: 15000,
+      }
+    );
+
+    if (response.status === 200) {
+      const data = response.data?.data ?? response.data;
+      return Array.isArray(data) ? (data as VulnerabilityLevelDTO[]) : [];
+    }
+
+    console.error("Unexpected status:", response.status);
+    return null;
+  } catch (error) {
+    console.error(`Error fetching vulnerabilities by task ID (${taskID}):`, error);
     return null;
   }
 };

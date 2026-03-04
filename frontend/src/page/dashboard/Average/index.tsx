@@ -1,4 +1,3 @@
-// AverageEnrollment.tsx
 import React, { useMemo, useState } from "react";
 import {
   ResponsiveContainer,
@@ -59,7 +58,7 @@ const CustomTooltip = ({
 
   return (
     <div className="rounded-xl border border-gray-200 bg-white px-3 py-2 shadow-lg dark:border-white/10 dark:bg-[#0B1220] dark:shadow-none">
-      <p className="text-sm font-semibold text-[#1f2240] dark:text-white/90 mb-1">
+      <p className="mb-1 text-sm font-semibold text-[#1f2240] dark:text-white/90">
         {label}
       </p>
       <div className="space-y-1 text-xs">
@@ -86,10 +85,8 @@ const AverageEnrollment: React.FC = () => {
   return (
     <section
       className={[
-        "rounded-[22px] p-5 sm:p-6",
-        // ✅ Light
+        "rounded-[22px] p-5 sm:p-6 h-full flex flex-col",
         "bg-white border border-gray-200/80 shadow-sm",
-        // ✅ Dark
         "dark:bg-white/5 dark:border-white/10 dark:ring-1 dark:ring-white/10 dark:shadow-none",
       ].join(" ")}
     >
@@ -107,9 +104,7 @@ const AverageEnrollment: React.FC = () => {
             }
             className={[
               "appearance-none h-11 rounded-xl px-4 pr-10 text-[14px] sm:text-[15px] outline-none transition",
-              // ✅ Light
               "border border-gray-200 bg-[#fbfbfc] text-gray-600 hover:bg-white",
-              // ✅ Dark
               "dark:border-white/10 dark:bg-white/5 dark:text-white/70 dark:hover:bg-white/10",
             ].join(" ")}
             aria-label="Select range"
@@ -140,7 +135,7 @@ const AverageEnrollment: React.FC = () => {
       </div>
 
       {/* Chart */}
-      <div className="h-70 sm:h-85">
+      <div className="flex-1 min-h-80 sm:min-h-90">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <defs>
@@ -155,7 +150,6 @@ const AverageEnrollment: React.FC = () => {
               </linearGradient>
             </defs>
 
-            {/* ✅ Grid สีให้กลืนกับ dark */}
             <CartesianGrid
               stroke="#e9e9ee"
               strokeDasharray="0"
@@ -180,7 +174,6 @@ const AverageEnrollment: React.FC = () => {
               width={46}
             />
 
-            {/* ✅ Tooltip รองรับ dark */}
             <Tooltip
               content={<CustomTooltip />}
               cursor={{ stroke: "#d7d7e2", strokeDasharray: "4 4" }}

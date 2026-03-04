@@ -6,8 +6,7 @@ import { TooltipComponent } from "@syncfusion/ej2-react-popups";
 import { Notification, UserProfile } from ".";
 import { useStateContext } from "../../contexts/ContextProvider";
 
-import { FiSearch, FiSettings, FiShield } from "react-icons/fi";
-import { LuClock3 } from "react-icons/lu";
+import { FiSearch, FiShield } from "react-icons/fi";
 import { HiOutlineMoon, HiOutlineSun } from "react-icons/hi2";
 
 type NavBtnProps = {
@@ -191,17 +190,12 @@ const Navbar: React.FC = () => {
           {/* Right */}
           <div className="relative z-10 flex items-center h-full shrink-0">
             <div className="flex items-center gap-1 px-2 sm:px-3 md:px-4">
-              <NavButton title="Recent activity" icon={<LuClock3 />} onClick={() => {}} />
-
               <NavButton
                 title={currentMode === "Dark" ? "Light mode" : "Dark mode"}
                 aria-label="Toggle theme"
                 onClick={toggleMode}
                 icon={currentMode === "Dark" ? <HiOutlineSun /> : <HiOutlineMoon />}
               />
-
-              <NavButton title="Settings" icon={<FiSettings />} onClick={() => {}} />
-
               <NavButton
                 title="Notifications"
                 aria-label="Open notifications"
