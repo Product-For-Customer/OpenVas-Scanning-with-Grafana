@@ -5,7 +5,10 @@ import (
 	"net/http"
 
 	"github.com/Tawunchai/openvas/config"
-	"github.com/Tawunchai/openvas/controller"
+	"github.com/Tawunchai/openvas/controller/automation"
+	"github.com/Tawunchai/openvas/controller/line"
+	"github.com/Tawunchai/openvas/controller/report"
+	"github.com/Tawunchai/openvas/controller/user"
 	"github.com/Tawunchai/openvas/controller/vulnerability"
 	middlewares "github.com/Tawunchai/openvas/middleware"
 	"github.com/gin-gonic/gin"
@@ -19,7 +22,7 @@ func main() {
 	config.SeedDatabase()
 
 	// ✅ เริ่ม background listener สำหรับ LINE status
-	go controller.StartLineStatusListener()
+	go line.StartLineStatusListener()
 
 	r := gin.Default()
 	r.Use(CORSMiddleware())
@@ -29,10 +32,15 @@ func main() {
 		c.String(http.StatusOK, "API RUNNING... PORT: %s", PORT)
 	})
 
-	r.GET("/line/test", controller.TestSendLineHandler)
-	r.POST("/automation/feed/update", controller.TriggerFeedUpdateHandler)
-	r.GET("/automation/feed/status", controller.GetFeedUpdateStatusHandler)
-	r.GET("/api/report", controller.GetReportCSVSourceHandler)
+	r.GET("/line/test", line.TestSendLineHandler)
+	r.POST("/automation/feed/update", automation.TriggerFeedUpdateHandler)
+	r.GET("/automation/feed/status", automation.GetFeedUpdateStatusHandler)
+	r.GET("/api/report", report.GetReportCSVSourceHandler)
+
+	r.GET("/users", user.ListUser)
+	r.GET("/users/:id", user.ListUserByID)
+	r.PATCH("/update-users/:id", user.UpdateUserByID)
+	r.DELETE("/delete-users/:id", user.DeleteUserByID)
 
 	// Service API with Frontend
 	r.GET("/tasks/status", vulnerability.ListStatus)
@@ -62,11 +70,11 @@ func CORSMiddleware() gin.HandlerFunc {
 		origin := c.Request.Header.Get("Origin")
 
 		allowedOrigins := map[string]bool{
-			"http://localhost:5173":            true,
-			"http://127.0.0.1:5173":            true,
-			"http://localhost:3000":            true,
-			"http://127.0.0.1:3000":            true,
-			"https://openvaswebv1.vercel.app":  true,
+			"http://localhost:5173":           true,
+			"http://127.0.0.1:5173":           true,
+			"http://localhost:3000":           true,
+			"http://127.0.0.1:3000":           true,
+			"https://openvaswebv1.vercel.app": true,
 		}
 
 		if allowedOrigins[origin] {

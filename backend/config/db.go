@@ -81,8 +81,11 @@ func SetupDatabase() {
 
 	err := db.AutoMigrate(
 		&entity.AppGroup{},
+		&entity.AppRole{},
 		&entity.AppLineMaster{},
+		&entity.AppStatusNotify{},
 		&entity.Notification{},
+		&entity.AppUser{},
 	)
 	if err != nil {
 		log.Fatalf("❌ AutoMigrate failed: %v", err)
@@ -96,12 +99,21 @@ func SeedDatabase() {
 		log.Fatal("❌ database is nil, call ConnectDB() before SeedDatabase()")
 	}
 
+	// Roles
+	adminRole := entity.AppRole{Role: "Admin"}
+	userRole := entity.AppRole{Role: "User"}
+	db.FirstOrCreate(&adminRole, &entity.AppRole{Role: "Admin"})
+	db.FirstOrCreate(&userRole, &entity.AppRole{Role: "User"})
+
+	// Groups
 	group1 := entity.AppGroup{GroupName: "ITS Group"}
 	db.FirstOrCreate(&group1, &entity.AppGroup{GroupName: "ITS Group"})
 
+	// LineMasters
 	lineMaster1 := entity.AppLineMaster{Token: "G4crCc/2gMnvX+hZErxIhg7WcI0ML+MRLlAj086lTtrdL7VYURieWPRXKd6/9Zl8RxcaME5vQ3I1BW82d1/ZYezvWklVMUk+EGGfXRmI4jwtA28iaHU8MkneAGQSibyr/yp0eetvASPPtplCXWrb7gdB04t89/1O/w1cDnyilFU="}
 	db.FirstOrCreate(&lineMaster1, &entity.AppLineMaster{Token: lineMaster1.Token})
 
+	// Notifications
 	notification1 := entity.Notification{
 		Name:           "Get on Technology",
 		UserID:         "U3af93a2f92b1048757172584d47571c8",

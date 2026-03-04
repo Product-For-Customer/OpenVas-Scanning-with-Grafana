@@ -17,8 +17,9 @@ const SignIn = Loadable(lazy(() => import("../page/Authentication/Signin/index")
 const SignUp = Loadable(lazy(() => import("../page/Authentication/Signup/index")));
 const Forget = Loadable(lazy(() => import("../page/Authentication/Forget/index")));
 const Reset = Loadable(lazy(() => import("../page/Authentication/Reset/index")));
+const Loader = Loadable(lazy(() => import("../component/third-patry/Loader")));
 // ======================= ROUTES =======================
-const MainRoutes = (): RouteObject[] => [
+const AdminRoutes = (): RouteObject[] => [
   // หน้าแรก
  {
     path: "/",
@@ -51,9 +52,25 @@ const MainRoutes = (): RouteObject[] => [
   },
 ];
 
+// @ts-ignore
+const MainRoutes = (): RouteObject[] => [
+  {
+    path: "/",
+    children: [
+      { index: true, element: <SignIn /> },
+      { path: "/register", element: <SignUp /> },
+      { path: "/loader", element: <Loader /> },
+      { path: "/forgot-password", element: <Forget /> },
+      { path: "/reset-password", element: <Reset /> },
+      { path: "*", element: <SignIn /> },
+    ],
+  },
+];
+
+
 // ======================= MAIN CONFIG =======================
 function ConfigRoutes() {
-  return useRoutes(MainRoutes());
+  return useRoutes(AdminRoutes());
 }
 
 export default ConfigRoutes;

@@ -1,4 +1,4 @@
-package controller
+package report
 
 import (
 	"net/http"
