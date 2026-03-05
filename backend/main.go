@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/Tawunchai/openvas/config"
+	"github.com/Tawunchai/openvas/controller/auth"
 	"github.com/Tawunchai/openvas/controller/automation"
 	"github.com/Tawunchai/openvas/controller/line"
 	"github.com/Tawunchai/openvas/controller/report"
@@ -21,41 +22,48 @@ func main() {
 	config.SetupDatabase()
 	config.SeedDatabase()
 
-	// ✅ เริ่ม background listener สำหรับ LINE status
 	go line.StartLineStatusListener()
 
 	r := gin.Default()
 	r.Use(CORSMiddleware())
 
-	// Health check
 	r.GET("/", func(c *gin.Context) {
 		c.String(http.StatusOK, "API RUNNING... PORT: %s", PORT)
 	})
 
+	// ===== Public Auth Routes =====
+	r.POST("/auth/login", auth.Login) //
+
+	// ===== Public Routes =====
 	r.GET("/line/test", line.TestSendLineHandler)
 	r.POST("/automation/feed/update", automation.TriggerFeedUpdateHandler)
 	r.GET("/automation/feed/status", automation.GetFeedUpdateStatusHandler)
 	r.GET("/api/report", report.GetReportCSVSourceHandler)
 
-	r.GET("/users", user.ListUser)
-	r.GET("/users/:id", user.ListUserByID)
-	r.PATCH("/update-users/:id", user.UpdateUserByID)
-	r.DELETE("/delete-users/:id", user.DeleteUserByID)
+	// ถ้าจะใช้สร้าง user ทดสอบก่อน login
+	r.POST("/users", user.CreateUser)   //
+	r.POST("/auth/logout", auth.Logout) //
 
 	// Service API with Frontend
-	r.GET("/tasks/status", vulnerability.ListStatus)
-	r.GET("/tasks/summary-vulnerability", vulnerability.ListTaskVulnSummary)
-	r.GET("/vulnerabilities/list", vulnerability.ListVulnerability)
-	r.GET("/assets/risk", vulnerability.ListAssetRisk)
-	r.GET("/devices/risk", vulnerability.ListDeviceRisk)
-	r.GET("/vulnerabilities/detail/by-name", vulnerability.ListVulnerabilityDetailByName)
-	r.GET("/vulnerabilities/:task_id", vulnerability.ListVulnerabilityByTaskID)
+	r.GET("/tasks/status", vulnerability.ListStatus)                                      //
+	r.GET("/tasks/summary-vulnerability", vulnerability.ListTaskVulnSummary)              //
+	r.GET("/vulnerabilities/list", vulnerability.ListVulnerability)                       //
+	r.GET("/assets/risk", vulnerability.ListAssetRisk)                                    //
+	r.GET("/devices/risk", vulnerability.ListDeviceRisk)                                  //
+	r.GET("/vulnerabilities/detail/by-name", vulnerability.ListVulnerabilityDetailByName) //
+	r.GET("/vulnerabilities/:task_id", vulnerability.ListVulnerabilityByTaskID)           //
 
-	// Protected routes
+	// ===== Protected Routes =====
 	authorized := r.Group("")
 	authorized.Use(middlewares.Authorizes())
 	{
-		// ใส่ route ที่ต้อง auth ตรงนี้
+		authorized.GET("/auth/me", auth.Me)
+		authorized.GET("/users", user.ListUser)
+		authorized.GET("/users/:id", user.ListUserByID)
+		authorized.PATCH("/update-users/:id", user.UpdateUserByID)
+		authorized.DELETE("/delete-users/:id", user.DeleteUserByID)
+		authorized.GET("/history-notifies", line.ListHistoryNotify)
+		authorized.DELETE("/delete-history-notifies", line.DeleteHistoryNotifyByIDs)
 	}
 
 	log.Printf("✅ Server starting on port %s\n", PORT)
@@ -90,7 +98,7 @@ func CORSMiddleware() gin.HandlerFunc {
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE, PATCH")
 		c.Writer.Header().Set("Access-Control-Max-Age", "86400")
 
-		if c.Request.Method == "OPTIONS" {
+		if c.Request.Method == http.MethodOptions {
 			c.AbortWithStatus(http.StatusNoContent)
 			return
 		}

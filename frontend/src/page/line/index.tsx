@@ -1,235 +1,159 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   FiSearch,
   FiMoreVertical,
   FiRefreshCw,
   FiTrash2,
   FiSquare,
+  FiCheckSquare,
   FiChevronDown,
   FiShield,
   FiAlertTriangle,
-  FiWifi,
-  FiServer,
-  FiActivity,
   FiCheckCircle,
+  FiMessageSquare,
+  FiX,
 } from "react-icons/fi";
+import {
+  ListHistoryNotify,
+  DeleteHistoryNotifyByIDs,
+  type HistoryNotifyResponse,
+} from "../../services";
 
-type NotificationSeverity = "Critical" | "High" | "Medium" | "Info";
-type NotificationType =
-  | "Vulnerability Detected"
-  | "Port Scan Result"
-  | "Scan Completed"
-  | "Credential Failure"
-  | "New Host Detected"
-  | "TLS Weak Cipher"
-  | "Service Exposure"
-  | "Risk Score Updated";
+type FilterKey = "All" | "Update" | "Alert";
 
-type NotificationItem = {
-  id: number;
-  actor: string;
-  message: string;
-  target: string;
-  dateLabel: string;
-  time: string;
-  source: string;
-  severity: NotificationSeverity;
-  type: NotificationType;
-  avatar: string;
-  unread?: boolean;
-};
+const FILTER_OPTIONS: FilterKey[] = ["All", "Update", "Alert"];
 
-type FilterKey = "Last 24 Hours" | "Last 7 Days" | "Last Two Weeks" | "Last Month";
-
-const FILTER_OPTIONS: FilterKey[] = [
-  "Last 24 Hours",
-  "Last 7 Days",
-  "Last Two Weeks",
-  "Last Month",
-];
-
-const mockNotifications: NotificationItem[] = [
-  {
-    id: 1,
-    actor: "OpenVAS Scanner",
-    message: "detected critical findings on",
-    target: "DMZ Web Server 01",
-    dateLabel: "Mar 13",
-    time: "10:47 AM",
-    source: "Weekly Internal Scan",
-    severity: "Critical",
-    type: "Vulnerability Detected",
-    avatar: "https://i.pravatar.cc/120?img=12",
-    unread: true,
-  },
-  {
-    id: 2,
-    actor: "Network Monitor",
-    message: "found exposed ports on",
-    target: "Core Router Edge-02",
-    dateLabel: "Apr 22",
-    time: "11:15 AM",
-    source: "Port Discovery Task",
-    severity: "High",
-    type: "Port Scan Result",
-    avatar: "https://i.pravatar.cc/120?img=21",
-    unread: true,
-  },
-  {
-    id: 3,
-    actor: "Task Scheduler",
-    message: "completed the scheduled scan for",
-    target: "Finance VLAN Segment",
-    dateLabel: "May 10",
-    time: "09:30 AM",
-    source: "Nightly Security Scan",
-    severity: "Info",
-    type: "Scan Completed",
-    avatar: "https://i.pravatar.cc/120?img=33",
-  },
-  {
-    id: 4,
-    actor: "Credential Engine",
-    message: "failed authenticated login on",
-    target: "Linux Server Auth-11",
-    dateLabel: "Jun 18",
-    time: "02:25 PM",
-    source: "SSH Credentialed Scan",
-    severity: "Medium",
-    type: "Credential Failure",
-    avatar: "https://i.pravatar.cc/120?img=45",
-  },
-  {
-    id: 5,
-    actor: "Asset Discovery",
-    message: "identified a new active device in",
-    target: "Threat Monitoring Zone",
-    dateLabel: "Jul 25",
-    time: "03:45 PM",
-    source: "Live Asset Discovery",
-    severity: "Info",
-    type: "New Host Detected",
-    avatar: "https://i.pravatar.cc/120?img=52",
-    unread: true,
-  },
-  {
-    id: 6,
-    actor: "TLS Analyzer",
-    message: "reported weak cipher configuration on",
-    target: "VPN Gateway 04",
-    dateLabel: "Aug 15",
-    time: "01:10 PM",
-    source: "SSL/TLS Inspection",
-    severity: "High",
-    type: "TLS Weak Cipher",
-    avatar: "https://i.pravatar.cc/120?img=16",
-  },
-  {
-    id: 7,
-    actor: "Risk Engine",
-    message: "updated security exposure score for",
-    target: "Database Cluster A",
-    dateLabel: "Sep 05",
-    time: "04:50 PM",
-    source: "Risk Score Calculation",
-    severity: "Medium",
-    type: "Risk Score Updated",
-    avatar: "https://i.pravatar.cc/120?img=27",
-  },
-  {
-    id: 8,
-    actor: "Service Inspector",
-    message: "reported public service exposure on",
-    target: "Application Node 09",
-    dateLabel: "Oct 11",
-    time: "06:30 PM",
-    source: "Service Enumeration Scan",
-    severity: "Critical",
-    type: "Service Exposure",
-    avatar: "https://i.pravatar.cc/120?img=61",
-  },
-];
-
-const severityStyles: Record<
-  NotificationSeverity,
+const statusStyles: Record<
+  string,
   {
     badge: string;
     dot: string;
     iconWrap: string;
     icon: React.ReactNode;
+    label: string;
   }
 > = {
-  Critical: {
+  Alert: {
     badge:
       "bg-red-50 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-200 dark:border-red-400/20",
     dot: "bg-red-500",
     iconWrap:
-      "bg-red-50 border-red-200 dark:bg-red-500/10 dark:border-red-400/20",
+      "bg-red-50 border-red-200 text-red-600 dark:bg-red-500/10 dark:border-red-400/20 dark:text-red-300",
     icon: <FiAlertTriangle />,
+    label: "Alert",
   },
-  High: {
-    badge:
-      "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-500/10 dark:text-orange-200 dark:border-orange-400/20",
-    dot: "bg-orange-500",
-    iconWrap:
-      "bg-orange-50 border-orange-200 dark:bg-orange-500/10 dark:border-orange-400/20",
-    icon: <FiShield />,
-  },
-  Medium: {
-    badge:
-      "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-200 dark:border-amber-400/20",
-    dot: "bg-amber-500",
-    iconWrap:
-      "bg-amber-50 border-amber-200 dark:bg-amber-500/10 dark:border-amber-400/20",
-    icon: <FiActivity />,
-  },
-  Info: {
+  Update: {
     badge:
       "bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-500/10 dark:text-cyan-200 dark:border-cyan-400/20",
     dot: "bg-cyan-500",
     iconWrap:
-      "bg-cyan-50 border-cyan-200 dark:bg-cyan-500/10 dark:border-cyan-400/20",
-    icon: <FiWifi />,
+      "bg-cyan-50 border-cyan-200 text-cyan-600 dark:bg-cyan-500/10 dark:border-cyan-400/20 dark:text-cyan-300",
+    icon: <FiCheckCircle />,
+    label: "Update",
   },
 };
 
-const typeIcon = (type: NotificationType) => {
-  if (type === "Port Scan Result") return <FiWifi />;
-  if (type === "Scan Completed") return <FiCheckCircle />;
-  if (type === "Credential Failure") return <FiShield />;
-  if (type === "New Host Detected") return <FiServer />;
-  if (type === "TLS Weak Cipher") return <FiShield />;
-  if (type === "Service Exposure") return <FiAlertTriangle />;
-  if (type === "Risk Score Updated") return <FiActivity />;
-  return <FiShield />;
+const getStatusMeta = (status?: string | null) => {
+  const normalized = (status || "").trim();
+  if (normalized === "Alert") return statusStyles.Alert;
+  return statusStyles.Update;
 };
 
-const index = () => {
+const formatDate = (dateString?: string) => {
+  if (!dateString) return "-";
+
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return dateString;
+
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+  });
+};
+
+const formatTime = (dateString?: string) => {
+  if (!dateString) return "-";
+
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return "-";
+
+  return date.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+const Index: React.FC = () => {
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<FilterKey>("Last Two Weeks");
+  const [filter, setFilter] = useState<FilterKey>("All");
   const [openFilter, setOpenFilter] = useState(false);
+
+  const [items, setItems] = useState<HistoryNotifyResponse[]>([]);
   const [selected, setSelected] = useState<number[]>([]);
+
+  const [loading, setLoading] = useState<boolean>(true);
+  const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
+
+  const [deleteOpen, setDeleteOpen] = useState<boolean>(false);
+  const [deleting, setDeleting] = useState<boolean>(false);
+  const [deleteError, setDeleteError] = useState<string>("");
+
+  const loadHistoryNotify = async (showRefresh = false) => {
+    try {
+      setError("");
+
+      if (showRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+
+      const res = await ListHistoryNotify();
+
+      if (res) {
+        setItems(res);
+      } else {
+        setItems([]);
+        setError("Unable to load notification history.");
+      }
+    } catch (err) {
+      console.error("loadHistoryNotify error:", err);
+      setItems([]);
+      setError("Unable to load notification history.");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    loadHistoryNotify();
+  }, []);
 
   const notifications = useMemo(() => {
     const q = search.trim().toLowerCase();
 
-    return mockNotifications.filter((item) => {
+    return items.filter((item) => {
+      const matchFilter =
+        filter === "All" ? true : (item.status || "").trim() === filter;
+
       const blob = [
-        item.actor,
-        item.message,
-        item.target,
-        item.time,
-        item.dateLabel,
-        item.source,
-        item.type,
-        item.severity,
+        item.subject,
+        item.description,
+        item.status,
+        item.created_at,
+        item.updated_at,
       ]
         .join(" ")
         .toLowerCase();
 
-      return blob.includes(q);
+      const matchSearch = blob.includes(q);
+
+      return matchFilter && matchSearch;
     });
-  }, [search, filter]);
+  }, [items, search, filter]);
 
   const toggleSelect = (id: number) => {
     setSelected((prev) =>
@@ -238,321 +162,538 @@ const index = () => {
   };
 
   const allSelected =
-    notifications.length > 0 && selected.length === notifications.length;
+    notifications.length > 0 &&
+    notifications.every((item) => selected.includes(item.id));
 
   const toggleSelectAll = () => {
     if (allSelected) {
-      setSelected([]);
+      const visibleIds = notifications.map((n) => n.id);
+      setSelected((prev) => prev.filter((id) => !visibleIds.includes(id)));
     } else {
-      setSelected(notifications.map((n) => n.id));
+      const visibleIds = notifications.map((n) => n.id);
+      setSelected((prev) => Array.from(new Set([...prev, ...visibleIds])));
     }
   };
 
+  const openDeleteModal = () => {
+    if (selected.length === 0) return;
+    setDeleteError("");
+    setDeleteOpen(true);
+  };
+
+  const closeDeleteModal = () => {
+    if (deleting) return;
+    setDeleteOpen(false);
+    setDeleteError("");
+  };
+
+  const confirmDelete = async () => {
+    if (selected.length === 0) {
+      setDeleteError("Please select at least one notification.");
+      return;
+    }
+
+    try {
+      setDeleting(true);
+      setDeleteError("");
+
+      const res = await DeleteHistoryNotifyByIDs({
+        ids: selected,
+      });
+
+      if (!res) {
+        setDeleteError("Failed to delete selected notifications.");
+        return;
+      }
+
+      const selectedSet = new Set(selected);
+      setItems((prev) => prev.filter((item) => !selectedSet.has(item.id)));
+      setSelected([]);
+      setDeleteOpen(false);
+    } catch (err) {
+      console.error("confirmDelete error:", err);
+      setDeleteError("Failed to delete selected notifications.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const selectedItems = useMemo(() => {
+    const selectedSet = new Set(selected);
+    return items.filter((item) => selectedSet.has(item.id));
+  }, [items, selected]);
+
   return (
-    <section
-      className={[
-        "relative overflow-hidden rounded-[28px] p-4 sm:p-5 md:p-6",
-        "bg-white border border-gray-200/80 shadow-[0_18px_40px_-24px_rgba(15,23,42,0.20)]",
-        "dark:bg-[#08111f]/95 dark:border-white/10 dark:ring-1 dark:ring-cyan-400/10 dark:shadow-none",
-      ].join(" ")}
-    >
-      {/* Background */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-20 right-10 h-48 w-48 rounded-full bg-cyan-400/10 blur-3xl" />
-        <div className="absolute bottom-0 left-0 h-40 w-40 rounded-full bg-violet-500/10 blur-3xl" />
-        <div className="absolute inset-0 opacity-[0.035] dark:opacity-[0.05]">
-          <div
-            className="h-full w-full"
-            style={{
-              backgroundImage: `
-                linear-gradient(to right, currentColor 1px, transparent 1px),
-                linear-gradient(to bottom, currentColor 1px, transparent 1px)
-              `,
-              backgroundSize: "32px 32px",
-            }}
-          />
-        </div>
-      </div>
-
-      <div className="relative z-10">
-        {/* Top */}
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="min-w-0">
-            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1.5 text-[12px] font-semibold text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-300">
-              <FiShield className="text-[13px]" />
-              Security Notification Center
-            </div>
-
-            <h2 className="mt-3 text-[24px] sm:text-[28px] font-semibold tracking-tight text-slate-900 dark:text-white">
-              All Notifications
-            </h2>
-
-            <p className="mt-1 text-[13px] sm:text-[14px] text-slate-500 dark:text-white/55">
-              See your scan alerts, vulnerability findings, and network activity here.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Search */}
-            <div className="relative min-w-55 flex-1 sm:flex-none sm:w-72">
-              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-white/35" />
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search notifications..."
-                className={[
-                  "w-full h-11 rounded-2xl pl-10 pr-4 text-[13px] outline-none transition",
-                  "border border-gray-200 bg-white text-slate-800 focus:ring-2 focus:ring-cyan-200",
-                  "dark:border-white/10 dark:bg-white/5 dark:text-white/80 dark:placeholder:text-white/35 dark:focus:ring-cyan-400/10",
-                ].join(" ")}
-              />
-            </div>
-
-            <button
-              type="button"
-              onClick={toggleSelectAll}
-              className={[
-                "inline-flex h-11 w-11 items-center justify-center rounded-2xl transition",
-                allSelected
-                  ? "bg-cyan-50 text-cyan-700 border border-cyan-200 dark:bg-cyan-500/10 dark:text-cyan-200 dark:border-cyan-400/20"
-                  : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-white/5 dark:border-white/10 dark:text-white/70 dark:hover:bg-white/8",
-              ].join(" ")}
-              title="Select all"
-            >
-              <FiSquare />
-            </button>
-
-            <button
-              type="button"
-              className={[
-                "inline-flex h-11 w-11 items-center justify-center rounded-2xl transition",
-                "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50",
-                "dark:bg-white/5 dark:border-white/10 dark:text-white/70 dark:hover:bg-white/8",
-              ].join(" ")}
-              title="Refresh"
-            >
-              <FiRefreshCw />
-            </button>
-
-            <button
-              type="button"
-              className={[
-                "inline-flex h-11 w-11 items-center justify-center rounded-2xl transition",
-                "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50",
-                "dark:bg-white/5 dark:border-white/10 dark:text-white/70 dark:hover:bg-white/8",
-              ].join(" ")}
-              title="Delete selected"
-            >
-              <FiTrash2 />
-            </button>
-
-            <button
-              type="button"
-              className={[
-                "inline-flex h-11 w-11 items-center justify-center rounded-2xl transition",
-                "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50",
-                "dark:bg-white/5 dark:border-white/10 dark:text-white/70 dark:hover:bg-white/8",
-              ].join(" ")}
-              title="More"
-            >
-              <FiMoreVertical />
-            </button>
-
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setOpenFilter((s) => !s)}
-                className={[
-                  "h-11 px-4 rounded-2xl inline-flex items-center gap-2 transition",
-                  "bg-white border border-gray-200/80 text-[13px] font-medium text-gray-700 hover:bg-gray-50",
-                  "dark:bg-white/5 dark:border-white/10 dark:text-white/75 dark:hover:bg-white/8",
-                ].join(" ")}
-              >
-                {filter}
-                <FiChevronDown
-                  className={`transition ${openFilter ? "rotate-180" : ""} text-gray-400 dark:text-white/45`}
-                />
-              </button>
-
-              {openFilter && (
-                <div className="absolute right-0 mt-2 w-48 rounded-2xl overflow-hidden z-20 border border-gray-200 bg-white shadow-lg dark:border-white/10 dark:bg-[#0B1220] dark:shadow-none">
-                  {FILTER_OPTIONS.map((opt) => (
-                    <button
-                      key={opt}
-                      type="button"
-                      onClick={() => {
-                        setFilter(opt);
-                        setOpenFilter(false);
-                      }}
-                      className={[
-                        "w-full text-left px-4 py-3 text-[13px] transition",
-                        filter === opt
-                          ? "bg-cyan-50 text-cyan-700 font-semibold dark:bg-cyan-500/10 dark:text-cyan-200"
-                          : "text-gray-700 hover:bg-gray-50 dark:text-white/70 dark:hover:bg-white/8",
-                      ].join(" ")}
-                    >
-                      {opt}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+    <>
+      <section
+        className={[
+          "relative overflow-hidden rounded-[28px] p-4 sm:p-5 md:p-6",
+          "bg-white border border-gray-200/80 shadow-[0_18px_40px_-24px_rgba(15,23,42,0.20)]",
+          "dark:bg-[#08111f]/95 dark:border-white/10 dark:ring-1 dark:ring-cyan-400/10 dark:shadow-none",
+        ].join(" ")}
+      >
+        {/* Background */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -top-20 right-10 h-48 w-48 rounded-full bg-cyan-400/10 blur-3xl" />
+          <div className="absolute bottom-0 left-0 h-40 w-40 rounded-full bg-violet-500/10 blur-3xl" />
+          <div className="absolute inset-0 opacity-[0.035] dark:opacity-[0.05]">
+            <div
+              className="h-full w-full"
+              style={{
+                backgroundImage: `
+                  linear-gradient(to right, currentColor 1px, transparent 1px),
+                  linear-gradient(to bottom, currentColor 1px, transparent 1px)
+                `,
+                backgroundSize: "32px 32px",
+              }}
+            />
           </div>
         </div>
 
-        {/* List */}
-        <div className="mt-6 rounded-3xl border border-gray-200/80 bg-white/70 overflow-hidden dark:border-white/10 dark:bg-white/3">
-          {notifications.length === 0 ? (
-            <div className="px-6 py-14 text-center">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-200">
-                <FiShield className="text-[22px]" />
+        <div className="relative z-10">
+          {/* Top */}
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0">
+              <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1.5 text-[12px] font-semibold text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-300">
+                <FiShield className="text-[13px]" />
+                Notification History Center
               </div>
-              <h3 className="mt-4 text-[16px] font-semibold text-slate-900 dark:text-white/85">
-                No notifications found
-              </h3>
-              <p className="mt-1 text-[13px] text-slate-500 dark:text-white/55">
-                Try adjusting your search or date filter.
+
+              <h2 className="mt-3 text-[24px] font-semibold tracking-tight text-slate-900 sm:text-[28px] dark:text-white">
+                All Notifications
+              </h2>
+
+              <p className="mt-1 text-[13px] text-slate-500 sm:text-[14px] dark:text-white/55">
+                See your system updates and alert history here.
               </p>
             </div>
-          ) : (
-            notifications.map((item, idx) => {
-              const tone = severityStyles[item.severity];
-              const isSelected = selected.includes(item.id);
 
-              return (
-                <div
-                  key={item.id}
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Search */}
+              <div className="relative min-w-55 flex-1 sm:flex-none sm:w-72">
+                <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-white/35" />
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search notifications..."
                   className={[
-                    "px-4 sm:px-6 py-4 transition-colors",
-                    idx !== notifications.length - 1
-                      ? "border-b border-gray-200/70 dark:border-white/10"
-                      : "",
-                    isSelected
-                      ? "bg-cyan-50/70 dark:bg-cyan-500/5"
-                      : "hover:bg-gray-50 dark:hover:bg-white/4",
+                    "w-full h-11 rounded-2xl pl-10 pr-4 text-[13px] outline-none transition",
+                    "border border-gray-200 bg-white text-slate-800 focus:ring-2 focus:ring-cyan-200",
+                    "dark:border-white/10 dark:bg-white/5 dark:text-white/80 dark:placeholder:text-white/35 dark:focus:ring-cyan-400/10",
+                  ].join(" ")}
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={toggleSelectAll}
+                className={[
+                  "inline-flex h-11 w-11 items-center justify-center rounded-2xl transition",
+                  allSelected
+                    ? "bg-cyan-50 text-cyan-700 border border-cyan-200 dark:bg-cyan-500/10 dark:text-cyan-200 dark:border-cyan-400/20"
+                    : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-white/5 dark:border-white/10 dark:text-white/70 dark:hover:bg-white/8",
+                ].join(" ")}
+                title="Select all"
+              >
+                {allSelected ? <FiCheckSquare /> : <FiSquare />}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => loadHistoryNotify(true)}
+                disabled={refreshing}
+                className={[
+                  "inline-flex h-11 w-11 items-center justify-center rounded-2xl transition",
+                  "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50",
+                  "disabled:cursor-not-allowed disabled:opacity-60",
+                  "dark:bg-white/5 dark:border-white/10 dark:text-white/70 dark:hover:bg-white/8",
+                ].join(" ")}
+                title="Refresh"
+              >
+                <FiRefreshCw className={refreshing ? "animate-spin" : ""} />
+              </button>
+
+              <button
+                type="button"
+                onClick={openDeleteModal}
+                disabled={selected.length === 0}
+                className={[
+                  "inline-flex h-11 w-11 items-center justify-center rounded-2xl transition",
+                  selected.length > 0
+                    ? "bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 dark:bg-red-500/10 dark:border-red-400/20 dark:text-red-300 dark:hover:bg-red-500/15"
+                    : "bg-white border border-gray-200 text-gray-300 cursor-not-allowed dark:bg-white/5 dark:border-white/10 dark:text-white/20",
+                ].join(" ")}
+                title="Delete selected"
+              >
+                <FiTrash2 />
+              </button>
+
+              <button
+                type="button"
+                className={[
+                  "inline-flex h-11 w-11 items-center justify-center rounded-2xl transition",
+                  "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50",
+                  "dark:bg-white/5 dark:border-white/10 dark:text-white/70 dark:hover:bg-white/8",
+                ].join(" ")}
+                title="More"
+              >
+                <FiMoreVertical />
+              </button>
+
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setOpenFilter((s) => !s)}
+                  className={[
+                    "h-11 px-4 rounded-2xl inline-flex items-center gap-2 transition",
+                    "bg-white border border-gray-200/80 text-[13px] font-medium text-gray-700 hover:bg-gray-50",
+                    "dark:bg-white/5 dark:border-white/10 dark:text-white/75 dark:hover:bg-white/8",
                   ].join(" ")}
                 >
-                  <div className="flex items-start gap-3">
-                    {/* Select */}
-                    <button
-                      type="button"
-                      onClick={() => toggleSelect(item.id)}
-                      className={[
-                        "mt-2 inline-flex h-5 w-5 shrink-0 rounded-md border transition",
-                        isSelected
-                          ? "border-cyan-500 bg-cyan-500"
-                          : "border-gray-300 bg-white dark:border-white/15 dark:bg-white/5",
-                      ].join(" ")}
-                      aria-label="Select notification"
-                    >
-                      {isSelected && (
-                        <span className="m-auto h-2 w-2 rounded-xs bg-white" />
-                      )}
-                    </button>
+                  {filter}
+                  <FiChevronDown
+                    className={`transition ${
+                      openFilter ? "rotate-180" : ""
+                    } text-gray-400 dark:text-white/45`}
+                  />
+                </button>
 
-                    {/* Avatar */}
-                    <div className="relative shrink-0">
-                      <img
-                        src={item.avatar}
-                        alt={item.actor}
-                        className="h-12 w-12 rounded-2xl object-cover ring-1 ring-gray-200 dark:ring-white/10"
-                      />
-                      <span
+                {openFilter && (
+                  <div className="absolute right-0 z-20 mt-2 w-40 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg dark:border-white/10 dark:bg-[#0B1220] dark:shadow-none">
+                    {FILTER_OPTIONS.map((opt) => (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => {
+                          setFilter(opt);
+                          setOpenFilter(false);
+                        }}
                         className={[
-                          "absolute -right-1 -bottom-1 inline-flex h-5 w-5 items-center justify-center rounded-full border text-[10px]",
-                          "bg-white dark:bg-[#08111f]",
-                          tone.iconWrap,
+                          "w-full px-4 py-3 text-left text-[13px] transition",
+                          filter === opt
+                            ? "bg-cyan-50 text-cyan-700 font-semibold dark:bg-cyan-500/10 dark:text-cyan-200"
+                            : "text-gray-700 hover:bg-gray-50 dark:text-white/70 dark:hover:bg-white/8",
                         ].join(" ")}
                       >
-                        {typeIcon(item.type)}
-                      </span>
-                    </div>
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
 
-                    {/* Content */}
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
-                        <div className="min-w-0">
-                          <p className="text-[14px] sm:text-[15px] leading-6 text-slate-700 dark:text-white/75">
-                            <span className="font-semibold text-slate-900 dark:text-white">
-                              {item.actor}
-                            </span>{" "}
-                            {item.message}{" "}
-                            <span className="font-semibold text-cyan-700 dark:text-cyan-300">
-                              {item.target}
-                            </span>{" "}
-                            <span className="text-slate-500 dark:text-white/45">
-                              on {item.dateLabel}
-                            </span>
-                          </p>
+          {/* Status Summary */}
+          <div className="mt-5 flex flex-wrap items-center gap-2">
+            <div className="inline-flex items-center rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[12px] font-medium text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/65">
+              Total:{" "}
+              <span className="ml-1 font-semibold text-slate-900 dark:text-white">
+                {notifications.length}
+              </span>
+            </div>
 
-                          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-2">
-                            <span className="text-[13px] font-medium text-slate-800 dark:text-white/80">
-                              {item.time}
-                            </span>
+            <div className="inline-flex items-center rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[12px] font-medium text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/65">
+              Selected:{" "}
+              <span className="ml-1 font-semibold text-slate-900 dark:text-white">
+                {selected.length}
+              </span>
+            </div>
+          </div>
 
-                            <span className="inline-flex items-center gap-1.5 text-[13px] text-slate-500 dark:text-white/50">
-                              <span className="text-amber-500">★</span>
-                              <span className="underline underline-offset-2">
-                                {item.source}
-                              </span>
-                            </span>
+          {/* Error */}
+          {error && (
+            <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300">
+              {error}
+            </div>
+          )}
 
-                            <span
-                              className={[
-                                "inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold",
-                                tone.badge,
-                              ].join(" ")}
-                            >
-                              <span
-                                className={`mr-1.5 inline-block h-2 w-2 rounded-full ${tone.dot}`}
-                              />
-                              {item.severity}
-                            </span>
+          {/* List */}
+          <div className="mt-6 overflow-hidden rounded-3xl border border-gray-200/80 bg-white/70 dark:border-white/10 dark:bg-white/3">
+            {loading ? (
+              <div className="px-6 py-14 text-center">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-200">
+                  <FiRefreshCw className="animate-spin text-[22px]" />
+                </div>
+                <h3 className="mt-4 text-[16px] font-semibold text-slate-900 dark:text-white/85">
+                  Loading notifications...
+                </h3>
+                <p className="mt-1 text-[13px] text-slate-500 dark:text-white/55">
+                  Please wait while we load your notification history.
+                </p>
+              </div>
+            ) : notifications.length === 0 ? (
+              <div className="px-6 py-14 text-center">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-200">
+                  <FiMessageSquare className="text-[22px]" />
+                </div>
+                <h3 className="mt-4 text-[16px] font-semibold text-slate-900 dark:text-white/85">
+                  No notifications found
+                </h3>
+                <p className="mt-1 text-[13px] text-slate-500 dark:text-white/55">
+                  Try adjusting your search or status filter.
+                </p>
+              </div>
+            ) : (
+              notifications.map((item, idx) => {
+                const tone = getStatusMeta(item.status);
+                const isSelected = selected.includes(item.id);
 
-                            <span className="inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[11px] font-semibold text-violet-700 dark:border-violet-400/20 dark:bg-violet-500/10 dark:text-violet-200">
-                              {item.type}
-                            </span>
+                return (
+                  <div
+                    key={item.id}
+                    className={[
+                      "px-4 py-4 transition-colors sm:px-6",
+                      idx !== notifications.length - 1
+                        ? "border-b border-gray-200/70 dark:border-white/10"
+                        : "",
+                      isSelected
+                        ? "bg-cyan-50/70 dark:bg-cyan-500/5"
+                        : "hover:bg-gray-50 dark:hover:bg-white/4",
+                    ].join(" ")}
+                  >
+                    <div className="flex items-start gap-3">
+                      {/* Select */}
+                      <button
+                        type="button"
+                        onClick={() => toggleSelect(item.id)}
+                        className={[
+                          "mt-2 inline-flex h-5 w-5 shrink-0 rounded-md border transition",
+                          isSelected
+                            ? "border-cyan-500 bg-cyan-500"
+                            : "border-gray-300 bg-white dark:border-white/15 dark:bg-white/5",
+                        ].join(" ")}
+                        aria-label="Select notification"
+                      >
+                        {isSelected && (
+                          <span className="m-auto h-2 w-2 rounded-xs bg-white" />
+                        )}
+                      </button>
 
-                            {item.unread && (
-                              <span className="inline-flex items-center rounded-full border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-[11px] font-semibold text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-200">
-                                New
-                              </span>
-                            )}
-                          </div>
+                      {/* Icon */}
+                      <div className="relative shrink-0">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-gray-200 bg-white text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/70">
+                          <FiMessageSquare className="text-[20px]" />
                         </div>
 
-                        {/* Right action */}
-                        <button
-                          type="button"
+                        <span
                           className={[
-                            "shrink-0 inline-flex h-10 w-10 items-center justify-center rounded-2xl transition",
-                            "text-gray-500 hover:bg-gray-100 active:bg-gray-200",
-                            "dark:text-white/55 dark:hover:bg-white/10 dark:active:bg-white/15",
+                            "absolute -right-1 -bottom-1 inline-flex h-5 w-5 items-center justify-center rounded-full border text-[10px]",
+                            "bg-white dark:bg-[#08111f]",
+                            tone.iconWrap,
                           ].join(" ")}
-                          title="More"
                         >
-                          <FiMoreVertical />
-                        </button>
+                          {tone.icon}
+                        </span>
+                      </div>
+
+                      {/* Content */}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
+                          <div className="min-w-0">
+                            <p className="text-[15px] font-semibold leading-6 text-slate-900 dark:text-white">
+                              {item.subject || "-"}
+                            </p>
+
+                            <p className="mt-1 text-[14px] leading-6 text-slate-600 dark:text-white/70">
+                              {item.description || "-"}
+                            </p>
+
+                            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+                              <span className="text-[13px] font-medium text-slate-800 dark:text-white/80">
+                                {formatTime(item.created_at)}
+                              </span>
+
+                              <span className="inline-flex items-center gap-1.5 text-[13px] text-slate-500 dark:text-white/50">
+                                <span className="text-cyan-500">●</span>
+                                <span className="underline underline-offset-2">
+                                  {formatDate(item.created_at)}
+                                </span>
+                              </span>
+
+                              <span
+                                className={[
+                                  "inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold",
+                                  tone.badge,
+                                ].join(" ")}
+                              >
+                                <span
+                                  className={`mr-1.5 inline-block h-2 w-2 rounded-full ${tone.dot}`}
+                                />
+                                {tone.label}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Right action */}
+                          <button
+                            type="button"
+                            className={[
+                              "shrink-0 inline-flex h-10 w-10 items-center justify-center rounded-2xl transition",
+                              "text-gray-500 hover:bg-gray-100 active:bg-gray-200",
+                              "dark:text-white/55 dark:hover:bg-white/10 dark:active:bg-white/15",
+                            ].join(" ")}
+                            title="More"
+                          >
+                            <FiMoreVertical />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              );
-            })
-          )}
+                );
+              })
+            )}
+          </div>
         </div>
-      </div>
 
-      {openFilter && (
-        <button
-          type="button"
-          onClick={() => setOpenFilter(false)}
-          className="fixed inset-0 z-5 cursor-default"
-          aria-label="Close filter overlay"
-        />
+        {openFilter && (
+          <button
+            type="button"
+            onClick={() => setOpenFilter(false)}
+            className="fixed inset-0 z-5 cursor-default"
+            aria-label="Close filter overlay"
+          />
+        )}
+      </section>
+
+      {/* =========================
+          Delete Confirm Modal
+      ========================= */}
+      {deleteOpen && (
+        <div className="fixed inset-0 z-200 flex items-center justify-center p-4">
+          {/* Overlay */}
+          <button
+            type="button"
+            onClick={closeDeleteModal}
+            className="absolute inset-0 bg-slate-900/35 backdrop-blur-[2px]"
+            aria-label="Close delete modal overlay"
+          />
+
+          {/* Modal */}
+          <div
+            className={[
+              "relative z-10 w-full max-w-135 rounded-[14px] border border-gray-200 bg-white px-5 py-5 shadow-[0_20px_70px_rgba(15,23,42,0.18)]",
+              "dark:border-white/10 dark:bg-[#0d1524]",
+            ].join(" ")}
+          >
+            {/* Close */}
+            <button
+              type="button"
+              onClick={closeDeleteModal}
+              disabled={deleting}
+              className="absolute right-4 top-4 text-gray-400 transition hover:text-gray-600 disabled:cursor-not-allowed dark:text-white/45 dark:hover:text-white/70"
+              aria-label="Close"
+            >
+              <FiX className="text-[20px]" />
+            </button>
+
+            {/* Icon */}
+            <div className="flex justify-center pt-2">
+              <div className="grid h-14 w-14 place-items-center rounded-full bg-red-50 text-red-500 dark:bg-red-500/10 dark:text-red-300">
+                <FiTrash2 className="text-[28px]" />
+              </div>
+            </div>
+
+            {/* Title */}
+            <h3 className="mt-4 text-center text-[22px] font-semibold text-slate-800 dark:text-white">
+              Delete Notifications
+            </h3>
+
+            {/* Description */}
+            <p className="mx-auto mt-3 max-w-105 text-center text-[14px] leading-6 text-slate-500 dark:text-white/55">
+              Are you sure you want to delete{" "}
+              <span className="font-semibold text-slate-700 dark:text-white/80">
+                {selected.length}
+              </span>{" "}
+              selected notification{selected.length > 1 ? "s" : ""}? This action
+              cannot be undone.
+            </p>
+
+            {/* Preview selected items */}
+            <div className="mt-5 max-h-52 overflow-y-auto rounded-2xl border border-gray-200 bg-gray-50/70 p-3 dark:border-white/10 dark:bg-white/5">
+              <div className="space-y-2">
+                {selectedItems.map((item) => {
+                  const tone = getStatusMeta(item.status);
+
+                  return (
+                    <div
+                      key={item.id}
+                      className="rounded-xl border border-gray-200 bg-white px-3 py-2 dark:border-white/10 dark:bg-[#111a2a]"
+                    >
+                      <div className="flex items-start gap-2">
+                        <div
+                          className={[
+                            "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border",
+                            tone.iconWrap,
+                          ].join(" ")}
+                        >
+                          <FiMessageSquare className="text-[14px]" />
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-[13px] font-semibold text-slate-800 dark:text-white">
+                            {item.subject || "-"}
+                          </p>
+                          <p className="line-clamp-2 text-[12px] text-slate-500 dark:text-white/50">
+                            {item.description || "-"}
+                          </p>
+                        </div>
+
+                        <span
+                          className={[
+                            "inline-flex items-center rounded-full border px-2 py-1 text-[10px] font-semibold",
+                            tone.badge,
+                          ].join(" ")}
+                        >
+                          {tone.label}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {deleteError && (
+              <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-center text-[13px] text-red-700 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300">
+                {deleteError}
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="mt-6 flex items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={confirmDelete}
+                disabled={deleting}
+                className={[
+                  "min-w-27.5 rounded-[10px] px-4 py-2.5 text-[15px] font-medium transition",
+                  "bg-[#f8dedd] text-[#ff5a3c] hover:bg-[#f4d2d1]",
+                  "disabled:cursor-not-allowed disabled:opacity-60",
+                ].join(" ")}
+              >
+                {deleting ? "Deleting..." : "Yes, Delete!"}
+              </button>
+
+              <button
+                type="button"
+                onClick={closeDeleteModal}
+                disabled={deleting}
+                className={[
+                  "min-w-27.5 rounded-[10px] px-4 py-2.5 text-[15px] font-medium transition",
+                  "bg-[#6d5efc] text-white hover:bg-[#5f51eb]",
+                  "disabled:cursor-not-allowed disabled:opacity-60",
+                ].join(" ")}
+              >
+                No, Keep It.
+              </button>
+            </div>
+          </div>
+        </div>
       )}
-    </section>
+    </>
   );
 };
 
-export default index;
+export default Index;

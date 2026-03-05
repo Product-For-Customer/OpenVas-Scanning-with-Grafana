@@ -17,7 +17,7 @@ import (
 func TestValidNotificationInput(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	n := entity.Notification{
+	n := entity.AppNotification{
 		Name:         "CPU Alert",
 		UserID:       "1",
 		Alert:        true, // govalidator required on bool => true ผ่าน
@@ -35,7 +35,7 @@ func TestValidNotificationWithGroupID(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	groupID := uint(1)
-	n := entity.Notification{
+	n := entity.AppNotification{
 		Name:         "Memory Alert",
 		UserID:       "2",
 		Alert:        true,
@@ -52,7 +52,7 @@ func TestValidNotificationWithGroupID(t *testing.T) {
 func TestInvalidNotificationName(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	n := entity.Notification{
+	n := entity.AppNotification{
 		Name:         "",
 		UserID:       "1",
 		Alert:        true,
@@ -69,7 +69,7 @@ func TestInvalidNotificationName(t *testing.T) {
 func TestInvalidNotificationUserID(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	n := entity.Notification{
+	n := entity.AppNotification{
 		Name:         "CPU Alert",
 		UserID:       "",
 		Alert:        true,
@@ -86,7 +86,7 @@ func TestInvalidNotificationUserID(t *testing.T) {
 func TestInvalidNotificationAlert(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	n := entity.Notification{
+	n := entity.AppNotification{
 		Name:         "CPU Alert",
 		UserID:       "1",
 		Alert:        false, // govalidator required on bool => false fail
@@ -103,7 +103,7 @@ func TestInvalidNotificationAlert(t *testing.T) {
 func TestInvalidNotificationLineMasterID(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	n := entity.Notification{
+	n := entity.AppNotification{
 		Name:         "CPU Alert",
 		UserID:       "1",
 		Alert:        true,
@@ -121,7 +121,7 @@ func TestInvalidNotificationLineMasterID(t *testing.T) {
 func TestValidNotificationWithoutAppGroupID(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	n := entity.Notification{
+	n := entity.AppNotification{
 		Name:         "Disk Alert",
 		UserID:       "99",
 		Alert:        true,

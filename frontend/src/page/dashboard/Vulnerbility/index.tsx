@@ -171,10 +171,9 @@ const TopVulnerability: React.FC = () => {
   return (
     <section
       className={[
-        "relative w-full min-h-105 overflow-hidden rounded-[22px] p-4 sm:p-5 md:p-6",
+        "relative w-full overflow-hidden rounded-[22px] p-4 sm:p-5 md:p-6",
         "bg-white border border-gray-200/80 shadow-sm",
         "dark:bg-white/5 dark:border-white/10 dark:ring-1 dark:ring-white/10 dark:shadow-none",
-        "flex flex-col",
       ].join(" ")}
     >
       {/* background */}
@@ -195,7 +194,7 @@ const TopVulnerability: React.FC = () => {
         </div>
       </div>
 
-      <div className="relative z-10 flex h-full min-h-0 flex-col">
+      <div className="relative z-10 flex flex-col">
         {/* Header */}
         <div className="mb-4 flex shrink-0 flex-col gap-3">
           <div className="flex items-start justify-between gap-3">
@@ -241,120 +240,123 @@ const TopVulnerability: React.FC = () => {
         </div>
 
         {/* Content */}
-        <div className="min-h-0 flex-1">
-          {loading ? (
+        {loading ? (
+          <div
+            className={[
+              "rounded-2xl overflow-hidden",
+              "border border-gray-200/80 bg-white/70 backdrop-blur-sm",
+              "dark:border-white/10 dark:bg-white/3",
+            ].join(" ")}
+          >
+            <div className="space-y-3 p-3 sm:p-3.5">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div
+                  key={i}
+                  className={[
+                    "rounded-2xl border px-4 py-3 animate-pulse",
+                    "border-gray-200 bg-gray-50/80",
+                    "dark:border-white/10 dark:bg-white/4",
+                  ].join(" ")}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="h-6 w-20 rounded-md bg-gray-200 dark:bg-white/10" />
+                    <div className="h-4 flex-1 rounded bg-gray-200 dark:bg-white/10" />
+                    <div className="h-7 w-10 rounded-md bg-gray-200 dark:bg-white/10" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : rows.length === 0 ? (
+          <div
+            className={[
+              "flex items-center justify-center rounded-2xl px-4 py-10 text-center",
+              "border border-gray-200 bg-gray-50/70 text-gray-500",
+              "dark:border-white/10 dark:bg-white/4 dark:text-white/55",
+            ].join(" ")}
+          >
+            <div>
+              <div className="text-[14px] font-medium">No Data</div>
+              <div className="mt-1 text-[12px] opacity-80">
+                No vulnerabilities were returned from the latest query
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div
+            className={[
+              "rounded-2xl overflow-hidden",
+              "border border-gray-200/80 bg-white/70 backdrop-blur-sm",
+              "dark:border-white/10 dark:bg-white/3",
+            ].join(" ")}
+          >
             <div
               className={[
-                "h-full min-h-70 rounded-2xl overflow-hidden",
-                "border border-gray-200/80 bg-white/70 backdrop-blur-sm",
-                "dark:border-white/10 dark:bg-white/3",
+                "overflow-y-auto p-3 sm:p-3.5",
+                "max-h-[calc(6*72px+5*12px)]",
               ].join(" ")}
             >
-              <div className="space-y-3 p-3 sm:p-3.5">
-                {Array.from({ length: 6 }).map((_, i) => (
+              <div className="space-y-3">
+                {rows.map((row) => (
                   <div
-                    key={i}
+                    key={row.id}
                     className={[
-                      "rounded-2xl border px-4 py-3 animate-pulse",
-                      "border-gray-200 bg-gray-50/80",
-                      "dark:border-white/10 dark:bg-white/4",
+                      "group rounded-2xl border px-3.5 sm:px-4 py-3 transition-all duration-200",
+                      "border-gray-200/80 bg-white hover:shadow-sm",
+                      "dark:border-white/10 dark:bg-white/3 dark:hover:bg-white/5",
+                      rowGlowClasses[row.severity],
                     ].join(" ")}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="h-6 w-20 rounded-md bg-gray-200 dark:bg-white/10" />
-                      <div className="h-4 flex-1 rounded bg-gray-200 dark:bg-white/10" />
-                      <div className="h-7 w-10 rounded-md bg-gray-200 dark:bg-white/10" />
+                      {/* left */}
+                      <div className="flex shrink-0 items-center gap-3">
+                        <span
+                          className={`h-2.5 w-2.5 rounded-full ${dotClasses[row.severity]}`}
+                        />
+                        <span
+                          className={[
+                            "shrink-0 rounded-md px-2.5 py-1 text-[11px] font-bold tracking-wide",
+                            badgeClasses[row.severity],
+                          ].join(" ")}
+                        >
+                          {row.severity}
+                        </span>
+                      </div>
+
+                      {/* title */}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[13px] sm:text-[14px] font-medium text-[#1f2240] dark:text-white/85">
+                          {row.title}
+                        </p>
+                        <div className="mt-1 flex items-center gap-2 text-[11px] text-gray-400 dark:text-white/40">
+                          <span>Vulnerability signature</span>
+                          <span className="h-1 w-1 rounded-full bg-current" />
+                          <span>Detected in scan results</span>
+                        </div>
+                      </div>
+
+                      {/* count */}
+                      <div className="shrink-0 flex items-center gap-2">
+                        <span
+                          className={[
+                            "inline-flex h-8 min-w-8 items-center justify-center rounded-lg border px-2",
+                            "text-[12px] font-semibold tabular-nums",
+                            "border-gray-200 bg-[#fbfbfc] text-gray-700",
+                            "dark:border-white/10 dark:bg-white/8 dark:text-white/75",
+                          ].join(" ")}
+                        >
+                          {row.count}
+                        </span>
+
+                        <FiChevronRight className="text-gray-300 transition-colors dark:text-white/20 group-hover:text-gray-500 dark:group-hover:text-white/45" />
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
-          ) : rows.length === 0 ? (
-            <div
-              className={[
-                "flex min-h-70 items-center justify-center rounded-2xl px-4 py-8 text-center",
-                "border border-gray-200 bg-gray-50/70 text-gray-500",
-                "dark:border-white/10 dark:bg-white/4 dark:text-white/55",
-              ].join(" ")}
-            >
-              <div>
-                <div className="text-[14px] font-medium">No Data</div>
-                <div className="mt-1 text-[12px] opacity-80">
-                  No vulnerabilities were returned from the latest query
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div
-              className={[
-                "h-full max-h-105 rounded-2xl overflow-hidden",
-                "border border-gray-200/80 bg-white/70 backdrop-blur-sm",
-                "dark:border-white/10 dark:bg-white/3",
-              ].join(" ")}
-            >
-              <div className="h-full overflow-y-auto p-3 sm:p-3.5">
-                <div className="space-y-3">
-                  {rows.map((row) => (
-                    <div
-                      key={row.id}
-                      className={[
-                        "group rounded-2xl border px-3.5 sm:px-4 py-3 transition-all duration-200",
-                        "border-gray-200/80 bg-white hover:shadow-sm",
-                        "dark:border-white/10 dark:bg-white/3 dark:hover:bg-white/5",
-                        rowGlowClasses[row.severity],
-                      ].join(" ")}
-                    >
-                      <div className="flex items-center gap-3">
-                        {/* left */}
-                        <div className="flex shrink-0 items-center gap-3">
-                          <span
-                            className={`h-2.5 w-2.5 rounded-full ${dotClasses[row.severity]}`}
-                          />
-                          <span
-                            className={[
-                              "shrink-0 rounded-md px-2.5 py-1 text-[11px] font-bold tracking-wide",
-                              badgeClasses[row.severity],
-                            ].join(" ")}
-                          >
-                            {row.severity}
-                          </span>
-                        </div>
-
-                        {/* title */}
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-[13px] sm:text-[14px] font-medium text-[#1f2240] dark:text-white/85">
-                            {row.title}
-                          </p>
-                          <div className="mt-1 flex items-center gap-2 text-[11px] text-gray-400 dark:text-white/40">
-                            <span>Vulnerability signature</span>
-                            <span className="h-1 w-1 rounded-full bg-current" />
-                            <span>Detected in scan results</span>
-                          </div>
-                        </div>
-
-                        {/* count */}
-                        <div className="shrink-0 flex items-center gap-2">
-                          <span
-                            className={[
-                              "inline-flex h-8 min-w-8 items-center justify-center rounded-lg border px-2",
-                              "text-[12px] font-semibold tabular-nums",
-                              "border-gray-200 bg-[#fbfbfc] text-gray-700",
-                              "dark:border-white/10 dark:bg-white/8 dark:text-white/75",
-                            ].join(" ")}
-                          >
-                            {row.count}
-                          </span>
-
-                          <FiChevronRight className="text-gray-300 transition-colors dark:text-white/20 group-hover:text-gray-500 dark:group-hover:text-white/45" />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </section>
   );

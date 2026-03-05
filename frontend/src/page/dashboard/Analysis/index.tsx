@@ -76,6 +76,7 @@ const DeliveryAnalysis: React.FC = () => {
     (async () => {
       setLoading(true);
       const res = await ListTaskVulnSummary();
+      console.log("Fetched vulnerability summary:", res);
       if (!alive) return;
 
       setRows(res ?? []);

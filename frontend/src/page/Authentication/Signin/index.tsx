@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { message } from "antd";
 import {
   FiShield,
   FiEye,
@@ -12,10 +13,22 @@ import {
 } from "react-icons/fi";
 import { FcGoogle } from "react-icons/fc";
 import { FaApple } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
+import { Login } from "../../../services/auth";
+import { useAuth } from "../../../contexts/AuthContext";
 
 const Index: React.FC = () => {
+  const navigate = useNavigate();
+  const { refreshMe } = useAuth();
+
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
+
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+
+  const [submitting, setSubmitting] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
 
   const inputClass = [
     "w-full h-12 rounded-2xl border pl-11 pr-12 text-[14px] outline-none transition-all duration-200",
@@ -25,29 +38,65 @@ const Index: React.FC = () => {
     "dark:focus:border-cyan-400/30 dark:focus:ring-cyan-500/10",
   ].join(" ");
 
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    if (!email.trim() || !password.trim()) {
+      setError("กรุณากรอก Email และ Password");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+
+      const res = await Login({ email, password });
+
+      await refreshMe();
+
+      const role = (res?.user?.role ?? "").toLowerCase();
+
+      if (role === "admin") {
+        message.success("login success");
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        navigate("/admin", { replace: true });
+      } else {
+        setError("บัญชีนี้ไม่มีสิทธิ์ Admin");
+      }
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.error ||
+        err?.message ||
+        "Login ไม่สำเร็จ กรุณาลองใหม่";
+      setError(msg);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="w-full min-h-screen bg-[#f7f8fc] dark:bg-[#07101b]">
-      <div className="w-full min-h-screen p-3 sm:p-4 md:p-6 lg:p-8">
+      <div className="w-full min-h-screen p-0 sm:p-3 md:p-4 lg:p-6 xl:p-8 2xl:p-10">
         <div
           className={[
-            "w-full min-h-[calc(100vh-24px)] sm:min-h-[calc(100vh-32px)] md:min-h-[calc(100vh-48px)] lg:min-h-[calc(100vh-64px)]",
-            "rounded-3xl sm:rounded-[28px] overflow-hidden",
-            "border border-slate-200/80 bg-[#fbfbfd]",
-            "shadow-[0_18px_60px_rgba(15,23,42,0.06)]",
+            "w-full min-h-screen sm:min-h-[calc(100vh-24px)] md:min-h-[calc(100vh-32px)] lg:min-h-[calc(100vh-48px)] xl:min-h-[calc(100vh-64px)] 2xl:min-h-[calc(100vh-80px)]",
+            "overflow-hidden",
+            "rounded-none sm:rounded-3xl sm:border border-slate-200/80 bg-[#fbfbfd]",
+            "shadow-none sm:shadow-[0_18px_60px_rgba(15,23,42,0.06)]",
             "dark:bg-[#08111f] dark:border-white/10 dark:shadow-none",
           ].join(" ")}
         >
-          <div className="grid min-h-inherit w-full grid-cols-1 xl:grid-cols-[1.1fr_0.9fr]">
-            {/* LEFT SIDE */}
-            <section className="relative flex min-h-105 w-full items-center justify-center px-5 py-10 sm:px-8 md:px-10 lg:px-14 xl:min-h-full">
+          <div className="grid w-full min-h-full grid-cols-1 xl:grid-cols-[1.25fr_0.95fr] 2xl:grid-cols-[1.35fr_0.95fr]">
+            {/* LEFT SIDE : ทำให้เหมือนตัวอย่าง (มี SVG) และแสดงเฉพาะ xl+ */}
+            <section className="relative hidden xl:flex min-h-full w-full items-center justify-center px-5 py-10 sm:px-8 md:px-10 lg:px-14 xl:px-16 2xl:px-24">
               {/* soft glow only */}
               <div className="pointer-events-none absolute inset-0 overflow-hidden">
-                <div className="absolute left-[12%] top-[14%] h-44 w-44 rounded-full bg-cyan-400/10 blur-3xl dark:bg-cyan-400/10" />
-                <div className="absolute right-[12%] top-[18%] h-52 w-52 rounded-full bg-violet-500/10 blur-3xl dark:bg-violet-500/10" />
-                <div className="absolute bottom-[10%] left-[28%] h-40 w-40 rounded-full bg-sky-500/10 blur-3xl dark:bg-sky-500/10" />
+                <div className="absolute left-[12%] top-[14%] h-44 w-44 rounded-full bg-cyan-400/10 blur-3xl dark:bg-cyan-400/10 2xl:h-56 2xl:w-56" />
+                <div className="absolute right-[12%] top-[18%] h-52 w-52 rounded-full bg-violet-500/10 blur-3xl dark:bg-violet-500/10 2xl:h-64 2xl:w-64" />
+                <div className="absolute bottom-[10%] left-[28%] h-40 w-40 rounded-full bg-sky-500/10 blur-3xl dark:bg-sky-500/10 2xl:h-52 2xl:w-52" />
               </div>
 
-              <div className="relative z-10 flex w-full max-w-190 flex-col items-center text-center">
+              <div className="relative z-10 flex w-full max-w-190 xl:max-w-205 2xl:max-w-230 flex-col items-center text-center">
                 <div
                   className={[
                     "mb-5 inline-flex items-center gap-2 rounded-full px-4 py-2",
@@ -61,8 +110,8 @@ const Index: React.FC = () => {
                   </span>
                 </div>
 
-                {/* NEW NETWORK ILLUSTRATION */}
-                <div className="w-full max-w-155">
+                {/* NETWORK ILLUSTRATION (ตามตัวอย่าง) */}
+                <div className="w-full max-w-155 xl:max-w-165 2xl:max-w-175">
                   <svg
                     viewBox="0 0 760 520"
                     className="w-full h-auto"
@@ -78,13 +127,34 @@ const Index: React.FC = () => {
                       </linearGradient>
 
                       <linearGradient id="cardGlow" x1="0" y1="0" x2="1" y2="1">
-                        <stop offset="0%" stopColor="#0ea5e9" stopOpacity="0.14" />
-                        <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.14" />
+                        <stop
+                          offset="0%"
+                          stopColor="#0ea5e9"
+                          stopOpacity="0.14"
+                        />
+                        <stop
+                          offset="100%"
+                          stopColor="#8b5cf6"
+                          stopOpacity="0.14"
+                        />
                       </linearGradient>
 
-                      <radialGradient id="centerGlow" cx="50%" cy="50%" r="50%">
-                        <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.22" />
-                        <stop offset="100%" stopColor="#22d3ee" stopOpacity="0" />
+                      <radialGradient
+                        id="centerGlow"
+                        cx="50%"
+                        cy="50%"
+                        r="50%"
+                      >
+                        <stop
+                          offset="0%"
+                          stopColor="#22d3ee"
+                          stopOpacity="0.22"
+                        />
+                        <stop
+                          offset="100%"
+                          stopColor="#22d3ee"
+                          stopOpacity="0"
+                        />
                       </radialGradient>
                     </defs>
 
@@ -210,7 +280,13 @@ const Index: React.FC = () => {
                         rx="3"
                         fill="#c4b5fd"
                       />
-                      <circle cx="405" cy="67" r="6" fill="#8b5cf6" fillOpacity="0.15" />
+                      <circle
+                        cx="405"
+                        cy="67"
+                        r="6"
+                        fill="#8b5cf6"
+                        fillOpacity="0.15"
+                      />
                       <circle cx="405" cy="67" r="3.2" fill="#8b5cf6" />
                     </g>
 
@@ -263,7 +339,13 @@ const Index: React.FC = () => {
                         stroke="#D6E4F0"
                         className="dark:fill-[#0b1728] dark:stroke-white/10"
                       />
-                      <circle cx="562" cy="316" r="13" fill="#ef4444" fillOpacity="0.12" />
+                      <circle
+                        cx="562"
+                        cy="316"
+                        r="13"
+                        fill="#ef4444"
+                        fillOpacity="0.12"
+                      />
                       <path
                         d="M562 309V317"
                         stroke="#ef4444"
@@ -271,8 +353,22 @@ const Index: React.FC = () => {
                         strokeLinecap="round"
                       />
                       <circle cx="562" cy="322" r="1.8" fill="#ef4444" />
-                      <rect x="582" y="306" width="40" height="8" rx="4" fill="#ef4444" />
-                      <rect x="582" y="320" width="28" height="6" rx="3" fill="#fecaca" />
+                      <rect
+                        x="582"
+                        y="306"
+                        width="40"
+                        height="8"
+                        rx="4"
+                        fill="#ef4444"
+                      />
+                      <rect
+                        x="582"
+                        y="320"
+                        width="28"
+                        height="6"
+                        rx="3"
+                        fill="#fecaca"
+                      />
                     </g>
 
                     {/* bottom-left device card */}
@@ -369,10 +465,37 @@ const Index: React.FC = () => {
                         stroke="#D6E4F0"
                         className="dark:fill-[#0b1728] dark:stroke-white/10"
                       />
-                      <rect x="315" y="397" width="58" height="8" rx="4" fill="#22d3ee" />
-                      <rect x="315" y="411" width="84" height="6" rx="3" fill="#BAE6FD" />
-                      <rect x="315" y="423" width="66" height="6" rx="3" fill="#DDD6FE" />
-                      <circle cx="425" cy="410" r="14" fill="#0ea5e9" fillOpacity="0.12" />
+                      <rect
+                        x="315"
+                        y="397"
+                        width="58"
+                        height="8"
+                        rx="4"
+                        fill="#22d3ee"
+                      />
+                      <rect
+                        x="315"
+                        y="411"
+                        width="84"
+                        height="6"
+                        rx="3"
+                        fill="#BAE6FD"
+                      />
+                      <rect
+                        x="315"
+                        y="423"
+                        width="66"
+                        height="6"
+                        rx="3"
+                        fill="#DDD6FE"
+                      />
+                      <circle
+                        cx="425"
+                        cy="410"
+                        r="14"
+                        fill="#0ea5e9"
+                        fillOpacity="0.12"
+                      />
                       <path
                         d="M419 410L424 415L432 405"
                         stroke="#22d3ee"
@@ -383,9 +506,27 @@ const Index: React.FC = () => {
                     </g>
 
                     {/* floating mini nodes */}
-                    <circle cx="95" cy="228" r="24" fill="#E0F2FE" className="dark:fill-cyan-500/10" />
-                    <circle cx="666" cy="228" r="24" fill="#EDE9FE" className="dark:fill-violet-500/10" />
-                    <circle cx="260" cy="436" r="20" fill="#DBEAFE" className="dark:fill-sky-500/10" />
+                    <circle
+                      cx="95"
+                      cy="228"
+                      r="24"
+                      fill="#E0F2FE"
+                      className="dark:fill-cyan-500/10"
+                    />
+                    <circle
+                      cx="666"
+                      cy="228"
+                      r="24"
+                      fill="#EDE9FE"
+                      className="dark:fill-violet-500/10"
+                    />
+                    <circle
+                      cx="260"
+                      cy="436"
+                      r="20"
+                      fill="#DBEAFE"
+                      className="dark:fill-sky-500/10"
+                    />
 
                     <circle cx="95" cy="228" r="7" fill="#22d3ee" />
                     <circle cx="666" cy="228" r="7" fill="#8b5cf6" />
@@ -408,24 +549,48 @@ const Index: React.FC = () => {
                     />
 
                     {/* decorative dots */}
-                    <circle cx="286" cy="82" r="4" fill="#22d3ee" fillOpacity="0.85" />
-                    <circle cx="474" cy="82" r="3.5" fill="#8b5cf6" fillOpacity="0.85" />
-                    <circle cx="214" cy="380" r="4" fill="#60a5fa" fillOpacity="0.85" />
-                    <circle cx="550" cy="384" r="4" fill="#22d3ee" fillOpacity="0.85" />
+                    <circle
+                      cx="286"
+                      cy="82"
+                      r="4"
+                      fill="#22d3ee"
+                      fillOpacity="0.85"
+                    />
+                    <circle
+                      cx="474"
+                      cy="82"
+                      r="3.5"
+                      fill="#8b5cf6"
+                      fillOpacity="0.85"
+                    />
+                    <circle
+                      cx="214"
+                      cy="380"
+                      r="4"
+                      fill="#60a5fa"
+                      fillOpacity="0.85"
+                    />
+                    <circle
+                      cx="550"
+                      cy="384"
+                      r="4"
+                      fill="#22d3ee"
+                      fillOpacity="0.85"
+                    />
                   </svg>
                 </div>
 
-                <h1 className="mt-4 text-[28px] sm:text-[36px] lg:text-[42px] font-bold tracking-tight text-slate-900 dark:text-white">
+                <h1 className="mt-4 text-[28px] sm:text-[36px] lg:text-[42px] 2xl:text-[48px] font-bold tracking-tight text-slate-900 dark:text-white">
                   Welcome back!
                 </h1>
 
-                <p className="mt-4 max-w-140 text-[14px] sm:text-[16px] leading-7 text-slate-600 dark:text-white/60">
+                <p className="mt-4 max-w-140 xl:max-w-155 2xl:max-w-175 text-[14px] sm:text-[16px] 2xl:text-[17px] leading-7 2xl:leading-8 text-slate-600 dark:text-white/60">
                   Access your secured scanning environment, monitor network
                   activity, and continue investigating vulnerabilities from one
                   centralized dashboard.
                 </p>
 
-                <div className="mt-7 flex flex-wrap justify-center gap-3">
+                <div className="mt-7 flex flex-wrap justify-center gap-3 2xl:gap-4">
                   <div
                     className={[
                       "inline-flex items-center gap-2 rounded-2xl px-4 py-3",
@@ -434,7 +599,9 @@ const Index: React.FC = () => {
                     ].join(" ")}
                   >
                     <FiRadio className="text-cyan-500 text-[18px]" />
-                    <span className="text-[14px] font-medium">Live Monitoring</span>
+                    <span className="text-[14px] font-medium">
+                      Live Monitoring
+                    </span>
                   </div>
 
                   <div
@@ -445,7 +612,9 @@ const Index: React.FC = () => {
                     ].join(" ")}
                   >
                     <FiCpu className="text-sky-500 text-[18px]" />
-                    <span className="text-[14px] font-medium">Secure Access</span>
+                    <span className="text-[14px] font-medium">
+                      Secure Access
+                    </span>
                   </div>
 
                   <div
@@ -456,23 +625,25 @@ const Index: React.FC = () => {
                     ].join(" ")}
                   >
                     <FiActivity className="text-violet-500 text-[18px]" />
-                    <span className="text-[14px] font-medium">Threat Analysis</span>
+                    <span className="text-[14px] font-medium">
+                      Threat Analysis
+                    </span>
                   </div>
                 </div>
               </div>
             </section>
 
-            {/* RIGHT SIDE */}
-            <section className="relative flex min-h-135 w-full items-center justify-center px-4 py-8 sm:px-6 md:px-8 lg:px-10">
+            {/* RIGHT SIDE : mobile แสดงเต็มจอ */}
+            <section className="relative flex min-h-screen xl:min-h-full w-full items-center justify-center px-4 py-6 sm:px-6 sm:py-8 md:px-8 lg:px-10 xl:px-12 2xl:px-16">
               <div className="pointer-events-none absolute inset-0 overflow-hidden">
-                <div className="absolute right-[14%] top-[16%] h-40 w-40 rounded-full bg-cyan-400/10 blur-3xl" />
-                <div className="absolute left-[8%] bottom-[10%] h-36 w-36 rounded-full bg-violet-500/10 blur-3xl" />
+                <div className="absolute right-[14%] top-[16%] h-40 w-40 rounded-full bg-cyan-400/10 blur-3xl 2xl:h-52 2xl:w-52" />
+                <div className="absolute left-[8%] bottom-[10%] h-36 w-36 rounded-full bg-violet-500/10 blur-3xl 2xl:h-48 2xl:w-48" />
               </div>
 
-              <div className="relative z-10 w-full max-w-130">
+              <div className="relative z-10 w-full max-w-full sm:max-w-140 xl:max-w-135 2xl:max-w-155">
                 <div
                   className={[
-                    "rounded-[28px] p-5 sm:p-6 md:p-8",
+                    "rounded-3xl sm:rounded-[28px] p-5 sm:p-6 md:p-8 2xl:p-9",
                     "border border-slate-200/80 bg-white",
                     "shadow-[0_18px_60px_rgba(15,23,42,0.07)]",
                     "dark:bg-[#0b1320]/90 dark:border-white/10 dark:shadow-none",
@@ -491,15 +662,27 @@ const Index: React.FC = () => {
                     </span>
                   </div>
 
-                  <h2 className="text-[30px] sm:text-[34px] font-bold tracking-tight text-slate-900 dark:text-white">
+                  <h2 className="text-[28px] sm:text-[34px] 2xl:text-[38px] font-bold tracking-tight text-slate-900 dark:text-white">
                     Sign In
                   </h2>
 
-                  <p className="mt-2 text-[14px] text-slate-500 dark:text-white/55">
+                  <p className="mt-2 text-[14px] 2xl:text-[15px] text-slate-500 dark:text-white/55">
                     Welcome Back! Log in to your account
                   </p>
 
-                  <form className="mt-7 space-y-5">
+                  {error ? (
+                    <div
+                      className={[
+                        "mt-4 rounded-2xl border px-4 py-3 text-[13px]",
+                        "border-red-200 bg-red-50 text-red-700",
+                        "dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-200",
+                      ].join(" ")}
+                    >
+                      {error}
+                    </div>
+                  ) : null}
+
+                  <form className="mt-7 space-y-5" onSubmit={onSubmit}>
                     {/* Email */}
                     <div>
                       <label className="mb-2 block text-[14px] font-medium text-slate-700 dark:text-white/75">
@@ -509,8 +692,11 @@ const Index: React.FC = () => {
                         <FiMail className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[17px] text-slate-400 dark:text-white/35" />
                         <input
                           type="email"
-                          placeholder="debra.holt@example.com"
+                          placeholder="admin@example.com"
                           className={inputClass}
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          autoComplete="email"
                         />
                       </div>
                     </div>
@@ -526,12 +712,17 @@ const Index: React.FC = () => {
                           type={showPassword ? "text" : "password"}
                           placeholder="Password"
                           className={inputClass}
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          autoComplete="current-password"
                         />
                         <button
                           type="button"
                           onClick={() => setShowPassword((prev) => !prev)}
                           className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-600 dark:text-white/35 dark:hover:text-white/70"
-                          aria-label={showPassword ? "Hide password" : "Show password"}
+                          aria-label={
+                            showPassword ? "Hide password" : "Show password"
+                          }
                         >
                           {showPassword ? (
                             <FiEyeOff className="text-[18px]" />
@@ -556,6 +747,7 @@ const Index: React.FC = () => {
 
                       <button
                         type="button"
+                        onClick={() => navigate("/forgot-password")}
                         className="text-left font-medium text-violet-600 transition hover:text-violet-700 dark:text-violet-300 dark:hover:text-violet-200 sm:text-right"
                       >
                         Forgot password?
@@ -565,6 +757,7 @@ const Index: React.FC = () => {
                     {/* submit */}
                     <button
                       type="submit"
+                      disabled={submitting}
                       className={[
                         "group inline-flex w-full items-center justify-center gap-2 rounded-2xl h-12 sm:h-13 px-6",
                         "bg-linear-to-r from-cyan-500 via-sky-500 to-violet-500",
@@ -572,9 +765,10 @@ const Index: React.FC = () => {
                         "shadow-[0_12px_32px_rgba(14,165,233,0.24)]",
                         "hover:scale-[1.01] active:scale-[0.99] transition-all duration-200",
                         "focus:outline-none focus:ring-4 focus:ring-cyan-200/60",
+                        submitting ? "opacity-70 cursor-not-allowed" : "",
                       ].join(" ")}
                     >
-                      <span>Sign In</span>
+                      <span>{submitting ? "Signing In..." : "Sign In"}</span>
                       <FiArrowRight className="text-[18px] transition-transform duration-200 group-hover:translate-x-0.5" />
                     </button>
 
@@ -623,6 +817,7 @@ const Index: React.FC = () => {
                       Don&apos;t have an account yet?{" "}
                       <button
                         type="button"
+                        onClick={() => navigate("/register")}
                         className="font-semibold text-violet-600 transition hover:text-violet-700 dark:text-violet-300 dark:hover:text-violet-200"
                       >
                         Sign Up
@@ -650,6 +845,13 @@ const Index: React.FC = () => {
                       </div>
                     </div>
                   </div>
+
+                  {remember ? (
+                    <div className="mt-3 text-[12px] text-slate-400 dark:text-white/35">
+                      Remember Me ใช้ได้เพียง UI ตอนนี้ (ระบบ cookie จะจัดการ
+                      session เอง)
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </section>

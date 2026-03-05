@@ -9,6 +9,7 @@ import {
   FiUser,
   FiChevronRight,
 } from "react-icons/fi";
+import { useAuth } from "../../contexts/AuthContext";
 
 type UserProfileItem = {
   icon: JSX.Element;
@@ -16,27 +17,8 @@ type UserProfileItem = {
   desc: string;
   iconColor: string;
   iconBg: string;
-  link: string;
-};
-
-type MockEmployee = {
-  User?: {
-    FirstName?: string;
-    LastName?: string;
-    Email?: string;
-    Profile?: string;
-    UserRole?: { RoleName?: string };
-  };
-};
-
-const mockEmployee: MockEmployee = {
-  User: {
-    FirstName: "Guest",
-    LastName: "User",
-    Email: "guest@example.com",
-    Profile: "",
-    UserRole: { RoleName: "Viewer" },
-  },
+  link?: string;
+  action?: "logout" | "navigate";
 };
 
 const userProfileData: UserProfileItem[] = [
@@ -46,7 +28,8 @@ const userProfileData: UserProfileItem[] = [
     desc: "ตั้งค่าระบบ / integrations",
     iconColor: "#06b6d4",
     iconBg: "#ecfeff",
-    link: "/admin/Profile",
+    link: "/admin/profile",
+    action: "navigate",
   },
   {
     icon: <FiLogOut />,
@@ -54,18 +37,20 @@ const userProfileData: UserProfileItem[] = [
     desc: "ออกจากระบบ",
     iconColor: "#dc2626",
     iconBg: "#fff1f2",
-    link: "/",
+    action: "logout",
   },
 ];
 
 const UserProfile = () => {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
   const ctx = useStateContext() as any;
   const isClicked = ctx?.isClicked;
   const setIsClicked = ctx?.setIsClicked;
 
   const [open, setOpen] = useState(true);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
     if (isClicked?.userProfile) setOpen(true);
@@ -99,9 +84,37 @@ const UserProfile = () => {
     []
   );
 
-  const profileSrc = mockEmployee?.User?.Profile?.trim()
-    ? mockEmployee.User.Profile
-    : avatarFallback;
+  const profileSrc = user?.profile?.trim() ? user.profile : avatarFallback;
+  const fullName = `${user?.first_name || "Guest"} ${user?.last_name || "User"}`.trim();
+  const roleName = user?.role || "Viewer";
+  const email = user?.email || "guest@example.com";
+
+  const handleLogout = async () => {
+    try {
+      setLoggingOut(true);
+      await logout();
+      close();
+      navigate("/", { replace: true });
+    } catch (error) {
+      console.error("Logout failed:", error);
+      close();
+      navigate("/", { replace: true });
+    } finally {
+      setLoggingOut(false);
+    }
+  };
+
+  const handleItemClick = async (item: UserProfileItem) => {
+    if (item.action === "logout") {
+      await handleLogout();
+      return;
+    }
+
+    close();
+    if (item.link) {
+      navigate(item.link);
+    }
+  };
 
   if (!open) return null;
 
@@ -116,7 +129,6 @@ const UserProfile = () => {
       ].join(" ")}
       style={{ paddingTop: "max(0px, env(safe-area-inset-top))" }}
     >
-      {/* glow */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -top-12 right-4 h-28 w-28 rounded-full bg-cyan-400/10 blur-3xl" />
         <div className="absolute bottom-0 left-0 h-28 w-28 rounded-full bg-violet-500/10 blur-3xl" />
@@ -170,14 +182,13 @@ const UserProfile = () => {
 
             <div className="min-w-0">
               <p className="text-[18px] font-semibold text-gray-900 dark:text-white/90 truncate">
-                {mockEmployee?.User?.FirstName || "Guest"}{" "}
-                {mockEmployee?.User?.LastName || "User"}
+                {fullName}
               </p>
 
               <div className="mt-1 flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center rounded-full border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-[11px] font-semibold text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-200">
                   <FiShield className="mr-1" />
-                  {mockEmployee?.User?.UserRole?.RoleName ?? "Viewer"}
+                  {roleName}
                 </span>
 
                 <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/60">
@@ -186,7 +197,7 @@ const UserProfile = () => {
               </div>
 
               <p className="mt-2 text-[12px] text-gray-500 dark:text-white/55 truncate">
-                {mockEmployee?.User?.Email || "guest@example.com"}
+                {email}
               </p>
             </div>
           </div>
@@ -199,14 +210,13 @@ const UserProfile = () => {
           {userProfileData.map((item: UserProfileItem, idx: number) => (
             <button
               key={idx}
-              onClick={() => {
-                close();
-                navigate(item.link);
-              }}
+              onClick={() => void handleItemClick(item)}
+              disabled={loggingOut}
               className={[
                 "w-full flex items-center gap-3 px-4 py-3.5 transition-colors text-left",
                 "hover:bg-gray-50 dark:hover:bg-white/6",
                 idx !== 0 ? "border-t border-gray-200/80 dark:border-white/10" : "",
+                loggingOut ? "opacity-70 cursor-not-allowed" : "",
               ].join(" ")}
             >
               <span
@@ -218,7 +228,7 @@ const UserProfile = () => {
 
               <div className="text-left min-w-0 flex-1">
                 <p className="text-sm font-semibold text-gray-900 dark:text-white/85 truncate">
-                  {item.title}
+                  {item.action === "logout" && loggingOut ? "Logging out..." : item.title}
                 </p>
                 <p className="text-[12px] text-gray-500 dark:text-white/55 truncate">
                   {item.desc}
@@ -230,7 +240,6 @@ const UserProfile = () => {
           ))}
         </div>
 
-        {/* Footer small hint */}
         <div className="px-1 pt-3">
           <p className="text-[11px] text-gray-400 dark:text-white/35">
             Tip: ตรวจสอบ Tasks / Reports / Findings หลังการสแกนเสมอ

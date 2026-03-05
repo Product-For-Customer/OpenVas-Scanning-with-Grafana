@@ -1,0 +1,12 @@
+package entity
+
+import "gorm.io/gorm"
+
+type AppHistoryNotify struct {
+	gorm.Model
+	Subject string `valid:"required~Subject is required"`
+	Description string `valid:"required~Description is required"`
+
+	AppStatusNotifyID *uint            `valid:"-"`
+	AppStatusNotify   *AppStatusNotify `gorm:"foreignKey:AppStatusNotifyID" valid:"-"`
+}

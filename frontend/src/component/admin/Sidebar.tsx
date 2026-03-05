@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Link, NavLink, useLocation } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { MdOutlineCancel, MdKeyboardArrowDown } from "react-icons/md";
 import { TooltipComponent } from "@syncfusion/ej2-react-popups";
 import { FiLogOut, FiShield } from "react-icons/fi";
 import { getLinks } from "./dummy";
 import { useStateContext } from "../../contexts/ContextProvider";
+import { useAuth } from "../../contexts/AuthContext";
 
 type SidebarLink = {
   name: string;
@@ -22,12 +23,15 @@ const COLLAPSED_WIDTH = 84;
 const DESKTOP_BREAKPOINT = 900;
 
 const Sidebar: React.FC = () => {
+  const navigate = useNavigate();
+  const { logout } = useAuth();
   const { activeMenu, setActiveMenu, screenSize } = useStateContext();
   const location = useLocation();
 
   const [menuLinks, setMenuLinks] = useState<SidebarSection[]>([]);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   const [hoveredSection, setHoveredSection] = useState<string | null>(null);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const hoverCloseTimer = useRef<number | null>(null);
 
@@ -117,6 +121,21 @@ const Sidebar: React.FC = () => {
     []
   );
 
+  const handleLogout = async () => {
+    try {
+      setLoggingOut(true);
+      await logout();
+      setHoveredSection(null);
+      handleCloseSideBar();
+      navigate("/", { replace: true });
+    } catch (error) {
+      console.error("Logout failed:", error);
+      navigate("/", { replace: true });
+    } finally {
+      setLoggingOut(false);
+    }
+  };
+
   if (!isDesktop && !activeMenu) return null;
 
   return (
@@ -152,7 +171,6 @@ const Sidebar: React.FC = () => {
             "dark:bg-[#08111f]/88 dark:border-white/10 dark:ring-1 dark:ring-cyan-400/10 dark:shadow-none",
           ].join(" ")}
         >
-          {/* background glow */}
           <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl">
             <div className="absolute -top-12 right-0 h-36 w-36 rounded-full bg-cyan-400/10 blur-3xl" />
             <div className="absolute bottom-0 -left-10 h-36 w-36 rounded-full bg-violet-500/10 blur-3xl" />
@@ -415,10 +433,13 @@ const Sidebar: React.FC = () => {
             {isExpanded ? (
               <button
                 type="button"
+                onClick={() => void handleLogout()}
+                disabled={loggingOut}
                 className={[
                   "w-full flex items-center justify-between rounded-2xl px-5 py-4 transition-colors",
                   "bg-[#eef3f8] hover:bg-[#e7edf5] text-[#3a3d4f]",
                   "dark:bg-white/8 dark:hover:bg-white/10 dark:text-white/75",
+                  loggingOut ? "opacity-70 cursor-not-allowed" : "",
                 ].join(" ")}
                 aria-label="Logout"
               >
@@ -427,7 +448,9 @@ const Sidebar: React.FC = () => {
                     <FiLogOut />
                   </span>
                   <div className="text-left">
-                    <span className="block text-[15px] font-semibold">Logout</span>
+                    <span className="block text-[15px] font-semibold">
+                      {loggingOut ? "Logging out..." : "Logout"}
+                    </span>
                     <span className="block text-[11px] text-gray-500 dark:text-white/45">
                       End current session
                     </span>
@@ -437,13 +460,16 @@ const Sidebar: React.FC = () => {
                 <FiLogOut className="text-[18px] text-gray-500 dark:text-white/60" />
               </button>
             ) : (
-              <TooltipComponent content="Logout" position="RightCenter">
+              <TooltipComponent content={loggingOut ? "Logging out..." : "Logout"} position="RightCenter">
                 <button
                   type="button"
+                  onClick={() => void handleLogout()}
+                  disabled={loggingOut}
                   className={[
                     "w-full h-12 rounded-2xl flex items-center justify-center transition-colors",
                     "bg-[#eef3f8] hover:bg-[#e7edf5] text-gray-500",
                     "dark:bg-white/8 dark:hover:bg-white/10 dark:text-white/60",
+                    loggingOut ? "opacity-70 cursor-not-allowed" : "",
                   ].join(" ")}
                   aria-label="Logout"
                 >

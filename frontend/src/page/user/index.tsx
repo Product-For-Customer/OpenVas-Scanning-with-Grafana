@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+// src/pages/.../users/index.tsx
+import React, { useEffect, useMemo, useState } from "react";
 import {
   FiSearch,
   FiShield,
@@ -10,98 +11,40 @@ import {
   FiChevronDown,
   FiEdit2,
   FiTrash2,
+  FiX,
 } from "react-icons/fi";
 
-type RoleItem = {
-  ID: number;
-  RoleName: "Admin" | "User";
-};
-
-type PositionItem = {
-  ID: number;
-  PositionName: string;
-};
-
-type UserItem = {
-  ID: number;
-  FirstName: string;
-  LastName: string;
-  Email: string;
-  Phone: string;
-  Profile: string;
-  Location: string;
-  RoleID: number;
-  Role: RoleItem;
-  PositionID: number;
-  Position: PositionItem;
-};
+// ✅ เปลี่ยน path ให้ตรงกับโปรเจกต์คุณ
+import {
+  ListUser,
+  DeleteUserByID,
+  type UserResponse,
+} from "../../services";
 
 type SortKey = "Newest" | "Role: Admin First" | "Role: User First" | "Name A-Z";
 
-const mockUsers: UserItem[] = [
-  {
-    ID: 1,
-    FirstName: "Alex",
-    LastName: "Johnson",
-    Email: "alex.johnson@scanops.local",
-    Phone: "0891234567",
-    Profile: "https://i.pravatar.cc/200?img=12",
-    Location: "SOC Company HQ",
-    RoleID: 1,
-    Role: { ID: 1, RoleName: "Admin" },
-    PositionID: 1,
-    Position: { ID: 1, PositionName: "Security Administrator" },
-  },
-  {
-    ID: 2,
-    FirstName: "Mina",
-    LastName: "Walker",
-    Email: "mina.walker@scanops.local",
-    Phone: "0812345678",
-    Profile: "https://i.pravatar.cc/200?img=32",
-    Location: "Network Operations Center",
-    RoleID: 2,
-    Role: { ID: 2, RoleName: "User" },
-    PositionID: 2,
-    Position: { ID: 2, PositionName: "Vulnerability Analyst" },
-  },
-  {
-    ID: 3,
-    FirstName: "Daniel",
-    LastName: "Carter",
-    Email: "daniel.carter@scanops.local",
-    Phone: "0823456789",
-    Profile: "https://i.pravatar.cc/200?img=14",
-    Location: "Internal Security Lab",
-    RoleID: 2,
-    Role: { ID: 2, RoleName: "User" },
-    PositionID: 3,
-    Position: { ID: 3, PositionName: "Network Engineer" },
-  },
-  {
-    ID: 4,
-    FirstName: "Sophia",
-    LastName: "Miller",
-    Email: "sophia.miller@scanops.local",
-    Phone: "0834567890",
-    Profile: "https://i.pravatar.cc/200?img=47",
-    Location: "Threat Monitoring Center",
-    RoleID: 2,
-    Role: { ID: 2, RoleName: "User" },
-    PositionID: 4,
-    Position: { ID: 4, PositionName: "SOC Operator" },
-  },
-];
+type UiUser = {
+  id: number;
+  email: string;
+  first_name: string;
+  last_name: string;
+  profile: string;
+  phone_number: string;
+  location: string;
+  position: string;
+  role: "Admin" | "User" | string;
+};
 
-const roleBadgeClass = (role: "Admin" | "User") => {
+const roleBadgeClass = (role: string) => {
+  // ✅ Admin = สีม่วง
   if (role === "Admin") {
-    return "bg-red-50 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-200 dark:border-red-400/20";
+    return "bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-500/10 dark:text-violet-200 dark:border-violet-400/20";
   }
   return "bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-500/10 dark:text-cyan-200 dark:border-cyan-400/20";
 };
 
 const positionBadgeClass = (position: string) => {
-  const p = position.toLowerCase();
+  const p = (position || "").toLowerCase();
 
   if (p.includes("security")) {
     return "bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-500/10 dark:text-violet-200 dark:border-violet-400/20";
@@ -115,23 +58,188 @@ const positionBadgeClass = (position: string) => {
   return "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-200 dark:border-emerald-400/20";
 };
 
-const index = () => {
+// ✅ แสดงรูปเฉพาะตอนเป็น base64 image เท่านั้น
+const isBase64DataImage = (v: string) => {
+  const s = (v || "").trim();
+  return /^data:image\/(png|jpe?g|gif|webp|bmp|svg\+xml);base64,/i.test(s);
+};
+
+// ✅ helper อ่าน user id ของคนที่ login อยู่
+// ถ้าโปรเจกต์คุณเก็บคนละ key ให้แก้ตรงนี้
+const getCurrentLoggedInUserId = (): number | null => {
+  const candidateKeys = [
+    "user",
+    "me",
+    "authUser",
+    "currentUser",
+    "profile",
+    "app_user",
+    "auth",
+    "loginUser",
+  ];
+
+  const parseAnyId = (value: any): number | null => {
+    if (value == null) return null;
+
+    if (typeof value === "number" && !Number.isNaN(value)) return value;
+
+    if (typeof value === "string" && value.trim() !== "" && !Number.isNaN(Number(value))) {
+      return Number(value);
+    }
+
+    if (typeof value === "object") {
+      const candidates = [
+        value.id,
+        value.ID,
+        value.user_id,
+        value.userID,
+        value.user?.id,
+        value.user?.ID,
+        value.data?.id,
+        value.data?.ID,
+      ];
+
+      for (const c of candidates) {
+        const parsed = parseAnyId(c);
+        if (parsed !== null) return parsed;
+      }
+    }
+
+    return null;
+  };
+
+  const parseFromStorage = (raw: string | null): number | null => {
+    if (!raw) return null;
+
+    try {
+      const parsed = JSON.parse(raw);
+      return parseAnyId(parsed);
+    } catch {
+      return parseAnyId(raw);
+    }
+  };
+
+  for (const key of candidateKeys) {
+    const local = parseFromStorage(localStorage.getItem(key));
+    if (local !== null) return local;
+
+    const session = parseFromStorage(sessionStorage.getItem(key));
+    if (session !== null) return session;
+  }
+
+  return null;
+};
+
+const Index: React.FC = () => {
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<SortKey>("Newest");
   const [openSort, setOpenSort] = useState(false);
 
+  const [rows, setRows] = useState<UiUser[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>("");
+
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+
+  // ✅ popup confirm delete
+  const [deleteTarget, setDeleteTarget] = useState<UiUser | null>(null);
+  const [deleting, setDeleting] = useState<boolean>(false);
+  const [deleteError, setDeleteError] = useState<string>("");
+
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const data = await ListUser();
+
+      if (!data) {
+        setRows([]);
+        setError("โหลดข้อมูลผู้ใช้ไม่สำเร็จ (ListUser returned null)");
+        return;
+      }
+
+      const mapped: UiUser[] = (data as UserResponse[]).map((u) => ({
+        id: u.id,
+        email: u.email ?? "",
+        first_name: u.first_name ?? "",
+        last_name: u.last_name ?? "",
+        profile: u.profile ?? "",
+        phone_number: u.phone_number ?? "",
+        location: u.location ?? "",
+        position: u.position ?? "",
+        role: u.role ?? "User",
+      }));
+
+      setRows(mapped);
+    } catch (e) {
+      setRows([]);
+      setError("เกิดข้อผิดพลาดตอนโหลดข้อมูลผู้ใช้");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    setCurrentUserId(getCurrentLoggedInUserId());
+
+    let alive = true;
+
+    (async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        const data = await ListUser();
+
+        if (!alive) return;
+
+        if (!data) {
+          setRows([]);
+          setError("โหลดข้อมูลผู้ใช้ไม่สำเร็จ (ListUser returned null)");
+          return;
+        }
+
+        const mapped: UiUser[] = (data as UserResponse[]).map((u) => ({
+          id: u.id,
+          email: u.email ?? "",
+          first_name: u.first_name ?? "",
+          last_name: u.last_name ?? "",
+          profile: u.profile ?? "",
+          phone_number: u.phone_number ?? "",
+          location: u.location ?? "",
+          position: u.position ?? "",
+          role: u.role ?? "User",
+        }));
+
+        setRows(mapped);
+      } catch (e) {
+        if (!alive) return;
+        setRows([]);
+        setError("เกิดข้อผิดพลาดตอนโหลดข้อมูลผู้ใช้");
+      } finally {
+        if (!alive) return;
+        setLoading(false);
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   const users = useMemo(() => {
     const q = search.trim().toLowerCase();
 
-    let filtered = mockUsers.filter((u) => {
+    let filtered = rows.filter((u) => {
       const blob = [
-        u.FirstName,
-        u.LastName,
-        u.Email,
-        u.Phone,
-        u.Location,
-        u.Role.RoleName,
-        u.Position.PositionName,
+        u.first_name,
+        u.last_name,
+        u.email,
+        u.phone_number,
+        u.location,
+        u.role,
+        u.position,
       ]
         .join(" ")
         .toLowerCase();
@@ -140,360 +248,576 @@ const index = () => {
     });
 
     filtered = [...filtered].sort((a, b) => {
-      if (sortBy === "Newest") return b.ID - a.ID;
+      if (sortBy === "Newest") return b.id - a.id;
 
       if (sortBy === "Role: Admin First") {
-        if (a.Role.RoleName === b.Role.RoleName) {
-          return a.FirstName.localeCompare(b.FirstName);
-        }
-        return a.Role.RoleName === "Admin" ? -1 : 1;
+        if (a.role === b.role) return a.first_name.localeCompare(b.first_name);
+        return a.role === "Admin" ? -1 : 1;
       }
 
       if (sortBy === "Role: User First") {
-        if (a.Role.RoleName === b.Role.RoleName) {
-          return a.FirstName.localeCompare(b.FirstName);
-        }
-        return a.Role.RoleName === "User" ? -1 : 1;
+        if (a.role === b.role) return a.first_name.localeCompare(b.first_name);
+        return a.role === "User" ? -1 : 1;
       }
 
-      return `${a.FirstName} ${a.LastName}`.localeCompare(
-        `${b.FirstName} ${b.LastName}`
+      return `${a.first_name} ${a.last_name}`.localeCompare(
+        `${b.first_name} ${b.last_name}`
       );
     });
 
     return filtered;
-  }, [search, sortBy]);
+  }, [rows, search, sortBy]);
 
-  const handleEdit = (user: UserItem) => {
+  const handleEdit = (user: UiUser) => {
     console.log("Edit user:", user);
   };
 
-  const handleDelete = (user: UserItem) => {
-    console.log("Delete user:", user);
+  const openDeleteModal = (user: UiUser) => {
+    // ✅ ห้ามลบตัวเอง / คนที่กำลัง login อยู่
+    if (currentUserId !== null && user.id === currentUserId) {
+      setDeleteError("ไม่สามารถลบบัญชีของตัวเองหรือบัญชีที่กำลังเข้าสู่ระบบอยู่ได้");
+      setDeleteTarget(null);
+      return;
+    }
+
+    setDeleteError("");
+    setDeleteTarget(user);
+  };
+
+  const closeDeleteModal = () => {
+    if (deleting) return;
+    setDeleteTarget(null);
+    setDeleteError("");
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+
+    // ✅ กันซ้ำอีกชั้น
+    if (currentUserId !== null && deleteTarget.id === currentUserId) {
+      setDeleteError("ไม่สามารถลบบัญชีของตัวเองหรือบัญชีที่กำลังเข้าสู่ระบบอยู่ได้");
+      return;
+    }
+
+    try {
+      setDeleting(true);
+      setDeleteError("");
+
+      const res = await DeleteUserByID(deleteTarget.id);
+
+      if (!res) {
+        setDeleteError("ลบผู้ใช้ไม่สำเร็จ");
+        return;
+      }
+
+      setDeleteTarget(null);
+      await fetchUsers();
+    } catch (err: any) {
+      setDeleteError(
+        err?.response?.data?.error ||
+          err?.message ||
+          "เกิดข้อผิดพลาดระหว่างลบผู้ใช้"
+      );
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const renderAvatar = (u: UiUser) => {
+    const showImage = isBase64DataImage(u.profile);
+
+    if (showImage) {
+      return (
+        <img
+          src={u.profile}
+          alt={`${u.first_name} ${u.last_name}`}
+          className="h-12 w-12 rounded-2xl object-cover ring-1 ring-gray-200 dark:ring-white/10"
+        />
+      );
+    }
+
+    const isAdmin = u.role === "Admin";
+
+    return (
+      <div
+        className={[
+          "h-12 w-12 rounded-2xl grid place-items-center ring-1",
+          "bg-slate-50 ring-gray-200 text-slate-500",
+          "dark:bg-white/5 dark:ring-white/10 dark:text-white/55",
+        ].join(" ")}
+        aria-label="User avatar icon"
+        title="No base64 profile image"
+      >
+        {isAdmin ? (
+          <FiShield className="text-[18px]" />
+        ) : (
+          <FiUser className="text-[18px]" />
+        )}
+      </div>
+    );
   };
 
   return (
-    <section
-      className={[
-        "relative overflow-hidden rounded-[26px] p-4 sm:p-5 md:p-6",
-        "bg-white border border-gray-200/80 shadow-[0_16px_40px_-24px_rgba(15,23,42,0.25)]",
-        "dark:bg-[#08111f]/90 dark:border-white/10 dark:ring-1 dark:ring-cyan-400/10 dark:shadow-none",
-      ].join(" ")}
-    >
-      {/* Background */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-16 right-8 h-36 w-36 rounded-full bg-cyan-400/10 blur-3xl" />
-        <div className="absolute bottom-0 left-0 h-36 w-36 rounded-full bg-violet-500/10 blur-3xl" />
-        <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.06]">
-          <div
-            className="h-full w-full"
-            style={{
-              backgroundImage: `
-                linear-gradient(to right, currentColor 1px, transparent 1px),
-                linear-gradient(to bottom, currentColor 1px, transparent 1px)
-              `,
-              backgroundSize: "28px 28px",
-            }}
-          />
-        </div>
-      </div>
-
-      <div className="relative z-10">
-        {/* Header */}
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="min-w-0">
-            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1.5 text-[12px] font-semibold text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-300">
-              <FiShield className="text-[13px]" />
-              User Access Monitoring
-            </div>
-
-            <h2 className="mt-3 text-[22px] sm:text-[26px] font-semibold tracking-tight text-slate-900 dark:text-white">
-              User Security Table
-            </h2>
-
-            <p className="mt-1 text-[13px] sm:text-[14px] text-slate-500 dark:text-white/55">
-              Monitor administrator access, analyst accounts, and network
-              security operators.
-            </p>
-          </div>
-        </div>
-
-        {/* Controls */}
-        <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative w-full sm:max-w-md">
-            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-white/35" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search firstname / lastname / email / phone / role..."
-              className={[
-                "w-full h-11 rounded-2xl pl-10 pr-4 text-[13px] outline-none transition",
-                "border border-gray-200 bg-white text-slate-800 focus:ring-2 focus:ring-cyan-200",
-                "dark:border-white/10 dark:bg-white/5 dark:text-white/80 dark:placeholder:text-white/35 dark:focus:ring-cyan-400/10",
-              ].join(" ")}
+    <>
+      <section
+        className={[
+          "relative overflow-hidden rounded-[26px] p-4 sm:p-5 md:p-6",
+          "bg-white border border-gray-200/80 shadow-[0_16px_40px_-24px_rgba(15,23,42,0.25)]",
+          "dark:bg-[#08111f]/90 dark:border-white/10 dark:ring-1 dark:ring-cyan-400/10 dark:shadow-none",
+        ].join(" ")}
+      >
+        {/* Background */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -top-16 right-8 h-36 w-36 rounded-full bg-cyan-400/10 blur-3xl" />
+          <div className="absolute bottom-0 left-0 h-36 w-36 rounded-full bg-violet-500/10 blur-3xl" />
+          <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.06]">
+            <div
+              className="h-full w-full"
+              style={{
+                backgroundImage: `
+                  linear-gradient(to right, currentColor 1px, transparent 1px),
+                  linear-gradient(to bottom, currentColor 1px, transparent 1px)
+                `,
+                backgroundSize: "28px 28px",
+              }}
             />
           </div>
+        </div>
 
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setOpenSort((s) => !s)}
-              className={[
-                "h-11 px-4 rounded-2xl inline-flex items-center gap-2 transition",
-                "bg-white border border-gray-200/80 text-[13px] font-medium text-gray-700 hover:bg-gray-50",
-                "dark:bg-white/5 dark:border-white/10 dark:text-white/75 dark:hover:bg-white/8",
-              ].join(" ")}
-            >
-              {sortBy}
-              <FiChevronDown
-                className={`transition ${
-                  openSort ? "rotate-180" : ""
-                } text-gray-400 dark:text-white/45`}
-              />
-            </button>
-
-            {openSort && (
-              <div className="absolute right-0 mt-2 w-56 rounded-2xl overflow-hidden z-20 border border-gray-200 bg-white shadow-lg dark:border-white/10 dark:bg-[#0B1220] dark:shadow-none">
-                {(
-                  [
-                    "Newest",
-                    "Role: Admin First",
-                    "Role: User First",
-                    "Name A-Z",
-                  ] as SortKey[]
-                ).map((opt) => (
-                  <button
-                    key={opt}
-                    type="button"
-                    onClick={() => {
-                      setSortBy(opt);
-                      setOpenSort(false);
-                    }}
-                    className={[
-                      "w-full text-left px-4 py-3 text-[13px] transition",
-                      sortBy === opt
-                        ? "bg-cyan-50 text-cyan-700 font-semibold dark:bg-cyan-500/10 dark:text-cyan-200"
-                        : "text-gray-700 hover:bg-gray-50 dark:text-white/70 dark:hover:bg-white/8",
-                    ].join(" ")}
-                  >
-                    {opt}
-                  </button>
-                ))}
+        <div className="relative z-10">
+          {/* Header */}
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0">
+              <div className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-[12px] font-semibold text-violet-700 dark:border-violet-400/20 dark:bg-violet-500/10 dark:text-violet-300">
+                <FiShield className="text-[13px]" />
+                User Access Monitoring
               </div>
+
+              <h2 className="mt-3 text-[22px] sm:text-[26px] font-semibold tracking-tight text-slate-900 dark:text-white">
+                User Security Table
+              </h2>
+
+              <p className="mt-1 text-[13px] sm:text-[14px] text-slate-500 dark:text-white/55">
+                Monitor administrator access, analyst accounts, and operators.
+              </p>
+            </div>
+          </div>
+
+          {/* Controls */}
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative w-full sm:max-w-md">
+              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-white/35" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search firstname / lastname / email / phone / role..."
+                className={[
+                  "w-full h-11 rounded-2xl pl-10 pr-4 text-[13px] outline-none transition",
+                  "border border-gray-200 bg-white text-slate-800 focus:ring-2 focus:ring-violet-200",
+                  "dark:border-white/10 dark:bg-white/5 dark:text-white/80 dark:placeholder:text-white/35 dark:focus:ring-violet-400/10",
+                ].join(" ")}
+              />
+            </div>
+
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setOpenSort((s) => !s)}
+                className={[
+                  "h-11 px-4 rounded-2xl inline-flex items-center gap-2 transition",
+                  "bg-white border border-gray-200/80 text-[13px] font-medium text-gray-700 hover:bg-gray-50",
+                  "dark:bg-white/5 dark:border-white/10 dark:text-white/75 dark:hover:bg-white/8",
+                ].join(" ")}
+              >
+                {sortBy}
+                <FiChevronDown
+                  className={`transition ${
+                    openSort ? "rotate-180" : ""
+                  } text-gray-400 dark:text-white/45`}
+                />
+              </button>
+
+              {openSort && (
+                <div className="absolute right-0 mt-2 w-56 rounded-2xl overflow-hidden z-20 border border-gray-200 bg-white shadow-lg dark:border-white/10 dark:bg-[#0B1220] dark:shadow-none">
+                  {(
+                    [
+                      "Newest",
+                      "Role: Admin First",
+                      "Role: User First",
+                      "Name A-Z",
+                    ] as SortKey[]
+                  ).map((opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => {
+                        setSortBy(opt);
+                        setOpenSort(false);
+                      }}
+                      className={[
+                        "w-full text-left px-4 py-3 text-[13px] transition",
+                        sortBy === opt
+                          ? "bg-violet-50 text-violet-700 font-semibold dark:bg-violet-500/10 dark:text-violet-200"
+                          : "text-gray-700 hover:bg-gray-50 dark:text-white/70 dark:hover:bg-white/8",
+                      ].join(" ")}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Status line */}
+          <div className="mt-3 flex flex-col gap-1 text-[12px] text-slate-500 dark:text-white/50">
+            {loading ? (
+              <span className="inline-flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-violet-500/70 animate-pulse" />
+                Loading users...
+              </span>
+            ) : error ? (
+              <span className="text-red-600 dark:text-red-300">{error}</span>
+            ) : (
+              <span>
+                Showing <span className="font-semibold">{users.length}</span>{" "}
+                users
+              </span>
             )}
+
+            {deleteError && !deleteTarget && (
+              <span className="text-red-600 dark:text-red-300">
+                {deleteError}
+              </span>
+            )}
+          </div>
+
+          {/* Table */}
+          <div className="mt-4 overflow-x-auto rounded-3xl border border-gray-200/80 bg-white/80 dark:border-white/10 dark:bg-white/3">
+            <table className="min-w-275 w-full border-separate border-spacing-0">
+              <thead>
+                <tr className="text-left">
+                  <th className="px-4 py-4 text-[12px] font-semibold text-slate-600 dark:text-white/60 border-b border-gray-200/80 dark:border-white/10">
+                    User
+                  </th>
+                  <th className="px-4 py-4 text-[12px] font-semibold text-slate-600 dark:text-white/60 border-b border-gray-200/80 dark:border-white/10">
+                    Contact
+                  </th>
+                  <th className="px-4 py-4 text-[12px] font-semibold text-slate-600 dark:text-white/60 border-b border-gray-200/80 dark:border-white/10">
+                    Location
+                  </th>
+                  <th className="px-4 py-4 text-[12px] font-semibold text-slate-600 dark:text-white/60 border-b border-gray-200/80 dark:border-white/10">
+                    Role
+                  </th>
+                  <th className="px-4 py-4 text-[12px] font-semibold text-slate-600 dark:text-white/60 border-b border-gray-200/80 dark:border-white/10">
+                    Position
+                  </th>
+                  <th className="px-4 py-4 text-[12px] font-semibold text-slate-600 dark:text-white/60 border-b border-gray-200/80 dark:border-white/10 text-right">
+                    Action
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {!loading &&
+                  users.map((user, idx) => {
+                    const isCurrentUser =
+                      currentUserId !== null && user.id === currentUserId;
+
+                    return (
+                      <tr
+                        key={user.id}
+                        className={[
+                          "transition-colors",
+                          "hover:bg-violet-50/40 dark:hover:bg-white/4",
+                        ].join(" ")}
+                      >
+                        {/* User */}
+                        <td
+                          className={`px-4 py-4 ${
+                            idx !== users.length - 1
+                              ? "border-b border-gray-100 dark:border-white/10"
+                              : ""
+                          }`}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="relative shrink-0">
+                              {renderAvatar(user)}
+                            </div>
+
+                            <div className="min-w-0">
+                              <p className="text-[14px] font-semibold text-slate-900 dark:text-white/85 truncate">
+                                {user.first_name} {user.last_name}
+                              </p>
+
+                              <div className="mt-1 flex flex-wrap items-center gap-2 text-[12px] text-slate-500 dark:text-white/50">
+                                <span className="inline-flex items-center gap-1">
+                                  <FiUser className="text-[12px]" />
+                                  ID: {user.id}
+                                </span>
+
+                                {isCurrentUser && (
+                                  <span className="inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[11px] font-semibold text-violet-700 dark:border-violet-400/20 dark:bg-violet-500/10 dark:text-violet-200">
+                                    Current Login
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Contact */}
+                        <td
+                          className={`px-4 py-4 ${
+                            idx !== users.length - 1
+                              ? "border-b border-gray-100 dark:border-white/10"
+                              : ""
+                          }`}
+                        >
+                          <div className="space-y-1.5">
+                            <div className="flex items-center gap-2 text-[13px] text-slate-700 dark:text-white/75">
+                              <FiMail className="text-[13px] text-cyan-600 dark:text-cyan-300" />
+                              <span className="truncate">{user.email}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-[13px] text-slate-700 dark:text-white/75">
+                              <FiPhone className="text-[13px] text-violet-600 dark:text-violet-300" />
+                              <span>{user.phone_number || "-"}</span>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Location */}
+                        <td
+                          className={`px-4 py-4 ${
+                            idx !== users.length - 1
+                              ? "border-b border-gray-100 dark:border-white/10"
+                              : ""
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 text-[13px] text-slate-700 dark:text-white/75">
+                            <FiMapPin className="text-[13px] text-emerald-600 dark:text-emerald-300" />
+                            <span>{user.location || "-"}</span>
+                          </div>
+                        </td>
+
+                        {/* Role */}
+                        <td
+                          className={`px-4 py-4 ${
+                            idx !== users.length - 1
+                              ? "border-b border-gray-100 dark:border-white/10"
+                              : ""
+                          }`}
+                        >
+                          <span
+                            className={[
+                              "inline-flex items-center rounded-full border px-3 py-1.5 text-[12px] font-semibold",
+                              roleBadgeClass(user.role),
+                            ].join(" ")}
+                          >
+                            {user.role === "Admin" ? (
+                              <FiShield className="mr-1.5" />
+                            ) : (
+                              <FiUser className="mr-1.5" />
+                            )}
+                            {user.role}
+                          </span>
+                        </td>
+
+                        {/* Position */}
+                        <td
+                          className={`px-4 py-4 ${
+                            idx !== users.length - 1
+                              ? "border-b border-gray-100 dark:border-white/10"
+                              : ""
+                          }`}
+                        >
+                          <span
+                            className={[
+                              "inline-flex items-center rounded-full border px-3 py-1.5 text-[12px] font-semibold",
+                              positionBadgeClass(user.position),
+                            ].join(" ")}
+                          >
+                            <FiBriefcase className="mr-1.5" />
+                            {user.position || "-"}
+                          </span>
+                        </td>
+
+                        {/* Action */}
+                        <td
+                          className={`px-4 py-4 text-right ${
+                            idx !== users.length - 1
+                              ? "border-b border-gray-100 dark:border-white/10"
+                              : ""
+                          }`}
+                        >
+                          <div className="inline-flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleEdit(user)}
+                              className={[
+                                "inline-flex h-10 w-10 items-center justify-center rounded-2xl transition-colors",
+                                "text-cyan-600 bg-cyan-50 hover:bg-cyan-100 active:bg-cyan-200",
+                                "dark:text-cyan-300 dark:bg-cyan-500/10 dark:hover:bg-cyan-500/15 dark:active:bg-cyan-500/20",
+                              ].join(" ")}
+                              title="Edit user"
+                              aria-label="Edit user"
+                            >
+                              <FiEdit2 />
+                            </button>
+
+                            {/* ✅ คนที่ login อยู่ ไม่แสดงปุ่มลบเลย */}
+                            {!isCurrentUser && (
+                              <button
+                                type="button"
+                                onClick={() => openDeleteModal(user)}
+                                className={[
+                                  "inline-flex h-10 w-10 items-center justify-center rounded-2xl transition-colors",
+                                  "text-red-600 bg-red-50 hover:bg-red-100 active:bg-red-200",
+                                  "dark:text-red-300 dark:bg-red-500/10 dark:hover:bg-red-500/15 dark:active:bg-red-500/20",
+                                ].join(" ")}
+                                title="Delete user"
+                                aria-label="Delete user"
+                              >
+                                <FiTrash2 />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+
+                {!loading && users.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="px-4 py-10 text-center text-[14px] text-slate-500 dark:text-white/50"
+                    >
+                      No user data found
+                    </td>
+                  </tr>
+                )}
+
+                {loading && (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="px-4 py-10 text-center text-[14px] text-slate-500 dark:text-white/50"
+                    >
+                      Loading...
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
 
-        {/* Table */}
-        <div className="mt-5 overflow-x-auto rounded-3xl border border-gray-200/80 bg-white/80 dark:border-white/10 dark:bg-white/3">
-          <table className="min-w-275 w-full border-separate border-spacing-0">
-            <thead>
-              <tr className="text-left">
-                <th className="px-4 py-4 text-[12px] font-semibold text-slate-600 dark:text-white/60 border-b border-gray-200/80 dark:border-white/10">
-                  User
-                </th>
-                <th className="px-4 py-4 text-[12px] font-semibold text-slate-600 dark:text-white/60 border-b border-gray-200/80 dark:border-white/10">
-                  Contact
-                </th>
-                <th className="px-4 py-4 text-[12px] font-semibold text-slate-600 dark:text-white/60 border-b border-gray-200/80 dark:border-white/10">
-                  Location
-                </th>
-                <th className="px-4 py-4 text-[12px] font-semibold text-slate-600 dark:text-white/60 border-b border-gray-200/80 dark:border-white/10">
-                  Role
-                </th>
-                <th className="px-4 py-4 text-[12px] font-semibold text-slate-600 dark:text-white/60 border-b border-gray-200/80 dark:border-white/10">
-                  Position
-                </th>
-                <th className="px-4 py-4 text-[12px] font-semibold text-slate-600 dark:text-white/60 border-b border-gray-200/80 dark:border-white/10 text-right">
-                  Action
-                </th>
-              </tr>
-            </thead>
+        {openSort && (
+          <button
+            type="button"
+            onClick={() => setOpenSort(false)}
+            className="fixed inset-0 z-5 cursor-default"
+            aria-label="Close sort overlay"
+          />
+        )}
+      </section>
 
-            <tbody>
-              {users.map((user, idx) => (
-                <tr
-                  key={user.ID}
-                  className={[
-                    "transition-colors",
-                    "hover:bg-cyan-50/60 dark:hover:bg-white/4",
-                  ].join(" ")}
-                >
-                  {/* User */}
-                  <td
-                    className={`px-4 py-4 ${
-                      idx !== users.length - 1
-                        ? "border-b border-gray-100 dark:border-white/10"
-                        : ""
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="relative shrink-0">
-                        <img
-                          src={user.Profile}
-                          alt={`${user.FirstName} ${user.LastName}`}
-                          className="h-12 w-12 rounded-2xl object-cover ring-1 ring-gray-200 dark:ring-white/10"
-                          onError={(e) => {
-                            (e.currentTarget as HTMLImageElement).src =
-                              "https://ui-avatars.com/api/?name=User&background=0ea5e9&color=fff";
-                          }}
-                        />
-                      </div>
+      {/* =========================
+          Delete Confirm Modal
+      ========================= */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-200 flex items-center justify-center p-4">
+          {/* Overlay */}
+          <button
+            type="button"
+            onClick={closeDeleteModal}
+            className="absolute inset-0 bg-slate-900/35 backdrop-blur-[2px]"
+            aria-label="Close delete modal overlay"
+          />
 
-                      <div className="min-w-0">
-                        <p className="text-[14px] font-semibold text-slate-900 dark:text-white/85 truncate">
-                          {user.FirstName} {user.LastName}
-                        </p>
-                        <div className="mt-1 flex items-center gap-2 text-[12px] text-slate-500 dark:text-white/50">
-                          <FiUser className="text-[12px]" />
-                          <span>ID: {user.ID}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </td>
+          {/* Modal */}
+          <div
+            className={[
+              "relative z-10 w-full max-w-135 rounded-[14px] border border-gray-200 bg-white px-5 py-5 shadow-[0_20px_70px_rgba(15,23,42,0.18)]",
+              "dark:border-white/10 dark:bg-[#0d1524]",
+            ].join(" ")}
+          >
+            {/* Close */}
+            <button
+              type="button"
+              onClick={closeDeleteModal}
+              disabled={deleting}
+              className="absolute right-4 top-4 text-gray-400 transition hover:text-gray-600 disabled:cursor-not-allowed dark:text-white/45 dark:hover:text-white/70"
+              aria-label="Close"
+            >
+              <FiX className="text-[20px]" />
+            </button>
 
-                  {/* Contact */}
-                  <td
-                    className={`px-4 py-4 ${
-                      idx !== users.length - 1
-                        ? "border-b border-gray-100 dark:border-white/10"
-                        : ""
-                    }`}
-                  >
-                    <div className="space-y-1.5">
-                      <div className="flex items-center gap-2 text-[13px] text-slate-700 dark:text-white/75">
-                        <FiMail className="text-[13px] text-cyan-600 dark:text-cyan-300" />
-                        <span>{user.Email}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-[13px] text-slate-700 dark:text-white/75">
-                        <FiPhone className="text-[13px] text-violet-600 dark:text-violet-300" />
-                        <span>{user.Phone}</span>
-                      </div>
-                    </div>
-                  </td>
+            {/* Icon */}
+            <div className="flex justify-center pt-2">
+              <div className="grid h-14 w-14 place-items-center rounded-full bg-red-50 text-red-500 dark:bg-red-500/10 dark:text-red-300">
+                <FiTrash2 className="text-[28px]" />
+              </div>
+            </div>
 
-                  {/* Location */}
-                  <td
-                    className={`px-4 py-4 ${
-                      idx !== users.length - 1
-                        ? "border-b border-gray-100 dark:border-white/10"
-                        : ""
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 text-[13px] text-slate-700 dark:text-white/75">
-                      <FiMapPin className="text-[13px] text-emerald-600 dark:text-emerald-300" />
-                      <span>{user.Location}</span>
-                    </div>
-                  </td>
+            {/* Title */}
+            <h3 className="mt-4 text-center text-[22px] font-semibold text-slate-800 dark:text-white">
+              Delete Account
+            </h3>
 
-                  {/* Role */}
-                  <td
-                    className={`px-4 py-4 ${
-                      idx !== users.length - 1
-                        ? "border-b border-gray-100 dark:border-white/10"
-                        : ""
-                    }`}
-                  >
-                    <span
-                      className={[
-                        "inline-flex items-center rounded-full border px-3 py-1.5 text-[12px] font-semibold",
-                        roleBadgeClass(user.Role.RoleName),
-                      ].join(" ")}
-                    >
-                      {user.Role.RoleName === "Admin" ? (
-                        <FiShield className="mr-1.5" />
-                      ) : (
-                        <FiUser className="mr-1.5" />
-                      )}
-                      {user.Role.RoleName}
-                    </span>
-                  </td>
+            {/* Description */}
+            <p className="mx-auto mt-3 max-w-100 text-center text-[14px] leading-6 text-slate-500 dark:text-white/55">
+              Are you sure you want to delete{" "}
+              <span className="font-semibold text-slate-700 dark:text-white/80">
+                {deleteTarget.first_name} {deleteTarget.last_name}
+              </span>
+              ? This action cannot be undone.
+            </p>
 
-                  {/* Position */}
-                  <td
-                    className={`px-4 py-4 ${
-                      idx !== users.length - 1
-                        ? "border-b border-gray-100 dark:border-white/10"
-                        : ""
-                    }`}
-                  >
-                    <span
-                      className={[
-                        "inline-flex items-center rounded-full border px-3 py-1.5 text-[12px] font-semibold",
-                        positionBadgeClass(user.Position.PositionName),
-                      ].join(" ")}
-                    >
-                      <FiBriefcase className="mr-1.5" />
-                      {user.Position.PositionName}
-                    </span>
-                  </td>
+            <p className="mt-2 text-center text-[13px] text-slate-400 dark:text-white/40">
+              Email: {deleteTarget.email || "-"}
+            </p>
 
-                  {/* Action */}
-                  <td
-                    className={`px-4 py-4 text-right ${
-                      idx !== users.length - 1
-                        ? "border-b border-gray-100 dark:border-white/10"
-                        : ""
-                    }`}
-                  >
-                    <div className="inline-flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleEdit(user)}
-                        className={[
-                          "inline-flex h-10 w-10 items-center justify-center rounded-2xl transition-colors",
-                          "text-cyan-600 bg-cyan-50 hover:bg-cyan-100 active:bg-cyan-200",
-                          "dark:text-cyan-300 dark:bg-cyan-500/10 dark:hover:bg-cyan-500/15 dark:active:bg-cyan-500/20",
-                        ].join(" ")}
-                        title="Edit user"
-                        aria-label="Edit user"
-                      >
-                        <FiEdit2 />
-                      </button>
+            {deleteError && (
+              <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-center text-[13px] text-red-700 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300">
+                {deleteError}
+              </div>
+            )}
 
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(user)}
-                        className={[
-                          "inline-flex h-10 w-10 items-center justify-center rounded-2xl transition-colors",
-                          "text-red-600 bg-red-50 hover:bg-red-100 active:bg-red-200",
-                          "dark:text-red-300 dark:bg-red-500/10 dark:hover:bg-red-500/15 dark:active:bg-red-500/20",
-                        ].join(" ")}
-                        title="Delete user"
-                        aria-label="Delete user"
-                      >
-                        <FiTrash2 />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+            {/* Actions */}
+            <div className="mt-6 flex items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={confirmDelete}
+                disabled={deleting}
+                className={[
+                  "min-w-26 rounded-[10px] px-4 py-2.5 text-[15px] font-medium transition",
+                  "bg-[#f8dedd] text-[#ff5a3c] hover:bg-[#f4d2d1]",
+                  "disabled:cursor-not-allowed disabled:opacity-60",
+                ].join(" ")}
+              >
+                {deleting ? "Deleting..." : "Yes, Delete!"}
+              </button>
 
-              {users.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={6}
-                    className="px-4 py-10 text-center text-[14px] text-slate-500 dark:text-white/50"
-                  >
-                    No user data found
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+              <button
+                type="button"
+                onClick={closeDeleteModal}
+                disabled={deleting}
+                className={[
+                  "min-w-26 rounded-[10px] px-4 py-2.5 text-[15px] font-medium transition",
+                  "bg-[#6d5efc] text-white hover:bg-[#5f51eb]",
+                  "disabled:cursor-not-allowed disabled:opacity-60",
+                ].join(" ")}
+              >
+                No, Keep It.
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
-
-      {openSort && (
-        <button
-          type="button"
-          onClick={() => setOpenSort(false)}
-          className="fixed inset-0 z-5 cursor-default"
-          aria-label="Close sort overlay"
-        />
       )}
-    </section>
+    </>
   );
 };
 
-export default index;
+export default Index; 

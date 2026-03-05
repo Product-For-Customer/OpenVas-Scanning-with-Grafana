@@ -6,9 +6,107 @@ import (
 
 	"github.com/Tawunchai/openvas/config"
 	"github.com/Tawunchai/openvas/entity"
-	"github.com/asaskevich/govalidator"
+	"github.com/Tawunchai/openvas/utils"
 	"github.com/gin-gonic/gin"
 )
+
+type CreateUserInput struct {
+	Email       string `json:"email" binding:"required,email"`
+	Password    string `json:"password" binding:"required,min=8"`
+	FirstName   string `json:"first_name" binding:"required"`
+	LastName    string `json:"last_name" binding:"required"`
+	Profile     string `json:"profile" binding:"required"`
+	PhoneNumber string `json:"phone_number" binding:"required"`
+	Location    string `json:"location" binding:"required"`
+	Position    string `json:"position" binding:"required"`
+	AppRoleID   uint   `json:"app_role_id" binding:"required"`
+}
+
+type UpdateUserInput struct {
+	Email       *string `json:"email"`
+	Password    *string `json:"password"`
+	FirstName   *string `json:"first_name"`
+	LastName    *string `json:"last_name"`
+	Profile     *string `json:"profile"`
+	PhoneNumber *string `json:"phone_number"`
+	Location    *string `json:"location"`
+	Position    *string `json:"position"`
+	AppRoleID   *uint   `json:"app_role_id"`
+}
+
+type UserResponse struct {
+	ID          uint   `json:"id"`
+	Email       string `json:"email"`
+	FirstName   string `json:"first_name"`
+	LastName    string `json:"last_name"`
+	Profile     string `json:"profile"`
+	PhoneNumber string `json:"phone_number"`
+	Location    string `json:"location"`
+	Position    string `json:"position"`
+	Role        string `json:"role"`
+}
+
+func mapUserResponse(u entity.AppUser) UserResponse {
+	role := ""
+	if u.AppRole != nil {
+		role = u.AppRole.Role
+	}
+
+	return UserResponse{
+		ID:          u.ID,
+		Email:       u.Email,
+		FirstName:   u.FirstName,
+		LastName:    u.LastName,
+		Profile:     u.Profile,
+		PhoneNumber: u.PhoneNumber,
+		Location:    u.Location,
+		Position:    u.Position,
+		Role:        role,
+	}
+}
+
+func CreateUser(c *gin.Context) {
+	var input CreateUserInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	db := config.DB()
+
+	var existing entity.AppUser
+	if err := db.Where("email = ?", input.Email).First(&existing).Error; err == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "email already exists"})
+		return
+	}
+
+	hashedPassword, err := utils.HashPassword(input.Password)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to hash password"})
+		return
+	}
+
+	user := entity.AppUser{
+		Email:       input.Email,
+		Password:    hashedPassword,
+		FirstName:   input.FirstName,
+		LastName:    input.LastName,
+		Profile:     input.Profile,
+		PhoneNumber: input.PhoneNumber,
+		Location:    input.Location,
+		Position:    input.Position,
+		AppRoleID:   input.AppRoleID,
+	}
+
+	if err := db.Create(&user).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	db.Preload("AppRole").First(&user, user.ID)
+
+	c.JSON(http.StatusCreated, mapUserResponse(user))
+}
 
 func ListUser(c *gin.Context) {
 	var users []entity.AppUser
@@ -21,7 +119,12 @@ func ListUser(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, users)
+	response := make([]UserResponse, 0, len(users))
+	for _, u := range users {
+		response = append(response, mapUserResponse(u))
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 func ListUserByID(c *gin.Context) {
@@ -42,19 +145,7 @@ func ListUserByID(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, user)
-}
-
-type UpdateUserInput struct {
-	Email       *string `json:"email"`
-	Password    *string `json:"password"`
-	FirstName   *string `json:"first_name"`
-	LastName    *string `json:"last_name"`
-	Profile     *string `json:"profile"`
-	PhoneNumber *string `json:"phone_number"`
-	Location    *string `json:"location"`
-	Position    *string `json:"position"`
-	AppRoleID   *uint   `json:"app_role_id"`
+	c.JSON(http.StatusOK, mapUserResponse(user))
 }
 
 func UpdateUserByID(c *gin.Context) {
@@ -75,108 +166,52 @@ func UpdateUserByID(c *gin.Context) {
 	db := config.DB()
 
 	var user entity.AppUser
-	result := db.First(&user, uint(uid))
-	if result.Error != nil {
+	if err := db.Preload("AppRole").First(&user, uint(uid)).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
 		return
 	}
 
-	// ถ้าไม่มี field ส่งมาเลย
-	if input.Email == nil &&
-		input.Password == nil &&
-		input.FirstName == nil &&
-		input.LastName == nil &&
-		input.Profile == nil &&
-		input.PhoneNumber == nil &&
-		input.Location == nil &&
-		input.Position == nil &&
-		input.AppRoleID == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "no data to update"})
-		return
-	}
-
-	// สร้างข้อมูลจำลองจากค่าปัจจุบัน + ค่าที่ส่งมาใหม่
-	validateUser := user
-
 	if input.Email != nil {
-		validateUser.Email = *input.Email
-	}
-	if input.Password != nil {
-		validateUser.Password = *input.Password
+		user.Email = *input.Email
 	}
 	if input.FirstName != nil {
-		validateUser.FirstName = *input.FirstName
+		user.FirstName = *input.FirstName
 	}
 	if input.LastName != nil {
-		validateUser.LastName = *input.LastName
+		user.LastName = *input.LastName
 	}
 	if input.Profile != nil {
-		validateUser.Profile = *input.Profile
+		user.Profile = *input.Profile
 	}
 	if input.PhoneNumber != nil {
-		validateUser.PhoneNumber = *input.PhoneNumber
+		user.PhoneNumber = *input.PhoneNumber
 	}
 	if input.Location != nil {
-		validateUser.Location = *input.Location
+		user.Location = *input.Location
 	}
 	if input.Position != nil {
-		validateUser.Position = *input.Position
+		user.Position = *input.Position
 	}
 	if input.AppRoleID != nil {
-		validateUser.AppRoleID = *input.AppRoleID
+		user.AppRoleID = *input.AppRoleID
+	}
+	if input.Password != nil && *input.Password != "" {
+		hashedPassword, err := utils.HashPassword(*input.Password)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to hash password"})
+			return
+		}
+		user.Password = hashedPassword
 	}
 
-	// validate ด้วย govalidator ตาม tag ใน entity
-	if ok, err := govalidator.ValidateStruct(validateUser); !ok {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if err := db.Save(&user).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	updates := map[string]interface{}{}
+	db.Preload("AppRole").First(&user, user.ID)
 
-	if input.Email != nil {
-		updates["email"] = *input.Email
-	}
-	if input.Password != nil {
-		updates["password"] = *input.Password
-	}
-	if input.FirstName != nil {
-		updates["first_name"] = *input.FirstName
-	}
-	if input.LastName != nil {
-		updates["last_name"] = *input.LastName
-	}
-	if input.Profile != nil {
-		updates["profile"] = *input.Profile
-	}
-	if input.PhoneNumber != nil {
-		updates["phone_number"] = *input.PhoneNumber
-	}
-	if input.Location != nil {
-		updates["location"] = *input.Location
-	}
-	if input.Position != nil {
-		updates["position"] = *input.Position
-	}
-	if input.AppRoleID != nil {
-		updates["app_role_id"] = *input.AppRoleID
-	}
-
-	if err := db.Model(&user).Updates(updates).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	var updatedUser entity.AppUser
-	if err := db.Preload("AppRole").First(&updatedUser, uint(uid)).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch updated user"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"message": "user updated successfully",
-		"data":    updatedUser,
-	})
+	c.JSON(http.StatusOK, mapUserResponse(user))
 }
 
 func DeleteUserByID(c *gin.Context) {
@@ -189,20 +224,10 @@ func DeleteUserByID(c *gin.Context) {
 	}
 
 	db := config.DB()
-
-	var user entity.AppUser
-	result := db.First(&user, uint(uid))
-	if result.Error != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+	if tx := db.Delete(&entity.AppUser{}, uint(uid)); tx.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": tx.Error.Error()})
 		return
 	}
 
-	if err := db.Delete(&user).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"message": "user deleted successfully",
-	})
+	c.JSON(http.StatusOK, gin.H{"message": "user deleted successfully"})
 }

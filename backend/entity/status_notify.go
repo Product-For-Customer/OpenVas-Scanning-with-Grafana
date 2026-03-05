@@ -9,5 +9,5 @@ type AppStatusNotify struct {
 	gorm.Model
 	Status string
 	
-	Notification []Notification `gorm:"foreignKey:AppStatusNotifyID" valid:"-"`
+	AppHistoryNotify []AppHistoryNotify `gorm:"foreignKey:AppStatusNotifyID" valid:"-"`
 }

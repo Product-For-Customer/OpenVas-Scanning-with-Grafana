@@ -74,33 +74,20 @@ const formatRisk = (n: number) => {
   return n.toFixed(2);
 };
 
-const getRiskMeta = (value: number, max: number) => {
-  const ratio = max > 0 ? value / max : 0;
-  const level = Math.min(5, Math.max(1, Math.ceil(ratio * 5)));
-
-  if (level <= 2) {
+// ✅ ใช้คะแนนจริง 0-10 ไม่อิง maxRisk ของข้อมูลในตาราง
+const getRiskMeta = (risk: number) => {
+  if (risk >= 8) {
     return {
-      label: "Low",
-      dot: "bg-emerald-500",
-      text: "text-emerald-600 dark:text-emerald-300",
+      label: "Critical",
+      dot: "bg-red-500",
+      text: "text-red-600 dark:text-red-300",
       chip:
-        "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-400/20 dark:text-emerald-300",
-      bar: "linear-gradient(90deg, #86efac 0%, #22c55e 100%)",
+        "bg-red-50 border-red-200 text-red-700 dark:bg-red-500/10 dark:border-red-400/20 dark:text-red-300",
+      bar: "linear-gradient(90deg, #fb7185 0%, #ef4444 100%)",
     };
   }
 
-  if (level === 3) {
-    return {
-      label: "Medium",
-      dot: "bg-yellow-500",
-      text: "text-yellow-600 dark:text-yellow-300",
-      chip:
-        "bg-yellow-50 border-yellow-200 text-yellow-700 dark:bg-yellow-500/10 dark:border-yellow-400/20 dark:text-yellow-300",
-      bar: "linear-gradient(90deg, #fde68a 0%, #eab308 100%)",
-    };
-  }
-
-  if (level === 4) {
+  if (risk >= 6) {
     return {
       label: "High",
       dot: "bg-orange-500",
@@ -111,32 +98,68 @@ const getRiskMeta = (value: number, max: number) => {
     };
   }
 
+  if (risk >= 4) {
+    return {
+      label: "Medium",
+      dot: "bg-yellow-500",
+      text: "text-yellow-700 dark:text-yellow-300",
+      chip:
+        "bg-yellow-50 border-yellow-200 text-yellow-700 dark:bg-yellow-500/10 dark:border-yellow-400/20 dark:text-yellow-300",
+      bar: "linear-gradient(90deg, #fde68a 0%, #eab308 100%)",
+    };
+  }
+
+  if (risk > 0) {
+    return {
+      label: "Low",
+      dot: "bg-emerald-500",
+      text: "text-emerald-700 dark:text-emerald-300",
+      chip:
+        "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-400/20 dark:text-emerald-300",
+      bar: "linear-gradient(90deg, #86efac 0%, #22c55e 100%)",
+    };
+  }
+
   return {
-    label: "Critical",
-    dot: "bg-red-500",
-    text: "text-red-600 dark:text-red-300",
+    label: "Info",
+    dot: "bg-sky-500",
+    text: "text-sky-700 dark:text-sky-300",
     chip:
-      "bg-red-50 border-red-200 text-red-700 dark:bg-red-500/10 dark:border-red-400/20 dark:text-red-300",
-    bar: "linear-gradient(90deg, #fb7185 0%, #ef4444 100%)",
+      "bg-sky-50 border-sky-200 text-sky-700 dark:bg-sky-500/10 dark:border-sky-400/20 dark:text-sky-300",
+    bar: "linear-gradient(90deg, #7dd3fc 0%, #38bdf8 100%)",
   };
 };
 
-const DangerDots: React.FC<{ value: number; max: number }> = ({ value, max }) => {
-  const ratio = max > 0 ? value / max : 0;
-  const level = Math.min(5, Math.max(1, Math.ceil(ratio * 5)));
+// ✅ dots ตามคะแนนจริง 0-10
+const DangerDots: React.FC<{ value: number }> = ({ value }) => {
+  let level = 0;
 
-  const cls = (i: number) => {
-    if (i > level) return "bg-gray-200 dark:bg-white/10";
-    if (level <= 2) return "bg-[#22c55e]";
-    if (level === 3) return "bg-[#eab308]";
-    if (level === 4) return "bg-[#f97316]";
-    return "bg-[#ef4444]";
-  };
+  if (value >= 8) level = 5;
+  else if (value >= 6) level = 4;
+  else if (value >= 4) level = 3;
+  else if (value > 0) level = 2;
+  else level = 1;
+
+  const activeClass =
+    value >= 8
+      ? "bg-[#ef4444]"
+      : value >= 6
+      ? "bg-[#f97316]"
+      : value >= 4
+      ? "bg-[#eab308]"
+      : value > 0
+      ? "bg-[#22c55e]"
+      : "bg-[#38bdf8]";
 
   return (
     <div className="flex items-center gap-1.5">
       {Array.from({ length: 5 }).map((_, i) => (
-        <span key={i} className={`h-2.5 w-2.5 rounded-full ${cls(i + 1)}`} />
+        <span
+          key={i}
+          className={`h-2.5 w-2.5 rounded-full ${
+            i < level ? activeClass : "bg-gray-200 dark:bg-white/10"
+          }`}
+        />
       ))}
     </div>
   );
@@ -386,12 +409,14 @@ const RiskScoreTable: React.FC = () => {
               ))}
             </div>
           ) : rows.length === 0 ? (
-            <div className="py-8 text-[13px] text-gray-500 dark:text-white/55">No Data</div>
+            <div className="py-8 text-[13px] text-gray-500 dark:text-white/55">
+              No Data
+            </div>
           ) : (
             <div className="space-y-3">
               {rows.map((p) => {
                 const { Icon, bg, fg, ring } = DEVICE_ICONS[p.iconIndex];
-                const riskMeta = getRiskMeta(p.risk, maxRisk);
+                const riskMeta = getRiskMeta(p.risk);
                 const barPercent = maxRisk > 0 ? (p.risk / maxRisk) * 100 : 0;
 
                 return (
@@ -478,7 +503,7 @@ const RiskScoreTable: React.FC = () => {
                           </p>
                         </div>
 
-                        <DangerDots value={p.risk} max={maxRisk} />
+                        <DangerDots value={p.risk} />
                       </div>
                     </div>
                   </div>
@@ -492,4 +517,4 @@ const RiskScoreTable: React.FC = () => {
   );
 };
 
-export default RiskScoreTable; 
+export default RiskScoreTable;

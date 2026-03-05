@@ -2,7 +2,7 @@ package entity
 
 import "gorm.io/gorm"
 
-type Notification struct {
+type AppNotification struct {
 	gorm.Model
 	Name   string `valid:"required~Name is required"`
 	UserID string `valid:"required~UserID is required"`
@@ -15,4 +15,5 @@ type Notification struct {
 	// ✅ ยังบังคับ LineMasterID เหมือนเดิม
 	AppLineMasterID uint        `valid:"required~AppLineMasterID is required"`
 	AppLineMaster   *AppLineMaster `gorm:"foreignKey:AppLineMasterID" valid:"-"`
+
 }
