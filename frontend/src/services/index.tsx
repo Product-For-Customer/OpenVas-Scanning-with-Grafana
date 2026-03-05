@@ -3,9 +3,7 @@ import axios from "axios";
 export * from "./auth";
 export * from "./user";
 export * from "./line";
-// ✅ ปรับให้ตรงกับโปรเจกต์คุณ
-// apiUrl ควรเป็น URL ของ backend API ของคุณ เช่น http://localhost:9000 หรือ https://2751-49-0-82-165.ngrok-free.app 
-export const apiUrl = "https://2751-49-0-82-165.ngrok-free.app";
+import { apiUrl } from "./api";
 
 // =======================
 // Auth header helper test

@@ -1,5 +1,5 @@
 import axios from "axios";
-import { apiUrl } from "./index";
+import { apiUrl } from "./api";
 
 // =======================
 // Axios instance for cookie-based auth
