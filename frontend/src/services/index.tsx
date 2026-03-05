@@ -5,7 +5,7 @@ export * from "./user";
 export * from "./line";
 // ✅ ปรับให้ตรงกับโปรเจกต์คุณ
 // apiUrl ควรเป็น URL ของ backend API ของคุณ เช่น http://localhost:9000 หรือ https://2751-49-0-82-165.ngrok-free.app 
-const apiUrl = "http://localhost:9000";
+export const apiUrl = "https://2751-49-0-82-165.ngrok-free.app";
 
 // =======================
 // Auth header helper test

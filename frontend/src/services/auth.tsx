@@ -1,7 +1,5 @@
 import axios from "axios";
-
-// ✅ เปลี่ยนตาม backend ของคุณ
-const apiUrl = "http://localhost:9000";
+import { apiUrl } from "./index";
 
 // =======================
 // Axios instance for cookie-based auth
