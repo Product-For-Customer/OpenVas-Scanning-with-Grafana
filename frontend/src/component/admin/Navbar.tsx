@@ -136,7 +136,10 @@ const Navbar: React.FC = () => {
 
           {/* Left */}
           <div className="relative z-10 flex items-center gap-3 sm:gap-4 pl-4 sm:pl-5 min-w-0 flex-1">
-            <TooltipComponent content={activeMenu ? "Hide menu" : "Open menu"} position="BottomCenter">
+            <TooltipComponent
+              content={activeMenu ? "Hide menu" : "Open menu"}
+              position="BottomCenter"
+            >
               <button
                 type="button"
                 aria-label="Toggle menu"
@@ -159,7 +162,7 @@ const Navbar: React.FC = () => {
               </div>
             </div>
 
-            {/* Search desktop */}
+            {/* Search desktop - แสดงเฉพาะ >= sm เท่านั้น */}
             <div
               className={[
                 "hidden sm:flex items-center h-12 w-full max-w-90 lg:max-w-105 rounded-full px-4",
@@ -243,27 +246,6 @@ const Navbar: React.FC = () => {
                 </button>
               </TooltipComponent>
             </div>
-          </div>
-        </div>
-
-        {/* Search mobile */}
-        <div className="sm:hidden mt-2">
-          <div
-            className={[
-              "flex items-center h-11 rounded-2xl px-3 border",
-              "border-gray-200 bg-[#f5f6fa]",
-              "dark:border-white/10 dark:bg-white/5",
-            ].join(" ")}
-          >
-            <FiSearch className="text-gray-400 dark:text-white/40 text-[17px] mr-2" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search..."
-              className="flex-1 bg-transparent outline-none text-[14px] text-gray-700 dark:text-white/80 placeholder:text-gray-400 dark:placeholder:text-white/35"
-              aria-label="Search mobile"
-            />
           </div>
         </div>
       </div>
