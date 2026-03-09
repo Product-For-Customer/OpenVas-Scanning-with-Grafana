@@ -276,6 +276,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./backend/scripts:/app/scripts:ro
       - .:/workspace:ro
+      - ./logs:/app/logs
     environment:
       - DATABASE_URL=host=pg-gvm port=5432 user=pbi password=Pbi12345 dbname=gvmd sslmode=disable
       - LINE_CHANNEL_ACCESS_TOKEN=${LINE_CHANNEL_ACCESS_TOKEN}

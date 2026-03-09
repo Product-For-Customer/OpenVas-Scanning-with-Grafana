@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 	"time"
@@ -10,6 +11,7 @@ import (
 	"github.com/Tawunchai/openvas/entity"
 	"github.com/Tawunchai/openvas/utils"
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 func isHTTPSRequest(c *gin.Context) bool {
@@ -169,5 +171,48 @@ func Logout(c *gin.Context) {
 	clearAuthCookie(c)
 	c.JSON(http.StatusOK, gin.H{
 		"message": "logout success",
+	})
+}
+
+type CheckEmailRequest struct {
+	Email string `json:"email" binding:"required,email"`
+}
+
+func CheckUserEmail(c *gin.Context) {
+	var req CheckEmailRequest
+	var user entity.AppUser
+
+	// รับค่า JSON
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "กรุณากรอก email ให้ถูกต้อง",
+		})
+		return
+	}
+
+	db := config.DB()
+
+	// เช็กว่ามี email นี้ในระบบไหม
+	result := db.Where("email = ?", req.Email).First(&user)
+
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{
+				"exists": false,
+				"error":  "ไม่พบอีเมลนี้ในระบบ",
+			})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": result.Error.Error(),
+		})
+		return
+	}
+
+	// เจอ email ในระบบ
+	c.JSON(http.StatusOK, gin.H{
+		"exists":  true,
+		"message": "พบอีเมลในระบบ",
 	})
 }

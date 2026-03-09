@@ -2,9 +2,18 @@
 set -euo pipefail
 
 COMPOSE_DIR="${OPENVAS_COMPOSE_WORKDIR:-/workspace}"
+LOG_DIR="${FEED_UPDATE_LOG_DIR:-/app/logs}"
+LOG_FILE="${LOG_DIR}/feed-update.log"
 
+mkdir -p "${LOG_DIR}"
+
+# เขียน log ทั้งหมดทั้ง stdout/stderr ลงไฟล์ + แสดงออกหน้าจอด้วย
+exec > >(tee -a "${LOG_FILE}") 2>&1
+
+echo "=================================================="
 echo "[$(date -Iseconds)] START feed update automation"
 echo "Using compose dir: ${COMPOSE_DIR}"
+echo "Using log file: ${LOG_FILE}"
 
 # เช็กว่า compose file มีจริง
 if [ ! -f "${COMPOSE_DIR}/docker-compose.yml" ] && [ ! -f "${COMPOSE_DIR}/compose.yml" ]; then
@@ -21,6 +30,8 @@ else
   COMPOSE_FILE="${COMPOSE_DIR}/compose.yml"
 fi
 
+echo "Resolved compose file: ${COMPOSE_FILE}"
+
 # services feed/data ที่ใช้ refresh
 FEED_SERVICES=(
   vulnerability-tests
@@ -32,18 +43,14 @@ FEED_SERVICES=(
   data-objects
 )
 
+echo "Feed services: ${FEED_SERVICES[*]}"
 echo "Resolving image references from compose config..."
 
-# map เก็บ image refs ของแต่ละ service
 declare -A SERVICE_IMAGE_REF
-# map เก็บ image IDs ก่อน/หลัง pull
 declare -A IMAGE_ID_BEFORE
 declare -A IMAGE_ID_AFTER
 
-# ใช้ docker compose config เพื่ออ่าน image จริงของ service
 for svc in "${FEED_SERVICES[@]}"; do
-  # ดึง image ref ของ service จาก compose config
-  # awk logic: หา block ของ service แล้วอ่านบรรทัด image:
   img_ref="$(
     docker compose -f "${COMPOSE_FILE}" config 2>/dev/null \
       | awk -v svc="$svc" '
@@ -66,7 +73,6 @@ for svc in "${FEED_SERVICES[@]}"; do
 
   SERVICE_IMAGE_REF["$svc"]="${img_ref}"
 
-  # image inspect ก่อน pull (ถ้า image ยังไม่มี local จะได้ none)
   before_id="$(docker image inspect "${img_ref}" --format '{{.Id}}' 2>/dev/null || echo 'none')"
   IMAGE_ID_BEFORE["$svc"]="${before_id}"
 
@@ -75,15 +81,14 @@ done
 
 echo "Checking for feed image updates via docker compose pull..."
 
-# 1) pull feed/data images และเก็บ output
 PULL_OUTPUT="$(
   docker compose -f "${COMPOSE_FILE}" pull "${FEED_SERVICES[@]}" 2>&1
 )"
 
-# print output ให้ backend เก็บไปใน output field
+echo "----- BEGIN docker compose pull output -----"
 echo "${PULL_OUTPUT}"
+echo "----- END docker compose pull output -----"
 
-# normalize text (fallback only)
 LOWER_PULL_OUTPUT="$(printf '%s' "${PULL_OUTPUT}" | tr '[:upper:]' '[:lower:]')"
 
 UPDATED=false
@@ -112,7 +117,6 @@ for svc in "${FEED_SERVICES[@]}"; do
   fi
 done
 
-# Fallback: ถ้า inspect/resolve ไม่ครบ แล้ว compose output บอกชัดว่ามี image ใหม่
 if [ "${UPDATED}" = false ]; then
   if printf '%s' "${LOWER_PULL_OUTPUT}" | grep -qE "downloaded newer image"; then
     echo "Fallback text detection matched: downloaded newer image"
@@ -120,12 +124,12 @@ if [ "${UPDATED}" = false ]; then
   fi
 fi
 
-# ถ้าไม่มี update จริง -> ไม่ต้อง up/restart เพื่อลดงานและลด LINE spam
 if [ "${UPDATED}" = false ]; then
   echo "No new feed updates found (all feed images likely up to date)."
   echo "UPDATED=false"
   echo "RESULT_TYPE=no_update"
   echo "[$(date -Iseconds)] FEED CHECK DONE (NO UPDATE)"
+  echo "=================================================="
   exit 0
 fi
 
@@ -135,14 +139,13 @@ if [ "${#CHANGED_SERVICES[@]}" -gt 0 ]; then
   echo "Changed services by image ID: ${CHANGED_SERVICES[*]}"
 fi
 
-# 2) up เฉพาะ feed/data containers ให้ refresh ข้อมูล
+echo "Running: docker compose -f ${COMPOSE_FILE} up -d ${FEED_SERVICES[*]}"
 docker compose -f "${COMPOSE_FILE}" up -d "${FEED_SERVICES[@]}"
 
-# 3) restart service หลักที่เกี่ยวข้อง (ช่วยให้เห็น feed ใหม่เร็วขึ้น)
 echo "Restarting gvmd/openvas/openvasd to load refreshed feed..."
 docker compose -f "${COMPOSE_FILE}" restart gvmd openvas openvasd || true
 
 echo "UPDATED=true"
 echo "RESULT_TYPE=updated"
 echo "[$(date -Iseconds)] FEED UPDATE AUTOMATION DONE"
-
+echo "=================================================="

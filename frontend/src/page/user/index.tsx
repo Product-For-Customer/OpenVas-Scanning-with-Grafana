@@ -1,4 +1,3 @@
-// src/pages/.../users/index.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import {
   FiSearch,
@@ -13,13 +12,12 @@ import {
   FiTrash2,
   FiX,
 } from "react-icons/fi";
-
-// ✅ เปลี่ยน path ให้ตรงกับโปรเจกต์คุณ
 import {
   ListUser,
   DeleteUserByID,
   type UserResponse,
 } from "../../services";
+import { useAuth } from "../../contexts/AuthContext";
 
 type SortKey = "Newest" | "Role: Admin First" | "Role: User First" | "Name A-Z";
 
@@ -36,7 +34,6 @@ type UiUser = {
 };
 
 const roleBadgeClass = (role: string) => {
-  // ✅ Admin = สีม่วง
   if (role === "Admin") {
     return "bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-500/10 dark:text-violet-200 dark:border-violet-400/20";
   }
@@ -58,79 +55,14 @@ const positionBadgeClass = (position: string) => {
   return "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-200 dark:border-emerald-400/20";
 };
 
-// ✅ แสดงรูปเฉพาะตอนเป็น base64 image เท่านั้น
 const isBase64DataImage = (v: string) => {
   const s = (v || "").trim();
   return /^data:image\/(png|jpe?g|gif|webp|bmp|svg\+xml);base64,/i.test(s);
 };
 
-// ✅ helper อ่าน user id ของคนที่ login อยู่
-// ถ้าโปรเจกต์คุณเก็บคนละ key ให้แก้ตรงนี้
-const getCurrentLoggedInUserId = (): number | null => {
-  const candidateKeys = [
-    "user",
-    "me",
-    "authUser",
-    "currentUser",
-    "profile",
-    "app_user",
-    "auth",
-    "loginUser",
-  ];
-
-  const parseAnyId = (value: any): number | null => {
-    if (value == null) return null;
-
-    if (typeof value === "number" && !Number.isNaN(value)) return value;
-
-    if (typeof value === "string" && value.trim() !== "" && !Number.isNaN(Number(value))) {
-      return Number(value);
-    }
-
-    if (typeof value === "object") {
-      const candidates = [
-        value.id,
-        value.ID,
-        value.user_id,
-        value.userID,
-        value.user?.id,
-        value.user?.ID,
-        value.data?.id,
-        value.data?.ID,
-      ];
-
-      for (const c of candidates) {
-        const parsed = parseAnyId(c);
-        if (parsed !== null) return parsed;
-      }
-    }
-
-    return null;
-  };
-
-  const parseFromStorage = (raw: string | null): number | null => {
-    if (!raw) return null;
-
-    try {
-      const parsed = JSON.parse(raw);
-      return parseAnyId(parsed);
-    } catch {
-      return parseAnyId(raw);
-    }
-  };
-
-  for (const key of candidateKeys) {
-    const local = parseFromStorage(localStorage.getItem(key));
-    if (local !== null) return local;
-
-    const session = parseFromStorage(sessionStorage.getItem(key));
-    if (session !== null) return session;
-  }
-
-  return null;
-};
-
 const Index: React.FC = () => {
+  const auth = useAuth() as any;
+
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<SortKey>("Newest");
   const [openSort, setOpenSort] = useState(false);
@@ -139,12 +71,23 @@ const Index: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
-  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
-
-  // ✅ popup confirm delete
   const [deleteTarget, setDeleteTarget] = useState<UiUser | null>(null);
   const [deleting, setDeleting] = useState<boolean>(false);
   const [deleteError, setDeleteError] = useState<string>("");
+
+  // ✅ ใช้ auth context แบบเดียวกับหน้า Account
+  const currentUserId = useMemo(() => {
+    return (
+      auth?.user?.id ??
+      auth?.me?.id ??
+      auth?.profile?.id ??
+      auth?.currentUser?.id ??
+      auth?.authUser?.id ??
+      null
+    );
+  }, [auth]);
+
+  const authLoading = auth?.isLoading ?? false;
 
   const fetchUsers = async () => {
     try {
@@ -173,6 +116,7 @@ const Index: React.FC = () => {
 
       setRows(mapped);
     } catch (e) {
+      console.error("fetchUsers error:", e);
       setRows([]);
       setError("เกิดข้อผิดพลาดตอนโหลดข้อมูลผู้ใช้");
     } finally {
@@ -181,52 +125,9 @@ const Index: React.FC = () => {
   };
 
   useEffect(() => {
-    setCurrentUserId(getCurrentLoggedInUserId());
-
-    let alive = true;
-
-    (async () => {
-      try {
-        setLoading(true);
-        setError("");
-
-        const data = await ListUser();
-
-        if (!alive) return;
-
-        if (!data) {
-          setRows([]);
-          setError("โหลดข้อมูลผู้ใช้ไม่สำเร็จ (ListUser returned null)");
-          return;
-        }
-
-        const mapped: UiUser[] = (data as UserResponse[]).map((u) => ({
-          id: u.id,
-          email: u.email ?? "",
-          first_name: u.first_name ?? "",
-          last_name: u.last_name ?? "",
-          profile: u.profile ?? "",
-          phone_number: u.phone_number ?? "",
-          location: u.location ?? "",
-          position: u.position ?? "",
-          role: u.role ?? "User",
-        }));
-
-        setRows(mapped);
-      } catch (e) {
-        if (!alive) return;
-        setRows([]);
-        setError("เกิดข้อผิดพลาดตอนโหลดข้อมูลผู้ใช้");
-      } finally {
-        if (!alive) return;
-        setLoading(false);
-      }
-    })();
-
-    return () => {
-      alive = false;
-    };
-  }, []);
+    if (authLoading) return;
+    fetchUsers();
+  }, [authLoading]);
 
   const users = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -273,7 +174,6 @@ const Index: React.FC = () => {
   };
 
   const openDeleteModal = (user: UiUser) => {
-    // ✅ ห้ามลบตัวเอง / คนที่กำลัง login อยู่
     if (currentUserId !== null && user.id === currentUserId) {
       setDeleteError("ไม่สามารถลบบัญชีของตัวเองหรือบัญชีที่กำลังเข้าสู่ระบบอยู่ได้");
       setDeleteTarget(null);
@@ -293,7 +193,6 @@ const Index: React.FC = () => {
   const confirmDelete = async () => {
     if (!deleteTarget) return;
 
-    // ✅ กันซ้ำอีกชั้น
     if (currentUserId !== null && deleteTarget.id === currentUserId) {
       setDeleteError("ไม่สามารถลบบัญชีของตัวเองหรือบัญชีที่กำลังเข้าสู่ระบบอยู่ได้");
       return;
@@ -366,7 +265,6 @@ const Index: React.FC = () => {
           "dark:bg-[#08111f]/90 dark:border-white/10 dark:ring-1 dark:ring-cyan-400/10 dark:shadow-none",
         ].join(" ")}
       >
-        {/* Background */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="absolute -top-16 right-8 h-36 w-36 rounded-full bg-cyan-400/10 blur-3xl" />
           <div className="absolute bottom-0 left-0 h-36 w-36 rounded-full bg-violet-500/10 blur-3xl" />
@@ -385,7 +283,6 @@ const Index: React.FC = () => {
         </div>
 
         <div className="relative z-10">
-          {/* Header */}
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0">
               <div className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-[12px] font-semibold text-violet-700 dark:border-violet-400/20 dark:bg-violet-500/10 dark:text-violet-300">
@@ -403,7 +300,6 @@ const Index: React.FC = () => {
             </div>
           </div>
 
-          {/* Controls */}
           <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="relative w-full sm:max-w-md">
               <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-white/35" />
@@ -469,7 +365,6 @@ const Index: React.FC = () => {
             </div>
           </div>
 
-          {/* Status line */}
           <div className="mt-3 flex flex-col gap-1 text-[12px] text-slate-500 dark:text-white/50">
             {loading ? (
               <span className="inline-flex items-center gap-2">
@@ -492,7 +387,6 @@ const Index: React.FC = () => {
             )}
           </div>
 
-          {/* Table */}
           <div className="mt-4 overflow-x-auto rounded-3xl border border-gray-200/80 bg-white/80 dark:border-white/10 dark:bg-white/3">
             <table className="min-w-275 w-full border-separate border-spacing-0">
               <thead>
@@ -532,7 +426,6 @@ const Index: React.FC = () => {
                           "hover:bg-violet-50/40 dark:hover:bg-white/4",
                         ].join(" ")}
                       >
-                        {/* User */}
                         <td
                           className={`px-4 py-4 ${
                             idx !== users.length - 1
@@ -566,7 +459,6 @@ const Index: React.FC = () => {
                           </div>
                         </td>
 
-                        {/* Contact */}
                         <td
                           className={`px-4 py-4 ${
                             idx !== users.length - 1
@@ -586,7 +478,6 @@ const Index: React.FC = () => {
                           </div>
                         </td>
 
-                        {/* Location */}
                         <td
                           className={`px-4 py-4 ${
                             idx !== users.length - 1
@@ -600,7 +491,6 @@ const Index: React.FC = () => {
                           </div>
                         </td>
 
-                        {/* Role */}
                         <td
                           className={`px-4 py-4 ${
                             idx !== users.length - 1
@@ -623,7 +513,6 @@ const Index: React.FC = () => {
                           </span>
                         </td>
 
-                        {/* Position */}
                         <td
                           className={`px-4 py-4 ${
                             idx !== users.length - 1
@@ -642,7 +531,6 @@ const Index: React.FC = () => {
                           </span>
                         </td>
 
-                        {/* Action */}
                         <td
                           className={`px-4 py-4 text-right ${
                             idx !== users.length - 1
@@ -665,7 +553,6 @@ const Index: React.FC = () => {
                               <FiEdit2 />
                             </button>
 
-                            {/* ✅ คนที่ login อยู่ ไม่แสดงปุ่มลบเลย */}
                             {!isCurrentUser && (
                               <button
                                 type="button"
@@ -723,12 +610,8 @@ const Index: React.FC = () => {
         )}
       </section>
 
-      {/* =========================
-          Delete Confirm Modal
-      ========================= */}
       {deleteTarget && (
         <div className="fixed inset-0 z-200 flex items-center justify-center p-4">
-          {/* Overlay */}
           <button
             type="button"
             onClick={closeDeleteModal}
@@ -736,14 +619,12 @@ const Index: React.FC = () => {
             aria-label="Close delete modal overlay"
           />
 
-          {/* Modal */}
           <div
             className={[
               "relative z-10 w-full max-w-135 rounded-[14px] border border-gray-200 bg-white px-5 py-5 shadow-[0_20px_70px_rgba(15,23,42,0.18)]",
               "dark:border-white/10 dark:bg-[#0d1524]",
             ].join(" ")}
           >
-            {/* Close */}
             <button
               type="button"
               onClick={closeDeleteModal}
@@ -754,19 +635,16 @@ const Index: React.FC = () => {
               <FiX className="text-[20px]" />
             </button>
 
-            {/* Icon */}
             <div className="flex justify-center pt-2">
               <div className="grid h-14 w-14 place-items-center rounded-full bg-red-50 text-red-500 dark:bg-red-500/10 dark:text-red-300">
                 <FiTrash2 className="text-[28px]" />
               </div>
             </div>
 
-            {/* Title */}
             <h3 className="mt-4 text-center text-[22px] font-semibold text-slate-800 dark:text-white">
               Delete Account
             </h3>
 
-            {/* Description */}
             <p className="mx-auto mt-3 max-w-100 text-center text-[14px] leading-6 text-slate-500 dark:text-white/55">
               Are you sure you want to delete{" "}
               <span className="font-semibold text-slate-700 dark:text-white/80">
@@ -785,7 +663,6 @@ const Index: React.FC = () => {
               </div>
             )}
 
-            {/* Actions */}
             <div className="mt-6 flex items-center justify-center gap-3">
               <button
                 type="button"
@@ -820,4 +697,4 @@ const Index: React.FC = () => {
   );
 };
 
-export default Index; 
+export default Index;

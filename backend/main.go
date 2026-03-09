@@ -8,6 +8,7 @@ import (
 	"github.com/Tawunchai/openvas/controller/auth"
 	"github.com/Tawunchai/openvas/controller/automation"
 	"github.com/Tawunchai/openvas/controller/line"
+	"github.com/Tawunchai/openvas/controller/otp"
 	"github.com/Tawunchai/openvas/controller/report"
 	"github.com/Tawunchai/openvas/controller/user"
 	"github.com/Tawunchai/openvas/controller/vulnerability"
@@ -32,17 +33,18 @@ func main() {
 	})
 
 	// ===== Public Auth Routes =====
-	r.POST("/auth/login", auth.Login) //
+	r.POST("/auth/login", auth.Login) 
+	r.POST("/check-user-email", auth.CheckUserEmail)
+	r.POST("/send-otp", otp.SendOTP)
+	r.POST("/verify-otp", otp.VerifyOTP)
+	r.POST("/users", user.CreateUser)
+	r.POST("/auth/logout", auth.Logout)
 
 	// ===== Public Routes =====
 	r.GET("/line/test", line.TestSendLineHandler)
 	r.POST("/automation/feed/update", automation.TriggerFeedUpdateHandler)
 	r.GET("/automation/feed/status", automation.GetFeedUpdateStatusHandler)
 	r.GET("/api/report", report.GetReportCSVSourceHandler)
-
-	// ถ้าจะใช้สร้าง user ทดสอบก่อน login
-	r.POST("/users", user.CreateUser)   //
-	r.POST("/auth/logout", auth.Logout) //
 
 	// Service API with Frontend
 	r.GET("/tasks/status", vulnerability.ListStatus)                                      //
@@ -78,6 +80,8 @@ func CORSMiddleware() gin.HandlerFunc {
 		origin := c.Request.Header.Get("Origin")
 
 		allowedOrigins := map[string]bool{
+			"http://localhost:5174":           true,
+			"http://127.0.0.1:5174":           true,
 			"http://localhost:5173":           true,
 			"http://127.0.0.1:5173":           true,
 			"http://localhost:3000":           true,

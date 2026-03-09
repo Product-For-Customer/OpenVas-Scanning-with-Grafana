@@ -7,12 +7,7 @@ import {
   FiMail,
   FiLock,
   FiArrowRight,
-  FiRadio,
-  FiCpu,
-  FiActivity,
 } from "react-icons/fi";
-import { FcGoogle } from "react-icons/fc";
-import { FaApple } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { Login } from "../../../services/auth";
 import { useAuth } from "../../../contexts/AuthContext";
@@ -589,47 +584,6 @@ const Index: React.FC = () => {
                   activity, and continue investigating vulnerabilities from one
                   centralized dashboard.
                 </p>
-
-                <div className="mt-7 flex flex-wrap justify-center gap-3 2xl:gap-4">
-                  <div
-                    className={[
-                      "inline-flex items-center gap-2 rounded-2xl px-4 py-3",
-                      "bg-slate-50 border border-slate-200 text-slate-700",
-                      "dark:bg-white/4 dark:border-white/10 dark:text-white/75",
-                    ].join(" ")}
-                  >
-                    <FiRadio className="text-cyan-500 text-[18px]" />
-                    <span className="text-[14px] font-medium">
-                      Live Monitoring
-                    </span>
-                  </div>
-
-                  <div
-                    className={[
-                      "inline-flex items-center gap-2 rounded-2xl px-4 py-3",
-                      "bg-slate-50 border border-slate-200 text-slate-700",
-                      "dark:bg-white/4 dark:border-white/10 dark:text-white/75",
-                    ].join(" ")}
-                  >
-                    <FiCpu className="text-sky-500 text-[18px]" />
-                    <span className="text-[14px] font-medium">
-                      Secure Access
-                    </span>
-                  </div>
-
-                  <div
-                    className={[
-                      "inline-flex items-center gap-2 rounded-2xl px-4 py-3",
-                      "bg-slate-50 border border-slate-200 text-slate-700",
-                      "dark:bg-white/4 dark:border-white/10 dark:text-white/75",
-                    ].join(" ")}
-                  >
-                    <FiActivity className="text-violet-500 text-[18px]" />
-                    <span className="text-[14px] font-medium">
-                      Threat Analysis
-                    </span>
-                  </div>
-                </div>
               </div>
             </section>
 
@@ -779,37 +733,6 @@ const Index: React.FC = () => {
                         OR
                       </span>
                       <div className="h-px flex-1 bg-slate-200 dark:bg-white/10" />
-                    </div>
-
-                    {/* social */}
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      <button
-                        type="button"
-                        className={[
-                          "inline-flex h-12 items-center justify-center gap-3 rounded-2xl border px-4",
-                          "border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50",
-                          "dark:border-white/10 dark:bg-white/3 dark:text-white/75 dark:hover:bg-white/6",
-                        ].join(" ")}
-                      >
-                        <FcGoogle className="text-[20px]" />
-                        <span className="text-[14px] font-medium">
-                          Sign in with Google
-                        </span>
-                      </button>
-
-                      <button
-                        type="button"
-                        className={[
-                          "inline-flex h-12 items-center justify-center gap-3 rounded-2xl border px-4",
-                          "border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50",
-                          "dark:border-white/10 dark:bg-white/3 dark:text-white/75 dark:hover:bg-white/6",
-                        ].join(" ")}
-                      >
-                        <FaApple className="text-[18px]" />
-                        <span className="text-[14px] font-medium">
-                          Continue with Apple
-                        </span>
-                      </button>
                     </div>
 
                     {/* footer */}

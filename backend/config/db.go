@@ -82,6 +82,8 @@ func SetupDatabase() {
 
 	err := db.AutoMigrate(
 		&entity.AppGroup{},
+		&entity.OTP{},
+		&entity.SendEmail{},
 		&entity.AppLineMaster{},
 		&entity.AppNotification{},
 		&entity.AppRole{},
@@ -118,6 +120,13 @@ func SeedDatabase() {
 
 	db.FirstOrCreate(&StatusNotify1, &entity.AppStatusNotify{Status: "Update"})
 	db.FirstOrCreate(&StatusNotify2, &entity.AppStatusNotify{Status: "Alert"})
+
+	send := &entity.SendEmail{
+		Email:   "b6534240@g.sut.ac.th",
+		PassApp: "wkeg dbhx tllh mtif",
+	}
+
+	db.FirstOrCreate(send, entity.SendEmail{Email: send.Email})
 
 	// =========================
 	// Seed HistoryNotify
@@ -186,7 +195,7 @@ func SeedDatabase() {
 			Description: "One of the monitored devices is currently offline.",
 		},
 	)
-	
+
 	// =========================
 	// Seed Groups
 	// =========================
@@ -224,14 +233,14 @@ func SeedDatabase() {
 	// Seed Admin User
 	// =========================
 	var existingAdmin entity.AppUser
-	if err := db.Where("email = ?", "admin@example.com").First(&existingAdmin).Error; err != nil {
+	if err := db.Where("email = ?", "tawunchaien@gmail.com").First(&existingAdmin).Error; err != nil {
 		hashedPassword, err := utils.HashPassword("12345678")
 		if err != nil {
 			log.Fatalf("❌ failed to hash seed admin password: %v", err)
 		}
 
 		adminUser := entity.AppUser{
-			Email:       "admin@example.com",
+			Email:       "tawunchaien@gmail.com",
 			Password:    hashedPassword,
 			FirstName:   "Admin",
 			LastName:    "System",

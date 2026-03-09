@@ -1,0 +1,44 @@
+==================================================
+[2026-03-09T02:43:18+00:00] START feed update automation
+Using compose dir: /workspace
+Using log file: /app/logs/feed-update.log
+Resolved compose file: /workspace/docker-compose.yml
+Feed services: vulnerability-tests notus-data scap-data cert-bund-data dfn-cert-data report-formats data-objects
+Resolving image references from compose config...
+Service 'vulnerability-tests' -> image 'registry.community.greenbone.net/community/ospd-openvas:stable' (before: sha256:b8507be8e4cf34a84cc02c216817f86b347a984ecdbe0b68c759b094efd626c9)
+WARN: could not resolve image ref for service 'notus-data' from compose config
+Service 'scap-data' -> image 'registry.community.greenbone.net/community/gvmd:stable' (before: sha256:c5d0e52e7fb11d77d337586926e851596e495fc3b0e1e88fcd69ad60a80562e8)
+WARN: could not resolve image ref for service 'cert-bund-data' from compose config
+WARN: could not resolve image ref for service 'dfn-cert-data' from compose config
+WARN: could not resolve image ref for service 'report-formats' from compose config
+WARN: could not resolve image ref for service 'data-objects' from compose config
+Checking for feed image updates via docker compose pull...
+----- BEGIN docker compose pull output -----
+ notus-data Pulling 
+ dfn-cert-data Pulling 
+ scap-data Pulling 
+ report-formats Pulling 
+ vulnerability-tests Pulling 
+ cert-bund-data Pulling 
+ data-objects Pulling 
+ scap-data Pulled 
+ dfn-cert-data Pulled 
+ data-objects Pulled 
+ vulnerability-tests Pulled 
+ report-formats Pulled 
+ cert-bund-data Pulled 
+ notus-data Pulled 
+----- END docker compose pull output -----
+Comparing image IDs before/after pull...
+Service 'vulnerability-tests' -> before: sha256:b8507be8e4cf34a84cc02c216817f86b347a984ecdbe0b68c759b094efd626c9 | after: sha256:b8507be8e4cf34a84cc02c216817f86b347a984ecdbe0b68c759b094efd626c9
+WARN: skip ID compare for 'notus-data' (image unresolved)
+Service 'scap-data' -> before: sha256:c5d0e52e7fb11d77d337586926e851596e495fc3b0e1e88fcd69ad60a80562e8 | after: sha256:c5d0e52e7fb11d77d337586926e851596e495fc3b0e1e88fcd69ad60a80562e8
+WARN: skip ID compare for 'cert-bund-data' (image unresolved)
+WARN: skip ID compare for 'dfn-cert-data' (image unresolved)
+WARN: skip ID compare for 'report-formats' (image unresolved)
+WARN: skip ID compare for 'data-objects' (image unresolved)
+No new feed updates found (all feed images likely up to date).
+UPDATED=false
+RESULT_TYPE=no_update
+[2026-03-09T02:43:22+00:00] FEED CHECK DONE (NO UPDATE)
+==================================================

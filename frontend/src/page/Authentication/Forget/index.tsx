@@ -1,17 +1,22 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   FiShield,
   FiMail,
   FiArrowRight,
   FiArrowLeft,
-  FiRadio,
-  FiCpu,
-  FiActivity,
   FiCheckCircle,
   FiRefreshCw,
 } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
+import { CheckUserEmail } from "../../../services";
 
 const Index: React.FC = () => {
+  const navigate = useNavigate();
+
+  const [email, setEmail] = useState<string>("");
+  const [submitting, setSubmitting] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
+
   const inputClass = [
     "w-full h-12 rounded-2xl border pl-11 pr-4 text-[14px] outline-none transition-all duration-200",
     "border-slate-200 bg-white text-slate-800 placeholder:text-slate-400",
@@ -19,6 +24,60 @@ const Index: React.FC = () => {
     "dark:border-white/10 dark:bg-white/[0.04] dark:text-white dark:placeholder:text-white/30",
     "dark:focus:border-cyan-400/30 dark:focus:ring-cyan-500/10",
   ].join(" ");
+
+  const validateEmail = (value: string) => {
+    const trimmed = value.trim();
+
+    if (!trimmed) return "กรุณากรอกอีเมล";
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmed)) return "รูปแบบอีเมลไม่ถูกต้อง";
+
+    return "";
+  };
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    const emailError = validateEmail(email);
+    if (emailError) {
+      setError(emailError);
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+
+      const res = await CheckUserEmail({ email: email.trim() });
+
+      if (!res) {
+        setError("ไม่สามารถตรวจสอบอีเมลได้");
+        return;
+      }
+
+      if (!res.exists) {
+        setError(res.error || "ไม่พบอีเมลนี้ในระบบ");
+        return;
+      }
+
+      navigate("/reset-password", {
+        replace: true,
+        state: {
+          email: email.trim(),
+          verifiedEmail: true,
+        },
+      });
+    } catch (err: any) {
+      console.error("CheckUserEmail error:", err);
+      setError(
+        err?.response?.data?.error ||
+          err?.message ||
+          "เกิดข้อผิดพลาดระหว่างตรวจสอบอีเมล"
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <div className="w-full min-h-screen bg-[#f7f8fc] dark:bg-[#07101b]">
@@ -55,7 +114,6 @@ const Index: React.FC = () => {
                   </span>
                 </div>
 
-                {/* NEW NETWORK ILLUSTRATION */}
                 <div className="w-full max-w-162.5">
                   <svg
                     viewBox="0 0 760 520"
@@ -82,7 +140,6 @@ const Index: React.FC = () => {
                       </radialGradient>
                     </defs>
 
-                    {/* main recovery platform */}
                     <rect
                       x="152"
                       y="102"
@@ -95,7 +152,6 @@ const Index: React.FC = () => {
                       strokeWidth="1.6"
                     />
 
-                    {/* center secure core */}
                     <circle cx="380" cy="228" r="86" fill="url(#forgotCoreGlow)" />
                     <circle
                       cx="380"
@@ -123,7 +179,6 @@ const Index: React.FC = () => {
                       strokeWidth="2"
                     />
 
-                    {/* lock */}
                     <rect
                       x="364"
                       y="222"
@@ -142,7 +197,6 @@ const Index: React.FC = () => {
                       strokeLinecap="round"
                     />
 
-                    {/* recovery arrow ring accent */}
                     <path
                       d="M414 214C417 222 417 234 412 244"
                       stroke="#8b5cf6"
@@ -157,7 +211,6 @@ const Index: React.FC = () => {
                       strokeLinejoin="round"
                     />
 
-                    {/* top email node */}
                     <rect
                       x="322"
                       y="48"
@@ -178,7 +231,6 @@ const Index: React.FC = () => {
                       strokeLinejoin="round"
                     />
 
-                    {/* connection up */}
                     <path
                       d="M380 166V122"
                       stroke="url(#forgotMainStroke)"
@@ -187,7 +239,6 @@ const Index: React.FC = () => {
                       strokeDasharray="8 8"
                     />
 
-                    {/* left device card */}
                     <rect
                       x="170"
                       y="154"
@@ -203,7 +254,6 @@ const Index: React.FC = () => {
                     <circle cx="250" cy="181" r="8" fill="#0ea5e9" fillOpacity="0.12" />
                     <circle cx="250" cy="181" r="3.8" fill="#22d3ee" />
 
-                    {/* right device card */}
                     <rect
                       x="474"
                       y="154"
@@ -224,7 +274,6 @@ const Index: React.FC = () => {
                       strokeLinejoin="round"
                     />
 
-                    {/* bottom-left mail verification */}
                     <rect
                       x="182"
                       y="288"
@@ -246,7 +295,6 @@ const Index: React.FC = () => {
                     <rect x="236" y="321" width="44" height="8" rx="4" fill="#22d3ee" />
                     <rect x="236" y="335" width="32" height="6" rx="3" fill="#BAE6FD" />
 
-                    {/* bottom-right reset status */}
                     <rect
                       x="450"
                       y="288"
@@ -274,7 +322,6 @@ const Index: React.FC = () => {
                     <rect x="504" y="321" width="46" height="8" rx="4" fill="#8b5cf6" />
                     <rect x="504" y="335" width="34" height="6" rx="3" fill="#DDD6FE" />
 
-                    {/* center bottom status panel */}
                     <rect
                       x="316"
                       y="392"
@@ -296,7 +343,6 @@ const Index: React.FC = () => {
                       strokeLinejoin="round"
                     />
 
-                    {/* links */}
                     <path
                       d="M338 199L286 193"
                       stroke="url(#forgotMainStroke)"
@@ -333,7 +379,6 @@ const Index: React.FC = () => {
                       strokeDasharray="8 8"
                     />
 
-                    {/* floating side nodes */}
                     <circle cx="112" cy="232" r="24" fill="#E0F2FE" className="dark:fill-cyan-500/10" />
                     <circle cx="648" cy="232" r="24" fill="#EDE9FE" className="dark:fill-violet-500/10" />
                     <circle cx="268" cy="438" r="18" fill="#DBEAFE" className="dark:fill-sky-500/10" />
@@ -359,7 +404,6 @@ const Index: React.FC = () => {
                       strokeDasharray="6 7"
                     />
 
-                    {/* decor dots */}
                     <circle cx="244" cy="98" r="4" fill="#22d3ee" fillOpacity="0.85" />
                     <circle cx="520" cy="96" r="3.5" fill="#8b5cf6" fillOpacity="0.85" />
                     <circle cx="300" cy="472" r="4" fill="#60a5fa" fillOpacity="0.85" />
@@ -376,41 +420,6 @@ const Index: React.FC = () => {
                   restore your protected session, and continue monitoring network
                   security safely.
                 </p>
-
-                <div className="mt-7 flex flex-wrap justify-center gap-3">
-                  <div
-                    className={[
-                      "inline-flex items-center gap-2 rounded-2xl px-4 py-3",
-                      "bg-slate-50 border border-slate-200 text-slate-700",
-                      "dark:bg-white/4 dark:border-white/10 dark:text-white/75",
-                    ].join(" ")}
-                  >
-                    <FiRadio className="text-cyan-500 text-[18px]" />
-                    <span className="text-[14px] font-medium">Recovery Signal</span>
-                  </div>
-
-                  <div
-                    className={[
-                      "inline-flex items-center gap-2 rounded-2xl px-4 py-3",
-                      "bg-slate-50 border border-slate-200 text-slate-700",
-                      "dark:bg-white/4 dark:border-white/10 dark:text-white/75",
-                    ].join(" ")}
-                  >
-                    <FiCpu className="text-sky-500 text-[18px]" />
-                    <span className="text-[14px] font-medium">Protected Reset</span>
-                  </div>
-
-                  <div
-                    className={[
-                      "inline-flex items-center gap-2 rounded-2xl px-4 py-3",
-                      "bg-slate-50 border border-slate-200 text-slate-700",
-                      "dark:bg-white/4 dark:border-white/10 dark:text-white/75",
-                    ].join(" ")}
-                  >
-                    <FiActivity className="text-violet-500 text-[18px]" />
-                    <span className="text-[14px] font-medium">Access Restore</span>
-                  </div>
-                </div>
               </div>
             </section>
 
@@ -448,12 +457,22 @@ const Index: React.FC = () => {
                   </h2>
 
                   <p className="mt-2 text-[14px] leading-7 text-slate-500 dark:text-white/55">
-                    Enter your email to receive a secure recovery link and restore
-                    access to your network scanning account.
+                    Enter your email to verify that your account exists before continuing the secure reset process.
                   </p>
 
-                  <form className="mt-7 space-y-5">
-                    {/* Email */}
+                  {error ? (
+                    <div
+                      className={[
+                        "mt-4 rounded-2xl border px-4 py-3 text-[13px]",
+                        "border-red-200 bg-red-50 text-red-700",
+                        "dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-200",
+                      ].join(" ")}
+                    >
+                      {error}
+                    </div>
+                  ) : null}
+
+                  <form className="mt-7 space-y-5" onSubmit={onSubmit}>
                     <div>
                       <label className="mb-2 block text-[14px] font-medium text-slate-700 dark:text-white/75">
                         Email
@@ -464,11 +483,13 @@ const Index: React.FC = () => {
                           type="email"
                           placeholder="debra.holt@example.com"
                           className={inputClass}
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          autoComplete="email"
                         />
                       </div>
                     </div>
 
-                    {/* action note */}
                     <div
                       className={[
                         "rounded-2xl px-4 py-3",
@@ -485,16 +506,15 @@ const Index: React.FC = () => {
                             Secure recovery process
                           </p>
                           <p className="mt-1 text-[12px] leading-6 text-slate-500 dark:text-white/50">
-                            We&apos;ll send a protected reset link to your email so you
-                            can safely update your password.
+                            We&apos;ll first verify your email exists in the system before allowing you to continue.
                           </p>
                         </div>
                       </div>
                     </div>
 
-                    {/* submit */}
                     <button
                       type="submit"
+                      disabled={submitting}
                       className={[
                         "group inline-flex w-full items-center justify-center gap-2 rounded-2xl h-12 sm:h-13 px-6",
                         "bg-linear-to-r from-cyan-500 via-sky-500 to-violet-500",
@@ -502,16 +522,17 @@ const Index: React.FC = () => {
                         "shadow-[0_12px_32px_rgba(14,165,233,0.24)]",
                         "hover:scale-[1.01] active:scale-[0.99] transition-all duration-200",
                         "focus:outline-none focus:ring-4 focus:ring-cyan-200/60",
+                        submitting ? "opacity-70 cursor-not-allowed" : "",
                       ].join(" ")}
                     >
-                      <span>Send Recovery Link</span>
+                      <span>{submitting ? "Checking Email..." : "Continue to Reset"}</span>
                       <FiArrowRight className="text-[18px] transition-transform duration-200 group-hover:translate-x-0.5" />
                     </button>
 
-                    {/* back */}
                     <div className="pt-1 text-[14px] text-slate-500 dark:text-white/55">
                       <button
                         type="button"
+                        onClick={() => navigate("/")}
                         className="inline-flex items-center gap-2 font-medium text-violet-600 transition hover:text-violet-700 dark:text-violet-300 dark:hover:text-violet-200"
                       >
                         <FiArrowLeft className="text-[15px]" />
@@ -520,7 +541,6 @@ const Index: React.FC = () => {
                     </div>
                   </form>
 
-                  {/* bottom status */}
                   <div
                     className={[
                       "mt-6 rounded-2xl px-4 py-3",

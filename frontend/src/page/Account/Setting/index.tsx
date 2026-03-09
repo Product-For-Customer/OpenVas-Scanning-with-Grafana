@@ -1,50 +1,198 @@
-// Setting.tsx
-import React, { useState } from "react";
-import { FiCheckCircle, FiTrash2, FiBold, FiItalic, FiUnderline } from "react-icons/fi";
-import { BsTypeH1 } from "react-icons/bs";
-import { MdFormatListBulleted, MdFormatListNumbered } from "react-icons/md";
-import { BiLinkAlt, BiImageAdd } from "react-icons/bi";
+import React, { useEffect, useMemo, useState } from "react";
+import { FiCheckCircle } from "react-icons/fi";
+import { CameraOutlined } from "@ant-design/icons";
+import { message } from "antd";
+import {
+  UpdateUserByID,
+  type UserResponse,
+  type UpdateUserInput,
+} from "../../../services/user";
 
-const Setting: React.FC = () => {
-  const [form, setForm] = useState({
-    firstName: "Jonathon",
-    lastName: "Smith",
-    email: "debra.holt@example.com",
-    phone: "(907) 555-0101",
-    location: "1901 Thornridge",
-    country: "",
-    description: "",
+type SettingProps = {
+  user: UserResponse;
+  onUpdated: () => void;
+};
+
+type SettingForm = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  location: string;
+  position: string;
+};
+
+const Setting: React.FC<SettingProps> = ({ user, onUpdated }) => {
+  const createInitialForm = (userData: UserResponse): SettingForm => ({
+    firstName: userData.first_name || "",
+    lastName: userData.last_name || "",
+    email: userData.email || "",
+    phone: userData.phone_number || "",
+    location: userData.location || "",
+    position: userData.position || "",
   });
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
-  ) => {
+  const [form, setForm] = useState<SettingForm>(createInitialForm(user));
+  const [submitting, setSubmitting] = useState<boolean>(false);
+  //@ts-ignore
+  const [uploadFile, setUploadFile] = useState<File | undefined>(undefined);
+  const [profileBase64, setProfileBase64] = useState<string | undefined>(
+    undefined
+  );
+
+  useEffect(() => {
+    setForm(createInitialForm(user));
+    setUploadFile(undefined);
+    setProfileBase64(undefined);
+  }, [user]);
+
+  const previewUrl = useMemo(() => {
+    if (profileBase64) return profileBase64;
+    if (user.profile) return user.profile;
+    return "";
+  }, [profileBase64, user.profile]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+
+    if (name === "phone") {
+      const numericOnly = value.replace(/\D/g, "").slice(0, 10);
+      setForm((prev) => ({ ...prev, phone: numericOnly }));
+      return;
+    }
+
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const onSave = (e: React.FormEvent) => {
+  const handleFileChange = (file?: File) => {
+    if (!file) {
+      setUploadFile(undefined);
+      setProfileBase64(undefined);
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      message.error("กรุณาอัปโหลดไฟล์รูปภาพเท่านั้น");
+      return;
+    }
+
+    setUploadFile(file);
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setProfileBase64(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const validatePhone = (phone: string) => {
+    if (!phone.trim()) {
+      return "กรุณากรอกเบอร์โทรศัพท์";
+    }
+
+    if (!/^0\d*$/.test(phone)) {
+      return "เบอร์โทรต้องขึ้นต้นด้วย 0 และเป็นตัวเลขเท่านั้น";
+    }
+
+    if (phone.length > 10) {
+      return "เบอร์โทรต้องมีความยาวไม่เกิน 10 ตัว";
+    }
+
+    if (phone.length !== 10) {
+      return "เบอร์โทรต้องมี 10 หลัก";
+    }
+
+    return "";
+  };
+
+  const onSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Save account settings:", form);
-    // TODO: call API here
+
+    if (!user?.id) {
+      message.error("ไม่พบรหัสผู้ใช้งาน");
+      return;
+    }
+
+    if (!form.firstName.trim()) {
+      message.error("กรุณากรอกชื่อ");
+      return;
+    }
+
+    if (!form.lastName.trim()) {
+      message.error("กรุณากรอกนามสกุล");
+      return;
+    }
+
+    if (!form.email.trim()) {
+      message.error("ไม่พบอีเมลผู้ใช้งาน");
+      return;
+    }
+
+    const phoneError = validatePhone(form.phone);
+    if (phoneError) {
+      message.error(phoneError);
+      return;
+    }
+
+    if (!form.location.trim()) {
+      message.error("กรุณากรอก Location");
+      return;
+    }
+
+    if (!form.position.trim()) {
+      message.error("กรุณากรอก Position");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+
+      const payload: UpdateUserInput = {
+        first_name: form.firstName.trim(),
+        last_name: form.lastName.trim(),
+        phone_number: form.phone.trim(),
+        location: form.location.trim(),
+        position: form.position.trim(),
+        ...(profileBase64 ? { profile: profileBase64 } : {}),
+      };
+
+      const updated = await UpdateUserByID(user.id, payload);
+
+      if (!updated) {
+        message.error("อัปเดตข้อมูลไม่สำเร็จ");
+        return;
+      }
+
+      setForm(createInitialForm(updated));
+      setUploadFile(undefined);
+      setProfileBase64(undefined);
+
+      message.success("บันทึกข้อมูลสำเร็จ");
+      onUpdated();
+    } catch (err: any) {
+      console.error("Update profile error:", err);
+      const msg =
+        err?.response?.data?.error ||
+        err?.message ||
+        "อัปเดตข้อมูลไม่สำเร็จ";
+      message.error(msg);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const onCancel = () => {
-    setForm({
-      firstName: "Jonathon",
-      lastName: "Smith",
-      email: "debra.holt@example.com",
-      phone: "(907) 555-0101",
-      location: "1901 Thornridge",
-      country: "",
-      description: "",
-    });
-  };
+  const inputClass = [
+    "w-full h-11 rounded-xl border px-4 text-[14px] outline-none",
+    "border-gray-300 bg-white text-gray-700",
+    "focus:ring-2 focus:ring-[#7a67ea]/25 focus:border-[#7a67ea]",
+    "dark:border-white/10 dark:bg-white/5 dark:text-white/80",
+    "dark:placeholder:text-white/35",
+  ].join(" ");
 
-  const toolbarBtnClass = [
-    "inline-flex h-8 w-8 items-center justify-center rounded-md border transition-colors",
-    "border-gray-200 bg-white text-gray-600 hover:bg-gray-50",
-    "dark:border-white/10 dark:bg-white/5 dark:text-white/70 dark:hover:bg-white/10",
+  const disabledInputClass = [
+    "w-full h-11 rounded-xl border px-4 text-[14px] outline-none cursor-not-allowed",
+    "border-gray-200 bg-gray-100 text-gray-500",
+    "dark:border-white/10 dark:bg-white/10 dark:text-white/45",
   ].join(" ");
 
   return (
@@ -55,7 +203,6 @@ const Setting: React.FC = () => {
         "dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:ring-1 dark:ring-white/10",
       ].join(" ")}
     >
-      {/* Header */}
       <div
         className={[
           "px-5 sm:px-6 py-4 border-b",
@@ -68,9 +215,46 @@ const Setting: React.FC = () => {
         </h2>
       </div>
 
-      {/* Body */}
       <form onSubmit={onSave} className="p-5 sm:p-6">
-        {/* Grid fields */}
+        {/* Upload Profile */}
+        <div className="mb-6 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3">
+            <label
+              htmlFor="profile-upload-input"
+              className={[
+                "relative flex h-28 w-28 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed transition",
+                "border-gray-300 bg-white hover:border-[#7a67ea]",
+                "dark:border-white/15 dark:bg-white/5 dark:hover:border-[#7a67ea]",
+              ].join(" ")}
+            >
+              {previewUrl ? (
+                <img
+                  src={previewUrl}
+                  alt="profile preview"
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <CameraOutlined className="text-[24px] text-[#7a67ea]" />
+              )}
+
+              <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors" />
+            </label>
+
+            <input
+              id="profile-upload-input"
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => handleFileChange(e.target.files?.[0])}
+            />
+
+            <p className="text-[12px] text-gray-500 dark:text-white/45">
+              คลิกเพื่ออัปโหลดรูปโปรไฟล์
+            </p>
+          </div>
+        </div>
+
+        {/* Form Fields */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* First Name */}
           <div>
@@ -82,13 +266,7 @@ const Setting: React.FC = () => {
               value={form.firstName}
               onChange={handleChange}
               type="text"
-              className={[
-                "w-full h-11 rounded-xl border px-4 text-[14px] outline-none",
-                "border-gray-300 bg-white text-gray-700",
-                "focus:ring-2 focus:ring-[#7a67ea]/25 focus:border-[#7a67ea]",
-                "dark:border-white/10 dark:bg-white/5 dark:text-white/80",
-                "dark:placeholder:text-white/35",
-              ].join(" ")}
+              className={inputClass}
             />
           </div>
 
@@ -102,16 +280,11 @@ const Setting: React.FC = () => {
               value={form.lastName}
               onChange={handleChange}
               type="text"
-              className={[
-                "w-full h-11 rounded-xl border px-4 text-[14px] outline-none",
-                "border-gray-300 bg-white text-gray-700",
-                "focus:ring-2 focus:ring-[#7a67ea]/25 focus:border-[#7a67ea]",
-                "dark:border-white/10 dark:bg-white/5 dark:text-white/80",
-              ].join(" ")}
+              className={inputClass}
             />
           </div>
 
-          {/* Email */}
+          {/* Email - Locked */}
           <div>
             <label className="block mb-2 text-[13px] font-medium text-[#374151] dark:text-white/65">
               Email Address
@@ -119,14 +292,10 @@ const Setting: React.FC = () => {
             <input
               name="email"
               value={form.email}
-              onChange={handleChange}
               type="email"
-              className={[
-                "w-full h-11 rounded-xl border px-4 text-[14px] outline-none",
-                "border-gray-300 bg-white text-gray-700",
-                "focus:ring-2 focus:ring-[#7a67ea]/25 focus:border-[#7a67ea]",
-                "dark:border-white/10 dark:bg-white/5 dark:text-white/80",
-              ].join(" ")}
+              disabled
+              readOnly
+              className={disabledInputClass}
             />
           </div>
 
@@ -140,13 +309,14 @@ const Setting: React.FC = () => {
               value={form.phone}
               onChange={handleChange}
               type="text"
-              className={[
-                "w-full h-11 rounded-xl border px-4 text-[14px] outline-none",
-                "border-gray-300 bg-white text-gray-700",
-                "focus:ring-2 focus:ring-[#7a67ea]/25 focus:border-[#7a67ea]",
-                "dark:border-white/10 dark:bg-white/5 dark:text-white/80",
-              ].join(" ")}
+              inputMode="numeric"
+              maxLength={10}
+              placeholder="0XXXXXXXXX"
+              className={inputClass}
             />
+            <p className="mt-1 text-[12px] text-gray-500 dark:text-white/40">
+              ต้องเป็นตัวเลข 10 หลัก และขึ้นต้นด้วย 0
+            </p>
           </div>
 
           {/* Location */}
@@ -159,132 +329,39 @@ const Setting: React.FC = () => {
               value={form.location}
               onChange={handleChange}
               type="text"
-              className={[
-                "w-full h-11 rounded-xl border px-4 text-[14px] outline-none",
-                "border-gray-300 bg-white text-gray-700",
-                "focus:ring-2 focus:ring-[#7a67ea]/25 focus:border-[#7a67ea]",
-                "dark:border-white/10 dark:bg-white/5 dark:text-white/80",
-              ].join(" ")}
+              className={inputClass}
             />
           </div>
 
-          {/* Country */}
+          {/* Position */}
           <div>
             <label className="block mb-2 text-[13px] font-medium text-[#374151] dark:text-white/65">
-              Country
+              Position
             </label>
-            <div className="relative">
-              <select
-                name="country"
-                value={form.country}
-                onChange={handleChange}
-                className={[
-                  "w-full h-11 appearance-none rounded-xl border px-4 pr-10 text-[14px] outline-none",
-                  "border-gray-300 bg-white text-gray-500",
-                  "focus:ring-2 focus:ring-[#7a67ea]/25 focus:border-[#7a67ea]",
-                  "dark:border-white/10 dark:bg-white/5 dark:text-white/60",
-                ].join(" ")}
-              >
-                <option value="">Select Country</option>
-                <option value="Thailand">Thailand</option>
-                <option value="United States">United States</option>
-                <option value="Japan">Japan</option>
-                <option value="Singapore">Singapore</option>
-              </select>
-              <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400 dark:text-white/35">
-                ▾
-              </span>
-            </div>
+            <input
+              name="position"
+              value={form.position}
+              onChange={handleChange}
+              type="text"
+              className={inputClass}
+              placeholder="Enter position"
+            />
           </div>
         </div>
 
-        {/* Fake Rich Text Editor */}
-        <div
-          className={[
-            "mt-5 rounded-xl border overflow-hidden",
-            "border-gray-300 bg-white",
-            "dark:border-white/10 dark:bg-white/5",
-          ].join(" ")}
-        >
-          {/* Toolbar */}
-          <div
-            className={[
-              "flex flex-wrap items-center gap-1 border-b px-2 py-2",
-              "border-gray-200 bg-[#f8fafc]",
-              "dark:border-white/10 dark:bg-white/5",
-            ].join(" ")}
-          >
-            <button type="button" className={toolbarBtnClass} title="Bold">
-              <FiBold className="text-[15px]" />
-            </button>
-            <button type="button" className={toolbarBtnClass} title="Italic">
-              <FiItalic className="text-[15px]" />
-            </button>
-            <button type="button" className={toolbarBtnClass} title="Underline">
-              <FiUnderline className="text-[15px]" />
-            </button>
-            <button type="button" className={toolbarBtnClass} title="Heading">
-              <BsTypeH1 className="text-[15px]" />
-            </button>
-
-            <div className="mx-1 h-6 w-px bg-gray-200 dark:bg-white/10" />
-
-            <button type="button" className={toolbarBtnClass} title="Bulleted list">
-              <MdFormatListBulleted className="text-[18px]" />
-            </button>
-            <button type="button" className={toolbarBtnClass} title="Numbered list">
-              <MdFormatListNumbered className="text-[18px]" />
-            </button>
-
-            <div className="mx-1 h-6 w-px bg-gray-200 dark:bg-white/10" />
-
-            <button type="button" className={toolbarBtnClass} title="Insert link">
-              <BiLinkAlt className="text-[18px]" />
-            </button>
-            <button type="button" className={toolbarBtnClass} title="Insert image">
-              <BiImageAdd className="text-[18px]" />
-            </button>
-          </div>
-
-          {/* Text area */}
-          <textarea
-            name="description"
-            value={form.description}
-            onChange={handleChange}
-            rows={9}
-            placeholder="Write your description here..."
-            className={[
-              "w-full resize-y min-h-47.5 px-4 py-3 text-[15px] outline-none",
-              "bg-white text-gray-700 placeholder:text-gray-400",
-              "dark:bg-transparent dark:text-white/80 dark:placeholder:text-white/35",
-            ].join(" ")}
-          />
-        </div>
-
-        {/* Footer buttons */}
+        {/* Footer */}
         <div className="mt-5 flex flex-wrap items-center gap-3">
           <button
             type="submit"
+            disabled={submitting}
             className={[
               "inline-flex items-center gap-2 rounded-xl px-4 py-2.5 transition-colors",
               "bg-[#6f5be8] hover:bg-[#624de0] text-white font-semibold text-[14px]",
+              submitting ? "opacity-70 cursor-not-allowed" : "",
             ].join(" ")}
           >
             <FiCheckCircle className="text-[16px]" />
-            Save Changes
-          </button>
-
-          <button
-            type="button"
-            onClick={onCancel}
-            className={[
-              "inline-flex items-center gap-2 rounded-xl px-4 py-2.5 transition-colors",
-              "bg-[#f4d7d1] hover:bg-[#efcbc3] text-[#d94a38] font-semibold text-[14px]",
-              "dark:bg-red-500/10 dark:hover:bg-red-500/15 dark:text-red-300",
-            ].join(" ")}
-          >
-            <FiTrash2 className="text-[16px]" />
-            Cancel
+            {submitting ? "Saving..." : "Save Changes"}
           </button>
         </div>
       </form>

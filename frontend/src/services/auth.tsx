@@ -52,6 +52,39 @@ export type LogoutResponse = {
 };
 
 // =======================
+// Types
+// =======================
+export type CheckUserEmailInput = {
+  email: string;
+};
+
+export type CheckUserEmailResponse = {
+  exists: boolean;
+  message?: string;
+  error?: string;
+};
+
+export type SendOTPInput = {
+  email: string;
+};
+
+export type SendOTPResponse = {
+  message: string;
+  error?: string;
+};
+
+export type VerifyOTPInput = {
+  email: string;
+  otp: string;
+  new_password: string;
+};
+
+export type VerifyOTPResponse = {
+  message: string;
+  error?: string;
+};
+
+// =======================
 // API: POST /auth/login
 // =======================
 export const Login = async (
@@ -116,4 +149,86 @@ export const Logout = async (): Promise<LogoutResponse | null> => {
   }
 };
 
-export default authApi;
+// =======================
+// API: POST /check-user-email
+// =======================
+export const CheckUserEmail = async (
+  payload: CheckUserEmailInput
+): Promise<CheckUserEmailResponse | null> => {
+  try {
+    const response = await authApi.post("/check-user-email", payload);
+
+    console.log("CheckUserEmail raw response:", response.data);
+
+    if (response.data && typeof response.data === "object") {
+      return response.data as CheckUserEmailResponse;
+    }
+
+    console.error("Unexpected CheckUserEmail response:", response.data);
+    return null;
+  } catch (error: any) {
+    console.error("CheckUserEmail error:", error);
+
+    if (error?.response?.data) {
+      return error.response.data as CheckUserEmailResponse;
+    }
+
+    return null;
+  }
+};
+
+// =======================
+// API: POST /send-otp
+// =======================
+export const SendOTP = async (
+  payload: SendOTPInput
+): Promise<SendOTPResponse | null> => {
+  try {
+    const response = await authApi.post("/send-otp", payload);
+
+    console.log("SendOTP raw response:", response.data);
+
+    if (response.data && typeof response.data === "object") {
+      return response.data as SendOTPResponse;
+    }
+
+    console.error("Unexpected SendOTP response:", response.data);
+    return null;
+  } catch (error: any) {
+    console.error("SendOTP error:", error);
+
+    if (error?.response?.data) {
+      return error.response.data as SendOTPResponse;
+    }
+
+    return null;
+  }
+};
+
+// =======================
+// API: POST /verify-otp
+// =======================
+export const VerifyOTP = async (
+  payload: VerifyOTPInput
+): Promise<VerifyOTPResponse | null> => {
+  try {
+    const response = await authApi.post("/verify-otp", payload);
+
+    console.log("VerifyOTP raw response:", response.data);
+
+    if (response.data && typeof response.data === "object") {
+      return response.data as VerifyOTPResponse;
+    }
+
+    console.error("Unexpected VerifyOTP response:", response.data);
+    return null;
+  } catch (error: any) {
+    console.error("VerifyOTP error:", error);
+
+    if (error?.response?.data) {
+      return error.response.data as VerifyOTPResponse;
+    }
+
+    return null;
+  }
+};
