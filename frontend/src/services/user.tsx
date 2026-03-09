@@ -112,7 +112,7 @@ export const CreateUser = async (
   payload: CreateUserInput
 ): Promise<UserResponse | null> => {
   try {
-    const response = await userApi.post("/users", payload);
+    const response = await userApi.post("/create-users", payload);
 
     console.log("CreateUser raw response:", response.data);
 

@@ -33,12 +33,15 @@ func main() {
 	})
 
 	// ===== Public Auth Routes =====
-	r.POST("/auth/login", auth.Login) 
+	r.POST("/auth/login", auth.Login)
+	r.POST("/send-otp-signup", auth.SendOTPForSignUp)
+	r.POST("/verify-otp-signup", auth.VerifyOTPSignUp)
 	r.POST("/check-user-email", auth.CheckUserEmail)
 	r.POST("/send-otp", otp.SendOTP)
-	r.POST("/verify-otp", otp.VerifyOTP)
-	r.POST("/users", user.CreateUser)
+	r.POST("/verify-otp-password", otp.VerifyOTPAddUpdatePassword)
 	r.POST("/auth/logout", auth.Logout)
+
+	r.POST("/create-users", user.CreateUser)
 
 	// ===== Public Routes =====
 	r.GET("/line/test", line.TestSendLineHandler)

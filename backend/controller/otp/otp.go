@@ -91,7 +91,7 @@ type VerifyOTPRequest struct {
 	NewPassword string `json:"new_password" binding:"required,min=8"`
 }
 
-func VerifyOTP(c *gin.Context) {
+func VerifyOTPAddUpdatePassword(c *gin.Context) {
 	var req VerifyOTPRequest
 	var otp entity.OTP
 	var user entity.AppUser

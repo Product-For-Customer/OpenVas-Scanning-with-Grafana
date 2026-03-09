@@ -12,6 +12,10 @@ import {
   FiCheckCircle,
   FiMessageSquare,
   FiX,
+  FiClock,
+  FiSlash,
+  FiBell,
+  FiRotateCw,
 } from "react-icons/fi";
 import {
   ListHistoryNotify,
@@ -19,12 +23,25 @@ import {
   type HistoryNotifyResponse,
 } from "../../services";
 
-type FilterKey = "All" | "Update" | "Alert";
+type FilterKey =
+  | "All"
+  | "Update Completed"
+  | "No Update"
+  | "Already Running"
+  | "Update Failed"
+  | "Status Notification";
 
-const FILTER_OPTIONS: FilterKey[] = ["All", "Update", "Alert"];
+const FILTER_OPTIONS: FilterKey[] = [
+  "All",
+  "Update Completed",
+  "No Update",
+  "Already Running",
+  "Update Failed",
+  "Status Notification",
+];
 
 const statusStyles: Record<
-  string,
+  Exclude<FilterKey, "All">,
   {
     badge: string;
     dot: string;
@@ -33,30 +50,72 @@ const statusStyles: Record<
     label: string;
   }
 > = {
-  Alert: {
+  "Update Completed": {
+    badge:
+      "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-200 dark:border-emerald-400/20",
+    dot: "bg-emerald-500",
+    iconWrap:
+      "bg-emerald-50 border-emerald-200 text-emerald-600 dark:bg-emerald-500/10 dark:border-emerald-400/20 dark:text-emerald-300",
+    icon: <FiCheckCircle />,
+    label: "Update Completed",
+  },
+  "No Update": {
+    badge:
+      "bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-500/10 dark:text-slate-200 dark:border-slate-400/20",
+    dot: "bg-slate-500",
+    iconWrap:
+      "bg-slate-50 border-slate-200 text-slate-600 dark:bg-slate-500/10 dark:border-slate-400/20 dark:text-slate-300",
+    icon: <FiSlash />,
+    label: "No Update",
+  },
+  "Already Running": {
+    badge:
+      "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-200 dark:border-amber-400/20",
+    dot: "bg-amber-500",
+    iconWrap:
+      "bg-amber-50 border-amber-200 text-amber-600 dark:bg-amber-500/10 dark:border-amber-400/20 dark:text-amber-300",
+    icon: <FiRotateCw />,
+    label: "Already Running",
+  },
+  "Update Failed": {
     badge:
       "bg-red-50 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-200 dark:border-red-400/20",
     dot: "bg-red-500",
     iconWrap:
       "bg-red-50 border-red-200 text-red-600 dark:bg-red-500/10 dark:border-red-400/20 dark:text-red-300",
     icon: <FiAlertTriangle />,
-    label: "Alert",
+    label: "Update Failed",
   },
-  Update: {
+  "Status Notification": {
     badge:
       "bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-500/10 dark:text-cyan-200 dark:border-cyan-400/20",
     dot: "bg-cyan-500",
     iconWrap:
       "bg-cyan-50 border-cyan-200 text-cyan-600 dark:bg-cyan-500/10 dark:border-cyan-400/20 dark:text-cyan-300",
-    icon: <FiCheckCircle />,
-    label: "Update",
+    icon: <FiBell />,
+    label: "Status Notification",
   },
 };
 
-const getStatusMeta = (status?: string | null) => {
+const normalizeStatus = (status?: string | null): Exclude<FilterKey, "All"> => {
   const normalized = (status || "").trim();
-  if (normalized === "Alert") return statusStyles.Alert;
-  return statusStyles.Update;
+
+  if (normalized === "Update Completed") return "Update Completed";
+  if (normalized === "No Update") return "No Update";
+  if (normalized === "Already Running") return "Already Running";
+  if (normalized === "Update Failed") return "Update Failed";
+  if (normalized === "Status Notification") return "Status Notification";
+
+  // fallback เผื่อข้อมูลเก่าใน DB
+  if (normalized === "Update") return "Update Completed";
+  if (normalized === "Alert") return "Status Notification";
+
+  return "Status Notification";
+};
+
+const getStatusMeta = (status?: string | null) => {
+  const normalized = normalizeStatus(status);
+  return statusStyles[normalized];
 };
 
 const formatDate = (dateString?: string) => {
@@ -136,13 +195,15 @@ const Index: React.FC = () => {
     const q = search.trim().toLowerCase();
 
     return items.filter((item) => {
-      const matchFilter =
-        filter === "All" ? true : (item.status || "").trim() === filter;
+      const normalizedStatus = normalizeStatus(item.status);
+
+      const matchFilter = filter === "All" ? true : normalizedStatus === filter;
 
       const blob = [
         item.subject,
         item.description,
         item.status,
+        normalizedStatus,
         item.created_at,
         item.updated_at,
       ]
@@ -222,6 +283,27 @@ const Index: React.FC = () => {
     const selectedSet = new Set(selected);
     return items.filter((item) => selectedSet.has(item.id));
   }, [items, selected]);
+
+  const summaryCount = useMemo(() => {
+    return {
+      all: notifications.length,
+      updateCompleted: notifications.filter(
+        (item) => normalizeStatus(item.status) === "Update Completed"
+      ).length,
+      noUpdate: notifications.filter(
+        (item) => normalizeStatus(item.status) === "No Update"
+      ).length,
+      alreadyRunning: notifications.filter(
+        (item) => normalizeStatus(item.status) === "Already Running"
+      ).length,
+      updateFailed: notifications.filter(
+        (item) => normalizeStatus(item.status) === "Update Failed"
+      ).length,
+      statusNotification: notifications.filter(
+        (item) => normalizeStatus(item.status) === "Status Notification"
+      ).length,
+    };
+  }, [notifications]);
 
   return (
     <>
@@ -359,7 +441,7 @@ const Index: React.FC = () => {
                 </button>
 
                 {openFilter && (
-                  <div className="absolute right-0 z-20 mt-2 w-40 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg dark:border-white/10 dark:bg-[#0B1220] dark:shadow-none">
+                  <div className="absolute right-0 z-20 mt-2 w-52 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg dark:border-white/10 dark:bg-[#0B1220] dark:shadow-none">
                     {FILTER_OPTIONS.map((opt) => (
                       <button
                         key={opt}
@@ -389,7 +471,34 @@ const Index: React.FC = () => {
             <div className="inline-flex items-center rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[12px] font-medium text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/65">
               Total:{" "}
               <span className="ml-1 font-semibold text-slate-900 dark:text-white">
-                {notifications.length}
+                {summaryCount.all}
+              </span>
+            </div>
+
+            <div className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[12px] font-medium text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-500/10 dark:text-emerald-200">
+              Completed:{" "}
+              <span className="ml-1 font-semibold">{summaryCount.updateCompleted}</span>
+            </div>
+
+            <div className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[12px] font-medium text-slate-700 dark:border-slate-400/20 dark:bg-slate-500/10 dark:text-slate-200">
+              No Update:{" "}
+              <span className="ml-1 font-semibold">{summaryCount.noUpdate}</span>
+            </div>
+
+            <div className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-[12px] font-medium text-amber-700 dark:border-amber-400/20 dark:bg-amber-500/10 dark:text-amber-200">
+              Running:{" "}
+              <span className="ml-1 font-semibold">{summaryCount.alreadyRunning}</span>
+            </div>
+
+            <div className="inline-flex items-center rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-[12px] font-medium text-red-700 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-200">
+              Failed:{" "}
+              <span className="ml-1 font-semibold">{summaryCount.updateFailed}</span>
+            </div>
+
+            <div className="inline-flex items-center rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1.5 text-[12px] font-medium text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-200">
+              Notification:{" "}
+              <span className="ml-1 font-semibold">
+                {summaryCount.statusNotification}
               </span>
             </div>
 
@@ -500,7 +609,8 @@ const Index: React.FC = () => {
                             </p>
 
                             <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-                              <span className="text-[13px] font-medium text-slate-800 dark:text-white/80">
+                              <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-slate-800 dark:text-white/80">
+                                <FiClock className="text-[13px]" />
                                 {formatTime(item.created_at)}
                               </span>
 

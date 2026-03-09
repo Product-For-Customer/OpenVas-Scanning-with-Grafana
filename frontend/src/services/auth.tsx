@@ -206,13 +206,13 @@ export const SendOTP = async (
 };
 
 // =======================
-// API: POST /verify-otp
+// API: POST /verify-otp-password
 // =======================
-export const VerifyOTP = async (
+export const VerifyOTPAddUpdatePassword = async (
   payload: VerifyOTPInput
 ): Promise<VerifyOTPResponse | null> => {
   try {
-    const response = await authApi.post("/verify-otp", payload);
+    const response = await authApi.post("/verify-otp-password", payload);
 
     console.log("VerifyOTP raw response:", response.data);
 
@@ -227,6 +227,69 @@ export const VerifyOTP = async (
 
     if (error?.response?.data) {
       return error.response.data as VerifyOTPResponse;
+    }
+
+    return null;
+  }
+};
+
+export interface VerifyOTPSignUpPayload {
+  email: string;
+  otp: string;
+  password: string;
+  first_name: string;
+  last_name: string;
+  phone_number: string;
+  location: string;
+  position: string;
+}
+
+// ใช้อันนี้แทน SignUp เดิมใน flow สมัครสมาชิก
+export const VerifyOTPSignUp = async (payload: VerifyOTPSignUpPayload) => {
+  try {
+    const res = await axios.post(`${apiUrl}/verify-otp-signup`, payload, {
+      headers: {
+        "Content-Type": "application/json",
+        "ngrok-skip-browser-warning": "true",
+      },
+    });
+    return res.data;
+  } catch (error: any) {
+    return error?.response?.data || { error: "Verify OTP SignUp failed" };
+  }
+};
+
+export interface SendOTPForSignUpInput {
+  email: string;
+}
+
+export interface SendOTPForSignUpResponse {
+  message?: string;
+  error?: string;
+}
+
+// =======================
+// API: POST /send-otp-signup
+// =======================
+export const SendOTPForSignUp = async (
+  payload: SendOTPForSignUpInput
+): Promise<SendOTPForSignUpResponse | null> => {
+  try {
+    const response = await authApi.post("/send-otp-signup", payload);
+
+    console.log("SendOTPForSignUp raw response:", response.data);
+
+    if (response.data && typeof response.data === "object") {
+      return response.data as SendOTPForSignUpResponse;
+    }
+
+    console.error("Unexpected SendOTPForSignUp response:", response.data);
+    return null;
+  } catch (error: any) {
+    console.error("SendOTPForSignUp error:", error);
+
+    if (error?.response?.data) {
+      return error.response.data as SendOTPForSignUpResponse;
     }
 
     return null;

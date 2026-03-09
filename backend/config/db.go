@@ -115,11 +115,17 @@ func SeedDatabase() {
 	// =========================
 	// Seed StatusNotify
 	// =========================
-	StatusNotify1 := entity.AppStatusNotify{Status: "Update"}
-	StatusNotify2 := entity.AppStatusNotify{Status: "Alert"}
+	StatusNotify1 := entity.AppStatusNotify{Status: "Update Completed"}
+	StatusNotify2 := entity.AppStatusNotify{Status: "No Update"}
+	StatusNotify3 := entity.AppStatusNotify{Status: "Already Running"}
+	StatusNotify4 := entity.AppStatusNotify{Status: "Update Failed"}
+	StatusNotify5 := entity.AppStatusNotify{Status: "Status Notification"}
 
-	db.FirstOrCreate(&StatusNotify1, &entity.AppStatusNotify{Status: "Update"})
-	db.FirstOrCreate(&StatusNotify2, &entity.AppStatusNotify{Status: "Alert"})
+	db.FirstOrCreate(&StatusNotify1, &entity.AppStatusNotify{Status: "Update Completed"})
+	db.FirstOrCreate(&StatusNotify2, &entity.AppStatusNotify{Status: "No Update"})
+	db.FirstOrCreate(&StatusNotify3, &entity.AppStatusNotify{Status: "Already Running"})
+	db.FirstOrCreate(&StatusNotify4, &entity.AppStatusNotify{Status: "Update Failed"})
+	db.FirstOrCreate(&StatusNotify5, &entity.AppStatusNotify{Status: "Status Notification"})
 
 	send := &entity.SendEmail{
 		Email:   "b6534240@g.sut.ac.th",
@@ -134,7 +140,7 @@ func SeedDatabase() {
 	HistoryNotify1 := entity.AppHistoryNotify{
 		Subject:         "Vulnerability Found",
 		Description:     "A new vulnerability has been detected in the system.",
-		AppStatusNotify: &StatusNotify2, // Alert
+		AppStatusNotify: &StatusNotify5, // Status Notification
 	}
 	db.FirstOrCreate(
 		&HistoryNotify1,
@@ -147,7 +153,7 @@ func SeedDatabase() {
 	HistoryNotify2 := entity.AppHistoryNotify{
 		Subject:         "Scan Completed",
 		Description:     "The vulnerability scan has been completed successfully.",
-		AppStatusNotify: &StatusNotify1, // Update
+		AppStatusNotify: &StatusNotify1, // Update Completed
 	}
 	db.FirstOrCreate(
 		&HistoryNotify2,
@@ -158,41 +164,41 @@ func SeedDatabase() {
 	)
 
 	HistoryNotify3 := entity.AppHistoryNotify{
-		Subject:         "High Risk Detected",
-		Description:     "A high-risk issue was found on one of the monitored devices.",
-		AppStatusNotify: &StatusNotify2, // Alert
+		Subject:         "Scan Already Running",
+		Description:     "The scan process is already running in the system.",
+		AppStatusNotify: &StatusNotify3, // Already Running
 	}
 	db.FirstOrCreate(
 		&HistoryNotify3,
 		&entity.AppHistoryNotify{
-			Subject:     "High Risk Detected",
-			Description: "A high-risk issue was found on one of the monitored devices.",
+			Subject:     "Scan Already Running",
+			Description: "The scan process is already running in the system.",
 		},
 	)
 
 	HistoryNotify4 := entity.AppHistoryNotify{
-		Subject:         "Feed Updated",
-		Description:     "Security feed data has been updated to the latest version.",
-		AppStatusNotify: &StatusNotify1, // Update
+		Subject:         "Feed Update Failed",
+		Description:     "Security feed data update failed.",
+		AppStatusNotify: &StatusNotify4, // Update Failed
 	}
 	db.FirstOrCreate(
 		&HistoryNotify4,
 		&entity.AppHistoryNotify{
-			Subject:     "Feed Updated",
-			Description: "Security feed data has been updated to the latest version.",
+			Subject:     "Feed Update Failed",
+			Description: "Security feed data update failed.",
 		},
 	)
 
 	HistoryNotify5 := entity.AppHistoryNotify{
-		Subject:         "Device Offline",
-		Description:     "One of the monitored devices is currently offline.",
-		AppStatusNotify: &StatusNotify2, // Alert
+		Subject:         "No Feed Update",
+		Description:     "There is no new security feed update available.",
+		AppStatusNotify: &StatusNotify2, // No Update
 	}
 	db.FirstOrCreate(
 		&HistoryNotify5,
 		&entity.AppHistoryNotify{
-			Subject:     "Device Offline",
-			Description: "One of the monitored devices is currently offline.",
+			Subject:     "No Feed Update",
+			Description: "There is no new security feed update available.",
 		},
 	)
 
@@ -257,7 +263,7 @@ func SeedDatabase() {
 	}
 
 	// =========================
-	// Seed User Role 3 Users
+	// Seed User Role 1 Users
 	// =========================
 	seedUsers := []struct {
 		Email       string
@@ -270,7 +276,7 @@ func SeedDatabase() {
 		Position    string
 	}{
 		{
-			Email:       "user1@example.com",
+			Email:       "user@example.com",
 			Password:    "12345678",
 			FirstName:   "User",
 			LastName:    "One",
@@ -278,26 +284,6 @@ func SeedDatabase() {
 			PhoneNumber: "0811111111",
 			Location:    "Thailand",
 			Position:    "Operator",
-		},
-		{
-			Email:       "user2@example.com",
-			Password:    "12345678",
-			FirstName:   "User",
-			LastName:    "Two",
-			Profile:     "User Profile 2",
-			PhoneNumber: "0822222222",
-			Location:    "Thailand",
-			Position:    "Staff",
-		},
-		{
-			Email:       "user3@example.com",
-			Password:    "12345678",
-			FirstName:   "User",
-			LastName:    "Three",
-			Profile:     "User Profile 3",
-			PhoneNumber: "0833333333",
-			Location:    "Thailand",
-			Position:    "Viewer",
 		},
 	}
 

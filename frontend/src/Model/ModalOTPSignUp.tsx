@@ -1,12 +1,21 @@
 import React, { useEffect, useRef, useState } from "react";
 import { FiMail, FiArrowRight } from "react-icons/fi";
 import { message } from "antd";
-import { SendOTP, VerifyOTPAddUpdatePassword } from "../services";
+import { VerifyOTPSignUp } from "../services";
 
-type ModalOTPProps = {
-  open: boolean;
+type SignUpFormData = {
   email: string;
-  newPassword: string;
+  password: string;
+  first_name: string;
+  last_name: string;
+  phone_number: string;
+  location: string;
+  position: string;
+};
+
+type ModalOTPSignUpProps = {
+  open: boolean;
+  signupData: SignUpFormData;
   onClose: () => void;
   onVerified: () => void;
 };
@@ -25,26 +34,25 @@ const maskEmail = (email: string) => {
   return `${name.slice(0, 3)}***@${domain}`;
 };
 
-const ModalOTP: React.FC<ModalOTPProps> = ({
+const ModalOTPSignUp: React.FC<ModalOTPSignUpProps> = ({
   open,
-  email,
-  newPassword,
+  signupData,
   onClose,
   onVerified,
 }) => {
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const [submitting, setSubmitting] = useState(false);
-  const [resending, setResending] = useState(false);
   const [error, setError] = useState("");
 
   const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
+
+  const email = signupData.email;
 
   useEffect(() => {
     if (open) {
       setOtp(Array(OTP_LENGTH).fill(""));
       setError("");
       setSubmitting(false);
-      setResending(false);
 
       setTimeout(() => {
         inputRefs.current[0]?.focus();
@@ -133,18 +141,28 @@ const ModalOTP: React.FC<ModalOTPProps> = ({
       return;
     }
 
-    if (!newPassword.trim()) {
-      setError("ไม่พบรหัสผ่านใหม่ กรุณากลับไปกรอกข้อมูลอีกครั้ง");
+    if (!signupData.email.trim()) {
+      setError("ไม่พบอีเมลสำหรับสมัครสมาชิก");
+      return;
+    }
+
+    if (!signupData.password.trim()) {
+      setError("ไม่พบรหัสผ่านสำหรับสมัครสมาชิก");
       return;
     }
 
     try {
       setSubmitting(true);
 
-      const res = await VerifyOTPAddUpdatePassword({
-        email,
+      const res = await VerifyOTPSignUp({
+        email: signupData.email,
         otp: joinedOtp,
-        new_password: newPassword,
+        password: signupData.password,
+        first_name: signupData.first_name,
+        last_name: signupData.last_name,
+        phone_number: signupData.phone_number,
+        location: signupData.location,
+        position: signupData.position,
       });
 
       if (!res) {
@@ -157,10 +175,10 @@ const ModalOTP: React.FC<ModalOTPProps> = ({
         return;
       }
 
-      message.success(res.message || "ยืนยัน OTP สำเร็จ");
+      message.success(res.message || "สมัครสมาชิกสำเร็จ");
       onVerified();
     } catch (err: any) {
-      console.error("Verify OTP error:", err);
+      console.error("Verify Sign Up OTP error:", err);
       setError(
         err?.response?.data?.error ||
           err?.message ||
@@ -168,42 +186,6 @@ const ModalOTP: React.FC<ModalOTPProps> = ({
       );
     } finally {
       setSubmitting(false);
-    }
-  };
-
-  const handleResendOTP = async () => {
-    setError("");
-
-    try {
-      setResending(true);
-
-      const res = await SendOTP({ email });
-
-      if (!res) {
-        setError("ส่ง OTP ใหม่ไม่สำเร็จ");
-        return;
-      }
-
-      if (res.error) {
-        setError(res.error);
-        return;
-      }
-
-      message.success(res.message || "ส่ง OTP ใหม่สำเร็จ");
-
-      setOtp(Array(OTP_LENGTH).fill(""));
-      setTimeout(() => {
-        inputRefs.current[0]?.focus();
-      }, 80);
-    } catch (err: any) {
-      console.error("Resend OTP error:", err);
-      setError(
-        err?.response?.data?.error ||
-          err?.message ||
-          "เกิดข้อผิดพลาดระหว่างส่ง OTP ใหม่"
-      );
-    } finally {
-      setResending(false);
     }
   };
 
@@ -268,17 +250,9 @@ const ModalOTP: React.FC<ModalOTPProps> = ({
             ))}
           </div>
 
-          <div className="mt-4 text-center text-[13px] text-slate-400 dark:text-white/35">
-            Didn&apos;t get a code?{" "}
-            <button
-              type="button"
-              onClick={handleResendOTP}
-              disabled={resending}
-              className="font-medium text-[#4f6df5] transition hover:underline disabled:opacity-60 dark:text-cyan-300"
-            >
-              {resending ? "sending..." : "resend"}
-            </button>
-          </div>
+          <p className="mt-4 text-center text-[13px] text-slate-400 dark:text-white/35">
+            ระบบได้ส่ง OTP ไปแล้วจากหน้า Sign Up กรุณาตรวจสอบอีเมลของคุณ
+          </p>
 
           <button
             type="submit"
@@ -309,4 +283,4 @@ const ModalOTP: React.FC<ModalOTPProps> = ({
   );
 };
 
-export default ModalOTP;
+export default ModalOTPSignUp;
