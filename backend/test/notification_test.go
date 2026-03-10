@@ -19,7 +19,7 @@ func TestValidNotificationInput(t *testing.T) {
 
 	n := entity.AppNotification{
 		Name:         "CPU Alert",
-		UserID:       "1",
+		SendID:       "1",
 		Alert:        true, // govalidator required on bool => true ผ่าน
 		AppLineMasterID: 1,    // required
 		// GroupID: nil // ว่างได้
@@ -34,12 +34,10 @@ func TestValidNotificationInput(t *testing.T) {
 func TestValidNotificationWithGroupID(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	groupID := uint(1)
 	n := entity.AppNotification{
 		Name:         "Memory Alert",
-		UserID:       "2",
+		SendID:       "2",
 		Alert:        true,
-		AppGroupID:   &groupID,
 		AppLineMasterID: 1,
 	}
 
@@ -54,7 +52,7 @@ func TestInvalidNotificationName(t *testing.T) {
 
 	n := entity.AppNotification{
 		Name:         "",
-		UserID:       "1",
+		SendID:       "1",
 		Alert:        true,
 		AppLineMasterID: 1,
 	}
@@ -71,7 +69,7 @@ func TestInvalidNotificationUserID(t *testing.T) {
 
 	n := entity.AppNotification{
 		Name:         "CPU Alert",
-		UserID:       "",
+		SendID:       "",
 		Alert:        true,
 		AppLineMasterID: 1,
 	}
@@ -88,7 +86,7 @@ func TestInvalidNotificationAlert(t *testing.T) {
 
 	n := entity.AppNotification{
 		Name:         "CPU Alert",
-		UserID:       "1",
+		SendID:       "1",
 		Alert:        false, // govalidator required on bool => false fail
 		AppLineMasterID: 1,
 	}
@@ -105,7 +103,7 @@ func TestInvalidNotificationLineMasterID(t *testing.T) {
 
 	n := entity.AppNotification{
 		Name:         "CPU Alert",
-		UserID:       "1",
+		SendID:       "1",
 		Alert:        true,
 		AppLineMasterID: 0, // required on uint => 0 fail
 		// AppGroupID ว่างได้
@@ -123,9 +121,8 @@ func TestValidNotificationWithoutAppGroupID(t *testing.T) {
 
 	n := entity.AppNotification{
 		Name:         "Disk Alert",
-		UserID:       "99",
+		SendID:       "99",
 		Alert:        true,
-		AppGroupID:      nil, // ✅ ว่างได้
 		AppLineMasterID: 10,
 	}
 

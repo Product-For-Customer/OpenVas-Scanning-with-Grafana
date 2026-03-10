@@ -1,0 +1,1243 @@
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  FiSearch,
+  FiBell,
+  FiPlus,
+  FiEdit2,
+  FiTrash2,
+  FiX,
+  FiChevronDown,
+  FiCheckCircle,
+  FiAlertCircle,
+  FiSend,
+  FiHash,
+  FiLayers,
+} from "react-icons/fi";
+import {
+  ListAppNotification,
+  CreateAppNotification,
+  UpdateAppNotificationByID,
+  DeleteAppNotificationByID,
+  ListAppLineMaster,
+  type AppNotificationResponse,
+  type AppLineMasterResponse,
+} from "../../../services";
+
+type SortKey =
+  | "Newest"
+  | "Oldest"
+  | "Name A-Z"
+  | "Alert: On First"
+  | "Alert: Off First";
+
+type UiNotification = {
+  id: number;
+  name: string;
+  send_id: string;
+  alert: boolean;
+  app_line_master_id: number;
+};
+
+type NotificationFormData = {
+  name: string;
+  send_id: string;
+  alert: boolean;
+  app_line_master_id: string;
+};
+
+const alertBadgeClass = (alert: boolean) => {
+  if (alert) {
+    return "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-200 dark:border-emerald-400/20";
+  }
+  return "bg-red-50 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-200 dark:border-red-400/20";
+};
+
+const cardGlowClass = [
+  "relative h-full overflow-hidden rounded-[26px] p-4 sm:p-5 md:p-6",
+  "bg-white border border-gray-200/80 shadow-[0_16px_40px_-24px_rgba(15,23,42,0.25)]",
+  "dark:bg-[#08111f]/90 dark:border-white/10 dark:ring-1 dark:ring-cyan-400/10 dark:shadow-none",
+  "flex flex-col",
+].join(" ");
+
+const inputClass = [
+  "w-full h-11 rounded-2xl px-4 text-[14px] outline-none transition",
+  "border border-gray-200 bg-white text-slate-800 placeholder:text-slate-400 focus:ring-2 focus:ring-violet-200",
+  "dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:placeholder:text-white/35 dark:focus:ring-violet-400/10",
+].join(" ");
+
+const labelClass =
+  "mb-2 block text-[13px] font-medium text-slate-700 dark:text-white/75";
+
+const selectClass = [
+  "w-full h-11 rounded-2xl px-4 text-[14px] outline-none transition appearance-none",
+  "border border-gray-200 bg-white text-slate-800 focus:ring-2 focus:ring-violet-200",
+  "dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:focus:ring-violet-400/10",
+].join(" ");
+
+const AlertToggle: React.FC<{
+  value: boolean;
+  onChange: (next: boolean) => void;
+}> = ({ value, onChange }) => {
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      <button
+        type="button"
+        onClick={() => onChange(true)}
+        className={[
+          "group relative flex min-h-23 flex-col justify-center rounded-2xl border px-4 py-3 text-left transition-all",
+          value
+            ? "border-emerald-300 bg-emerald-50 shadow-[0_10px_30px_-18px_rgba(16,185,129,0.7)] dark:border-emerald-400/30 dark:bg-emerald-500/10"
+            : "border-gray-200 bg-white hover:border-emerald-200 hover:bg-emerald-50/50 dark:border-white/10 dark:bg-white/5 dark:hover:border-emerald-400/20 dark:hover:bg-emerald-500/5",
+        ].join(" ")}
+      >
+        <div className="flex items-center justify-between">
+          <div
+            className={[
+              "grid h-10 w-10 place-items-center rounded-xl border transition",
+              value
+                ? "border-emerald-300 bg-emerald-100 text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-500/15 dark:text-emerald-300"
+                : "border-gray-200 bg-gray-50 text-gray-500 dark:border-white/10 dark:bg-white/5 dark:text-white/45",
+            ].join(" ")}
+          >
+            <FiCheckCircle className="text-[18px]" />
+          </div>
+
+          <div
+            className={[
+              "h-3.5 w-3.5 rounded-full border transition",
+              value
+                ? "border-emerald-500 bg-emerald-500"
+                : "border-gray-300 bg-transparent dark:border-white/20",
+            ].join(" ")}
+          />
+        </div>
+
+        <div className="mt-3">
+          <p
+            className={[
+              "text-[14px] font-semibold",
+              value
+                ? "text-emerald-700 dark:text-emerald-300"
+                : "text-slate-700 dark:text-white/75",
+            ].join(" ")}
+          >
+            Alert On
+          </p>
+          <p className="mt-1 text-[12px] text-slate-500 dark:text-white/45">
+            เปิดการแจ้งเตือนสำหรับผู้รับนี้
+          </p>
+        </div>
+      </button>
+
+      <button
+        type="button"
+        onClick={() => onChange(false)}
+        className={[
+          "group relative flex min-h-23 flex-col justify-center rounded-2xl border px-4 py-3 text-left transition-all",
+          !value
+            ? "border-rose-300 bg-rose-50 shadow-[0_10px_30px_-18px_rgba(244,63,94,0.7)] dark:border-rose-400/30 dark:bg-rose-500/10"
+            : "border-gray-200 bg-white hover:border-rose-200 hover:bg-rose-50/50 dark:border-white/10 dark:bg-white/5 dark:hover:border-rose-400/20 dark:hover:bg-rose-500/5",
+        ].join(" ")}
+      >
+        <div className="flex items-center justify-between">
+          <div
+            className={[
+              "grid h-10 w-10 place-items-center rounded-xl border transition",
+              !value
+                ? "border-rose-300 bg-rose-100 text-rose-700 dark:border-rose-400/30 dark:bg-rose-500/15 dark:text-rose-300"
+                : "border-gray-200 bg-gray-50 text-gray-500 dark:border-white/10 dark:bg-white/5 dark:text-white/45",
+            ].join(" ")}
+          >
+            <FiAlertCircle className="text-[18px]" />
+          </div>
+
+          <div
+            className={[
+              "h-3.5 w-3.5 rounded-full border transition",
+              !value
+                ? "border-rose-500 bg-rose-500"
+                : "border-gray-300 bg-transparent dark:border-white/20",
+            ].join(" ")}
+          />
+        </div>
+
+        <div className="mt-3">
+          <p
+            className={[
+              "text-[14px] font-semibold",
+              !value
+                ? "text-rose-700 dark:text-rose-300"
+                : "text-slate-700 dark:text-white/75",
+            ].join(" ")}
+          >
+            Alert Off
+          </p>
+          <p className="mt-1 text-[12px] text-slate-500 dark:text-white/45">
+            ปิดการแจ้งเตือนสำหรับผู้รับนี้
+          </p>
+        </div>
+      </button>
+    </div>
+  );
+};
+
+const Index: React.FC = () => {
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<SortKey>("Newest");
+  const [openSort, setOpenSort] = useState(false);
+
+  const [rows, setRows] = useState<UiNotification[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>("");
+
+  const [lineMasters, setLineMasters] = useState<AppLineMasterResponse[]>([]);
+  const [loadingLineMasters, setLoadingLineMasters] = useState<boolean>(true);
+  const [lineMasterError, setLineMasterError] = useState<string>("");
+
+  const [openCreateModal, setOpenCreateModal] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState("");
+
+  const [openEditModal, setOpenEditModal] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editError, setEditError] = useState("");
+  const [selectedRow, setSelectedRow] = useState<UiNotification | null>(null);
+
+  const [deleteTarget, setDeleteTarget] = useState<UiNotification | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+
+  const [createForm, setCreateForm] = useState<NotificationFormData>({
+    name: "",
+    send_id: "",
+    alert: true,
+    app_line_master_id: "",
+  });
+
+  const [editForm, setEditForm] = useState<NotificationFormData>({
+    name: "",
+    send_id: "",
+    alert: true,
+    app_line_master_id: "",
+  });
+
+  const lineMasterMap = useMemo(() => {
+    return new Map<number, string>(
+      lineMasters.map((item) => [item.id, item.name ?? `Line Master #${item.id}`])
+    );
+  }, [lineMasters]);
+
+  const fetchNotifications = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const data = await ListAppNotification();
+
+      if (!data) {
+        setRows([]);
+        setError("โหลดข้อมูล App Notification ไม่สำเร็จ");
+        return;
+      }
+
+      const mapped: UiNotification[] = (data as AppNotificationResponse[]).map(
+        (item) => ({
+          id: item.id,
+          name: item.name ?? "",
+          send_id: item.send_id ?? "",
+          alert: Boolean(item.alert),
+          app_line_master_id: Number(item.app_line_master_id ?? 0),
+        })
+      );
+
+      setRows(mapped);
+    } catch (err) {
+      console.error("fetchNotifications error:", err);
+      setRows([]);
+      setError("เกิดข้อผิดพลาดตอนโหลดข้อมูล App Notification");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchLineMasters = async () => {
+    try {
+      setLoadingLineMasters(true);
+      setLineMasterError("");
+
+      const data = await ListAppLineMaster();
+
+      if (!data) {
+        setLineMasters([]);
+        setLineMasterError("โหลดข้อมูล App Line Master ไม่สำเร็จ");
+        return;
+      }
+
+      setLineMasters(data);
+    } catch (err) {
+      console.error("fetchLineMasters error:", err);
+      setLineMasters([]);
+      setLineMasterError("เกิดข้อผิดพลาดตอนโหลด App Line Master");
+    } finally {
+      setLoadingLineMasters(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+    fetchLineMasters();
+  }, []);
+
+  const notifications = useMemo(() => {
+    const q = search.trim().toLowerCase();
+
+    let filtered = rows.filter((item) => {
+      const lineMasterName =
+        lineMasterMap.get(item.app_line_master_id) ||
+        `Line Master #${item.app_line_master_id}`;
+
+      const blob = [
+        item.id,
+        item.name,
+        item.send_id,
+        item.alert ? "on" : "off",
+        item.alert ? "true" : "false",
+        item.app_line_master_id,
+        lineMasterName,
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      return blob.includes(q);
+    });
+
+    filtered = [...filtered].sort((a, b) => {
+      if (sortBy === "Newest") return b.id - a.id;
+      if (sortBy === "Oldest") return a.id - b.id;
+
+      if (sortBy === "Name A-Z") {
+        return a.name.localeCompare(b.name);
+      }
+
+      if (sortBy === "Alert: On First") {
+        if (a.alert === b.alert) return b.id - a.id;
+        return a.alert ? -1 : 1;
+      }
+
+      if (sortBy === "Alert: Off First") {
+        if (a.alert === b.alert) return b.id - a.id;
+        return a.alert ? 1 : -1;
+      }
+
+      return b.id - a.id;
+    });
+
+    return filtered;
+  }, [rows, search, sortBy, lineMasterMap]);
+
+  const resetCreateForm = () => {
+    setCreateForm({
+      name: "",
+      send_id: "",
+      alert: true,
+      app_line_master_id: lineMasters.length > 0 ? String(lineMasters[0].id) : "",
+    });
+    setCreateError("");
+  };
+
+  const resetEditForm = () => {
+    setEditForm({
+      name: "",
+      send_id: "",
+      alert: true,
+      app_line_master_id: "",
+    });
+    setEditError("");
+  };
+
+  const openCreate = () => {
+    setCreateForm({
+      name: "",
+      send_id: "",
+      alert: true,
+      app_line_master_id: lineMasters.length > 0 ? String(lineMasters[0].id) : "",
+    });
+    setCreateError("");
+    setOpenCreateModal(true);
+  };
+
+  const closeCreate = () => {
+    if (creating) return;
+    setOpenCreateModal(false);
+    resetCreateForm();
+  };
+
+  const openEdit = (row: UiNotification) => {
+    setSelectedRow(row);
+    setEditForm({
+      name: row.name,
+      send_id: row.send_id,
+      alert: row.alert,
+      app_line_master_id: String(row.app_line_master_id),
+    });
+    setEditError("");
+    setOpenEditModal(true);
+  };
+
+  const closeEdit = () => {
+    if (editing) return;
+    setOpenEditModal(false);
+    setSelectedRow(null);
+    resetEditForm();
+  };
+
+  const openDeleteModal = (row: UiNotification) => {
+    setDeleteTarget(row);
+    setDeleteError("");
+  };
+
+  const closeDeleteModal = () => {
+    if (deleting) return;
+    setDeleteTarget(null);
+    setDeleteError("");
+  };
+
+  const validateForm = (form: NotificationFormData) => {
+    if (!form.name.trim()) return "กรุณากรอก Name";
+    if (!form.send_id.trim()) return "กรุณากรอก Send ID";
+    if (!form.app_line_master_id.trim()) return "กรุณาเลือก App Line Master";
+
+    const lineMasterID = Number(form.app_line_master_id);
+    if (Number.isNaN(lineMasterID) || lineMasterID <= 0) {
+      return "App Line Master ไม่ถูกต้อง";
+    }
+
+    return "";
+  };
+
+  const submitCreate = async () => {
+    const validationError = validateForm(createForm);
+    if (validationError) {
+      setCreateError(validationError);
+      return;
+    }
+
+    try {
+      setCreating(true);
+      setCreateError("");
+
+      const payload = {
+        name: createForm.name.trim(),
+        send_id: createForm.send_id.trim(),
+        alert: createForm.alert,
+        app_line_master_id: Number(createForm.app_line_master_id),
+      };
+
+      const res = await CreateAppNotification(payload);
+
+      if (!res) {
+        setCreateError("สร้าง App Notification ไม่สำเร็จ");
+        return;
+      }
+
+      setOpenCreateModal(false);
+      resetCreateForm();
+      await fetchNotifications();
+    } catch (err: any) {
+      setCreateError(
+        err?.response?.data?.error ||
+          err?.message ||
+          "เกิดข้อผิดพลาดระหว่างสร้าง App Notification"
+      );
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const submitEdit = async () => {
+    if (!selectedRow) return;
+
+    const validationError = validateForm(editForm);
+    if (validationError) {
+      setEditError(validationError);
+      return;
+    }
+
+    try {
+      setEditing(true);
+      setEditError("");
+
+      const payload = {
+        name: editForm.name.trim(),
+        send_id: editForm.send_id.trim(),
+        alert: editForm.alert,
+        app_line_master_id: Number(editForm.app_line_master_id),
+      };
+
+      const res = await UpdateAppNotificationByID(selectedRow.id, payload);
+
+      if (!res) {
+        setEditError("อัปเดต App Notification ไม่สำเร็จ");
+        return;
+      }
+
+      setOpenEditModal(false);
+      setSelectedRow(null);
+      resetEditForm();
+      await fetchNotifications();
+    } catch (err: any) {
+      setEditError(
+        err?.response?.data?.error ||
+          err?.message ||
+          "เกิดข้อผิดพลาดระหว่างอัปเดต App Notification"
+      );
+    } finally {
+      setEditing(false);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+
+    try {
+      setDeleting(true);
+      setDeleteError("");
+
+      const res = await DeleteAppNotificationByID(deleteTarget.id);
+
+      if (!res) {
+        setDeleteError("ลบ App Notification ไม่สำเร็จ");
+        return;
+      }
+
+      setDeleteTarget(null);
+      await fetchNotifications();
+    } catch (err: any) {
+      setDeleteError(
+        err?.response?.data?.error ||
+          err?.message ||
+          "เกิดข้อผิดพลาดระหว่างลบ App Notification"
+      );
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <>
+      <section className={cardGlowClass}>
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -top-16 right-8 h-36 w-36 rounded-full bg-cyan-400/10 blur-3xl" />
+          <div className="absolute bottom-0 left-0 h-36 w-36 rounded-full bg-violet-500/10 blur-3xl" />
+          <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.06]">
+            <div
+              className="h-full w-full"
+              style={{
+                backgroundImage: `
+                  linear-gradient(to right, currentColor 1px, transparent 1px),
+                  linear-gradient(to bottom, currentColor 1px, transparent 1px)
+                `,
+                backgroundSize: "28px 28px",
+              }}
+            />
+          </div>
+        </div>
+
+        <div className="relative z-10 flex h-full flex-col">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0">
+              <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1.5 text-[12px] font-semibold text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-300">
+                <FiBell className="text-[13px]" />
+                App Notification Monitoring
+              </div>
+
+              <h2 className="mt-3 text-[22px] font-semibold tracking-tight text-slate-900 sm:text-[26px] dark:text-white">
+                App Notification Table
+              </h2>
+
+              <p className="mt-1 text-[13px] text-slate-500 sm:text-[14px] dark:text-white/55">
+                Manage notification recipients, send targets, and alert status.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={openCreate}
+                className={[
+                  "inline-flex h-11 items-center gap-2 rounded-2xl px-4 text-[13px] font-semibold transition",
+                  "bg-violet-600 text-white hover:bg-violet-700 active:bg-violet-800",
+                  "dark:bg-violet-500 dark:hover:bg-violet-400 dark:active:bg-violet-600",
+                ].join(" ")}
+              >
+                <FiPlus />
+                Create Notification
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative w-full sm:max-w-md">
+              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-white/35" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search id / name / send id / alert / line master..."
+                className={[
+                  "w-full h-11 rounded-2xl pl-10 pr-4 text-[13px] outline-none transition",
+                  "border border-gray-200 bg-white text-slate-800 focus:ring-2 focus:ring-violet-200",
+                  "dark:border-white/10 dark:bg-white/5 dark:text-white/80 dark:placeholder:text-white/35 dark:focus:ring-violet-400/10",
+                ].join(" ")}
+              />
+            </div>
+
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setOpenSort((s) => !s)}
+                className={[
+                  "inline-flex h-11 items-center gap-2 rounded-2xl px-4 transition",
+                  "bg-white border border-gray-200/80 text-[13px] font-medium text-gray-700 hover:bg-gray-50",
+                  "dark:bg-white/5 dark:border-white/10 dark:text-white/75 dark:hover:bg-white/8",
+                ].join(" ")}
+              >
+                {sortBy}
+                <FiChevronDown
+                  className={`text-gray-400 transition dark:text-white/45 ${
+                    openSort ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+
+              {openSort && (
+                <div className="absolute right-0 z-20 mt-2 w-56 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg dark:border-white/10 dark:bg-[#0B1220] dark:shadow-none">
+                  {(
+                    [
+                      "Newest",
+                      "Oldest",
+                      "Name A-Z",
+                      "Alert: On First",
+                      "Alert: Off First",
+                    ] as SortKey[]
+                  ).map((opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => {
+                        setSortBy(opt);
+                        setOpenSort(false);
+                      }}
+                      className={[
+                        "w-full px-4 py-3 text-left text-[13px] transition",
+                        sortBy === opt
+                          ? "bg-violet-50 text-violet-700 font-semibold dark:bg-violet-500/10 dark:text-violet-200"
+                          : "text-gray-700 hover:bg-gray-50 dark:text-white/70 dark:hover:bg-white/8",
+                      ].join(" ")}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-3 flex flex-col gap-1 text-[12px] text-slate-500 dark:text-white/50">
+            {loading ? (
+              <span className="inline-flex items-center gap-2">
+                <span className="h-2 w-2 animate-pulse rounded-full bg-violet-500/70" />
+                Loading app notifications...
+              </span>
+            ) : error ? (
+              <span className="text-red-600 dark:text-red-300">{error}</span>
+            ) : (
+              <span>
+                Showing <span className="font-semibold">{notifications.length}</span>{" "}
+                notifications
+              </span>
+            )}
+
+            {lineMasterError && (
+              <span className="text-amber-600 dark:text-amber-300">
+                {lineMasterError}
+              </span>
+            )}
+          </div>
+
+          <div className="mt-4 flex-1 flex flex-col overflow-hidden rounded-3xl border border-gray-200/80 bg-white/80 dark:border-white/10 dark:bg-white/3">
+            <div className="flex-1 overflow-x-auto overflow-y-auto">
+              <table className="min-w-280 w-full border-separate border-spacing-0">
+                <thead className="sticky top-0 z-10 bg-white/95 backdrop-blur dark:bg-[#0f172a]/95">
+                  <tr className="text-left">
+                    <th className="border-b border-gray-200/80 px-4 py-4 text-[12px] font-semibold text-slate-600 dark:border-white/10 dark:text-white/60">
+                      Notification
+                    </th>
+                    <th className="border-b border-gray-200/80 px-4 py-4 text-[12px] font-semibold text-slate-600 dark:border-white/10 dark:text-white/60">
+                      Send ID
+                    </th>
+                    <th className="border-b border-gray-200/80 px-4 py-4 text-[12px] font-semibold text-slate-600 dark:border-white/10 dark:text-white/60">
+                      Alert
+                    </th>
+                    <th className="border-b border-gray-200/80 px-4 py-4 text-[12px] font-semibold text-slate-600 dark:border-white/10 dark:text-white/60">
+                      App Line Master
+                    </th>
+                    <th className="border-b border-gray-200/80 px-4 py-4 text-right text-[12px] font-semibold text-slate-600 dark:border-white/10 dark:text-white/60">
+                      Action
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {!loading &&
+                    notifications.map((item, idx) => {
+                      const lineMasterName =
+                        lineMasterMap.get(item.app_line_master_id) ||
+                        `Line Master #${item.app_line_master_id}`;
+
+                      return (
+                        <tr
+                          key={item.id}
+                          className="transition-colors hover:bg-violet-50/40 dark:hover:bg-white/4"
+                        >
+                          <td
+                            className={`px-4 py-4 ${
+                              idx !== notifications.length - 1
+                                ? "border-b border-gray-100 dark:border-white/10"
+                                : ""
+                            }`}
+                          >
+                            <div className="flex min-w-0 items-center gap-3">
+                              <div
+                                className={[
+                                  "grid h-12 w-12 place-items-center rounded-2xl ring-1",
+                                  "bg-cyan-50 ring-cyan-100 text-cyan-700",
+                                  "dark:bg-cyan-500/10 dark:ring-cyan-400/15 dark:text-cyan-300",
+                                ].join(" ")}
+                              >
+                                <FiBell className="text-[18px]" />
+                              </div>
+
+                              <div className="min-w-0">
+                                <p className="truncate text-[14px] font-semibold text-slate-900 dark:text-white/85">
+                                  {item.name || "-"}
+                                </p>
+
+                                <div className="mt-1 flex flex-wrap items-center gap-2 text-[12px] text-slate-500 dark:text-white/50">
+                                  <span className="inline-flex items-center gap-1">
+                                    <FiHash className="text-[12px]" />
+                                    ID: {item.id}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+
+                          <td
+                            className={`px-4 py-4 ${
+                              idx !== notifications.length - 1
+                                ? "border-b border-gray-100 dark:border-white/10"
+                                : ""
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 text-[13px] text-slate-700 dark:text-white/75">
+                              <FiSend className="text-[13px] text-violet-600 dark:text-violet-300" />
+                              <span className="break-all">{item.send_id || "-"}</span>
+                            </div>
+                          </td>
+
+                          <td
+                            className={`px-4 py-4 ${
+                              idx !== notifications.length - 1
+                                ? "border-b border-gray-100 dark:border-white/10"
+                                : ""
+                            }`}
+                          >
+                            <span
+                              className={[
+                                "inline-flex items-center rounded-full border px-3 py-1.5 text-[12px] font-semibold",
+                                alertBadgeClass(item.alert),
+                              ].join(" ")}
+                            >
+                              {item.alert ? (
+                                <>
+                                  <FiCheckCircle className="mr-1.5" />
+                                  Alert On
+                                </>
+                              ) : (
+                                <>
+                                  <FiAlertCircle className="mr-1.5" />
+                                  Alert Off
+                                </>
+                              )}
+                            </span>
+                          </td>
+
+                          <td
+                            className={`px-4 py-4 ${
+                              idx !== notifications.length - 1
+                                ? "border-b border-gray-100 dark:border-white/10"
+                                : ""
+                            }`}
+                          >
+                            <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[12px] font-semibold text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-white/75">
+                              <FiLayers className="shrink-0" />
+                              <span className="truncate">{lineMasterName}</span>
+                            </div>
+                          </td>
+
+                          <td
+                            className={`px-4 py-4 text-right ${
+                              idx !== notifications.length - 1
+                                ? "border-b border-gray-100 dark:border-white/10"
+                                : ""
+                            }`}
+                          >
+                            <div className="inline-flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => openEdit(item)}
+                                className={[
+                                  "inline-flex h-10 w-10 items-center justify-center rounded-2xl transition-colors",
+                                  "text-cyan-600 bg-cyan-50 hover:bg-cyan-100 active:bg-cyan-200",
+                                  "dark:text-cyan-300 dark:bg-cyan-500/10 dark:hover:bg-cyan-500/15 dark:active:bg-cyan-500/20",
+                                ].join(" ")}
+                                title="Update notification"
+                                aria-label="Update notification"
+                              >
+                                <FiEdit2 />
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => openDeleteModal(item)}
+                                className={[
+                                  "inline-flex h-10 w-10 items-center justify-center rounded-2xl transition-colors",
+                                  "text-red-600 bg-red-50 hover:bg-red-100 active:bg-red-200",
+                                  "dark:text-red-300 dark:bg-red-500/10 dark:hover:bg-red-500/15 dark:active:bg-red-500/20",
+                                ].join(" ")}
+                                title="Delete notification"
+                                aria-label="Delete notification"
+                              >
+                                <FiTrash2 />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+
+                  {!loading && notifications.length === 0 && (
+                    <tr>
+                      <td
+                        colSpan={5}
+                        className="px-4 py-10 text-center text-[14px] text-slate-500 dark:text-white/50"
+                      >
+                        No app notification data found
+                      </td>
+                    </tr>
+                  )}
+
+                  {loading && (
+                    <tr>
+                      <td
+                        colSpan={5}
+                        className="px-4 py-10 text-center text-[14px] text-slate-500 dark:text-white/50"
+                      >
+                        Loading...
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        {openSort && (
+          <button
+            type="button"
+            onClick={() => setOpenSort(false)}
+            className="fixed inset-0 z-5 cursor-default"
+            aria-label="Close sort overlay"
+          />
+        )}
+      </section>
+
+      {openCreateModal && (
+        <div className="fixed inset-0 z-200 flex items-center justify-center p-4">
+          <button
+            type="button"
+            onClick={closeCreate}
+            className="absolute inset-0 bg-slate-900/35 backdrop-blur-[2px]"
+            aria-label="Close create modal overlay"
+          />
+
+          <div
+            className={[
+              "relative z-10 w-full max-w-2xl rounded-[18px] border border-gray-200 bg-white p-5 shadow-[0_20px_70px_rgba(15,23,42,0.18)]",
+              "dark:border-white/10 dark:bg-[#0d1524]",
+            ].join(" ")}
+          >
+            <button
+              type="button"
+              onClick={closeCreate}
+              disabled={creating}
+              className="absolute right-4 top-4 text-gray-400 transition hover:text-gray-600 disabled:cursor-not-allowed dark:text-white/45 dark:hover:text-white/70"
+              aria-label="Close"
+            >
+              <FiX className="text-[20px]" />
+            </button>
+
+            <div className="mb-5">
+              <div className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-[12px] font-semibold text-violet-700 dark:border-violet-400/20 dark:bg-violet-500/10 dark:text-violet-300">
+                <FiPlus className="text-[13px]" />
+                Create Notification
+              </div>
+
+              <h3 className="mt-3 text-[22px] font-semibold text-slate-800 dark:text-white">
+                Add New App Notification
+              </h3>
+
+              <p className="mt-1 text-[13px] text-slate-500 dark:text-white/55">
+                Create a new notification receiver and configure its alert status.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <label className={labelClass}>Name</label>
+                <input
+                  value={createForm.name}
+                  onChange={(e) =>
+                    setCreateForm((prev) => ({ ...prev, name: e.target.value }))
+                  }
+                  placeholder="Enter notification name"
+                  className={inputClass}
+                />
+              </div>
+
+              <div>
+                <label className={labelClass}>Send ID</label>
+                <input
+                  value={createForm.send_id}
+                  onChange={(e) =>
+                    setCreateForm((prev) => ({ ...prev, send_id: e.target.value }))
+                  }
+                  placeholder="Enter send id"
+                  className={inputClass}
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className={labelClass}>App Line Master</label>
+                <div className="relative">
+                  <select
+                    value={createForm.app_line_master_id}
+                    onChange={(e) =>
+                      setCreateForm((prev) => ({
+                        ...prev,
+                        app_line_master_id: e.target.value,
+                      }))
+                    }
+                    className={selectClass}
+                    disabled={loadingLineMasters || lineMasters.length === 0}
+                  >
+                    {loadingLineMasters ? (
+                      <option value="">Loading App Line Master...</option>
+                    ) : lineMasters.length === 0 ? (
+                      <option value="">No App Line Master found</option>
+                    ) : (
+                      lineMasters.map((item) => (
+                        <option key={item.id} value={String(item.id)}>
+                          {item.name}
+                        </option>
+                      ))
+                    )}
+                  </select>
+
+                  <FiChevronDown className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[16px] text-slate-400 dark:text-white/40" />
+                </div>
+              </div>
+
+              <div className="md:col-span-2">
+                <label className={labelClass}>Alert Status</label>
+                <AlertToggle
+                  value={createForm.alert}
+                  onChange={(next) =>
+                    setCreateForm((prev) => ({ ...prev, alert: next }))
+                  }
+                />
+              </div>
+            </div>
+
+            {createError && (
+              <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300">
+                {createError}
+              </div>
+            )}
+
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={closeCreate}
+                disabled={creating}
+                className={[
+                  "rounded-xl px-4 py-2.5 text-[14px] font-medium transition",
+                  "bg-slate-100 text-slate-700 hover:bg-slate-200",
+                  "dark:bg-white/8 dark:text-white/80 dark:hover:bg-white/12",
+                  "disabled:cursor-not-allowed disabled:opacity-60",
+                ].join(" ")}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={submitCreate}
+                disabled={creating || loadingLineMasters || lineMasters.length === 0}
+                className={[
+                  "rounded-xl px-4 py-2.5 text-[14px] font-medium transition",
+                  "bg-violet-600 text-white hover:bg-violet-700",
+                  "disabled:cursor-not-allowed disabled:opacity-60",
+                ].join(" ")}
+              >
+                {creating ? "Creating..." : "Create Notification"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {openEditModal && selectedRow && (
+        <div className="fixed inset-0 z-200 flex items-center justify-center p-4">
+          <button
+            type="button"
+            onClick={closeEdit}
+            className="absolute inset-0 bg-slate-900/35 backdrop-blur-[2px]"
+            aria-label="Close edit modal overlay"
+          />
+
+          <div
+            className={[
+              "relative z-10 w-full max-w-2xl rounded-[18px] border border-gray-200 bg-white p-5 shadow-[0_20px_70px_rgba(15,23,42,0.18)]",
+              "dark:border-white/10 dark:bg-[#0d1524]",
+            ].join(" ")}
+          >
+            <button
+              type="button"
+              onClick={closeEdit}
+              disabled={editing}
+              className="absolute right-4 top-4 text-gray-400 transition hover:text-gray-600 disabled:cursor-not-allowed dark:text-white/45 dark:hover:text-white/70"
+              aria-label="Close"
+            >
+              <FiX className="text-[20px]" />
+            </button>
+
+            <div className="mb-5">
+              <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1.5 text-[12px] font-semibold text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-300">
+                <FiEdit2 className="text-[13px]" />
+                Update Notification
+              </div>
+
+              <h3 className="mt-3 text-[22px] font-semibold text-slate-800 dark:text-white">
+                Edit App Notification
+              </h3>
+
+              <p className="mt-1 text-[13px] text-slate-500 dark:text-white/55">
+                Update the selected notification information.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <label className={labelClass}>Name</label>
+                <input
+                  value={editForm.name}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({ ...prev, name: e.target.value }))
+                  }
+                  placeholder="Enter notification name"
+                  className={inputClass}
+                />
+              </div>
+
+              <div>
+                <label className={labelClass}>Send ID</label>
+                <input
+                  value={editForm.send_id}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({ ...prev, send_id: e.target.value }))
+                  }
+                  placeholder="Enter send id"
+                  className={inputClass}
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className={labelClass}>App Line Master</label>
+                <div className="relative">
+                  <select
+                    value={editForm.app_line_master_id}
+                    onChange={(e) =>
+                      setEditForm((prev) => ({
+                        ...prev,
+                        app_line_master_id: e.target.value,
+                      }))
+                    }
+                    className={selectClass}
+                    disabled={loadingLineMasters || lineMasters.length === 0}
+                  >
+                    {loadingLineMasters ? (
+                      <option value="">Loading App Line Master...</option>
+                    ) : lineMasters.length === 0 ? (
+                      <option value="">No App Line Master found</option>
+                    ) : (
+                      lineMasters.map((item) => (
+                        <option key={item.id} value={String(item.id)}>
+                          {item.name}
+                        </option>
+                      ))
+                    )}
+                  </select>
+
+                  <FiChevronDown className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[16px] text-slate-400 dark:text-white/40" />
+                </div>
+              </div>
+
+              <div className="md:col-span-2">
+                <label className={labelClass}>Alert Status</label>
+                <AlertToggle
+                  value={editForm.alert}
+                  onChange={(next) =>
+                    setEditForm((prev) => ({ ...prev, alert: next }))
+                  }
+                />
+              </div>
+            </div>
+
+            {editError && (
+              <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300">
+                {editError}
+              </div>
+            )}
+
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={closeEdit}
+                disabled={editing}
+                className={[
+                  "rounded-xl px-4 py-2.5 text-[14px] font-medium transition",
+                  "bg-slate-100 text-slate-700 hover:bg-slate-200",
+                  "dark:bg-white/8 dark:text-white/80 dark:hover:bg-white/12",
+                  "disabled:cursor-not-allowed disabled:opacity-60",
+                ].join(" ")}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={submitEdit}
+                disabled={editing || loadingLineMasters || lineMasters.length === 0}
+                className={[
+                  "rounded-xl px-4 py-2.5 text-[14px] font-medium transition",
+                  "bg-cyan-600 text-white hover:bg-cyan-700",
+                  "disabled:cursor-not-allowed disabled:opacity-60",
+                ].join(" ")}
+              >
+                {editing ? "Updating..." : "Update Notification"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteTarget && (
+        <div className="fixed inset-0 z-200 flex items-center justify-center p-4">
+          <button
+            type="button"
+            onClick={closeDeleteModal}
+            className="absolute inset-0 bg-slate-900/35 backdrop-blur-[2px]"
+            aria-label="Close delete modal overlay"
+          />
+
+          <div
+            className={[
+              "relative z-10 w-full max-w-135 rounded-[14px] border border-gray-200 bg-white px-5 py-5 shadow-[0_20px_70px_rgba(15,23,42,0.18)]",
+              "dark:border-white/10 dark:bg-[#0d1524]",
+            ].join(" ")}
+          >
+            <button
+              type="button"
+              onClick={closeDeleteModal}
+              disabled={deleting}
+              className="absolute right-4 top-4 text-gray-400 transition hover:text-gray-600 disabled:cursor-not-allowed dark:text-white/45 dark:hover:text-white/70"
+              aria-label="Close"
+            >
+              <FiX className="text-[20px]" />
+            </button>
+
+            <div className="flex justify-center pt-2">
+              <div className="grid h-14 w-14 place-items-center rounded-full bg-red-50 text-red-500 dark:bg-red-500/10 dark:text-red-300">
+                <FiTrash2 className="text-[28px]" />
+              </div>
+            </div>
+
+            <h3 className="mt-4 text-center text-[22px] font-semibold text-slate-800 dark:text-white">
+              Delete Notification
+            </h3>
+
+            <p className="mx-auto mt-3 max-w-100 text-center text-[14px] leading-6 text-slate-500 dark:text-white/55">
+              Are you sure you want to delete{" "}
+              <span className="font-semibold text-slate-700 dark:text-white/80">
+                {deleteTarget.name}
+              </span>
+              ? This action cannot be undone.
+            </p>
+
+            <p className="mt-2 text-center text-[13px] text-slate-400 dark:text-white/40">
+              Send ID: {deleteTarget.send_id || "-"}
+            </p>
+
+            {deleteError && (
+              <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-center text-[13px] text-red-700 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300">
+                {deleteError}
+              </div>
+            )}
+
+            <div className="mt-6 flex items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={confirmDelete}
+                disabled={deleting}
+                className={[
+                  "min-w-30 rounded-[10px] px-4 py-2.5 text-[15px] font-medium transition",
+                  "bg-[#f8dedd] text-[#ff5a3c] hover:bg-[#f4d2d1]",
+                  "disabled:cursor-not-allowed disabled:opacity-60",
+                ].join(" ")}
+              >
+                {deleting ? "Deleting..." : "Yes, Delete!"}
+              </button>
+
+              <button
+                type="button"
+                onClick={closeDeleteModal}
+                disabled={deleting}
+                className={[
+                  "min-w-30 rounded-[10px] px-4 py-2.5 text-[15px] font-medium transition",
+                  "bg-[#6d5efc] text-white hover:bg-[#5f51eb]",
+                  "disabled:cursor-not-allowed disabled:opacity-60",
+                ].join(" ")}
+              >
+                No, Keep It.
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
+
+export default Index;

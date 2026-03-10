@@ -54,6 +54,18 @@ func main() {
 	r.GET("/automation/feed/status", automation.GetFeedUpdateStatusHandler)
 	r.GET("/api/report", report.GetReportCSVSourceHandler)
 
+	// ===== Public Routes for Line Notifications =====
+	r.GET("/app-notifications", line.ListAppNotification)
+	r.POST("/create-app-notifications", line.CreateAppNotification)
+	r.PATCH("/update-app-notifications/:id", line.UpdateAppNotificationByID)
+	r.DELETE("/delete-app-notifications/:id", line.DeleteAppNotificationByID)
+
+	// ===== Public Routes for Line Master =====
+	r.GET("/app-line-masters", line.ListAppLineMaster)
+	r.POST("/create-app-line-masters", line.CreateAppLineMaster)
+	r.PATCH("/update-app-line-masters/:id", line.UpdateAppLineMasterByID)
+	r.DELETE("/delete-app-line-masters/:id", line.DeleteAppLineMasterByID)
+
 	// Service API with Frontend
 	r.GET("/tasks/status", vulnerability.ListStatus)                                      //
 	r.GET("/tasks/summary-vulnerability", vulnerability.ListTaskVulnSummary)              //

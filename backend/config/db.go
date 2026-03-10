@@ -81,7 +81,6 @@ func SetupDatabase() {
 	}
 
 	err := db.AutoMigrate(
-		&entity.AppGroup{},
 		&entity.OTP{},
 		&entity.SendEmail{},
 		&entity.AppLineMaster{},
@@ -145,6 +144,7 @@ func SeedDatabase() {
 	// =========================
 	HistoryNotify1 := entity.AppHistoryNotify{
 		Subject:         "Vulnerability Found",
+		DateTime:        time.Now(),
 		Description:     "A new vulnerability has been detected in the system.",
 		AppStatusNotify: &StatusNotify5, // Status Notification
 	}
@@ -158,6 +158,7 @@ func SeedDatabase() {
 
 	HistoryNotify2 := entity.AppHistoryNotify{
 		Subject:         "Scan Completed",
+		DateTime:        time.Now(),
 		Description:     "The vulnerability scan has been completed successfully.",
 		AppStatusNotify: &StatusNotify1, // Update Completed
 	}
@@ -171,6 +172,7 @@ func SeedDatabase() {
 
 	HistoryNotify3 := entity.AppHistoryNotify{
 		Subject:         "Scan Already Running",
+		DateTime:        time.Now(),
 		Description:     "The scan process is already running in the system.",
 		AppStatusNotify: &StatusNotify3, // Already Running
 	}
@@ -184,6 +186,7 @@ func SeedDatabase() {
 
 	HistoryNotify4 := entity.AppHistoryNotify{
 		Subject:         "Feed Update Failed",
+		DateTime:        time.Now(),
 		Description:     "Security feed data update failed.",
 		AppStatusNotify: &StatusNotify4, // Update Failed
 	}
@@ -197,6 +200,7 @@ func SeedDatabase() {
 
 	HistoryNotify5 := entity.AppHistoryNotify{
 		Subject:         "No Feed Update",
+		DateTime:        time.Now(),
 		Description:     "There is no new security feed update available.",
 		AppStatusNotify: &StatusNotify2, // No Update
 	}
@@ -207,17 +211,11 @@ func SeedDatabase() {
 			Description: "There is no new security feed update available.",
 		},
 	)
-
-	// =========================
-	// Seed Groups
-	// =========================
-	group1 := entity.AppGroup{GroupName: "ITS Group"}
-	db.FirstOrCreate(&group1, &entity.AppGroup{GroupName: "ITS Group"})
-
 	// =========================
 	// Seed LineMasters
 	// =========================
 	lineMaster1 := entity.AppLineMaster{
+		Name:  "Line Sender",
 		Token: "G4crCc/2gMnvX+hZErxIhg7WcI0ML+MRLlAj086lTtrdL7VYURieWPRXKd6/9Zl8RxcaME5vQ3I1BW82d1/ZYezvWklVMUk+EGGfXRmI4jwtA28iaHU8MkneAGQSibyr/yp0eetvASPPtplCXWrb7gdB04t89/1O/w1cDnyilFU=",
 	}
 	db.FirstOrCreate(&lineMaster1, &entity.AppLineMaster{Token: lineMaster1.Token})
@@ -227,17 +225,15 @@ func SeedDatabase() {
 	// =========================
 	notification1 := entity.AppNotification{
 		Name:            "Get on Technology",
-		UserID:          "U3af93a2f92b1048757172584d47571c8",
+		SendID:          "U3af93a2f92b1048757172584d47571c8",
 		Alert:           true,
-		AppGroupID:      &group1.ID,
 		AppLineMasterID: lineMaster1.ID,
 	}
 
 	db.FirstOrCreate(&notification1, &entity.AppNotification{
 		Name:            notification1.Name,
-		UserID:          notification1.UserID,
+		SendID:          notification1.SendID,
 		Alert:           notification1.Alert,
-		AppGroupID:      &group1.ID,
 		AppLineMasterID: lineMaster1.ID,
 	})
 

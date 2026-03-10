@@ -503,6 +503,7 @@ func saveFeedUpdateHistory(statusName string, subject string, description string
 	history := entity.AppHistoryNotify{
 		Subject:           subject,
 		Description:       description,
+		DateTime:          time.Now(),
 		AppStatusNotifyID: &status.ID,
 	}
 

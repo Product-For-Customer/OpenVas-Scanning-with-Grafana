@@ -11,6 +11,7 @@ import (
 type HistoryNotifyResponse struct {
 	ID          uint   `json:"id"`
 	Subject     string `json:"subject"`
+	DateTime    string `json:"datetime"`
 	Description string `json:"description"`
 	Status      string `json:"status"`
 	StatusID    *uint  `json:"status_id"`
@@ -31,6 +32,7 @@ func mapHistoryNotifyResponse(h entity.AppHistoryNotify) HistoryNotifyResponse {
 	return HistoryNotifyResponse{
 		ID:          h.ID,
 		Subject:     h.Subject,
+		DateTime:    h.DateTime.Format("2006-01-02 15:04:05"),
 		Description: h.Description,
 		Status:      status,
 		StatusID:    h.AppStatusNotifyID,
@@ -96,8 +98,8 @@ func DeleteHistoryNotifyByIDs(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message":        "history notify records deleted successfully",
-		"deleted_count":  tx.RowsAffected,
-		"requested_ids":  input.IDs,
+		"message":       "history notify records deleted successfully",
+		"deleted_count": tx.RowsAffected,
+		"requested_ids": input.IDs,
 	})
 }
