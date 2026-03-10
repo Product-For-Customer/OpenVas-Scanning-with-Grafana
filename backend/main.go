@@ -62,6 +62,7 @@ func main() {
 	r.GET("/devices/risk", vulnerability.ListDeviceRisk)                                  //
 	r.GET("/vulnerabilities/detail/by-name", vulnerability.ListVulnerabilityDetailByName) //
 	r.GET("/vulnerabilities/:task_id", vulnerability.ListVulnerabilityByTaskID)           //
+	r.GET("/target-differ", vulnerability.ListTargetDiffer)
 
 	// ===== Protected Routes =====
 	authorized := r.Group("")

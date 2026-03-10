@@ -16,6 +16,9 @@ import {
   FiSlash,
   FiBell,
   FiRotateCw,
+  FiLock,
+  FiServer,
+  FiAlertCircle,
 } from "react-icons/fi";
 import {
   ListHistoryNotify,
@@ -29,7 +32,10 @@ type FilterKey =
   | "No Update"
   | "Already Running"
   | "Update Failed"
-  | "Status Notification";
+  | "Status Notification"
+  | "Unauthorized"
+  | "Server Error"
+  | "Timeout";
 
 const FILTER_OPTIONS: FilterKey[] = [
   "All",
@@ -38,10 +44,15 @@ const FILTER_OPTIONS: FilterKey[] = [
   "Already Running",
   "Update Failed",
   "Status Notification",
+  "Unauthorized",
+  "Server Error",
+  "Timeout",
 ];
 
+type StatusKey = Exclude<FilterKey, "All">;
+
 const statusStyles: Record<
-  Exclude<FilterKey, "All">,
+  StatusKey,
   {
     badge: string;
     dot: string;
@@ -95,20 +106,55 @@ const statusStyles: Record<
     icon: <FiBell />,
     label: "Status Notification",
   },
+  Unauthorized: {
+    badge:
+      "bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-500/10 dark:text-violet-200 dark:border-violet-400/20",
+    dot: "bg-violet-500",
+    iconWrap:
+      "bg-violet-50 border-violet-200 text-violet-600 dark:bg-violet-500/10 dark:border-violet-400/20 dark:text-violet-300",
+    icon: <FiLock />,
+    label: "Unauthorized",
+  },
+  "Server Error": {
+    badge:
+      "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200 dark:bg-fuchsia-500/10 dark:text-fuchsia-200 dark:border-fuchsia-400/20",
+    dot: "bg-fuchsia-500",
+    iconWrap:
+      "bg-fuchsia-50 border-fuchsia-200 text-fuchsia-600 dark:bg-fuchsia-500/10 dark:border-fuchsia-400/20 dark:text-fuchsia-300",
+    icon: <FiServer />,
+    label: "Server Error",
+  },
+  Timeout: {
+    badge:
+      "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-500/10 dark:text-orange-200 dark:border-orange-400/20",
+    dot: "bg-orange-500",
+    iconWrap:
+      "bg-orange-50 border-orange-200 text-orange-600 dark:bg-orange-500/10 dark:border-orange-400/20 dark:text-orange-300",
+    icon: <FiAlertCircle />,
+    label: "Timeout",
+  },
 };
 
-const normalizeStatus = (status?: string | null): Exclude<FilterKey, "All"> => {
-  const normalized = (status || "").trim();
+const normalizeText = (value?: string | null) => (value || "").trim();
 
-  if (normalized === "Update Completed") return "Update Completed";
-  if (normalized === "No Update") return "No Update";
-  if (normalized === "Already Running") return "Already Running";
-  if (normalized === "Update Failed") return "Update Failed";
-  if (normalized === "Status Notification") return "Status Notification";
+const normalizeStatus = (status?: string | null): StatusKey => {
+  const normalized = normalizeText(status).toLowerCase();
 
-  // fallback เผื่อข้อมูลเก่าใน DB
-  if (normalized === "Update") return "Update Completed";
-  if (normalized === "Alert") return "Status Notification";
+  if (normalized === "update completed") return "Update Completed";
+  if (normalized === "no update") return "No Update";
+  if (normalized === "already running") return "Already Running";
+  if (normalized === "update failed") return "Update Failed";
+  if (normalized === "status notification") return "Status Notification";
+  if (normalized === "unauthorized") return "Unauthorized";
+  if (normalized === "server error") return "Server Error";
+  if (normalized === "timeout") return "Timeout";
+
+  // fallback เผื่อข้อมูลเก่า
+  if (normalized === "update") return "Update Completed";
+  if (normalized === "alert") return "Status Notification";
+  if (normalized === "failed") return "Update Failed";
+  if (normalized === "completed") return "Update Completed";
+  if (normalized === "running") return "Already Running";
 
   return "Status Notification";
 };
@@ -143,6 +189,119 @@ const formatTime = (dateString?: string) => {
   });
 };
 
+const cleanInlineText = (text?: string | null) => {
+  return (text || "")
+    .replace(/\r/g, "")
+    .replace(/\n+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+};
+
+const parseDescription = (description?: string | null) => {
+  const raw = (description || "").replace(/\r/g, "").trim();
+
+  if (!raw) {
+    return {
+      titleLine: "",
+      summaryLine: "",
+      metaLines: [] as string[],
+      raw,
+    };
+  }
+
+  const lines = raw
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const getValueAfterColon = (prefix: string) => {
+    const found = lines.find((line) =>
+      line.toLowerCase().startsWith(prefix.toLowerCase())
+    );
+    if (!found) return "";
+    const idx = found.indexOf(":");
+    if (idx === -1) return found;
+    return found.slice(idx + 1).trim();
+  };
+
+  const summaryLine = getValueAfterColon("Summary");
+  const statusLine = getValueAfterColon("Status");
+  const triggeredByLine = getValueAfterColon("Triggered By");
+  const sourceLine = getValueAfterColon("Source");
+  const forceLine = getValueAfterColon("Force");
+
+  const metaLines: string[] = [];
+  if (statusLine) metaLines.push(`Status: ${statusLine}`);
+  if (triggeredByLine) metaLines.push(`Triggered By: ${triggeredByLine}`);
+  if (sourceLine) metaLines.push(`Source: ${sourceLine}`);
+  if (forceLine) metaLines.push(`Force: ${forceLine}`);
+
+  return {
+    titleLine: lines[0] || "",
+    summaryLine: summaryLine || cleanInlineText(raw),
+    metaLines,
+    raw,
+  };
+};
+
+const getDisplayTitle = (item: HistoryNotifyResponse) => {
+  const subject = normalizeText(item.subject);
+  const normalizedStatus = normalizeStatus(item.status);
+
+  if (subject) return subject;
+
+  switch (normalizedStatus) {
+    case "Update Completed":
+      return "Feed Update Completed";
+    case "No Update":
+      return "No Feed Update";
+    case "Already Running":
+      return "Feed Update Already Running";
+    case "Update Failed":
+      return "Feed Update Failed";
+    case "Status Notification":
+      return "Status Notification";
+    case "Unauthorized":
+      return "Unauthorized Request";
+    case "Server Error":
+      return "Server Error";
+    case "Timeout":
+      return "Feed Update Timeout";
+    default:
+      return "Notification";
+  }
+};
+
+const getDisplayDescription = (item: HistoryNotifyResponse) => {
+  const normalizedStatus = normalizeStatus(item.status);
+  const parsed = parseDescription(item.description);
+
+  if (parsed.summaryLine) {
+    return parsed.summaryLine;
+  }
+
+  switch (normalizedStatus) {
+    case "Update Completed":
+      return "Security feed update completed successfully.";
+    case "No Update":
+      return "There is no new security feed update available.";
+    case "Already Running":
+      return "The feed update process is already running in the system.";
+    case "Update Failed":
+      return "Security feed data update failed.";
+    case "Status Notification":
+      return "System status notification.";
+    case "Unauthorized":
+      return "The request was rejected because the automation token is invalid.";
+    case "Server Error":
+      return "Backend configuration error occurred during feed update.";
+    case "Timeout":
+      return "Feed update exceeded the allowed execution time.";
+    default:
+      return item.description || "-";
+  }
+};
+
 const Index: React.FC = () => {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterKey>("All");
@@ -171,7 +330,7 @@ const Index: React.FC = () => {
 
       const res = await ListHistoryNotify();
 
-      if (res) {
+      if (Array.isArray(res)) {
         setItems(res);
       } else {
         setItems([]);
@@ -196,6 +355,7 @@ const Index: React.FC = () => {
 
     return items.filter((item) => {
       const normalizedStatus = normalizeStatus(item.status);
+      const parsed = parseDescription(item.description);
 
       const matchFilter = filter === "All" ? true : normalizedStatus === filter;
 
@@ -206,6 +366,8 @@ const Index: React.FC = () => {
         normalizedStatus,
         item.created_at,
         item.updated_at,
+        parsed.summaryLine,
+        ...parsed.metaLines,
       ]
         .join(" ")
         .toLowerCase();
@@ -227,11 +389,11 @@ const Index: React.FC = () => {
     notifications.every((item) => selected.includes(item.id));
 
   const toggleSelectAll = () => {
+    const visibleIds = notifications.map((n) => n.id);
+
     if (allSelected) {
-      const visibleIds = notifications.map((n) => n.id);
       setSelected((prev) => prev.filter((id) => !visibleIds.includes(id)));
     } else {
-      const visibleIds = notifications.map((n) => n.id);
       setSelected((prev) => Array.from(new Set([...prev, ...visibleIds])));
     }
   };
@@ -302,6 +464,15 @@ const Index: React.FC = () => {
       statusNotification: notifications.filter(
         (item) => normalizeStatus(item.status) === "Status Notification"
       ).length,
+      unauthorized: notifications.filter(
+        (item) => normalizeStatus(item.status) === "Unauthorized"
+      ).length,
+      serverError: notifications.filter(
+        (item) => normalizeStatus(item.status) === "Server Error"
+      ).length,
+      timeout: notifications.filter(
+        (item) => normalizeStatus(item.status) === "Timeout"
+      ).length,
     };
   }, [notifications]);
 
@@ -314,7 +485,6 @@ const Index: React.FC = () => {
           "dark:bg-[#08111f]/95 dark:border-white/10 dark:ring-1 dark:ring-cyan-400/10 dark:shadow-none",
         ].join(" ")}
       >
-        {/* Background */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="absolute -top-20 right-10 h-48 w-48 rounded-full bg-cyan-400/10 blur-3xl" />
           <div className="absolute bottom-0 left-0 h-40 w-40 rounded-full bg-violet-500/10 blur-3xl" />
@@ -333,7 +503,6 @@ const Index: React.FC = () => {
         </div>
 
         <div className="relative z-10">
-          {/* Top */}
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0">
               <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1.5 text-[12px] font-semibold text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-300">
@@ -351,7 +520,6 @@ const Index: React.FC = () => {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              {/* Search */}
               <div className="relative min-w-55 flex-1 sm:flex-none sm:w-72">
                 <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-white/35" />
                 <input
@@ -441,7 +609,7 @@ const Index: React.FC = () => {
                 </button>
 
                 {openFilter && (
-                  <div className="absolute right-0 z-20 mt-2 w-52 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg dark:border-white/10 dark:bg-[#0B1220] dark:shadow-none">
+                  <div className="absolute right-0 z-20 mt-2 w-56 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg dark:border-white/10 dark:bg-[#0B1220] dark:shadow-none">
                     {FILTER_OPTIONS.map((opt) => (
                       <button
                         key={opt}
@@ -466,58 +634,80 @@ const Index: React.FC = () => {
             </div>
           </div>
 
-          {/* Status Summary */}
           <div className="mt-5 flex flex-wrap items-center gap-2">
             <div className="inline-flex items-center rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[12px] font-medium text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/65">
-              Total:{" "}
+              Total:
               <span className="ml-1 font-semibold text-slate-900 dark:text-white">
                 {summaryCount.all}
               </span>
             </div>
 
             <div className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[12px] font-medium text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-500/10 dark:text-emerald-200">
-              Completed:{" "}
-              <span className="ml-1 font-semibold">{summaryCount.updateCompleted}</span>
+              Completed:
+              <span className="ml-1 font-semibold">
+                {summaryCount.updateCompleted}
+              </span>
             </div>
 
             <div className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[12px] font-medium text-slate-700 dark:border-slate-400/20 dark:bg-slate-500/10 dark:text-slate-200">
-              No Update:{" "}
+              No Update:
               <span className="ml-1 font-semibold">{summaryCount.noUpdate}</span>
             </div>
 
             <div className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-[12px] font-medium text-amber-700 dark:border-amber-400/20 dark:bg-amber-500/10 dark:text-amber-200">
-              Running:{" "}
-              <span className="ml-1 font-semibold">{summaryCount.alreadyRunning}</span>
+              Running:
+              <span className="ml-1 font-semibold">
+                {summaryCount.alreadyRunning}
+              </span>
             </div>
 
             <div className="inline-flex items-center rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-[12px] font-medium text-red-700 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-200">
-              Failed:{" "}
-              <span className="ml-1 font-semibold">{summaryCount.updateFailed}</span>
+              Failed:
+              <span className="ml-1 font-semibold">
+                {summaryCount.updateFailed}
+              </span>
             </div>
 
             <div className="inline-flex items-center rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1.5 text-[12px] font-medium text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-200">
-              Notification:{" "}
+              Notification:
               <span className="ml-1 font-semibold">
                 {summaryCount.statusNotification}
               </span>
             </div>
 
+            <div className="inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-[12px] font-medium text-violet-700 dark:border-violet-400/20 dark:bg-violet-500/10 dark:text-violet-200">
+              Unauthorized:
+              <span className="ml-1 font-semibold">
+                {summaryCount.unauthorized}
+              </span>
+            </div>
+
+            <div className="inline-flex items-center rounded-full border border-fuchsia-200 bg-fuchsia-50 px-3 py-1.5 text-[12px] font-medium text-fuchsia-700 dark:border-fuchsia-400/20 dark:bg-fuchsia-500/10 dark:text-fuchsia-200">
+              Server Error:
+              <span className="ml-1 font-semibold">
+                {summaryCount.serverError}
+              </span>
+            </div>
+
+            <div className="inline-flex items-center rounded-full border border-orange-200 bg-orange-50 px-3 py-1.5 text-[12px] font-medium text-orange-700 dark:border-orange-400/20 dark:bg-orange-500/10 dark:text-orange-200">
+              Timeout:
+              <span className="ml-1 font-semibold">{summaryCount.timeout}</span>
+            </div>
+
             <div className="inline-flex items-center rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[12px] font-medium text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/65">
-              Selected:{" "}
+              Selected:
               <span className="ml-1 font-semibold text-slate-900 dark:text-white">
                 {selected.length}
               </span>
             </div>
           </div>
 
-          {/* Error */}
           {error && (
             <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300">
               {error}
             </div>
           )}
 
-          {/* List */}
           <div className="mt-6 overflow-hidden rounded-3xl border border-gray-200/80 bg-white/70 dark:border-white/10 dark:bg-white/3">
             {loading ? (
               <div className="px-6 py-14 text-center">
@@ -547,6 +737,9 @@ const Index: React.FC = () => {
               notifications.map((item, idx) => {
                 const tone = getStatusMeta(item.status);
                 const isSelected = selected.includes(item.id);
+                const parsed = parseDescription(item.description);
+                const displayTitle = getDisplayTitle(item);
+                const displayDescription = getDisplayDescription(item);
 
                 return (
                   <div
@@ -562,7 +755,6 @@ const Index: React.FC = () => {
                     ].join(" ")}
                   >
                     <div className="flex items-start gap-3">
-                      {/* Select */}
                       <button
                         type="button"
                         onClick={() => toggleSelect(item.id)}
@@ -579,7 +771,6 @@ const Index: React.FC = () => {
                         )}
                       </button>
 
-                      {/* Icon */}
                       <div className="relative shrink-0">
                         <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-gray-200 bg-white text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/70">
                           <FiMessageSquare className="text-[20px]" />
@@ -596,17 +787,29 @@ const Index: React.FC = () => {
                         </span>
                       </div>
 
-                      {/* Content */}
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
                           <div className="min-w-0">
                             <p className="text-[15px] font-semibold leading-6 text-slate-900 dark:text-white">
-                              {item.subject || "-"}
+                              {displayTitle}
                             </p>
 
                             <p className="mt-1 text-[14px] leading-6 text-slate-600 dark:text-white/70">
-                              {item.description || "-"}
+                              {displayDescription || "-"}
                             </p>
+
+                            {parsed.metaLines.length > 0 && (
+                              <div className="mt-2 flex flex-wrap gap-2">
+                                {parsed.metaLines.map((meta, index) => (
+                                  <span
+                                    key={`${item.id}-meta-${index}`}
+                                    className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/60"
+                                  >
+                                    {meta}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
 
                             <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
                               <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-slate-800 dark:text-white/80">
@@ -635,7 +838,6 @@ const Index: React.FC = () => {
                             </div>
                           </div>
 
-                          {/* Right action */}
                           <button
                             type="button"
                             className={[
@@ -667,12 +869,8 @@ const Index: React.FC = () => {
         )}
       </section>
 
-      {/* =========================
-          Delete Confirm Modal
-      ========================= */}
       {deleteOpen && (
         <div className="fixed inset-0 z-200 flex items-center justify-center p-4">
-          {/* Overlay */}
           <button
             type="button"
             onClick={closeDeleteModal}
@@ -680,14 +878,12 @@ const Index: React.FC = () => {
             aria-label="Close delete modal overlay"
           />
 
-          {/* Modal */}
           <div
             className={[
               "relative z-10 w-full max-w-135 rounded-[14px] border border-gray-200 bg-white px-5 py-5 shadow-[0_20px_70px_rgba(15,23,42,0.18)]",
               "dark:border-white/10 dark:bg-[#0d1524]",
             ].join(" ")}
           >
-            {/* Close */}
             <button
               type="button"
               onClick={closeDeleteModal}
@@ -698,19 +894,16 @@ const Index: React.FC = () => {
               <FiX className="text-[20px]" />
             </button>
 
-            {/* Icon */}
             <div className="flex justify-center pt-2">
               <div className="grid h-14 w-14 place-items-center rounded-full bg-red-50 text-red-500 dark:bg-red-500/10 dark:text-red-300">
                 <FiTrash2 className="text-[28px]" />
               </div>
             </div>
 
-            {/* Title */}
             <h3 className="mt-4 text-center text-[22px] font-semibold text-slate-800 dark:text-white">
               Delete Notifications
             </h3>
 
-            {/* Description */}
             <p className="mx-auto mt-3 max-w-105 text-center text-[14px] leading-6 text-slate-500 dark:text-white/55">
               Are you sure you want to delete{" "}
               <span className="font-semibold text-slate-700 dark:text-white/80">
@@ -720,11 +913,12 @@ const Index: React.FC = () => {
               cannot be undone.
             </p>
 
-            {/* Preview selected items */}
             <div className="mt-5 max-h-52 overflow-y-auto rounded-2xl border border-gray-200 bg-gray-50/70 p-3 dark:border-white/10 dark:bg-white/5">
               <div className="space-y-2">
                 {selectedItems.map((item) => {
                   const tone = getStatusMeta(item.status);
+                  const displayTitle = getDisplayTitle(item);
+                  const displayDescription = getDisplayDescription(item);
 
                   return (
                     <div
@@ -743,10 +937,10 @@ const Index: React.FC = () => {
 
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-[13px] font-semibold text-slate-800 dark:text-white">
-                            {item.subject || "-"}
+                            {displayTitle}
                           </p>
                           <p className="line-clamp-2 text-[12px] text-slate-500 dark:text-white/50">
-                            {item.description || "-"}
+                            {displayDescription || "-"}
                           </p>
                         </div>
 
@@ -771,7 +965,6 @@ const Index: React.FC = () => {
               </div>
             )}
 
-            {/* Actions */}
             <div className="mt-6 flex items-center justify-center gap-3">
               <button
                 type="button"

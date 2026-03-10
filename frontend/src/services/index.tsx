@@ -269,3 +269,66 @@ export const ListVulnerabilityByTaskID = async (
     return null;
   }
 };
+
+// =======================
+// API: GET /target-differ
+// =======================
+export type TargetDifferDTO = {
+  mac_address: string;
+
+  latest_task_id: string;
+  latest_task_name: string;
+  latest_host: string;
+  latest_report_id: number;
+  latest_creation_time: number | null;
+  latest_total: number;
+  latest_critical: number;
+  latest_high: number;
+  latest_medium: number;
+  latest_low: number;
+  latest_info: number;
+  latest_risk_score: number;
+
+  previous_task_id: string | null;
+  previous_task_name: string | null;
+  previous_host: string | null;
+  previous_report_id: number | null;
+  previous_creation_time: number | null;
+  previous_total: number | null;
+  previous_critical: number | null;
+  previous_high: number | null;
+  previous_medium: number | null;
+  previous_low: number | null;
+  previous_info: number | null;
+  previous_risk_score: number | null;
+
+  previous_version_status: string;
+
+  diff_total: number | null;
+  diff_critical: number | null;
+  diff_high: number | null;
+  diff_medium: number | null;
+  diff_low: number | null;
+  diff_info: number | null;
+  diff_risk_score: number | null;
+};
+
+export const ListTargetDiffer = async (): Promise<TargetDifferDTO[] | null> => {
+  try {
+    const response = await axios.get(`${apiUrl}/target-differ`, {
+      headers: getCommonHeaders(),
+      timeout: 15000,
+    });
+
+    if (response.status === 200) {
+      const data = response.data?.data ?? response.data;
+      return Array.isArray(data) ? (data as TargetDifferDTO[]) : [];
+    }
+
+    console.error("Unexpected status:", response.status);
+    return null;
+  } catch (error) {
+    console.error("Error fetching target differ list:", error);
+    return null;
+  }
+};

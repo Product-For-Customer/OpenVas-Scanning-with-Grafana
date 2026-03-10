@@ -120,12 +120,18 @@ func SeedDatabase() {
 	StatusNotify3 := entity.AppStatusNotify{Status: "Already Running"}
 	StatusNotify4 := entity.AppStatusNotify{Status: "Update Failed"}
 	StatusNotify5 := entity.AppStatusNotify{Status: "Status Notification"}
+	StatusNotify6 := entity.AppStatusNotify{Status: "Unauthorized"}
+	StatusNotify7 := entity.AppStatusNotify{Status: "Server Error"}
+	StatusNotify8 := entity.AppStatusNotify{Status: "Timeout"}
 
 	db.FirstOrCreate(&StatusNotify1, &entity.AppStatusNotify{Status: "Update Completed"})
 	db.FirstOrCreate(&StatusNotify2, &entity.AppStatusNotify{Status: "No Update"})
 	db.FirstOrCreate(&StatusNotify3, &entity.AppStatusNotify{Status: "Already Running"})
 	db.FirstOrCreate(&StatusNotify4, &entity.AppStatusNotify{Status: "Update Failed"})
 	db.FirstOrCreate(&StatusNotify5, &entity.AppStatusNotify{Status: "Status Notification"})
+	db.FirstOrCreate(&StatusNotify6, &entity.AppStatusNotify{Status: "Unauthorized"})
+	db.FirstOrCreate(&StatusNotify7, &entity.AppStatusNotify{Status: "Server Error"})
+	db.FirstOrCreate(&StatusNotify8, &entity.AppStatusNotify{Status: "Timeout"})
 
 	send := &entity.SendEmail{
 		Email:   "b6534240@g.sut.ac.th",

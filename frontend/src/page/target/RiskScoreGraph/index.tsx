@@ -15,7 +15,10 @@ import {
   FiActivity,
   FiChevronDown,
   FiCalendar,
+  FiRefreshCw,
+  FiAlertCircle,
 } from "react-icons/fi";
+import { ListTargetDiffer, type TargetDifferDTO } from "../../../services";
 
 type RangeKey =
   | "Today"
@@ -34,9 +37,23 @@ const RANGE_OPTIONS: RangeKey[] = [
 
 type Row = {
   label: string;
-  riskScore: number;
-  threatLevel: number;
-  date: string; // YYYY-MM-DD
+  date: string;
+  macAddress: string;
+
+  latestTaskName: string;
+  previousTaskName: string;
+
+  latestHost: string;
+  previousHost: string;
+
+  latestDetectedTime: number | null;
+  previousDetectedTime: number | null;
+
+  latestTotal: number;
+  previousTotal: number;
+
+  riskScore: number; // latest risk
+  threatLevel: number; // previous risk
 };
 
 /** =========================
@@ -51,12 +68,26 @@ const formatDateToYMD = (date: Date) => {
   return `${y}-${m}-${d}`;
 };
 
-const formatHourLabel = (hour: number) => `${pad2(hour)}:00`;
+const formatUnixToYMD = (unix?: number | null) => {
+  if (!unix) return "";
+  return formatDateToYMD(new Date(unix * 1000));
+};
+
+const formatUnixToDateTime = (unix?: number | null) => {
+  if (!unix) return "-";
+  return new Intl.DateTimeFormat("th-TH", {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(unix * 1000));
+};
 
 const getStartOfWeek = (date: Date) => {
   const copied = new Date(date);
-  const day = copied.getDay(); // 0 = Sun
-  const diff = day === 0 ? -6 : 1 - day; // start Monday
+  const day = copied.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
   copied.setDate(copied.getDate() + diff);
   copied.setHours(0, 0, 0, 0);
   return copied;
@@ -74,138 +105,19 @@ const addMonths = (date: Date, months: number) => {
   return copied;
 };
 
-const formatDisplayDate = (dateStr: string) => {
-  const date = new Date(dateStr);
-  if (Number.isNaN(date.getTime())) return dateStr;
-
-  return date.toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+const isDateBetween = (targetYMD: string, startYMD: string, endYMD: string) => {
+  if (!targetYMD || !startYMD || !endYMD) return false;
+  return targetYMD >= startYMD && targetYMD <= endYMD;
 };
 
 const clamp = (num: number, min: number, max: number) =>
   Math.max(min, Math.min(num, max));
 
-/** =========================
- * Mock data generators
- * ========================= */
-
-// Today (24 hours)
-const generateDayData = (): Row[] => {
-  const today = new Date();
-  const ymd = formatDateToYMD(today);
-
-  return Array.from({ length: 24 }, (_, hour) => {
-    const baseRisk = 22 + Math.sin(hour / 2.1) * 12 + (hour > 14 ? 10 : 0);
-    const baseThreat = 30 + Math.cos(hour / 2.5) * 11 + (hour > 13 ? 14 : 0);
-
-    return {
-      label: formatHourLabel(hour),
-      riskScore: Math.round(clamp(baseRisk, 10, 90)),
-      threatLevel: Math.round(clamp(baseThreat, 12, 90)),
-      date: ymd,
-    };
-  });
-};
-
-// This Week (7 days)
-const generateWeekData = (): Row[] => {
-  const start = getStartOfWeek(new Date());
-  const weekLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
-  return Array.from({ length: 7 }, (_, index) => {
-    const current = addDays(start, index);
-    const risk =
-      34 + index * 3 + (index === 4 ? 10 : 0) - (index === 5 ? 5 : 0);
-    const threat =
-      40 + index * 2 + (index === 4 ? 12 : 0) - (index === 5 ? 3 : 0);
-
-    return {
-      label: weekLabels[index],
-      riskScore: Math.round(clamp(risk, 10, 90)),
-      threatLevel: Math.round(clamp(threat, 10, 90)),
-      date: formatDateToYMD(current),
-    };
-  });
-};
-
-// This Month (12 months)
-const generateMonthData = (): Row[] => {
-  const currentYear = new Date().getFullYear();
-
-  const months = [
-    { label: "Jan", riskScore: 32, threatLevel: 50 },
-    { label: "Feb", riskScore: 39, threatLevel: 36 },
-    { label: "Mar", riskScore: 35, threatLevel: 44 },
-    { label: "Apr", riskScore: 48, threatLevel: 40 },
-    { label: "May", riskScore: 24, threatLevel: 58 },
-    { label: "Jun", riskScore: 60, threatLevel: 47 },
-    { label: "Jul", riskScore: 43, threatLevel: 35 },
-    { label: "Aug", riskScore: 55, threatLevel: 39 },
-    { label: "Sep", riskScore: 70, threatLevel: 64 },
-    { label: "Oct", riskScore: 66, threatLevel: 58 },
-    { label: "Nov", riskScore: 44, threatLevel: 71 },
-    { label: "Dec", riskScore: 59, threatLevel: 61 },
-  ];
-
-  return months.map((item, index) => ({
-    label: item.label,
-    riskScore: item.riskScore,
-    threatLevel: item.threatLevel,
-    date: `${currentYear}-${pad2(index + 1)}-01`,
-  }));
-};
-
-// This Year (heavier trend)
-const generateYearData = (): Row[] => {
-  return generateMonthData().map((d) => ({
-    ...d,
-    riskScore: Math.min(90, Math.round(d.riskScore * 1.12)),
-    threatLevel: Math.min(90, Math.round(d.threatLevel * 1.06)),
-  }));
-};
-
-// Custom Range (daily rows)
-const generateCustomRangeData = (startDate: string, endDate: string): Row[] => {
-  if (!startDate || !endDate) return [];
-
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return [];
-  if (start > end) return [];
-
-  const rows: Row[] = [];
-  const cursor = new Date(start);
-  let dayIndex = 0;
-
-  while (cursor <= end) {
-    const risk =
-      28 +
-      Math.sin(dayIndex / 1.8) * 14 +
-      (dayIndex % 5 === 0 ? 9 : 0) +
-      (dayIndex % 7 === 3 ? 6 : 0);
-
-    const threat =
-      34 +
-      Math.cos(dayIndex / 2.2) * 13 +
-      (dayIndex % 4 === 0 ? 8 : 0) +
-      (dayIndex % 6 === 2 ? 7 : 0);
-
-    rows.push({
-      label: formatDisplayDate(formatDateToYMD(cursor)),
-      riskScore: Math.round(clamp(risk, 10, 90)),
-      threatLevel: Math.round(clamp(threat, 10, 90)),
-      date: formatDateToYMD(cursor),
-    });
-
-    cursor.setDate(cursor.getDate() + 1);
-    dayIndex += 1;
-  }
-
-  return rows;
+const shortenMac = (mac: string) => {
+  if (!mac) return "-";
+  const parts = mac.split(":");
+  if (parts.length < 6) return mac;
+  return `${parts[0]}:${parts[1]}:${parts[2]}...`;
 };
 
 /** =========================
@@ -224,12 +136,13 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({
 }) => {
   if (!active || !payload || !payload.length) return null;
 
-  const rowDate = payload?.[0]?.payload?.date;
+  const row = payload?.[0]?.payload as Row | undefined;
+  if (!row) return null;
 
   return (
     <div
       className={[
-        "rounded-2xl border border-gray-200 bg-white shadow-md px-3.5 py-2.5",
+        "min-w-70 rounded-2xl border border-gray-200 bg-white shadow-md px-4 py-3",
         "dark:border-white/10 dark:bg-[#0B1220] dark:shadow-none",
       ].join(" ")}
     >
@@ -237,24 +150,91 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({
         {label}
       </p>
 
-      {rowDate && (
-        <p className="mb-2 text-[11px] text-gray-500 dark:text-white/50">
-          {rowDate}
-        </p>
-      )}
+      <p className="mb-2 text-[11px] text-gray-500 dark:text-white/50">
+        MAC: {row.macAddress}
+      </p>
 
-      {payload.map((p, idx) => (
-        <div key={idx} className="flex items-center gap-2 text-[12px]">
-          <span
-            className="inline-block h-2.5 w-2.5 rounded-full"
-            style={{ backgroundColor: p.color }}
-          />
-          <span className="text-gray-500 dark:text-white/55">{p.name}:</span>
+      <div className="space-y-1.5 text-[12px]">
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-[#8b5cf6]">Latest Risk:</span>
           <span className="font-semibold text-[#1f2240] dark:text-white/85 tabular-nums">
-            {p.value}
+            {row.riskScore.toFixed(2)}
           </span>
         </div>
-      ))}
+
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-[#38bdf8]">Previous Risk:</span>
+          <span className="font-semibold text-[#1f2240] dark:text-white/85 tabular-nums">
+            {row.threatLevel.toFixed(2)}
+          </span>
+        </div>
+
+        <div className="my-2 h-px bg-gray-200 dark:bg-white/10" />
+
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-gray-500 dark:text-white/55">Latest Task:</span>
+          <span className="font-medium text-[#1f2240] dark:text-white/85 text-right">
+            {row.latestTaskName || "-"}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-gray-500 dark:text-white/55">Previous Task:</span>
+          <span className="font-medium text-[#1f2240] dark:text-white/85 text-right">
+            {row.previousTaskName || "-"}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-gray-500 dark:text-white/55">Latest Host:</span>
+          <span className="font-medium text-[#1f2240] dark:text-white/85 text-right">
+            {row.latestHost || "-"}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-gray-500 dark:text-white/55">Previous Host:</span>
+          <span className="font-medium text-[#1f2240] dark:text-white/85 text-right">
+            {row.previousHost || "-"}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-gray-500 dark:text-white/55">
+            Latest Total Vulnerability:
+          </span>
+          <span className="font-semibold text-[#1f2240] dark:text-white/85">
+            {row.latestTotal}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-gray-500 dark:text-white/55">
+            Previous Total Vulnerability:
+          </span>
+          <span className="font-semibold text-[#1f2240] dark:text-white/85">
+            {row.previousTotal}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-gray-500 dark:text-white/55">
+            Latest Detected Time:
+          </span>
+          <span className="font-medium text-[#1f2240] dark:text-white/85 text-right">
+            {formatUnixToDateTime(row.latestDetectedTime)}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-gray-500 dark:text-white/55">
+            Previous Detected Time:
+          </span>
+          <span className="font-medium text-[#1f2240] dark:text-white/85 text-right">
+            {formatUnixToDateTime(row.previousDetectedTime)}
+          </span>
+        </div>
+      </div>
     </div>
   );
 };
@@ -283,11 +263,13 @@ const useIsSmall = () => {
 };
 
 const RiskScoreGraph: React.FC = () => {
-  const [range, setRange] = useState<RangeKey>("This Month");
+  const [range, setRange] = useState<RangeKey>("This Year");
   const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [rawData, setRawData] = useState<TargetDifferDTO[]>([]);
   const isSmall = useIsSmall();
 
-  // default custom range = last 7 days
   const todayYMD = useMemo(() => formatDateToYMD(new Date()), []);
   const sevenDaysAgoYMD = useMemo(
     () => formatDateToYMD(addDays(new Date(), -6)),
@@ -297,22 +279,101 @@ const RiskScoreGraph: React.FC = () => {
   const [startDate, setStartDate] = useState<string>(sevenDaysAgoYMD);
   const [endDate, setEndDate] = useState<string>(todayYMD);
 
-  const data = useMemo<Row[]>(() => {
-    switch (range) {
-      case "Today":
-        return generateDayData();
-      case "This Week":
-        return generateWeekData();
-      case "This Month":
-        return generateMonthData();
-      case "This Year":
-        return generateYearData();
-      case "Custom Range":
-        return generateCustomRangeData(startDate, endDate);
-      default:
-        return generateMonthData();
+  const fetchData = async (mode: "initial" | "refresh" = "initial") => {
+    try {
+      if (mode === "initial") setLoading(true);
+      if (mode === "refresh") setRefreshing(true);
+
+      const res = await ListTargetDiffer();
+      setRawData(Array.isArray(res) ? res : []);
+    } catch (error) {
+      console.error("fetch target differ error:", error);
+      setRawData([]);
+    } finally {
+      if (mode === "initial") setLoading(false);
+      if (mode === "refresh") setRefreshing(false);
     }
-  }, [range, startDate, endDate]);
+  };
+
+  useEffect(() => {
+    fetchData("initial");
+  }, []);
+
+  const mappedRows = useMemo<Row[]>(() => {
+    return rawData
+      .map((item) => ({
+        label: shortenMac(item.mac_address),
+        date: formatUnixToYMD(item.latest_creation_time),
+        macAddress: item.mac_address,
+
+        latestTaskName: item.latest_task_name || "-",
+        previousTaskName: item.previous_task_name || "-",
+
+        latestHost: item.latest_host || "-",
+        previousHost: item.previous_host || "-",
+
+        latestDetectedTime: item.latest_creation_time ?? null,
+        previousDetectedTime: item.previous_creation_time ?? null,
+
+        latestTotal: Number(item.latest_total ?? 0),
+        previousTotal: Number(item.previous_total ?? 0),
+
+        riskScore: clamp(Number(item.latest_risk_score ?? 0), 0, 10),
+        threatLevel: clamp(Number(item.previous_risk_score ?? 0), 0, 10),
+      }))
+      .sort(
+        (a, b) =>
+          (b.latestDetectedTime || 0) - (a.latestDetectedTime || 0)
+      );
+  }, [rawData]);
+
+  const data = useMemo<Row[]>(() => {
+    const now = new Date();
+    const today = formatDateToYMD(now);
+
+    let filtered = [...mappedRows];
+
+    switch (range) {
+      case "Today": {
+        filtered = filtered.filter((row) => row.date === today);
+        break;
+      }
+
+      case "This Week": {
+        const start = formatDateToYMD(getStartOfWeek(now));
+        const end = formatDateToYMD(now);
+        filtered = filtered.filter((row) => isDateBetween(row.date, start, end));
+        break;
+      }
+
+      case "This Month": {
+        const start = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-01`;
+        const end = formatDateToYMD(now);
+        filtered = filtered.filter((row) => isDateBetween(row.date, start, end));
+        break;
+      }
+
+      case "This Year": {
+        const start = `${now.getFullYear()}-01-01`;
+        const end = formatDateToYMD(now);
+        filtered = filtered.filter((row) => isDateBetween(row.date, start, end));
+        break;
+      }
+
+      case "Custom Range": {
+        if (!startDate || !endDate || startDate > endDate) return [];
+        filtered = filtered.filter((row) =>
+          isDateBetween(row.date, startDate, endDate)
+        );
+        break;
+      }
+
+      default:
+        break;
+    }
+
+    return filtered;
+  }, [mappedRows, range, startDate, endDate]);
 
   const peakRisk = useMemo(() => {
     if (!data.length) return null;
@@ -324,20 +385,12 @@ const RiskScoreGraph: React.FC = () => {
   const xInterval = useMemo(() => {
     const n = data.length;
 
-    if (range === "Today") return isSmall ? 5 : 1;
-    if (range === "This Week") return 0;
-    if (range === "This Month" || range === "This Year") return isSmall ? 1 : 0;
-
-    if (range === "Custom Range") {
-      if (n <= 7) return 0;
-      if (n <= 14) return isSmall ? 1 : 0;
-      if (n <= 31) return isSmall ? 3 : 1;
-      if (n <= 60) return isSmall ? 5 : 2;
-      return isSmall ? 8 : 4;
-    }
-
-    return 0;
-  }, [data.length, isSmall, range]);
+    if (n <= 7) return 0;
+    if (n <= 12) return isSmall ? 1 : 0;
+    if (n <= 20) return isSmall ? 2 : 1;
+    if (n <= 30) return isSmall ? 3 : 1;
+    return isSmall ? 4 : 2;
+  }, [data.length, isSmall]);
 
   const customRangeError = useMemo(() => {
     if (range !== "Custom Range") return "";
@@ -349,17 +402,17 @@ const RiskScoreGraph: React.FC = () => {
   const rangeDescription = useMemo(() => {
     switch (range) {
       case "Today":
-        return "Filled area shows hourly threat intensity today";
+        return "Filled area shows previous risk while lines compare latest and previous risk for assets detected today";
       case "This Week":
-        return "Filled area shows daily threat intensity this week";
+        return "Compare latest risk against previous risk for assets detected this week";
       case "This Month":
-        return "Filled area shows monthly threat intensity";
+        return "Compare latest risk against previous risk for assets detected this month";
       case "This Year":
-        return "Filled area shows yearly threat overview";
+        return "Compare latest risk against previous risk for assets detected this year";
       case "Custom Range":
-        return "Filled area shows threat intensity within selected date range";
+        return "Compare latest risk against previous risk within selected detected date range";
       default:
-        return "Filled area shows threat intensity over time";
+        return "Compare latest risk and previous risk over selected period";
     }
   }, [range]);
 
@@ -371,14 +424,12 @@ const RiskScoreGraph: React.FC = () => {
         "dark:bg-white/5 dark:border-white/10 dark:ring-1 dark:ring-white/10 dark:shadow-none",
       ].join(" ")}
     >
-      {/* background glow */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -top-16 -right-14 h-44 w-44 rounded-full bg-cyan-400/10 blur-3xl" />
         <div className="absolute -bottom-16 -left-14 h-44 w-44 rounded-full bg-violet-500/10 blur-3xl" />
       </div>
 
       <div className="relative z-10 flex h-full flex-col">
-        {/* Header */}
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
             <div className="min-w-0 flex-1">
@@ -417,7 +468,7 @@ const RiskScoreGraph: React.FC = () => {
                   >
                     <FiActivity className="text-[12px] text-violet-500" />
                     <span className="text-[12px] font-medium">
-                      Peak Risk {peakRisk.label}: {peakRisk.riskScore}
+                      Peak Risk {peakRisk.label}: {peakRisk.riskScore.toFixed(2)}
                     </span>
                   </div>
                 )}
@@ -430,62 +481,76 @@ const RiskScoreGraph: React.FC = () => {
               <div className="mt-4 flex flex-wrap items-center gap-x-8 gap-y-2 text-[13px] text-gray-500 dark:text-white/55">
                 <div className="flex items-center gap-2">
                   <span className="h-2.5 w-5 rounded-full bg-[#8b5cf6]" />
-                  <span>Asset Risk</span>
+                  <span>Latest Risk</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="h-2.5 w-5 rounded-full bg-[#38bdf8]" />
-                  <span>Threat Level</span>
+                  <span>Previous Risk</span>
                 </div>
               </div>
             </div>
 
-            {/* ✅ Right controls (ชิดขวาสุดเหมือนตัวอื่น) */}
             <div className="flex w-full flex-col gap-3 xl:w-auto xl:min-w-[320px]">
-              {/* Dropdown (ชิดขวาสุด) */}
-              <div className="relative self-end">
+              <div className="flex justify-end gap-3">
                 <button
                   type="button"
-                  onClick={() => setOpen((s) => !s)}
+                  onClick={() => void fetchData("refresh")}
+                  disabled={refreshing}
                   className={[
                     "h-10 px-4 rounded-2xl inline-flex items-center gap-2 transition select-none whitespace-nowrap",
                     "bg-white border border-gray-200/80 text-[13px] font-medium text-gray-500 hover:bg-gray-50",
                     "dark:bg-white/5 dark:border-white/10 dark:text-white/65 dark:hover:bg-white/10",
+                    refreshing ? "opacity-70 cursor-not-allowed" : "",
                   ].join(" ")}
                 >
-                  {range}
-                  <FiChevronDown
-                    className={[
-                      "text-gray-400 dark:text-white/45 transition",
-                      open ? "rotate-180" : "",
-                    ].join(" ")}
-                  />
+                  <FiRefreshCw className={refreshing ? "animate-spin" : ""} />
+                  Refresh
                 </button>
 
-                {open && (
-                  <div className="absolute right-0 mt-2 w-44 rounded-2xl border border-gray-200 bg-white shadow-lg overflow-hidden z-30 dark:border-white/10 dark:bg-[#0B1220] dark:shadow-none">
-                    {RANGE_OPTIONS.map((opt) => (
-                      <button
-                        key={opt}
-                        type="button"
-                        onClick={() => {
-                          setRange(opt);
-                          setOpen(false);
-                        }}
-                        className={[
-                          "w-full text-left px-4 py-2.5 text-[13px] transition",
-                          range === opt
-                            ? "bg-cyan-50 text-cyan-700 font-semibold dark:bg-cyan-500/10 dark:text-cyan-300"
-                            : "text-gray-600 hover:bg-gray-50 dark:text-white/70 dark:hover:bg-white/8",
-                        ].join(" ")}
-                      >
-                        {opt}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                <div className="relative self-end">
+                  <button
+                    type="button"
+                    onClick={() => setOpen((s) => !s)}
+                    className={[
+                      "h-10 px-4 rounded-2xl inline-flex items-center gap-2 transition select-none whitespace-nowrap",
+                      "bg-white border border-gray-200/80 text-[13px] font-medium text-gray-500 hover:bg-gray-50",
+                      "dark:bg-white/5 dark:border-white/10 dark:text-white/65 dark:hover:bg-white/10",
+                    ].join(" ")}
+                  >
+                    {range}
+                    <FiChevronDown
+                      className={[
+                        "text-gray-400 dark:text-white/45 transition",
+                        open ? "rotate-180" : "",
+                      ].join(" ")}
+                    />
+                  </button>
+
+                  {open && (
+                    <div className="absolute right-0 mt-2 w-44 rounded-2xl border border-gray-200 bg-white shadow-lg overflow-hidden z-30 dark:border-white/10 dark:bg-[#0B1220] dark:shadow-none">
+                      {RANGE_OPTIONS.map((opt) => (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => {
+                            setRange(opt);
+                            setOpen(false);
+                          }}
+                          className={[
+                            "w-full text-left px-4 py-2.5 text-[13px] transition",
+                            range === opt
+                              ? "bg-cyan-50 text-cyan-700 font-semibold dark:bg-cyan-500/10 dark:text-cyan-300"
+                              : "text-gray-600 hover:bg-gray-50 dark:text-white/70 dark:hover:bg-white/8",
+                          ].join(" ")}
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* ✅ Custom date range panel (ชิดขวาสุด) */}
               {range === "Custom Range" && (
                 <div className="flex justify-end">
                   <div
@@ -592,7 +657,6 @@ const RiskScoreGraph: React.FC = () => {
             </div>
           </div>
 
-          {/* status bar */}
           <div
             className={[
               "rounded-2xl px-4 py-3 flex flex-wrap items-center gap-3",
@@ -618,9 +682,23 @@ const RiskScoreGraph: React.FC = () => {
           </div>
         </div>
 
-        {/* ✅ FIX mobile graph height (สำคัญมาก) */}
         <div className="mt-4 h-65 sm:h-80 lg:flex-1 lg:min-h-85">
-          {!customRangeError && data.length > 0 ? (
+          {loading ? (
+            <div
+              className={[
+                "h-full rounded-2xl border flex items-center justify-center text-center px-4",
+                "border-dashed border-gray-200 bg-slate-50",
+                "dark:border-white/10 dark:bg-white/4",
+              ].join(" ")}
+            >
+              <div className="flex items-center gap-3 text-slate-500 dark:text-white/60">
+                <FiRefreshCw className="animate-spin text-lg" />
+                <span className="text-[14px] font-medium">
+                  Loading risk score data...
+                </span>
+              </div>
+            </div>
+          ) : !customRangeError && data.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
                 data={data}
@@ -647,8 +725,8 @@ const RiskScoreGraph: React.FC = () => {
                   axisLine={false}
                   tickLine={false}
                   width={42}
-                  domain={[0, 90]}
-                  ticks={[10, 25, 40, 55, 70, 85]}
+                  domain={[0, 10]}
+                  ticks={[0, 2, 4, 6, 8, 10]}
                 />
 
                 <Tooltip content={<CustomTooltip />} />
@@ -667,11 +745,10 @@ const RiskScoreGraph: React.FC = () => {
                   </linearGradient>
                 </defs>
 
-                {/* area */}
                 <Area
                   type="monotone"
                   dataKey="threatLevel"
-                  name="Threat Level"
+                  name="Previous Risk"
                   stroke="transparent"
                   fill="url(#threatFillLight)"
                   className="dark:hidden"
@@ -679,17 +756,16 @@ const RiskScoreGraph: React.FC = () => {
                 <Area
                   type="monotone"
                   dataKey="threatLevel"
-                  name="Threat Level"
+                  name="Previous Risk"
                   stroke="transparent"
                   fill="url(#threatFillDark)"
                   className="hidden dark:block"
                 />
 
-                {/* lines */}
                 <Line
                   type="monotone"
                   dataKey="riskScore"
-                  name="Asset Risk"
+                  name="Latest Risk"
                   stroke="#8b5cf6"
                   strokeWidth={2.5}
                   dot={false}
@@ -698,7 +774,7 @@ const RiskScoreGraph: React.FC = () => {
                 <Line
                   type="monotone"
                   dataKey="threatLevel"
-                  name="Threat Level"
+                  name="Previous Risk"
                   stroke="#38bdf8"
                   strokeWidth={2.5}
                   dot={false}
@@ -715,6 +791,9 @@ const RiskScoreGraph: React.FC = () => {
               ].join(" ")}
             >
               <div>
+                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 dark:bg-amber-400/10 dark:text-amber-300">
+                  <FiAlertCircle className="text-[22px]" />
+                </div>
                 <p className="text-[14px] font-semibold text-slate-700 dark:text-white/85">
                   ไม่มีข้อมูลสำหรับช่วงวันที่ที่เลือก
                 </p>
@@ -726,7 +805,6 @@ const RiskScoreGraph: React.FC = () => {
           )}
         </div>
 
-        {/* click-outside overlay */}
         {open && (
           <button
             type="button"
