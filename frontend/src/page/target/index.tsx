@@ -3,6 +3,7 @@ import StatusTarget from "./Status/index";
 import RiskScoreGraph from "./RiskScoreGraph";
 import RiskScoreTable from "./RiskScoreTable";
 import TableTarget from "./TableTarget";
+import DeviceMap from "./Map";
 
 const Target: React.FC = () => {
   return (
@@ -10,6 +11,11 @@ const Target: React.FC = () => {
       {/* Section: Status */}
       <div className="mb-4 sm:mb-5">
         <StatusTarget />
+      </div>
+
+      {/* Section: Map ใต้ Status */}
+      <div className="mb-4 sm:mb-5">
+        <DeviceMap />
       </div>
 
       {/* Row: Graph 60% / Table 40% */}
@@ -23,7 +29,7 @@ const Target: React.FC = () => {
         </div>
       </div>
 
-      {/* ✅ Bottom: TableTarget */}
+      {/* Bottom: TableTarget */}
       <div className="mb-2">
         <TableTarget />
       </div>

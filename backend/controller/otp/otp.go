@@ -5,6 +5,8 @@ import (
 	"math/rand"
 	"net/http"
 	"net/smtp"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/Tawunchai/openvas/config"
@@ -169,5 +171,111 @@ func VerifyOTPAddUpdatePassword(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "ยืนยัน OTP และเปลี่ยนรหัสผ่านสำเร็จ",
+	})
+}
+
+type SendEmailResponse struct {
+	ID      uint   `json:"id"`
+	Email   string `json:"email"`
+	PassApp string `json:"pass_app"`
+}
+
+type UpdateSendEmailInput struct {
+	Email   string `json:"email"`
+	PassApp string `json:"pass_app"`
+}
+
+func mapSendEmailResponse(s entity.SendEmail) SendEmailResponse {
+	return SendEmailResponse{
+		ID:      s.ID,
+		Email:   s.Email,
+		PassApp: s.PassApp,
+	}
+}
+
+// GET /send-emails
+func ListSendEmail(c *gin.Context) {
+	var sendEmails []entity.SendEmail
+
+	db := config.DB()
+	results := db.Find(&sendEmails)
+
+	if results.Error != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": results.Error.Error(),
+		})
+		return
+	}
+
+	response := make([]SendEmailResponse, 0, len(sendEmails))
+	for _, item := range sendEmails {
+		response = append(response, mapSendEmailResponse(item))
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// PUT /send-email/:id
+func UpdateSendEmailByID(c *gin.Context) {
+	idParam := c.Param("id")
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid id",
+		})
+		return
+	}
+
+	var input UpdateSendEmailInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	db := config.DB()
+
+	var sendEmail entity.SendEmail
+	if err := db.First(&sendEmail, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "send email record not found",
+		})
+		return
+	}
+
+	updateData := map[string]interface{}{}
+
+	if strings.TrimSpace(input.Email) != "" {
+		updateData["email"] = input.Email
+	}
+	if strings.TrimSpace(input.PassApp) != "" {
+		updateData["pass_app"] = input.PassApp
+	}
+
+	if len(updateData) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "no data to update",
+		})
+		return
+	}
+
+	if err := db.Model(&sendEmail).Updates(updateData).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to update send email",
+		})
+		return
+	}
+
+	if err := db.First(&sendEmail, id).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to fetch updated send email",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "update send email successfully",
+		"data":    mapSendEmailResponse(sendEmail),
 	})
 }

@@ -276,7 +276,7 @@ func SeedDatabase() {
 		Position    string
 	}{
 		{
-			Email:       "user@example.com",
+			Email:       "user@gmail.com",
 			Password:    "12345678",
 			FirstName:   "User",
 			LastName:    "One",

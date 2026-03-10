@@ -8,6 +8,7 @@ import {
   FiShield,
   FiUser,
   FiChevronRight,
+  FiServer,
 } from "react-icons/fi";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -29,6 +30,15 @@ const userProfileData: UserProfileItem[] = [
     iconColor: "#06b6d4",
     iconBg: "#ecfeff",
     link: "/admin/profile",
+    action: "navigate",
+  },
+  {
+    icon: <FiServer />,
+    title: "Service",
+    desc: "จัดการ service ของระบบ",
+    iconColor: "#7c3aed",
+    iconBg: "#f5f3ff",
+    link: "/admin/service",
     action: "navigate",
   },
   {

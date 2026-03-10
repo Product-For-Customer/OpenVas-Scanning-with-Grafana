@@ -8,6 +8,7 @@ type AuthContextValue = {
   isLoading: boolean;
   isAuthed: boolean;
   isAdmin: boolean;
+  role: string;
   refreshMe: () => Promise<void>;
   logout: () => Promise<void>;
 };
@@ -29,7 +30,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const me = await GetMe();
       setUser(me);
     } catch (err) {
-      // ถ้า cookie ไม่มี/หมดอายุ → ถือว่าไม่ได้ login
       setUser(null);
     }
   };
@@ -56,18 +56,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       alive = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const value = useMemo<AuthContextValue>(() => {
     const isAuthed = !!user;
-    const role = (user?.role ?? "").toLowerCase();
+    const role = String(user?.role ?? "").toLowerCase();
+
+    // ถ้าระบบคุณอยากให้ user/admin ผ่าน logic บางอย่างเหมือนกัน ก็เก็บแบบนี้ได้
     const isAdmin = role === "admin" || role === "user";
+
     return {
       user,
       isLoading,
       isAuthed,
       isAdmin,
+      role,
       refreshMe,
       logout,
     };

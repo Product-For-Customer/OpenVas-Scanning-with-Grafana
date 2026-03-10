@@ -18,6 +18,7 @@ import {
   type UserResponse,
 } from "../../services";
 import { useAuth } from "../../contexts/AuthContext";
+import ModalCreateUser from "../../Model/ModalCreateUser";
 
 type SortKey = "Newest" | "Role: Admin First" | "Role: User First" | "Name A-Z";
 
@@ -75,7 +76,9 @@ const Index: React.FC = () => {
   const [deleting, setDeleting] = useState<boolean>(false);
   const [deleteError, setDeleteError] = useState<string>("");
 
-  // ✅ ใช้ auth context แบบเดียวกับหน้า Account
+  const [openEditModal, setOpenEditModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UiUser | null>(null);
+
   const currentUserId = useMemo(() => {
     return (
       auth?.user?.id ??
@@ -170,7 +173,8 @@ const Index: React.FC = () => {
   }, [rows, search, sortBy]);
 
   const handleEdit = (user: UiUser) => {
-    console.log("Edit user:", user);
+    setSelectedUser(user);
+    setOpenEditModal(true);
   };
 
   const openDeleteModal = (user: UiUser) => {
@@ -693,6 +697,20 @@ const Index: React.FC = () => {
           </div>
         </div>
       )}
+
+      <ModalCreateUser
+        open={openEditModal}
+        user={selectedUser}
+        onClose={() => {
+          setOpenEditModal(false);
+          setSelectedUser(null);
+        }}
+        onUpdated={async () => {
+          setOpenEditModal(false);
+          setSelectedUser(null);
+          await fetchUsers();
+        }}
+      />
     </>
   );
 };

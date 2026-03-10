@@ -10,6 +10,7 @@ const Target = Loadable(lazy(() => import("../page/target/index")));
 const LineNotification = Loadable(lazy(() => import("../page/line/index")));
 const User = Loadable(lazy(() => import("../page/user/index")));
 const MainLayout = Loadable(lazy(() => import("../component/admin/MainLayout")));
+const Service = Loadable(lazy(() => import("../component/admin/Service")));
 const VulnerabilityByDevice = Loadable(
   lazy(() => import("../page/target/RiskScoreTable/vulnerability/index"))
 );
@@ -45,6 +46,7 @@ const AdminRoutes = (): RouteObject[] => [
       { path: "vulnerability-by-device", element: <VulnerabilityByDevice /> },
       { path: "user", element: <User /> },
       { path: "vulnerability-detail", element: <VulnerabilityDetail /> },
+      { path: "service", element: <Service /> }
     ],
   },
   // ✅ กันเส้นทางหลุด

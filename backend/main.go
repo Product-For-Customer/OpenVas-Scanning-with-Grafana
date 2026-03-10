@@ -42,6 +42,11 @@ func main() {
 	r.POST("/auth/logout", auth.Logout)
 
 	r.POST("/create-users", user.CreateUser)
+	r.GET("/roles", user.ListRoles)
+	r.PATCH("/admin/users/:id", user.UpdateUserIDByAdmin)
+
+	r.GET("/send-emails", otp.ListSendEmail)
+	r.PUT("/send-email/:id", otp.UpdateSendEmailByID)
 
 	// ===== Public Routes =====
 	r.GET("/line/test", line.TestSendLineHandler)

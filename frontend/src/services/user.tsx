@@ -27,6 +27,8 @@ export type UserResponse = {
   location: string;
   position: string;
   role: string;
+  message?: string;
+  error?: string;
 };
 
 export type CreateUserInput = {
@@ -176,3 +178,144 @@ export const DeleteUserByID = async (
 };
 
 export default userApi;
+
+
+export type RoleResponse = {
+  id: number;
+  role: string;
+};
+
+export type UpdateUserByAdminPayload = {
+  email?: string;
+  password?: string;
+  first_name?: string;
+  last_name?: string;
+  profile?: string;
+  phone_number?: string;
+  location?: string;
+  position?: string;
+  app_role_id?: number;
+};
+
+export type UpdateUserByAdminResponse = {
+  message?: string;
+  data?: UserResponse;
+  error?: string;
+};
+
+// =======================
+// API: GET /roles
+// =======================
+export const ListRoles = async (): Promise<RoleResponse[] | null> => {
+  try {
+    const response = await userApi.get("/roles");
+
+    console.log("ListRoles raw response:", response.data);
+
+    if (Array.isArray(response.data)) {
+      return response.data as RoleResponse[];
+    }
+
+    const data = response.data?.data ?? response.data;
+
+    if (Array.isArray(data)) {
+      return data as RoleResponse[];
+    }
+
+    console.error("Expected role array but got:", response.data);
+    return null;
+  } catch (error) {
+    console.error("ListRoles error:", error);
+    return null;
+  }
+};
+
+// =======================
+// API: PATCH /admin/users/:id
+// =======================
+export const UpdateUserIDByAdmin = async (
+  id: number,
+  payload: UpdateUserByAdminPayload
+): Promise<UpdateUserByAdminResponse> => {
+  try {
+    const response = await userApi.patch(`/admin/users/${id}`, payload);
+
+    console.log("UpdateUserIDByAdmin raw response:", response.data);
+
+    return response.data as UpdateUserByAdminResponse;
+  } catch (error: any) {
+    console.error("UpdateUserIDByAdmin error:", error);
+
+    return (
+      error?.response?.data || {
+        error: "Update user by admin failed",
+      }
+    );
+  }
+};
+
+export interface SendEmailResponse {
+  id: number;
+  email: string;
+  pass_app: string;
+}
+
+export interface UpdateSendEmailPayload {
+  email: string;
+  pass_app: string;
+}
+
+// =======================
+// API: GET /send-emails
+// =======================
+export const ListSendEmails = async (): Promise<SendEmailResponse[] | null> => {
+  try {
+    const response = await userApi.get("/send-emails");
+
+    console.log("ListSendEmails raw response:", response.data);
+
+    if (Array.isArray(response.data)) {
+      return response.data as SendEmailResponse[];
+    }
+
+    const data = response.data?.data ?? response.data;
+
+    if (Array.isArray(data)) {
+      return data as SendEmailResponse[];
+    }
+
+    console.error("Expected send email array but got:", response.data);
+    return null;
+  } catch (error) {
+    console.error("ListSendEmails error:", error);
+    return null;
+  }
+};
+
+// =======================
+// API: PUT /send-email/:id
+// =======================
+export const UpdateSendEmailByID = async (
+  id: number,
+  payload: UpdateSendEmailPayload
+): Promise<SendEmailResponse | null> => {
+  try {
+    const response = await userApi.put(`/send-email/${id}`, payload);
+
+    console.log("UpdateSendEmailByID raw response:", response.data);
+
+    if (response.data?.data) {
+      return response.data.data as SendEmailResponse;
+    }
+
+    if (response.data?.id) {
+      return response.data as SendEmailResponse;
+    }
+
+    console.error("Expected updated send email object but got:", response.data);
+    return null;
+  } catch (error) {
+    console.error("UpdateSendEmailByID error:", error);
+    return null;
+  }
+};
