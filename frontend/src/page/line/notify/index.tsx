@@ -13,6 +13,8 @@ import {
   FiHash,
   FiLayers,
   FiMessageSquare,
+  FiUsers,
+  FiUser,
 } from "react-icons/fi";
 import {
   ListAppNotification,
@@ -37,6 +39,7 @@ type UiNotification = {
   name: string;
   send_id: string;
   alert: boolean;
+  is_group: boolean;
   app_line_master_id: number;
 };
 
@@ -44,6 +47,7 @@ type NotificationFormData = {
   name: string;
   send_id: string;
   alert: boolean;
+  is_group: boolean;
   app_line_master_id: string;
 };
 
@@ -56,6 +60,13 @@ const alertBadgeClass = (alert: boolean) => {
     return "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-200 dark:border-emerald-400/20";
   }
   return "bg-red-50 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-200 dark:border-red-400/20";
+};
+
+const typeBadgeClass = (isGroup: boolean) => {
+  if (isGroup) {
+    return "bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-500/10 dark:text-cyan-200 dark:border-cyan-400/20";
+  }
+  return "bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-500/10 dark:text-violet-200 dark:border-violet-400/20";
 };
 
 const cardGlowClass = [
@@ -193,6 +204,113 @@ const AlertToggle: React.FC<{
   );
 };
 
+const ReceiverTypeToggle: React.FC<{
+  value: boolean;
+  onChange: (next: boolean) => void;
+}> = ({ value, onChange }) => {
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      <button
+        type="button"
+        onClick={() => onChange(true)}
+        className={[
+          "group relative flex min-h-23 flex-col justify-center rounded-2xl border px-4 py-3 text-left transition-all",
+          value
+            ? "border-cyan-300 bg-cyan-50 shadow-[0_10px_30px_-18px_rgba(6,182,212,0.7)] dark:border-cyan-400/30 dark:bg-cyan-500/10"
+            : "border-gray-200 bg-white hover:border-cyan-200 hover:bg-cyan-50/50 dark:border-white/10 dark:bg-white/5 dark:hover:border-cyan-400/20 dark:hover:bg-cyan-500/5",
+        ].join(" ")}
+      >
+        <div className="flex items-center justify-between">
+          <div
+            className={[
+              "grid h-10 w-10 place-items-center rounded-xl border transition",
+              value
+                ? "border-cyan-300 bg-cyan-100 text-cyan-700 dark:border-cyan-400/30 dark:bg-cyan-500/15 dark:text-cyan-300"
+                : "border-gray-200 bg-gray-50 text-gray-500 dark:border-white/10 dark:bg-white/5 dark:text-white/45",
+            ].join(" ")}
+          >
+            <FiUsers className="text-[18px]" />
+          </div>
+
+          <div
+            className={[
+              "h-3.5 w-3.5 rounded-full border transition",
+              value
+                ? "border-cyan-500 bg-cyan-500"
+                : "border-gray-300 bg-transparent dark:border-white/20",
+            ].join(" ")}
+          />
+        </div>
+
+        <div className="mt-3">
+          <p
+            className={[
+              "text-[14px] font-semibold",
+              value
+                ? "text-cyan-700 dark:text-cyan-300"
+                : "text-slate-700 dark:text-white/75",
+            ].join(" ")}
+          >
+            Group
+          </p>
+          <p className="mt-1 text-[12px] text-slate-500 dark:text-white/45">
+            ใช้สำหรับ LINE Group หรือห้องแชตกลุ่ม
+          </p>
+        </div>
+      </button>
+
+      <button
+        type="button"
+        onClick={() => onChange(false)}
+        className={[
+          "group relative flex min-h-23 flex-col justify-center rounded-2xl border px-4 py-3 text-left transition-all",
+          !value
+            ? "border-violet-300 bg-violet-50 shadow-[0_10px_30px_-18px_rgba(139,92,246,0.7)] dark:border-violet-400/30 dark:bg-violet-500/10"
+            : "border-gray-200 bg-white hover:border-violet-200 hover:bg-violet-50/50 dark:border-white/10 dark:bg-white/5 dark:hover:border-violet-400/20 dark:hover:bg-violet-500/5",
+        ].join(" ")}
+      >
+        <div className="flex items-center justify-between">
+          <div
+            className={[
+              "grid h-10 w-10 place-items-center rounded-xl border transition",
+              !value
+                ? "border-violet-300 bg-violet-100 text-violet-700 dark:border-violet-400/30 dark:bg-violet-500/15 dark:text-violet-300"
+                : "border-gray-200 bg-gray-50 text-gray-500 dark:border-white/10 dark:bg-white/5 dark:text-white/45",
+            ].join(" ")}
+          >
+            <FiUser className="text-[18px]" />
+          </div>
+
+          <div
+            className={[
+              "h-3.5 w-3.5 rounded-full border transition",
+              !value
+                ? "border-violet-500 bg-violet-500"
+                : "border-gray-300 bg-transparent dark:border-white/20",
+            ].join(" ")}
+          />
+        </div>
+
+        <div className="mt-3">
+          <p
+            className={[
+              "text-[14px] font-semibold",
+              !value
+                ? "text-violet-700 dark:text-violet-300"
+                : "text-slate-700 dark:text-white/75",
+            ].join(" ")}
+          >
+            Personal
+          </p>
+          <p className="mt-1 text-[12px] text-slate-500 dark:text-white/45">
+            ใช้สำหรับผู้ใช้ส่วนตัวหรือบัญชีรายบุคคล
+          </p>
+        </div>
+      </button>
+    </div>
+  );
+};
+
 const Index: React.FC = () => {
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<SortKey>("Newest");
@@ -232,6 +350,7 @@ const Index: React.FC = () => {
     name: "",
     send_id: "",
     alert: true,
+    is_group: true,
     app_line_master_id: "",
   });
 
@@ -239,6 +358,7 @@ const Index: React.FC = () => {
     name: "",
     send_id: "",
     alert: true,
+    is_group: true,
     app_line_master_id: "",
   });
 
@@ -267,6 +387,7 @@ const Index: React.FC = () => {
           name: item.name ?? "",
           send_id: item.send_id ?? "",
           alert: Boolean(item.alert),
+          is_group: Boolean(item.is_group),
           app_line_master_id: Number(item.app_line_master_id ?? 0),
         })
       );
@@ -317,14 +438,19 @@ const Index: React.FC = () => {
         lineMasterMap.get(item.app_line_master_id) ||
         `Line Master #${item.app_line_master_id}`;
 
+      const typeText = item.is_group ? "group" : "personal";
+
       const blob = [
         item.id,
         item.name,
         item.send_id,
         item.alert ? "on" : "off",
         item.alert ? "true" : "false",
+        item.is_group ? "group" : "personal",
+        item.is_group ? "true" : "false",
         item.app_line_master_id,
         lineMasterName,
+        typeText,
       ]
         .join(" ")
         .toLowerCase();
@@ -361,6 +487,7 @@ const Index: React.FC = () => {
       name: "",
       send_id: "",
       alert: true,
+      is_group: true,
       app_line_master_id: lineMasters.length > 0 ? String(lineMasters[0].id) : "",
     });
     setCreateError("");
@@ -371,6 +498,7 @@ const Index: React.FC = () => {
       name: "",
       send_id: "",
       alert: true,
+      is_group: true,
       app_line_master_id: "",
     });
     setEditError("");
@@ -389,6 +517,7 @@ const Index: React.FC = () => {
       name: "",
       send_id: "",
       alert: true,
+      is_group: true,
       app_line_master_id: lineMasters.length > 0 ? String(lineMasters[0].id) : "",
     });
     setCreateError("");
@@ -407,6 +536,7 @@ const Index: React.FC = () => {
       name: row.name,
       send_id: row.send_id,
       alert: row.alert,
+      is_group: row.is_group,
       app_line_master_id: String(row.app_line_master_id),
     });
     setEditError("");
@@ -482,6 +612,7 @@ const Index: React.FC = () => {
         name: createForm.name.trim(),
         send_id: createForm.send_id.trim(),
         alert: createForm.alert,
+        is_group: createForm.is_group,
         app_line_master_id: Number(createForm.app_line_master_id),
       };
 
@@ -523,6 +654,7 @@ const Index: React.FC = () => {
         name: editForm.name.trim(),
         send_id: editForm.send_id.trim(),
         alert: editForm.alert,
+        is_group: editForm.is_group,
         app_line_master_id: Number(editForm.app_line_master_id),
       };
 
@@ -680,7 +812,7 @@ const Index: React.FC = () => {
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search id / name / send id / alert / line master..."
+                placeholder="Search id / name / send id / alert / type / line master..."
                 className={[
                   "w-full h-11 rounded-2xl pl-10 pr-4 text-[13px] outline-none transition",
                   "border border-gray-200 bg-white text-slate-800 focus:ring-2 focus:ring-violet-200",
@@ -764,7 +896,7 @@ const Index: React.FC = () => {
 
           <div className="mt-4 flex-1 flex flex-col overflow-hidden rounded-3xl border border-gray-200/80 bg-white/80 dark:border-white/10 dark:bg-white/3">
             <div className="flex-1 overflow-x-auto overflow-y-auto">
-              <table className="min-w-7xl w-full border-separate border-spacing-0">
+              <table className="min-w-300 w-full border-separate border-spacing-0">
                 <thead className="sticky top-0 z-10 bg-white/95 backdrop-blur dark:bg-[#0f172a]/95">
                   <tr className="text-left">
                     <th className="border-b border-gray-200/80 px-4 py-4 text-[12px] font-semibold text-slate-600 dark:border-white/10 dark:text-white/60">
@@ -772,6 +904,9 @@ const Index: React.FC = () => {
                     </th>
                     <th className="border-b border-gray-200/80 px-4 py-4 text-[12px] font-semibold text-slate-600 dark:border-white/10 dark:text-white/60">
                       Send ID
+                    </th>
+                    <th className="border-b border-gray-200/80 px-4 py-4 text-[12px] font-semibold text-slate-600 dark:border-white/10 dark:text-white/60">
+                      Type
                     </th>
                     <th className="border-b border-gray-200/80 px-4 py-4 text-[12px] font-semibold text-slate-600 dark:border-white/10 dark:text-white/60">
                       Alert
@@ -841,6 +976,33 @@ const Index: React.FC = () => {
                               <FiSend className="text-[13px] text-violet-600 dark:text-violet-300" />
                               <span className="break-all">{item.send_id || "-"}</span>
                             </div>
+                          </td>
+
+                          <td
+                            className={`px-4 py-4 ${
+                              idx !== notifications.length - 1
+                                ? "border-b border-gray-100 dark:border-white/10"
+                                : ""
+                            }`}
+                          >
+                            <span
+                              className={[
+                                "inline-flex items-center rounded-full border px-3 py-1.5 text-[12px] font-semibold",
+                                typeBadgeClass(item.is_group),
+                              ].join(" ")}
+                            >
+                              {item.is_group ? (
+                                <>
+                                  <FiUsers className="mr-1.5" />
+                                  Group
+                                </>
+                              ) : (
+                                <>
+                                  <FiUser className="mr-1.5" />
+                                  Personal
+                                </>
+                              )}
+                            </span>
                           </td>
 
                           <td
@@ -942,7 +1104,7 @@ const Index: React.FC = () => {
                   {!loading && notifications.length === 0 && (
                     <tr>
                       <td
-                        colSpan={5}
+                        colSpan={6}
                         className="px-4 py-10 text-center text-[14px] text-slate-500 dark:text-white/50"
                       >
                         No app notification data found
@@ -953,7 +1115,7 @@ const Index: React.FC = () => {
                   {loading && (
                     <tr>
                       <td
-                        colSpan={5}
+                        colSpan={6}
                         className="px-4 py-10 text-center text-[14px] text-slate-500 dark:text-white/50"
                       >
                         Loading...
@@ -1038,6 +1200,16 @@ const Index: React.FC = () => {
                   }
                   placeholder="Enter send id"
                   className={inputClass}
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className={labelClass}>Receiver Type</label>
+                <ReceiverTypeToggle
+                  value={createForm.is_group}
+                  onChange={(next) =>
+                    setCreateForm((prev) => ({ ...prev, is_group: next }))
+                  }
                 />
               </div>
 
@@ -1187,6 +1359,16 @@ const Index: React.FC = () => {
               </div>
 
               <div className="md:col-span-2">
+                <label className={labelClass}>Receiver Type</label>
+                <ReceiverTypeToggle
+                  value={editForm.is_group}
+                  onChange={(next) =>
+                    setEditForm((prev) => ({ ...prev, is_group: next }))
+                  }
+                />
+              </div>
+
+              <div className="md:col-span-2">
                 <label className={labelClass}>App Line Master</label>
                 <div className="relative">
                   <select
@@ -1314,6 +1496,26 @@ const Index: React.FC = () => {
                     <FiHash />
                     Notification ID: {testTarget.id}
                   </span>
+
+                  <span
+                    className={[
+                      "inline-flex items-center rounded-full border px-3 py-1 text-[12px] font-semibold",
+                      typeBadgeClass(testTarget.is_group),
+                    ].join(" ")}
+                  >
+                    {testTarget.is_group ? (
+                      <>
+                        <FiUsers className="mr-1.5" />
+                        Group
+                      </>
+                    ) : (
+                      <>
+                        <FiUser className="mr-1.5" />
+                        Personal
+                      </>
+                    )}
+                  </span>
+
                   <span
                     className={[
                       "inline-flex items-center rounded-full border px-3 py-1 text-[12px] font-semibold",
@@ -1429,9 +1631,30 @@ const Index: React.FC = () => {
               ? This action cannot be undone.
             </p>
 
-            <p className="mt-2 text-center text-[13px] text-slate-400 dark:text-white/40">
-              Send ID: {deleteTarget.send_id || "-"}
-            </p>
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+              <span className="text-center text-[13px] text-slate-400 dark:text-white/40">
+                Send ID: {deleteTarget.send_id || "-"}
+              </span>
+
+              <span
+                className={[
+                  "inline-flex items-center rounded-full border px-3 py-1 text-[12px] font-semibold",
+                  typeBadgeClass(deleteTarget.is_group),
+                ].join(" ")}
+              >
+                {deleteTarget.is_group ? (
+                  <>
+                    <FiUsers className="mr-1.5" />
+                    Group
+                  </>
+                ) : (
+                  <>
+                    <FiUser className="mr-1.5" />
+                    Personal
+                  </>
+                )}
+              </span>
+            </div>
 
             {deleteError && (
               <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-center text-[13px] text-red-700 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300">

@@ -14,6 +14,7 @@ type CreateAppNotificationInput struct {
 	Name            string `json:"name" binding:"required"`
 	SendID          string `json:"send_id" binding:"required"`
 	Alert           bool   `json:"alert"`
+	IsGroup         bool   `json:"is_group"` // true = Group, false = Personal
 	AppLineMasterID uint   `json:"app_line_master_id" binding:"required"`
 }
 
@@ -21,6 +22,7 @@ type UpdateAppNotificationInput struct {
 	Name            *string `json:"name"`
 	SendID          *string `json:"send_id"`
 	Alert           *bool   `json:"alert"`
+	IsGroup         *bool   `json:"is_group"`
 	AppLineMasterID *uint   `json:"app_line_master_id"`
 }
 
@@ -29,6 +31,7 @@ type AppNotificationResponse struct {
 	Name            string `json:"name"`
 	SendID          string `json:"send_id"`
 	Alert           bool   `json:"alert"`
+	IsGroup         bool   `json:"is_group"`
 	AppLineMasterID uint   `json:"app_line_master_id"`
 }
 
@@ -38,6 +41,7 @@ func mapAppNotificationResponse(n entity.AppNotification) AppNotificationRespons
 		Name:            n.Name,
 		SendID:          n.SendID,
 		Alert:           n.Alert,
+		IsGroup:         n.IsGroup,
 		AppLineMasterID: n.AppLineMasterID,
 	}
 }
@@ -61,6 +65,7 @@ func CreateAppNotification(c *gin.Context) {
 		Name:            strings.TrimSpace(input.Name),
 		SendID:          strings.TrimSpace(input.SendID),
 		Alert:           input.Alert,
+		IsGroup:         input.IsGroup,
 		AppLineMasterID: input.AppLineMasterID,
 	}
 
@@ -148,6 +153,10 @@ func UpdateAppNotificationByID(c *gin.Context) {
 
 	if input.Alert != nil {
 		appNotification.Alert = *input.Alert
+	}
+
+	if input.IsGroup != nil {
+		appNotification.IsGroup = *input.IsGroup
 	}
 
 	if input.AppLineMasterID != nil {

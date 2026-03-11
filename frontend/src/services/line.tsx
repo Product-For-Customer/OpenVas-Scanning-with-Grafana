@@ -103,6 +103,7 @@ export type AppNotificationResponse = {
   name: string;
   send_id: string;
   alert: boolean;
+  is_group: boolean;
   app_line_master_id: number;
 };
 
@@ -110,6 +111,7 @@ export type CreateAppNotificationInput = {
   name: string;
   send_id: string;
   alert: boolean;
+  is_group: boolean;
   app_line_master_id: number;
 };
 
@@ -122,6 +124,7 @@ export type UpdateAppNotificationInput = {
   name?: string;
   send_id?: string;
   alert?: boolean;
+  is_group?: boolean;
   app_line_master_id?: number;
 };
 

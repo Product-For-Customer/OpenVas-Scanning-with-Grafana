@@ -93,9 +93,11 @@ export type VulnerabilityLevelDTO = {
   vulnerability_id: string;
   task_id: string;
   mac_address: string;
+  host_ip: string;
   vulnerability_family: string;
   vulnerability_name: string;
   level: "Critical" | "High" | "Medium" | "Low" | "Info";
+  severity: number;
   total: number;
   detected_time: string;
 };
