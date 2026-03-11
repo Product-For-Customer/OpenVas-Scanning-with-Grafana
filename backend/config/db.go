@@ -233,7 +233,6 @@ func SeedDatabase() {
 	db.FirstOrCreate(&notification1, &entity.AppNotification{
 		Name:            notification1.Name,
 		SendID:          notification1.SendID,
-		Alert:           notification1.Alert,
 		AppLineMasterID: lineMaster1.ID,
 	})
 

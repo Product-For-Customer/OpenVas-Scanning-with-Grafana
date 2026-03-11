@@ -198,7 +198,7 @@ const Setting: React.FC<SettingProps> = ({ user, onUpdated }) => {
   return (
     <section
       className={[
-        "rounded-[22px] border shadow-sm overflow-hidden",
+        "h-full rounded-[22px] border shadow-sm overflow-hidden flex flex-col",
         "border-gray-200/80 bg-[#f7f7f8]",
         "dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:ring-1 dark:ring-white/10",
       ].join(" ")}
@@ -215,137 +215,139 @@ const Setting: React.FC<SettingProps> = ({ user, onUpdated }) => {
         </h2>
       </div>
 
-      <form onSubmit={onSave} className="p-5 sm:p-6">
-        {/* Upload Profile */}
-        <div className="mb-6 flex items-center justify-center">
-          <div className="flex flex-col items-center gap-3">
-            <label
-              htmlFor="profile-upload-input"
-              className={[
-                "relative flex h-28 w-28 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed transition",
-                "border-gray-300 bg-white hover:border-[#7a67ea]",
-                "dark:border-white/15 dark:bg-white/5 dark:hover:border-[#7a67ea]",
-              ].join(" ")}
-            >
-              {previewUrl ? (
-                <img
-                  src={previewUrl}
-                  alt="profile preview"
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <CameraOutlined className="text-[24px] text-[#7a67ea]" />
-              )}
+      <form onSubmit={onSave} className="p-5 sm:p-6 flex-1 flex flex-col">
+        <div>
+          {/* Upload Profile */}
+          <div className="mb-6 flex items-center justify-center">
+            <div className="flex flex-col items-center gap-3">
+              <label
+                htmlFor="profile-upload-input"
+                className={[
+                  "relative flex h-28 w-28 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed transition",
+                  "border-gray-300 bg-white hover:border-[#7a67ea]",
+                  "dark:border-white/15 dark:bg-white/5 dark:hover:border-[#7a67ea]",
+                ].join(" ")}
+              >
+                {previewUrl ? (
+                  <img
+                    src={previewUrl}
+                    alt="profile preview"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <CameraOutlined className="text-[24px] text-[#7a67ea]" />
+                )}
 
-              <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors" />
-            </label>
+                <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors" />
+              </label>
 
-            <input
-              id="profile-upload-input"
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => handleFileChange(e.target.files?.[0])}
-            />
+              <input
+                id="profile-upload-input"
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => handleFileChange(e.target.files?.[0])}
+              />
 
-            <p className="text-[12px] text-gray-500 dark:text-white/45">
-              คลิกเพื่ออัปโหลดรูปโปรไฟล์
-            </p>
-          </div>
-        </div>
-
-        {/* Form Fields */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* First Name */}
-          <div>
-            <label className="block mb-2 text-[13px] font-medium text-[#374151] dark:text-white/65">
-              First Name
-            </label>
-            <input
-              name="firstName"
-              value={form.firstName}
-              onChange={handleChange}
-              type="text"
-              className={inputClass}
-            />
+              <p className="text-[12px] text-gray-500 dark:text-white/45">
+                คลิกเพื่ออัปโหลดรูปโปรไฟล์
+              </p>
+            </div>
           </div>
 
-          {/* Last Name */}
-          <div>
-            <label className="block mb-2 text-[13px] font-medium text-[#374151] dark:text-white/65">
-              Last Name
-            </label>
-            <input
-              name="lastName"
-              value={form.lastName}
-              onChange={handleChange}
-              type="text"
-              className={inputClass}
-            />
-          </div>
+          {/* Form Fields */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* First Name */}
+            <div>
+              <label className="block mb-2 text-[13px] font-medium text-[#374151] dark:text-white/65">
+                First Name
+              </label>
+              <input
+                name="firstName"
+                value={form.firstName}
+                onChange={handleChange}
+                type="text"
+                className={inputClass}
+              />
+            </div>
 
-          {/* Email - Locked */}
-          <div>
-            <label className="block mb-2 text-[13px] font-medium text-[#374151] dark:text-white/65">
-              Email Address
-            </label>
-            <input
-              name="email"
-              value={form.email}
-              type="email"
-              disabled
-              readOnly
-              className={disabledInputClass}
-            />
-          </div>
+            {/* Last Name */}
+            <div>
+              <label className="block mb-2 text-[13px] font-medium text-[#374151] dark:text-white/65">
+                Last Name
+              </label>
+              <input
+                name="lastName"
+                value={form.lastName}
+                onChange={handleChange}
+                type="text"
+                className={inputClass}
+              />
+            </div>
 
-          {/* Phone */}
-          <div>
-            <label className="block mb-2 text-[13px] font-medium text-[#374151] dark:text-white/65">
-              Phone No
-            </label>
-            <input
-              name="phone"
-              value={form.phone}
-              onChange={handleChange}
-              type="text"
-              inputMode="numeric"
-              maxLength={10}
-              placeholder="0XXXXXXXXX"
-              className={inputClass}
-            />
-            <p className="mt-1 text-[12px] text-gray-500 dark:text-white/40">
-              ต้องเป็นตัวเลข 10 หลัก และขึ้นต้นด้วย 0
-            </p>
-          </div>
+            {/* Email - Locked */}
+            <div>
+              <label className="block mb-2 text-[13px] font-medium text-[#374151] dark:text-white/65">
+                Email Address
+              </label>
+              <input
+                name="email"
+                value={form.email}
+                type="email"
+                disabled
+                readOnly
+                className={disabledInputClass}
+              />
+            </div>
 
-          {/* Location */}
-          <div>
-            <label className="block mb-2 text-[13px] font-medium text-[#374151] dark:text-white/65">
-              Location
-            </label>
-            <input
-              name="location"
-              value={form.location}
-              onChange={handleChange}
-              type="text"
-              className={inputClass}
-            />
-          </div>
+            {/* Phone */}
+            <div>
+              <label className="block mb-2 text-[13px] font-medium text-[#374151] dark:text-white/65">
+                Phone No
+              </label>
+              <input
+                name="phone"
+                value={form.phone}
+                onChange={handleChange}
+                type="text"
+                inputMode="numeric"
+                maxLength={10}
+                placeholder="0XXXXXXXXX"
+                className={inputClass}
+              />
+              <p className="mt-1 text-[12px] text-gray-500 dark:text-white/40">
+                ต้องเป็นตัวเลข 10 หลัก และขึ้นต้นด้วย 0
+              </p>
+            </div>
 
-          {/* Position */}
-          <div>
-            <label className="block mb-2 text-[13px] font-medium text-[#374151] dark:text-white/65">
-              Position
-            </label>
-            <input
-              name="position"
-              value={form.position}
-              onChange={handleChange}
-              type="text"
-              className={inputClass}
-              placeholder="Enter position"
-            />
+            {/* Location */}
+            <div>
+              <label className="block mb-2 text-[13px] font-medium text-[#374151] dark:text-white/65">
+                Location
+              </label>
+              <input
+                name="location"
+                value={form.location}
+                onChange={handleChange}
+                type="text"
+                className={inputClass}
+              />
+            </div>
+
+            {/* Position */}
+            <div>
+              <label className="block mb-2 text-[13px] font-medium text-[#374151] dark:text-white/65">
+                Position
+              </label>
+              <input
+                name="position"
+                value={form.position}
+                onChange={handleChange}
+                type="text"
+                className={inputClass}
+                placeholder="Enter position"
+              />
+            </div>
           </div>
         </div>
 

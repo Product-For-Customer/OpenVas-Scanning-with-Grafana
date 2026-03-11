@@ -6,13 +6,9 @@ import {
   FiEdit2,
   FiTrash2,
   FiX,
-  FiGrid,
-  FiList,
   FiLink2,
   FiSettings,
-  FiCheckCircle,
   FiAlertCircle,
-  FiZap,
   FiBell,
   FiCpu,
   FiSlack,
@@ -20,6 +16,7 @@ import {
   FiEye,
   FiEyeOff,
   FiCopy,
+  FiChevronRight,
 } from "react-icons/fi";
 import { FaTiktok, FaGoogle, FaYoutube, FaMicrosoft } from "react-icons/fa";
 import {
@@ -30,7 +27,6 @@ import {
   type AppLineMasterResponse,
 } from "../../../services";
 
-type ViewMode = "grid" | "list";
 type FormMode = "create" | "edit";
 
 type FormData = {
@@ -45,10 +41,8 @@ type UiApp = {
   category: string;
   description: string;
   icon: React.ReactNode;
-  accent: string;
   chipClass: string;
   iconWrapClass: string;
-  buttonClass: string;
 };
 
 const normalizeText = (value?: string | null) => (value || "").trim();
@@ -71,22 +65,22 @@ const getDescriptionFromName = (name: string) => {
   const lower = normalizeText(name).toLowerCase();
 
   if (lower.includes("slack")) {
-    return "Specific feature or service that's not available in your change often discovering.";
+    return "Connect Slack for team alerts, updates, and workflow communication.";
   }
   if (lower.includes("google") || lower.includes("meet")) {
-    return "Change is often about discovering what works best for you.";
+    return "Connect Google services to support meeting and management workflows.";
   }
   if (lower.includes("tiktok")) {
-    return "Change is often about discovering what works best for you.";
+    return "Connect TikTok for content and social engagement workflows.";
   }
   if (lower.includes("excel") || lower.includes("microsoft")) {
-    return "Specific feature or service that's not available in your change often discovering.";
+    return "Connect Microsoft tools for reporting, analytics, and productivity.";
   }
   if (lower.includes("mail")) {
-    return "Change is often about discovering what works best for you.";
+    return "Connect email services for notifications and communication.";
   }
   if (lower.includes("youtube")) {
-    return "Change is often about discovering what works best for you.";
+    return "Connect YouTube for media and content-related workflows.";
   }
   if (lower.includes("line")) {
     return "Connect your LINE channel for notifications and automated message delivery.";
@@ -103,103 +97,79 @@ const getMetaByName = (name: string) => {
   if (lower.includes("slack")) {
     return {
       icon: <FiSlack />,
-      accent: "from-sky-400/20 via-cyan-400/10 to-blue-400/10",
       chipClass:
-        "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-400/20 dark:bg-sky-500/10 dark:text-sky-300",
+        "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-400/20 dark:bg-sky-400/10 dark:text-sky-300",
       iconWrapClass:
-        "border-sky-200 bg-sky-50 text-sky-600 dark:border-sky-400/20 dark:bg-sky-500/10 dark:text-sky-300",
-      buttonClass:
-        "border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white/80 dark:hover:bg-white/10",
+        "border-sky-200 bg-sky-50 text-sky-600 dark:border-sky-400/20 dark:bg-sky-400/10 dark:text-sky-300",
     };
   }
 
   if (lower.includes("google") || lower.includes("meet")) {
     return {
       icon: <FaGoogle />,
-      accent: "from-emerald-400/20 via-lime-400/10 to-yellow-400/10",
       chipClass:
-        "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-500/10 dark:text-emerald-300",
+        "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300",
       iconWrapClass:
-        "border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-400/20 dark:bg-emerald-500/10 dark:text-emerald-300",
-      buttonClass:
-        "border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white/80 dark:hover:bg-white/10",
+        "border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300",
     };
   }
 
   if (lower.includes("tiktok")) {
     return {
       icon: <FaTiktok />,
-      accent: "from-pink-400/20 via-fuchsia-400/10 to-cyan-400/10",
       chipClass:
-        "border-fuchsia-200 bg-fuchsia-50 text-fuchsia-700 dark:border-fuchsia-400/20 dark:bg-fuchsia-500/10 dark:text-fuchsia-300",
+        "border-fuchsia-200 bg-fuchsia-50 text-fuchsia-700 dark:border-fuchsia-400/20 dark:bg-fuchsia-400/10 dark:text-fuchsia-300",
       iconWrapClass:
-        "border-fuchsia-200 bg-fuchsia-50 text-fuchsia-600 dark:border-fuchsia-400/20 dark:bg-fuchsia-500/10 dark:text-fuchsia-300",
-      buttonClass:
-        "border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white/80 dark:hover:bg-white/10",
+        "border-fuchsia-200 bg-fuchsia-50 text-fuchsia-600 dark:border-fuchsia-400/20 dark:bg-fuchsia-400/10 dark:text-fuchsia-300",
     };
   }
 
   if (lower.includes("excel") || lower.includes("microsoft")) {
     return {
       icon: <FaMicrosoft />,
-      accent: "from-emerald-400/20 via-teal-400/10 to-green-400/10",
       chipClass:
-        "border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-400/20 dark:bg-teal-500/10 dark:text-teal-300",
+        "border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-400/20 dark:bg-teal-400/10 dark:text-teal-300",
       iconWrapClass:
-        "border-teal-200 bg-teal-50 text-teal-600 dark:border-teal-400/20 dark:bg-teal-500/10 dark:text-teal-300",
-      buttonClass:
-        "border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white/80 dark:hover:bg-white/10",
+        "border-teal-200 bg-teal-50 text-teal-600 dark:border-teal-400/20 dark:bg-teal-400/10 dark:text-teal-300",
     };
   }
 
   if (lower.includes("mail")) {
     return {
       icon: <FiMail />,
-      accent: "from-amber-400/20 via-yellow-400/10 to-orange-400/10",
       chipClass:
-        "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-400/20 dark:bg-amber-500/10 dark:text-amber-300",
+        "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-300",
       iconWrapClass:
-        "border-amber-200 bg-amber-50 text-amber-600 dark:border-amber-400/20 dark:bg-amber-500/10 dark:text-amber-300",
-      buttonClass:
-        "border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white/80 dark:hover:bg-white/10",
+        "border-amber-200 bg-amber-50 text-amber-600 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-300",
     };
   }
 
   if (lower.includes("youtube")) {
     return {
       icon: <FaYoutube />,
-      accent: "from-red-400/20 via-rose-400/10 to-orange-400/10",
       chipClass:
-        "border-red-200 bg-red-50 text-red-700 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300",
+        "border-red-200 bg-red-50 text-red-700 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-300",
       iconWrapClass:
-        "border-red-200 bg-red-50 text-red-600 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300",
-      buttonClass:
-        "border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white/80 dark:hover:bg-white/10",
+        "border-red-200 bg-red-50 text-red-600 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-300",
     };
   }
 
   if (lower.includes("line")) {
     return {
       icon: <FiMessageSquareIcon />,
-      accent: "from-emerald-400/20 via-cyan-400/10 to-lime-400/10",
       chipClass:
-        "border-lime-200 bg-lime-50 text-lime-700 dark:border-lime-400/20 dark:bg-lime-500/10 dark:text-lime-300",
+        "border-lime-200 bg-lime-50 text-lime-700 dark:border-lime-400/20 dark:bg-lime-400/10 dark:text-lime-300",
       iconWrapClass:
-        "border-lime-200 bg-lime-50 text-lime-600 dark:border-lime-400/20 dark:bg-lime-500/10 dark:text-lime-300",
-      buttonClass:
-        "border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white/80 dark:hover:bg-white/10",
+        "border-lime-200 bg-lime-50 text-lime-600 dark:border-lime-400/20 dark:bg-lime-400/10 dark:text-lime-300",
     };
   }
 
   return {
     icon: <FiCpu />,
-    accent: "from-cyan-400/20 via-violet-400/10 to-blue-400/10",
     chipClass:
-      "border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-300",
+      "border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-400/10 dark:text-cyan-300",
     iconWrapClass:
-      "border-cyan-200 bg-cyan-50 text-cyan-600 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-300",
-    buttonClass:
-      "border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white/80 dark:hover:bg-white/10",
+      "border-cyan-200 bg-cyan-50 text-cyan-600 dark:border-cyan-400/20 dark:bg-cyan-400/10 dark:text-cyan-300",
   };
 };
 
@@ -213,17 +183,14 @@ const mapToUiApp = (item: AppLineMasterResponse): UiApp => {
     category: getCategoryFromName(item.name),
     description: getDescriptionFromName(item.name),
     icon: meta.icon,
-    accent: meta.accent,
     chipClass: meta.chipClass,
     iconWrapClass: meta.iconWrapClass,
-    buttonClass: meta.buttonClass,
   };
 };
 
-const Index: React.FC = () => {
+const Master: React.FC = () => {
   const [items, setItems] = useState<AppLineMasterResponse[]>([]);
   const [search, setSearch] = useState("");
-  const [viewMode, setViewMode] = useState<ViewMode>("list");
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -467,354 +434,221 @@ const Index: React.FC = () => {
     <>
       <section
         className={[
-          "relative h-full overflow-hidden rounded-[28px] p-4 sm:p-5 md:p-6",
-          "bg-white border border-gray-200/80 shadow-[0_18px_40px_-24px_rgba(15,23,42,0.20)]",
-          "dark:bg-[#08111f]/95 dark:border-white/10 dark:ring-1 dark:ring-cyan-400/10 dark:shadow-none",
-          "flex flex-col",
+          "relative h-full overflow-hidden rounded-4xl border px-5 py-5 sm:px-6 sm:py-6",
+          "border-slate-200 bg-[#f9fcff] shadow-[0_18px_45px_-28px_rgba(15,23,42,0.18)]",
+          "dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:ring-1 dark:ring-white/10",
         ].join(" ")}
       >
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -top-20 right-10 h-48 w-48 rounded-full bg-cyan-400/10 blur-3xl" />
-          <div className="absolute bottom-0 left-0 h-40 w-40 rounded-full bg-violet-500/10 blur-3xl" />
-          <div className="absolute inset-0 opacity-[0.035] dark:opacity-[0.05]">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-4xl">
+          <div className="absolute inset-0 opacity-[0.05] dark:opacity-[0.06]">
             <div
-              className="h-full w-full"
+              className="h-full w-full text-slate-500 dark:text-white/15"
               style={{
                 backgroundImage: `
                   linear-gradient(to right, currentColor 1px, transparent 1px),
                   linear-gradient(to bottom, currentColor 1px, transparent 1px)
                 `,
-                backgroundSize: "32px 32px",
+                backgroundSize: "28px 28px",
               }}
             />
           </div>
+          <div className="absolute -top-10 right-0 h-40 w-40 rounded-full bg-cyan-100/60 blur-3xl dark:bg-cyan-400/10" />
+          <div className="absolute bottom-0 left-0 h-32 w-32 rounded-full bg-sky-100/60 blur-3xl dark:bg-sky-400/10" />
         </div>
 
-        <div className="relative z-10 flex h-full flex-col">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-            <div className="min-w-0">
-              <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1.5 text-[12px] font-semibold text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-300">
+        <div className="relative z-10">
+          <div className="flex flex-col gap-5">
+            <div className="max-w-xl">
+              <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-4 py-2 text-[12px] font-semibold text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-400/10 dark:text-cyan-300">
                 <FiSettings className="text-[13px]" />
                 Integration Management
               </div>
 
-              <h2 className="mt-3 text-[24px] font-semibold tracking-tight text-slate-900 sm:text-[28px] dark:text-white">
-                All Integrations & Apps
+              <h2 className="mt-5 text-[28px] font-semibold tracking-tight text-slate-900 sm:text-[34px] dark:text-white/90">
+                All Integrations
               </h2>
 
-              <p className="mt-1 text-[13px] text-slate-500 sm:text-[14px] dark:text-white/55">
-                Connect all channels to leverage the best performance.
+              <p className="mt-3 max-w-md text-[15px] leading-8 text-slate-500 dark:text-white/55">
+                Manage connected apps in one place.
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative min-w-60 flex-1 sm:flex-none sm:w-80">
-                <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-white/35" />
-                <input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search integrations..."
-                  className={[
-                    "w-full h-11 rounded-2xl pl-10 pr-4 text-[13px] outline-none transition",
-                    "border border-gray-200 bg-white text-slate-800 focus:ring-2 focus:ring-cyan-200",
-                    "dark:border-white/10 dark:bg-white/5 dark:text-white/80 dark:placeholder:text-white/35 dark:focus:ring-cyan-400/10",
-                  ].join(" ")}
-                />
-              </div>
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div className="relative flex-1">
+                  <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-white/35" />
+                  <input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search integrations..."
+                    className={[
+                      "h-12 w-full rounded-[18px] border pl-11 pr-4 text-[14px] outline-none transition",
+                      "border-slate-200 bg-white text-slate-800 placeholder:text-slate-400",
+                      "focus:border-cyan-300 focus:ring-4 focus:ring-cyan-100",
+                      "dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:placeholder:text-white/30 dark:focus:border-cyan-400/30 dark:focus:ring-cyan-400/10",
+                    ].join(" ")}
+                  />
+                </div>
 
-              <button
-                type="button"
-                onClick={() => loadAppLineMasters(true)}
-                disabled={refreshing}
-                className={[
-                  "inline-flex h-11 w-11 items-center justify-center rounded-2xl transition",
-                  "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50",
-                  "disabled:cursor-not-allowed disabled:opacity-60",
-                  "dark:bg-white/5 dark:border-white/10 dark:text-white/70 dark:hover:bg-white/8",
-                ].join(" ")}
-                title="Refresh"
-              >
-                <FiRefreshCw className={refreshing ? "animate-spin" : ""} />
-              </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => loadAppLineMasters(true)}
+                    disabled={refreshing}
+                    className={[
+                      "inline-flex h-12 w-12 items-center justify-center rounded-[18px] border transition",
+                      "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
+                      "disabled:cursor-not-allowed disabled:opacity-60",
+                      "dark:border-white/10 dark:bg-white/5 dark:text-white/70 dark:hover:bg-white/10",
+                    ].join(" ")}
+                    title="Refresh"
+                  >
+                    <FiRefreshCw className={refreshing ? "animate-spin" : ""} />
+                  </button>
 
-              <button
-                type="button"
-                onClick={openCreateModal}
-                className={[
-                  "inline-flex h-11 items-center gap-2 rounded-2xl px-4 transition",
-                  "bg-cyan-600 text-white hover:bg-cyan-700",
-                  "dark:bg-cyan-500 dark:hover:bg-cyan-400",
-                ].join(" ")}
-              >
-                <FiPlus />
-                Add Integration
-              </button>
-
-              <div className="inline-flex items-center gap-1 rounded-2xl border border-gray-200 bg-white p-1 dark:border-white/10 dark:bg-white/5">
-                <button
-                  type="button"
-                  onClick={() => setViewMode("list")}
-                  className={[
-                    "inline-flex h-9 w-9 items-center justify-center rounded-xl transition",
-                    viewMode === "list"
-                      ? "bg-slate-100 text-slate-800 dark:bg-white/10 dark:text-white"
-                      : "text-slate-500 hover:bg-slate-50 dark:text-white/55 dark:hover:bg-white/10",
-                  ].join(" ")}
-                  title="List view"
-                >
-                  <FiList />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setViewMode("grid")}
-                  className={[
-                    "inline-flex h-9 w-9 items-center justify-center rounded-xl transition",
-                    viewMode === "grid"
-                      ? "bg-slate-100 text-slate-800 dark:bg-white/10 dark:text-white"
-                      : "text-slate-500 hover:bg-slate-50 dark:text-white/55 dark:hover:bg-white/10",
-                  ].join(" ")}
-                  title="Grid view"
-                >
-                  <FiGrid />
-                </button>
+                  <button
+                    type="button"
+                    onClick={openCreateModal}
+                    className={[
+                      "inline-flex h-12 items-center gap-2 rounded-[18px] px-4 text-[14px] font-medium transition",
+                      "bg-cyan-600 text-white hover:bg-cyan-700 shadow-sm",
+                    ].join(" ")}
+                  >
+                    <FiPlus />
+                    Add
+                  </button>
+                </div>
               </div>
             </div>
           </div>
 
           {error && (
-            <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300">
+            <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-300">
               {error}
             </div>
           )}
 
-          <div className="mt-6 flex-1 flex flex-col">
+          <div className="mt-8">
             {loading ? (
-              <div className="flex h-full flex-1 items-center justify-center rounded-3xl border border-gray-200/80 bg-white/70 px-6 py-14 text-center dark:border-white/10 dark:bg-white/3">
+              <div className="flex min-h-65 items-center justify-center rounded-[28px] border border-slate-200 bg-white/80 px-6 py-14 text-center dark:border-white/10 dark:bg-white/5">
                 <div>
-                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-200">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-400/10 dark:text-cyan-300">
                     <FiRefreshCw className="animate-spin text-[22px]" />
                   </div>
-                  <h3 className="mt-4 text-[16px] font-semibold text-slate-900 dark:text-white/85">
+                  <h3 className="mt-4 text-[16px] font-semibold text-slate-900 dark:text-white/90">
                     Loading integrations...
                   </h3>
-                  <p className="mt-1 text-[13px] text-slate-500 dark:text-white/55">
+                  <p className="mt-1 text-[13px] text-slate-500 dark:text-white/50">
                     Please wait while we load your integration list.
                   </p>
                 </div>
               </div>
             ) : filteredItems.length === 0 ? (
-              <div className="flex h-full flex-1 items-center justify-center rounded-3xl border border-gray-200/80 bg-white/70 px-6 py-14 text-center dark:border-white/10 dark:bg-white/3">
+              <div className="flex min-h-65 items-center justify-center rounded-[28px] border border-slate-200 bg-white/80 px-6 py-14 text-center dark:border-white/10 dark:bg-white/5">
                 <div>
-                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-200">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-400/10 dark:text-cyan-300">
                     <FiAlertCircle className="text-[22px]" />
                   </div>
-                  <h3 className="mt-4 text-[16px] font-semibold text-slate-900 dark:text-white/85">
+                  <h3 className="mt-4 text-[16px] font-semibold text-slate-900 dark:text-white/90">
                     No integrations found
                   </h3>
-                  <p className="mt-1 text-[13px] text-slate-500 dark:text-white/55">
+                  <p className="mt-1 text-[13px] text-slate-500 dark:text-white/50">
                     Try adjusting your search or add a new integration.
                   </p>
                 </div>
               </div>
-            ) : viewMode === "grid" ? (
-              <div className="grid h-full content-start grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3">
-                {filteredItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className={[
-                      "group relative overflow-hidden rounded-[26px] border p-5 transition",
-                      "bg-white shadow-[0_18px_40px_-28px_rgba(15,23,42,0.22)] hover:-translate-y-0.5",
-                      "border-gray-200/80 dark:border-white/10 dark:bg-white/4 dark:shadow-none",
-                    ].join(" ")}
-                  >
-                    <div
-                      className={`pointer-events-none absolute inset-x-0 top-0 h-24 bg-linear-to-br ${item.accent}`}
-                    />
-
-                    <div className="relative z-10">
-                      <div className="flex items-start justify-between gap-3">
-                        <div
-                          className={[
-                            "grid h-14 w-14 place-items-center rounded-2xl border text-[24px]",
-                            item.iconWrapClass,
-                          ].join(" ")}
-                        >
-                          {item.icon}
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              openEditModal(
-                                items.find((x) => x.id === item.id) as AppLineMasterResponse
-                              )
-                            }
-                            className={[
-                              "inline-flex h-10 w-10 items-center justify-center rounded-2xl transition",
-                              "border border-gray-200 bg-white text-slate-600 hover:bg-gray-50",
-                              "dark:border-white/10 dark:bg-white/5 dark:text-white/70 dark:hover:bg-white/10",
-                            ].join(" ")}
-                            title="Edit"
-                          >
-                            <FiEdit2 />
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              openDeleteModal(
-                                items.find((x) => x.id === item.id) as AppLineMasterResponse
-                              )
-                            }
-                            className={[
-                              "inline-flex h-10 w-10 items-center justify-center rounded-2xl transition",
-                              "border border-red-200 bg-red-50 text-red-600 hover:bg-red-100",
-                              "dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300 dark:hover:bg-red-500/15",
-                            ].join(" ")}
-                            title="Delete"
-                          >
-                            <FiTrash2 />
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="mt-5">
-                        <h3 className="text-[22px] font-semibold tracking-tight text-slate-900 dark:text-white">
-                          {item.name}
-                        </h3>
-
-                        <div
-                          className={[
-                            "mt-2 inline-flex items-center rounded-full border px-3 py-1 text-[12px] font-medium",
-                            item.chipClass,
-                          ].join(" ")}
-                        >
-                          {item.category}
-                        </div>
-
-                        <p className="mt-4 text-[14px] leading-7 text-slate-500 dark:text-white/55">
-                          {item.description}
-                        </p>
-                      </div>
-
-                      <div className="mt-6 flex items-center justify-between gap-3">
-                        <button
-                          type="button"
-                          className={[
-                            "inline-flex h-10 items-center gap-2 rounded-xl border px-4 text-[14px] font-medium transition",
-                            item.buttonClass,
-                          ].join(" ")}
-                        >
-                          <FiZap />
-                          Connect
-                        </button>
-
-                        <div className="inline-flex items-center gap-1 text-[12px] text-slate-400 dark:text-white/35">
-                          <FiCheckCircle />
-                          Ready
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
             ) : (
-              <div className="overflow-hidden rounded-3xl border border-gray-200/80 bg-white/70 dark:border-white/10 dark:bg-white/3">
-                {filteredItems.map((item, idx) => (
-                  <div
-                    key={item.id}
-                    className={[
-                      "px-4 py-4 transition-colors sm:px-6",
-                      idx !== filteredItems.length - 1
-                        ? "border-b border-gray-200/70 dark:border-white/10"
-                        : "",
-                      "hover:bg-gray-50 dark:hover:bg-white/4",
-                    ].join(" ")}
-                  >
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                      <div className="flex min-w-0 items-start gap-4">
-                        <div
-                          className={[
-                            "grid h-14 w-14 shrink-0 place-items-center rounded-2xl border text-[24px]",
-                            item.iconWrapClass,
-                          ].join(" ")}
-                        >
-                          {item.icon}
-                        </div>
+              <div className="space-y-4">
+                {filteredItems.map((item) => {
+                  const originalItem = items.find((x) => x.id === item.id) as AppLineMasterResponse;
 
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="text-[18px] font-semibold text-slate-900 dark:text-white">
-                              {item.name}
-                            </h3>
-
-                            <span
+                  return (
+                    <div
+                      key={item.id}
+                      className={[
+                        "rounded-[28px] border px-5 py-5 transition sm:px-6 sm:py-6",
+                        "border-slate-200 bg-white shadow-[0_10px_35px_-24px_rgba(15,23,42,0.18)] hover:border-cyan-200",
+                        "dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:hover:border-cyan-400/20",
+                      ].join(" ")}
+                    >
+                      <div className="flex flex-col gap-5">
+                        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                          <div className="flex min-w-0 items-start gap-4 sm:gap-5">
+                            <div
                               className={[
-                                "inline-flex items-center rounded-full border px-3 py-1 text-[12px] font-medium",
-                                item.chipClass,
+                                "grid h-16 w-16 shrink-0 place-items-center rounded-[22px] border text-[24px]",
+                                item.iconWrapClass,
                               ].join(" ")}
                             >
-                              {item.category}
-                            </span>
+                              {item.icon}
+                            </div>
+
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                                <h3 className="truncate text-[22px] font-semibold tracking-tight text-slate-900 dark:text-white/90">
+                                  {item.name}
+                                </h3>
+
+                                <span
+                                  className={[
+                                    "inline-flex w-fit items-center rounded-full border px-3 py-1 text-[12px] font-medium",
+                                    item.chipClass,
+                                  ].join(" ")}
+                                >
+                                  {item.category}
+                                </span>
+                              </div>
+
+                              <p className="mt-2 max-w-2xl text-[14px] leading-8 text-slate-500 dark:text-white/55">
+                                {item.description}
+                              </p>
+                            </div>
                           </div>
 
-                          <p className="mt-2 text-[14px] leading-7 text-slate-500 dark:text-white/55">
-                            {item.description}
-                          </p>
+                          <div className="flex flex-wrap items-center gap-2 sm:gap-3 lg:justify-end">
+                            <button
+                              type="button"
+                              onClick={() => openEditModal(originalItem)}
+                              className={[
+                                "inline-flex h-11 w-11 items-center justify-center rounded-2xl border transition",
+                                "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
+                                "dark:border-white/10 dark:bg-white/5 dark:text-white/70 dark:hover:bg-white/10",
+                              ].join(" ")}
+                              title="Edit"
+                            >
+                              <FiEdit2 />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => openDeleteModal(originalItem)}
+                              className={[
+                                "inline-flex h-11 w-11 items-center justify-center rounded-2xl border transition",
+                                "border-red-200 bg-red-50 text-red-500 hover:bg-red-100",
+                                "dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-300 dark:hover:bg-red-400/15",
+                              ].join(" ")}
+                              title="Delete"
+                            >
+                              <FiTrash2 />
+                            </button>
+
+                            <button
+                              type="button"
+                              className={[
+                                "inline-flex h-11 items-center gap-2 rounded-2xl border px-5 text-[14px] font-medium transition",
+                                "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
+                                "dark:border-white/10 dark:bg-white/5 dark:text-white/75 dark:hover:bg-white/10",
+                              ].join(" ")}
+                            >
+                              Connect
+                              <FiChevronRight className="text-[15px]" />
+                            </button>
+                          </div>
                         </div>
                       </div>
-
-                      <div className="flex flex-wrap items-center gap-2">
-                        <button
-                          type="button"
-                          className={[
-                            "inline-flex h-10 items-center gap-2 rounded-xl border px-4 text-[14px] font-medium transition",
-                            item.buttonClass,
-                          ].join(" ")}
-                        >
-                          <FiZap />
-                          Connect
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            openEditModal(
-                              items.find((x) => x.id === item.id) as AppLineMasterResponse
-                            )
-                          }
-                          className={[
-                            "inline-flex h-10 w-10 items-center justify-center rounded-xl transition",
-                            "border border-gray-200 bg-white text-slate-600 hover:bg-gray-50",
-                            "dark:border-white/10 dark:bg-white/5 dark:text-white/70 dark:hover:bg-white/10",
-                          ].join(" ")}
-                          title="Edit"
-                        >
-                          <FiEdit2 />
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            openDeleteModal(
-                              items.find((x) => x.id === item.id) as AppLineMasterResponse
-                            )
-                          }
-                          className={[
-                            "inline-flex h-10 w-10 items-center justify-center rounded-xl transition",
-                            "border border-red-200 bg-red-50 text-red-600 hover:bg-red-100",
-                            "dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300 dark:hover:bg-red-500/15",
-                          ].join(" ")}
-                          title="Delete"
-                        >
-                          <FiTrash2 />
-                        </button>
-                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -826,28 +660,23 @@ const Index: React.FC = () => {
           <button
             type="button"
             onClick={closeFormModal}
-            className="absolute inset-0 bg-slate-900/35 backdrop-blur-[2px]"
+            className="absolute inset-0 bg-slate-900/30 backdrop-blur-[3px] dark:bg-black/45"
             aria-label="Close form modal overlay"
           />
 
-          <div
-            className={[
-              "relative z-10 w-full max-w-2xl rounded-[18px] border border-gray-200 bg-white px-5 py-5 shadow-[0_20px_70px_rgba(15,23,42,0.18)]",
-              "dark:border-white/10 dark:bg-[#0d1524]",
-            ].join(" ")}
-          >
+          <div className="relative z-10 w-full max-w-2xl rounded-3xl border border-slate-200 bg-white px-5 py-5 shadow-[0_24px_70px_rgba(15,23,42,0.18)] sm:px-6 sm:py-6 dark:border-white/10 dark:bg-[#0b1220] dark:shadow-none dark:ring-1 dark:ring-white/10">
             <button
               type="button"
               onClick={closeFormModal}
               disabled={submitting}
-              className="absolute right-4 top-4 text-gray-400 transition hover:text-gray-600 disabled:cursor-not-allowed dark:text-white/45 dark:hover:text-white/70"
+              className="absolute right-4 top-4 text-slate-400 transition hover:text-slate-600 disabled:cursor-not-allowed dark:text-white/35 dark:hover:text-white/70"
               aria-label="Close"
             >
               <FiX className="text-[20px]" />
             </button>
 
             <div className="flex justify-center pt-2">
-              <div className="grid h-14 w-14 place-items-center rounded-full bg-cyan-50 text-cyan-600 dark:bg-cyan-500/10 dark:text-cyan-300">
+              <div className="grid h-14 w-14 place-items-center rounded-full bg-cyan-50 text-cyan-600 dark:bg-cyan-400/10 dark:text-cyan-300">
                 {formMode === "create" ? (
                   <FiPlus className="text-[28px]" />
                 ) : (
@@ -856,7 +685,7 @@ const Index: React.FC = () => {
               </div>
             </div>
 
-            <h3 className="mt-4 text-center text-[24px] font-semibold text-slate-800 dark:text-white">
+            <h3 className="mt-4 text-center text-[24px] font-semibold text-slate-800 dark:text-white/90">
               {formMode === "create" ? "Create Integration" : "Update Integration"}
             </h3>
 
@@ -879,11 +708,7 @@ const Index: React.FC = () => {
                       setFormData((prev) => ({ ...prev, name: e.target.value }))
                     }
                     placeholder="e.g. Slack, Google Meet, LINE Notify"
-                    className={[
-                      "w-full h-12 rounded-2xl border pl-10 pr-4 text-[14px] outline-none transition",
-                      "border-slate-200 bg-white text-slate-800 focus:ring-2 focus:ring-cyan-200",
-                      "dark:border-white/10 dark:bg-white/5 dark:text-white/80 dark:placeholder:text-white/35 dark:focus:ring-cyan-400/10",
-                    ].join(" ")}
+                    className="h-12 w-full rounded-2xl border border-slate-200 bg-white pl-10 pr-4 text-[14px] text-slate-800 outline-none transition focus:border-cyan-300 focus:ring-4 focus:ring-cyan-100 dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:placeholder:text-white/30 dark:focus:border-cyan-400/30 dark:focus:ring-cyan-400/10"
                   />
                 </div>
               </div>
@@ -894,7 +719,7 @@ const Index: React.FC = () => {
                 </label>
 
                 <div className="relative">
-                  <FiZap className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-white/35" />
+                  <FiBell className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-white/35" />
 
                   <input
                     type={showToken ? "text" : "password"}
@@ -903,22 +728,14 @@ const Index: React.FC = () => {
                       setFormData((prev) => ({ ...prev, token: e.target.value }))
                     }
                     placeholder="Enter token"
-                    className={[
-                      "w-full h-12 rounded-2xl border pl-10 pr-24 text-[14px] outline-none transition",
-                      "border-slate-200 bg-white text-slate-800 focus:ring-2 focus:ring-cyan-200",
-                      "dark:border-white/10 dark:bg-white/5 dark:text-white/80 dark:placeholder:text-white/35 dark:focus:ring-cyan-400/10",
-                    ].join(" ")}
+                    className="h-12 w-full rounded-2xl border border-slate-200 bg-white pl-10 pr-24 text-[14px] text-slate-800 outline-none transition focus:border-cyan-300 focus:ring-4 focus:ring-cyan-100 dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:placeholder:text-white/30 dark:focus:border-cyan-400/30 dark:focus:ring-cyan-400/10"
                   />
 
                   <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
                     <button
                       type="button"
                       onClick={handleCopyToken}
-                      className={[
-                        "inline-flex h-8 w-8 items-center justify-center rounded-xl transition",
-                        "text-slate-500 hover:bg-slate-100 hover:text-slate-700",
-                        "dark:text-white/55 dark:hover:bg-white/10 dark:hover:text-white/80",
-                      ].join(" ")}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:text-white/45 dark:hover:bg-white/10 dark:hover:text-white/80"
                       title="Copy token"
                     >
                       <FiCopy />
@@ -927,11 +744,7 @@ const Index: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setShowToken((prev) => !prev)}
-                      className={[
-                        "inline-flex h-8 w-8 items-center justify-center rounded-xl transition",
-                        "text-slate-500 hover:bg-slate-100 hover:text-slate-700",
-                        "dark:text-white/55 dark:hover:bg-white/10 dark:hover:text-white/80",
-                      ].join(" ")}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:text-white/45 dark:hover:bg-white/10 dark:hover:text-white/80"
                       title={showToken ? "Hide token" : "Show token"}
                     >
                       {showToken ? <FiEyeOff /> : <FiEye />}
@@ -939,17 +752,17 @@ const Index: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  {copiedToken && (
-                    <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-medium text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-500/10 dark:text-emerald-300">
+                {copiedToken && (
+                  <div className="mt-2">
+                    <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-medium text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300">
                       Copied token
                     </span>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
 
               {formError && (
-                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300">
+                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-300">
                   {formError}
                 </div>
               )}
@@ -960,15 +773,15 @@ const Index: React.FC = () => {
                 </p>
 
                 <div className="mt-3 flex items-start gap-3">
-                  <div className="grid h-12 w-12 place-items-center rounded-2xl border border-cyan-200 bg-cyan-50 text-cyan-600 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-300">
+                  <div className="grid h-12 w-12 place-items-center rounded-2xl border border-cyan-200 bg-cyan-50 text-cyan-600 dark:border-cyan-400/20 dark:bg-cyan-400/10 dark:text-cyan-300">
                     {getMetaByName(formData.name).icon}
                   </div>
 
                   <div className="min-w-0">
-                    <p className="text-[16px] font-semibold text-slate-900 dark:text-white">
+                    <p className="text-[16px] font-semibold text-slate-900 dark:text-white/90">
                       {normalizeText(formData.name) || "Integration Name"}
                     </p>
-                    <p className="mt-1 text-[13px] text-slate-500 dark:text-white/55">
+                    <p className="mt-1 text-[13px] text-slate-500 dark:text-white/50">
                       {getCategoryFromName(formData.name)}
                     </p>
                     <p className="mt-2 text-[13px] leading-6 text-slate-500 dark:text-white/55">
@@ -984,12 +797,7 @@ const Index: React.FC = () => {
                 type="button"
                 onClick={handleSubmit}
                 disabled={submitting}
-                className={[
-                  "min-w-35 rounded-xl px-4 py-2.5 text-[15px] font-medium transition",
-                  "bg-cyan-600 text-white hover:bg-cyan-700",
-                  "disabled:cursor-not-allowed disabled:opacity-60",
-                  "dark:bg-cyan-500 dark:hover:bg-cyan-400",
-                ].join(" ")}
+                className="min-w-35 rounded-xl bg-cyan-600 px-4 py-2.5 text-[15px] font-medium text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {submitting
                   ? formMode === "create"
@@ -1004,12 +812,7 @@ const Index: React.FC = () => {
                 type="button"
                 onClick={closeFormModal}
                 disabled={submitting}
-                className={[
-                  "min-w-35 rounded-xl px-4 py-2.5 text-[15px] font-medium transition",
-                  "bg-slate-100 text-slate-700 hover:bg-slate-200",
-                  "disabled:cursor-not-allowed disabled:opacity-60",
-                  "dark:bg-white/10 dark:text-white dark:hover:bg-white/15",
-                ].join(" ")}
+                className="min-w-35 rounded-xl bg-slate-100 px-4 py-2.5 text-[15px] font-medium text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white/10 dark:text-white/75 dark:hover:bg-white/15"
               >
                 Cancel
               </button>
@@ -1023,37 +826,32 @@ const Index: React.FC = () => {
           <button
             type="button"
             onClick={closeDeleteModal}
-            className="absolute inset-0 bg-slate-900/35 backdrop-blur-[2px]"
+            className="absolute inset-0 bg-slate-900/30 backdrop-blur-[3px] dark:bg-black/45"
             aria-label="Close delete modal overlay"
           />
 
-          <div
-            className={[
-              "relative z-10 w-full max-w-xl rounded-[18px] border border-gray-200 bg-white px-5 py-5 shadow-[0_20px_70px_rgba(15,23,42,0.18)]",
-              "dark:border-white/10 dark:bg-[#0d1524]",
-            ].join(" ")}
-          >
+          <div className="relative z-10 w-full max-w-xl rounded-3xl border border-slate-200 bg-white px-5 py-5 shadow-[0_24px_70px_rgba(15,23,42,0.18)] sm:px-6 sm:py-6 dark:border-white/10 dark:bg-[#0b1220] dark:shadow-none dark:ring-1 dark:ring-white/10">
             <button
               type="button"
               onClick={closeDeleteModal}
               disabled={deleting}
-              className="absolute right-4 top-4 text-gray-400 transition hover:text-gray-600 disabled:cursor-not-allowed dark:text-white/45 dark:hover:text-white/70"
+              className="absolute right-4 top-4 text-slate-400 transition hover:text-slate-600 disabled:cursor-not-allowed dark:text-white/35 dark:hover:text-white/70"
               aria-label="Close"
             >
               <FiX className="text-[20px]" />
             </button>
 
             <div className="flex justify-center pt-2">
-              <div className="grid h-14 w-14 place-items-center rounded-full bg-red-50 text-red-500 dark:bg-red-500/10 dark:text-red-300">
+              <div className="grid h-14 w-14 place-items-center rounded-full bg-red-50 text-red-500 dark:bg-red-400/10 dark:text-red-300">
                 <FiTrash2 className="text-[28px]" />
               </div>
             </div>
 
-            <h3 className="mt-4 text-center text-[24px] font-semibold text-slate-800 dark:text-white">
+            <h3 className="mt-4 text-center text-[24px] font-semibold text-slate-800 dark:text-white/90">
               Delete Integration
             </h3>
 
-            <p className="mx-auto mt-3 max-w-105 text-center text-[14px] leading-6 text-slate-500 dark:text-white/55">
+            <p className="mx-auto mt-3 max-w-110 text-center text-[14px] leading-6 text-slate-500 dark:text-white/55">
               Are you sure you want to delete{" "}
               <span className="font-semibold text-slate-700 dark:text-white/80">
                 {deleteTarget.name}
@@ -1061,17 +859,17 @@ const Index: React.FC = () => {
               ? This action cannot be undone.
             </p>
 
-            <div className="mt-5 rounded-2xl border border-gray-200 bg-gray-50/70 p-4 dark:border-white/10 dark:bg-white/5">
+            <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50/70 p-4 dark:border-white/10 dark:bg-white/5">
               <div className="flex items-start gap-3">
-                <div className="grid h-12 w-12 place-items-center rounded-2xl border border-red-200 bg-red-50 text-red-600 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300">
+                <div className="grid h-12 w-12 place-items-center rounded-2xl border border-red-200 bg-red-50 text-red-600 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-300">
                   {getMetaByName(deleteTarget.name).icon}
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <p className="text-[15px] font-semibold text-slate-800 dark:text-white">
+                  <p className="text-[15px] font-semibold text-slate-800 dark:text-white/90">
                     {deleteTarget.name}
                   </p>
-                  <p className="mt-1 text-[13px] text-slate-500 dark:text-white/55">
+                  <p className="mt-1 text-[13px] text-slate-500 dark:text-white/50">
                     {getCategoryFromName(deleteTarget.name)}
                   </p>
                   <p className="mt-2 text-[13px] leading-6 text-slate-500 dark:text-white/55">
@@ -1082,7 +880,7 @@ const Index: React.FC = () => {
             </div>
 
             {deleteError && (
-              <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-center text-[13px] text-red-700 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300">
+              <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-center text-[13px] text-red-700 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-300">
                 {deleteError}
               </div>
             )}
@@ -1092,11 +890,7 @@ const Index: React.FC = () => {
                 type="button"
                 onClick={handleDelete}
                 disabled={deleting}
-                className={[
-                  "min-w-35 rounded-xl px-4 py-2.5 text-[15px] font-medium transition",
-                  "bg-[#f8dedd] text-[#ff5a3c] hover:bg-[#f4d2d1]",
-                  "disabled:cursor-not-allowed disabled:opacity-60",
-                ].join(" ")}
+                className="min-w-35 rounded-xl bg-[#f8dedd] px-4 py-2.5 text-[15px] font-medium text-[#ff5a3c] transition hover:bg-[#f4d2d1] disabled:cursor-not-allowed disabled:opacity-60 dark:bg-red-400/10 dark:text-red-300 dark:hover:bg-red-400/15"
               >
                 {deleting ? "Deleting..." : "Yes, Delete!"}
               </button>
@@ -1105,11 +899,7 @@ const Index: React.FC = () => {
                 type="button"
                 onClick={closeDeleteModal}
                 disabled={deleting}
-                className={[
-                  "min-w-35 rounded-xl px-4 py-2.5 text-[15px] font-medium transition",
-                  "bg-[#6d5efc] text-white hover:bg-[#5f51eb]",
-                  "disabled:cursor-not-allowed disabled:opacity-60",
-                ].join(" ")}
+                className="min-w-35 rounded-xl bg-[#6d5efc] px-4 py-2.5 text-[15px] font-medium text-white transition hover:bg-[#5f51eb] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 No, Keep It.
               </button>
@@ -1121,4 +911,4 @@ const Index: React.FC = () => {
   );
 };
 
-export default Index;
+export default Master;

@@ -8,6 +8,7 @@ type AuthContextValue = {
   isLoading: boolean;
   isAuthed: boolean;
   isAdmin: boolean;
+  isUser: boolean;
   role: string;
   refreshMe: () => Promise<void>;
   logout: () => Promise<void>;
@@ -17,7 +18,9 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export const useAuth = () => {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
+  if (!ctx) {
+    throw new Error("useAuth must be used within AuthProvider");
+  }
   return ctx;
 };
 
@@ -30,6 +33,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const me = await GetMe();
       setUser(me);
     } catch (err) {
+      console.error("GetMe error:", err);
       setUser(null);
     }
   };
@@ -37,6 +41,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     try {
       await Logout();
+    } catch (err) {
+      console.error("Logout error:", err);
     } finally {
       setUser(null);
     }
@@ -44,6 +50,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     let alive = true;
+
     (async () => {
       try {
         if (!alive) return;
@@ -53,6 +60,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (alive) setIsLoading(false);
       }
     })();
+
     return () => {
       alive = false;
     };
@@ -60,16 +68,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const value = useMemo<AuthContextValue>(() => {
     const isAuthed = !!user;
-    const role = String(user?.role ?? "").toLowerCase();
+    const role = String(user?.role ?? "").trim().toLowerCase();
 
-    // ถ้าระบบคุณอยากให้ user/admin ผ่าน logic บางอย่างเหมือนกัน ก็เก็บแบบนี้ได้
-    const isAdmin = role === "admin" || role === "user";
+    const isAdmin = role === "admin";
+    const isUser = role === "user";
 
     return {
       user,
       isLoading,
       isAuthed,
       isAdmin,
+      isUser,
       role,
       refreshMe,
       logout,

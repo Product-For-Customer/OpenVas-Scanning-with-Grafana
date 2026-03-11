@@ -3,7 +3,7 @@ import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { MdOutlineCancel, MdKeyboardArrowDown } from "react-icons/md";
 import { TooltipComponent } from "@syncfusion/ej2-react-popups";
 import { FiLogOut, FiShield } from "react-icons/fi";
-import { getLinks } from "./dummy";
+import { getLinks, type SidebarSection } from "./dummy";
 import { useStateContext } from "../../contexts/ContextProvider";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -13,20 +13,16 @@ type SidebarLink = {
   badge?: string;
 };
 
-type SidebarSection = {
-  title: string;
-  links: SidebarLink[];
-};
-
 const EXPANDED_WIDTH = 300;
 const COLLAPSED_WIDTH = 84;
 const DESKTOP_BREAKPOINT = 900;
 
 const Sidebar: React.FC = () => {
   const navigate = useNavigate();
-  const { logout } = useAuth();
-  const { activeMenu, setActiveMenu, screenSize } = useStateContext();
   const location = useLocation();
+
+  const { logout, isAdmin } = useAuth();
+  const { activeMenu, setActiveMenu, screenSize } = useStateContext();
 
   const [menuLinks, setMenuLinks] = useState<SidebarSection[]>([]);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
@@ -47,43 +43,37 @@ const Sidebar: React.FC = () => {
   };
 
   useEffect(() => {
-    let mounted = true;
+    try {
+      const data = getLinks({ isAdmin });
+      const safeData = Array.isArray(data) ? data : [];
 
-    (async () => {
-      try {
-        const data = await getLinks();
-        const safeData = Array.isArray(data) ? data : [];
-        if (!mounted) return;
+      setMenuLinks(safeData);
 
-        setMenuLinks(safeData);
-
-        const nextOpen: Record<string, boolean> = {};
-        safeData.forEach((section: SidebarSection, index: number) => {
-          const hasActiveChild = section.links?.some((link) =>
-            location.pathname.includes(`/admin/${link.name}`)
-          );
-          nextOpen[section.title] = hasActiveChild || index === 0;
-        });
-        setOpenSections(nextOpen);
-      } catch (error) {
-        console.error("Failed to load sidebar links:", error);
-        if (!mounted) return;
-        setMenuLinks([]);
-      }
-    })();
-
-    return () => {
-      mounted = false;
-    };
-  }, [location.pathname]);
+      const nextOpen: Record<string, boolean> = {};
+      safeData.forEach((section: SidebarSection, index: number) => {
+        const hasActiveChild = section.links?.some((link) =>
+          location.pathname === `/admin/${link.name}`
+        );
+        nextOpen[section.title] = hasActiveChild || index === 0;
+      });
+      setOpenSections(nextOpen);
+    } catch (error) {
+      console.error("Failed to load sidebar links:", error);
+      setMenuLinks([]);
+    }
+  }, [location.pathname, isAdmin]);
 
   useEffect(() => {
-    if (isDesktop && isExpanded) setHoveredSection(null);
+    if (isDesktop && isExpanded) {
+      setHoveredSection(null);
+    }
   }, [isDesktop, isExpanded]);
 
   useEffect(() => {
     return () => {
-      if (hoverCloseTimer.current) window.clearTimeout(hoverCloseTimer.current);
+      if (hoverCloseTimer.current) {
+        window.clearTimeout(hoverCloseTimer.current);
+      }
     };
   }, []);
 
@@ -96,7 +86,9 @@ const Sidebar: React.FC = () => {
   };
 
   const closeHoverPopupWithDelay = (title: string) => {
-    if (hoverCloseTimer.current) window.clearTimeout(hoverCloseTimer.current);
+    if (hoverCloseTimer.current) {
+      window.clearTimeout(hoverCloseTimer.current);
+    }
 
     hoverCloseTimer.current = window.setTimeout(() => {
       setHoveredSection((prev) => (prev === title ? null : prev));
@@ -166,9 +158,9 @@ const Sidebar: React.FC = () => {
       >
         <div
           className={[
-            "relative h-full rounded-3xl flex flex-col overflow-visible",
-            "bg-white/92 border border-gray-200/80 shadow-[0_18px_44px_-24px_rgba(15,23,42,0.35)] backdrop-blur",
-            "dark:bg-[#08111f]/88 dark:border-white/10 dark:ring-1 dark:ring-cyan-400/10 dark:shadow-none",
+            "relative flex h-full flex-col overflow-visible rounded-3xl",
+            "border border-gray-200/80 bg-white/92 shadow-[0_18px_44px_-24px_rgba(15,23,42,0.35)] backdrop-blur",
+            "dark:border-white/10 dark:bg-[#08111f]/88 dark:ring-1 dark:ring-cyan-400/10 dark:shadow-none",
           ].join(" ")}
         >
           <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl">
@@ -179,23 +171,23 @@ const Sidebar: React.FC = () => {
           {/* Header */}
           <div
             className={`relative z-10 flex items-center ${
-              isExpanded ? "justify-between px-4 pt-6 pb-4" : "justify-center px-2 pt-5 pb-4"
+              isExpanded ? "justify-between px-4 pb-4 pt-6" : "justify-center px-2 pb-4 pt-5"
             }`}
           >
             <Link
               to="/admin"
               onClick={handleCloseSideBar}
-              className={`flex items-center ${isExpanded ? "gap-3" : "justify-center"} select-none`}
+              className={`select-none ${isExpanded ? "flex items-center gap-3" : "flex justify-center items-center"}`}
               aria-label="Go to dashboard"
             >
-              <div className="relative h-11 w-11 rounded-2xl bg-linear-to-br from-cyan-500 via-sky-500 to-violet-500 flex items-center justify-center shadow-sm shrink-0">
-                <FiShield className="text-white text-[20px]" />
-                <span className="absolute -right-0.5 -bottom-0.5 h-3 w-3 rounded-full bg-cyan-300 ring-2 ring-white dark:ring-[#08111f]" />
+              <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-linear-to-br from-cyan-500 via-sky-500 to-violet-500 shadow-sm">
+                <FiShield className="text-[20px] text-white" />
+                <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-cyan-300 ring-2 ring-white dark:ring-[#08111f]" />
               </div>
 
               {isExpanded && (
                 <div className="min-w-0">
-                  <span className="block text-[17px] font-semibold text-[#1f2240] dark:text-white/90 tracking-tight">
+                  <span className="block text-[17px] font-semibold tracking-tight text-[#1f2240] dark:text-white/90">
                     Scan Network
                   </span>
                   <span className="block text-[11px] text-gray-500 dark:text-white/45">
@@ -233,7 +225,7 @@ const Sidebar: React.FC = () => {
               {menuLinks.map((section) => {
                 const isOpen = !!openSections[section.title];
                 const hasActiveChild =
-                  section.links?.some((link) => isLinkActive(link.name)) ?? false;
+                  section.links?.some((link: SidebarLink) => isLinkActive(link.name)) ?? false;
 
                 const sectionIcon =
                   section.links?.[0]?.icon ?? (
@@ -247,7 +239,7 @@ const Sidebar: React.FC = () => {
                         type="button"
                         onClick={() => toggleSection(section.title)}
                         className={[
-                          "w-full flex items-center justify-between rounded-2xl px-4 py-3 text-left transition-all duration-200",
+                          "flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left transition-all duration-200",
                           hasActiveChild || isOpen
                             ? "bg-linear-to-r from-cyan-500 via-sky-500 to-violet-500 text-white shadow-sm"
                             : "bg-transparent text-[#4b4f63] hover:bg-gray-50",
@@ -257,7 +249,7 @@ const Sidebar: React.FC = () => {
                         ].join(" ")}
                         aria-expanded={isOpen}
                       >
-                        <div className="flex items-center gap-3 min-w-0">
+                        <div className="min-w-0 flex items-center gap-3">
                           <span
                             className={[
                               "inline-flex h-8 w-8 items-center justify-center rounded-xl text-[16px]",
@@ -287,11 +279,11 @@ const Sidebar: React.FC = () => {
 
                       <div
                         className={`overflow-hidden transition-all duration-200 ${
-                          isOpen ? "max-h-150 opacity-100 pt-2 pb-1" : "max-h-0 opacity-0"
+                          isOpen ? "max-h-150 pb-1 pt-2 opacity-100" : "max-h-0 opacity-0"
                         }`}
                       >
-                        <div className="pl-7 pr-2 space-y-1">
-                          {section.links?.map((link) => {
+                        <div className="space-y-1 pl-7 pr-2">
+                          {section.links?.map((link: SidebarLink) => {
                             const active = isLinkActive(link.name);
 
                             return (
@@ -302,20 +294,20 @@ const Sidebar: React.FC = () => {
                                 className={[
                                   "flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 transition-colors",
                                   active
-                                    ? "bg-cyan-50 text-cyan-700 font-semibold dark:bg-cyan-500/10 dark:text-cyan-300"
+                                    ? "bg-cyan-50 font-semibold text-cyan-700 dark:bg-cyan-500/10 dark:text-cyan-300"
                                     : "text-[#585b6b] hover:bg-gray-50 hover:text-[#2b2f45]",
                                   active
                                     ? ""
                                     : "dark:text-white/60 dark:hover:bg-white/8 dark:hover:text-white/85",
                                 ].join(" ")}
                               >
-                                <div className="flex items-center gap-3 min-w-0">
+                                <div className="min-w-0 flex items-center gap-3">
                                   <span
                                     className={[
                                       "inline-block h-2 w-2 rounded-full border",
                                       active
-                                        ? "bg-cyan-500 border-cyan-500"
-                                        : "bg-transparent border-gray-400 dark:border-white/30",
+                                        ? "border-cyan-500 bg-cyan-500"
+                                        : "border-gray-400 bg-transparent dark:border-white/30",
                                     ].join(" ")}
                                   />
                                   <span className="truncate text-[14px]">
@@ -348,7 +340,7 @@ const Sidebar: React.FC = () => {
                       <button
                         type="button"
                         className={[
-                          "w-full h-12 rounded-2xl flex items-center justify-center transition-all duration-200",
+                          "flex h-12 w-full items-center justify-center rounded-2xl transition-all duration-200",
                           hasActiveChild
                             ? "bg-linear-to-r from-cyan-500 via-sky-500 to-violet-500 text-white shadow-sm"
                             : "bg-[#eef3f8] text-gray-500 hover:bg-gray-50",
@@ -377,20 +369,20 @@ const Sidebar: React.FC = () => {
                         onMouseEnter={() => openHoverPopup(section.title)}
                         onMouseLeave={() => closeHoverPopupWithDelay(section.title)}
                       >
-                        <div className="rounded-2xl overflow-hidden shadow-xl border border-gray-200 bg-white dark:shadow-none dark:border-white/10 dark:bg-[#0B1220]">
-                          <div className="px-4 py-3 bg-linear-to-r from-cyan-500 via-sky-500 to-violet-500 text-white">
+                        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl dark:border-white/10 dark:bg-[#0B1220] dark:shadow-none">
+                          <div className="bg-linear-to-r from-cyan-500 via-sky-500 to-violet-500 px-4 py-3 text-white">
                             <div className="flex items-center gap-3">
                               <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-white/15 text-[16px]">
                                 {sectionIcon}
                               </span>
-                              <span className="text-[15px] font-medium truncate">
+                              <span className="truncate text-[15px] font-medium">
                                 {formatLabel(section.title)}
                               </span>
                             </div>
                           </div>
 
                           <div className="py-2">
-                            {section.links?.map((link) => {
+                            {section.links?.map((link: SidebarLink) => {
                               const active = isLinkActive(link.name);
 
                               return (
@@ -404,7 +396,7 @@ const Sidebar: React.FC = () => {
                                   className={[
                                     "flex items-center justify-between px-4 py-2.5 text-[14px] transition-colors",
                                     active
-                                      ? "text-cyan-700 font-semibold bg-cyan-50 dark:bg-white/8 dark:text-cyan-300"
+                                      ? "bg-cyan-50 font-semibold text-cyan-700 dark:bg-white/8 dark:text-cyan-300"
                                       : "text-[#4f5366] hover:bg-gray-50 dark:text-white/65 dark:hover:bg-white/8",
                                   ].join(" ")}
                                 >
@@ -436,10 +428,10 @@ const Sidebar: React.FC = () => {
                 onClick={() => void handleLogout()}
                 disabled={loggingOut}
                 className={[
-                  "w-full flex items-center justify-between rounded-2xl px-5 py-4 transition-colors",
-                  "bg-[#eef3f8] hover:bg-[#e7edf5] text-[#3a3d4f]",
-                  "dark:bg-white/8 dark:hover:bg-white/10 dark:text-white/75",
-                  loggingOut ? "opacity-70 cursor-not-allowed" : "",
+                  "flex w-full items-center justify-between rounded-2xl px-5 py-4 transition-colors",
+                  "bg-[#eef3f8] text-[#3a3d4f] hover:bg-[#e7edf5]",
+                  "dark:bg-white/8 dark:text-white/75 dark:hover:bg-white/10",
+                  loggingOut ? "cursor-not-allowed opacity-70" : "",
                 ].join(" ")}
                 aria-label="Logout"
               >
@@ -460,16 +452,19 @@ const Sidebar: React.FC = () => {
                 <FiLogOut className="text-[18px] text-gray-500 dark:text-white/60" />
               </button>
             ) : (
-              <TooltipComponent content={loggingOut ? "Logging out..." : "Logout"} position="RightCenter">
+              <TooltipComponent
+                content={loggingOut ? "Logging out..." : "Logout"}
+                position="RightCenter"
+              >
                 <button
                   type="button"
                   onClick={() => void handleLogout()}
                   disabled={loggingOut}
                   className={[
-                    "w-full h-12 rounded-2xl flex items-center justify-center transition-colors",
-                    "bg-[#eef3f8] hover:bg-[#e7edf5] text-gray-500",
-                    "dark:bg-white/8 dark:hover:bg-white/10 dark:text-white/60",
-                    loggingOut ? "opacity-70 cursor-not-allowed" : "",
+                    "flex h-12 w-full items-center justify-center rounded-2xl transition-colors",
+                    "bg-[#eef3f8] text-gray-500 hover:bg-[#e7edf5]",
+                    "dark:bg-white/8 dark:text-white/60 dark:hover:bg-white/10",
+                    loggingOut ? "cursor-not-allowed opacity-70" : "",
                   ].join(" ")}
                   aria-label="Logout"
                 >

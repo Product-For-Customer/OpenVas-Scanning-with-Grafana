@@ -1,4 +1,3 @@
-// src/services/vulnerability.ts
 import axios from "axios";
 export * from "./auth";
 export * from "./user";
@@ -6,26 +5,17 @@ export * from "./line";
 import { apiUrl } from "./api";
 
 // =======================
-// Auth header helper test
+// Axios instance for cookie-based auth
 // =======================
-const getAuthHeader = () => {
-  const token = localStorage.getItem("token");
-  const tokenType = localStorage.getItem("token_type");
-
-  if (!token || !tokenType) return {};
-  return { Authorization: `${tokenType} ${token}` };
-};
-
-// =======================
-// Common header helper
-// =======================
-const getCommonHeaders = () => {
-  return {
+const vulnerabilityApi = axios.create({
+  baseURL: apiUrl,
+  withCredentials: true,
+  timeout: 20000,
+  headers: {
     "Content-Type": "application/json",
     "ngrok-skip-browser-warning": "true",
-    ...getAuthHeader(),
-  };
-};
+  },
+});
 
 // =======================
 // API: GET /tasks/status
@@ -40,10 +30,7 @@ export type TaskStatusDTO = {
 
 export const ListTaskStatus = async (): Promise<TaskStatusDTO[] | null> => {
   try {
-    const response = await axios.get(`${apiUrl}/tasks/status`, {
-      headers: getCommonHeaders(),
-      timeout: 15000,
-    });
+    const response = await vulnerabilityApi.get("/tasks/status");
 
     console.log("Task status raw response:", response.data);
 
@@ -82,10 +69,9 @@ export type TaskVulnSummaryDTO = {
 
 export const ListTaskVulnSummary = async (): Promise<TaskVulnSummaryDTO[] | null> => {
   try {
-    const response = await axios.get(`${apiUrl}/tasks/summary-vulnerability`, {
-      headers: getCommonHeaders(),
-      timeout: 15000,
-    });
+    const response = await vulnerabilityApi.get("/tasks/summary-vulnerability");
+
+    console.log("TaskVulnSummary raw response:", response.data);
 
     if (response.status === 200) {
       const data = response.data?.data ?? response.data;
@@ -116,10 +102,9 @@ export type VulnerabilityLevelDTO = {
 
 export const ListVulnerability = async (): Promise<VulnerabilityLevelDTO[] | null> => {
   try {
-    const response = await axios.get(`${apiUrl}/vulnerabilities/list`, {
-      headers: getCommonHeaders(),
-      timeout: 15000,
-    });
+    const response = await vulnerabilityApi.get("/vulnerabilities/list");
+
+    console.log("ListVulnerability raw response:", response.data);
 
     if (response.status === 200) {
       const data = response.data?.data ?? response.data;
@@ -149,10 +134,9 @@ export type AssetRiskDTO = {
 
 export const ListAssetRisk = async (): Promise<AssetRiskDTO[] | null> => {
   try {
-    const response = await axios.get(`${apiUrl}/assets/risk`, {
-      headers: getCommonHeaders(),
-      timeout: 15000,
-    });
+    const response = await vulnerabilityApi.get("/assets/risk");
+
+    console.log("ListAssetRisk raw response:", response.data);
 
     if (response.status === 200) {
       const data = response.data?.data ?? response.data;
@@ -180,10 +164,9 @@ export type DeviceRiskDTO = {
 
 export const ListDeviceRisk = async (): Promise<DeviceRiskDTO[] | null> => {
   try {
-    const response = await axios.get(`${apiUrl}/devices/risk`, {
-      headers: getCommonHeaders(),
-      timeout: 15000,
-    });
+    const response = await vulnerabilityApi.get("/devices/risk");
+
+    console.log("ListDeviceRisk raw response:", response.data);
 
     if (response.status === 200) {
       const data = response.data?.data ?? response.data;
@@ -221,11 +204,11 @@ export const ListVulnerabilityDetailByName = async (
   name: string
 ): Promise<VulnerabilityDetailDTO[] | null> => {
   try {
-    const response = await axios.get(`${apiUrl}/vulnerabilities/detail/by-name`, {
+    const response = await vulnerabilityApi.get("/vulnerabilities/detail/by-name", {
       params: { task_id, name },
-      headers: getCommonHeaders(),
-      timeout: 20000,
     });
+
+    console.log("ListVulnerabilityDetailByName raw response:", response.data);
 
     if (response.status === 200) {
       const data = response.data?.data ?? response.data;
@@ -240,6 +223,9 @@ export const ListVulnerabilityDetailByName = async (
   }
 };
 
+// =======================
+// API: GET /vulnerabilities/:task_id
+// =======================
 export const ListVulnerabilityByTaskID = async (
   taskID: string
 ): Promise<VulnerabilityLevelDTO[] | null> => {
@@ -249,13 +235,11 @@ export const ListVulnerabilityByTaskID = async (
       return [];
     }
 
-    const response = await axios.get(
-      `${apiUrl}/vulnerabilities/${encodeURIComponent(taskID.trim())}`,
-      {
-        headers: getCommonHeaders(),
-        timeout: 15000,
-      }
+    const response = await vulnerabilityApi.get(
+      `/vulnerabilities/${encodeURIComponent(taskID.trim())}`
     );
+
+    console.log("ListVulnerabilityByTaskID raw response:", response.data);
 
     if (response.status === 200) {
       const data = response.data?.data ?? response.data;
@@ -315,10 +299,9 @@ export type TargetDifferDTO = {
 
 export const ListTargetDiffer = async (): Promise<TargetDifferDTO[] | null> => {
   try {
-    const response = await axios.get(`${apiUrl}/target-differ`, {
-      headers: getCommonHeaders(),
-      timeout: 15000,
-    });
+    const response = await vulnerabilityApi.get("/target-differ");
+
+    console.log("ListTargetDiffer raw response:", response.data);
 
     if (response.status === 200) {
       const data = response.data?.data ?? response.data;
@@ -332,3 +315,5 @@ export const ListTargetDiffer = async (): Promise<TargetDifferDTO[] | null> => {
     return null;
   }
 };
+
+export default vulnerabilityApi;

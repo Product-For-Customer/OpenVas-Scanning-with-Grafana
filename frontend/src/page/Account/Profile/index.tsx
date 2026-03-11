@@ -6,7 +6,10 @@ import {
   FiCamera,
   FiMail,
   FiPhone,
+  FiGlobe,
+  FiSettings,
 } from "react-icons/fi";
+import { Link } from "react-router-dom";
 import type { UserResponse } from "../../../services/user";
 
 type ProfileProps = {
@@ -17,10 +20,21 @@ const Profile: React.FC<ProfileProps> = ({ user }) => {
   const fullName =
     `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim() || "Unknown User";
 
+  const itemClass =
+    "flex items-center gap-3 text-[14px] text-[#1f2240] dark:text-white/70";
+
+  const iconClass = "text-gray-500 text-[16px] dark:text-white/40";
+
+  const linkClass = [
+    "inline-flex items-center gap-3 text-[14px] transition-colors",
+    "text-[#1f2240] hover:text-[#6f5be8]",
+    "dark:text-white/70 dark:hover:text-[#a99cff]",
+  ].join(" ");
+
   return (
     <aside
       className={[
-        "rounded-[22px] border shadow-sm overflow-hidden",
+        "h-full rounded-[22px] border shadow-sm overflow-hidden flex flex-col",
         "border-gray-200/80 bg-[#f7f7f8]",
         "dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:ring-1 dark:ring-white/10",
       ].join(" ")}
@@ -81,7 +95,8 @@ const Profile: React.FC<ProfileProps> = ({ user }) => {
       </div>
 
       {/* Sections */}
-      <div className="px-5 sm:px-6 pb-6 space-y-5">
+      <div className="px-5 sm:px-6 pb-6 space-y-5 flex-1">
+        {/* About */}
         <div className="border-t border-gray-200/80 pt-5 dark:border-white/10">
           <div className="flex items-center justify-between mb-4">
             <h4 className="text-[16px] font-semibold text-[#1f2240] dark:text-white/85">
@@ -97,28 +112,58 @@ const Profile: React.FC<ProfileProps> = ({ user }) => {
           </div>
 
           <ul className="space-y-3">
-            <li className="flex items-center gap-3 text-[14px] text-[#1f2240] dark:text-white/70">
-              <FiHome className="text-gray-500 text-[16px] dark:text-white/40" />
+            <li className={itemClass}>
+              <FiHome className={iconClass} />
               <span>
                 {user.location ? `Lives in ${user.location}` : "No location"}
               </span>
             </li>
 
-            <li className="flex items-center gap-3 text-[14px] text-[#1f2240] dark:text-white/70">
-              <FiBriefcase className="text-gray-500 text-[16px] dark:text-white/40" />
+            <li className={itemClass}>
+              <FiBriefcase className={iconClass} />
               <span>
                 {user.position ? `Works as ${user.position}` : "No position"}
               </span>
             </li>
 
-            <li className="flex items-center gap-3 text-[14px] text-[#1f2240] dark:text-white/70">
-              <FiMail className="text-gray-500 text-[16px] dark:text-white/40" />
+            <li className={itemClass}>
+              <FiMail className={iconClass} />
               <span>{user.email || "No email"}</span>
             </li>
 
-            <li className="flex items-center gap-3 text-[14px] text-[#1f2240] dark:text-white/70">
-              <FiPhone className="text-gray-500 text-[16px] dark:text-white/40" />
+            <li className={itemClass}>
+              <FiPhone className={iconClass} />
               <span>{user.phone_number || "No phone number"}</span>
+            </li>
+          </ul>
+        </div>
+
+        {/* Other */}
+        <div className="border-t border-gray-200/80 pt-5 dark:border-white/10">
+          <div className="flex items-center justify-between mb-4">
+            <h4 className="text-[16px] font-semibold text-[#1f2240] dark:text-white/85">
+              Other
+            </h4>
+          </div>
+
+          <ul className="space-y-3">
+            <li>
+              <a
+                href="https://openvaswebv1.vercel.app/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={linkClass}
+              >
+                <FiGlobe className={iconClass} />
+                <span className="text-blue-500">www.openvas.com</span>
+              </a>
+            </li>
+
+            <li>
+              <Link to="/admin/service" className={linkClass}>
+                <FiSettings className={iconClass} />
+                <span className="text-blue-500">Service</span>
+              </Link>
             </li>
           </ul>
         </div>

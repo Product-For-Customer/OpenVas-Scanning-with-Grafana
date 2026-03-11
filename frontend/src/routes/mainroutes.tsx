@@ -27,11 +27,12 @@ const Reset = Loadable(lazy(() => import("../page/Authentication/Reset/index")))
 const Loader = Loadable(lazy(() => import("../component/third-patry/Loader")));
 
 // ======================= ROUTES =======================
+
+// Admin เห็นทุกหน้า
 const AdminRoutes = (): RouteObject[] => [
   {
     path: "/",
-    element: <MainLayout />,
-    children: [{ index: true, element: <Dashboard /> }],
+    element: <Navigate to="/admin" replace />,
   },
   {
     path: "/admin",
@@ -42,14 +43,40 @@ const AdminRoutes = (): RouteObject[] => [
       { path: "profile", element: <Account /> },
       { path: "target", element: <Target /> },
       { path: "vulnerability", element: <Vulnerability /> },
-      { path: "line notification", element: <LineNotification /> }, // ✅ แก้ path อย่าเว้นวรรค
+      { path: "line notification", element: <LineNotification /> },
       { path: "vulnerability-by-device", element: <VulnerabilityByDevice /> },
       { path: "user", element: <User /> },
       { path: "vulnerability-detail", element: <VulnerabilityDetail /> },
-      { path: "service", element: <Service /> }
+      { path: "service", element: <Service /> },
     ],
   },
-  // ✅ กันเส้นทางหลุด
+  { path: "*", element: <Navigate to="/admin" replace /> },
+];
+
+// User เห็นเฉพาะบางหน้า
+const UserRoutes = (): RouteObject[] => [
+  {
+    path: "/",
+    element: <Navigate to="/admin" replace />,
+  },
+  {
+    path: "/admin",
+    element: <MainLayout />,
+    children: [
+      { index: true, element: <Dashboard /> },
+      { path: "dashboard", element: <Dashboard /> },
+      { path: "profile", element: <Account /> },
+      { path: "target", element: <Target /> },
+      { path: "vulnerability", element: <Vulnerability /> },
+      { path: "vulnerability-by-device", element: <VulnerabilityByDevice /> },
+      { path: "vulnerability-detail", element: <VulnerabilityDetail /> },
+      { path: "service", element: <Service /> },
+
+      // กัน user เข้าหน้าที่ไม่อนุญาต
+      { path: "line notification", element: <Navigate to="/admin" replace /> },
+      { path: "user", element: <Navigate to="/admin" replace /> },
+    ],
+  },
   { path: "*", element: <Navigate to="/admin" replace /> },
 ];
 
@@ -69,15 +96,24 @@ const MainRoutes = (): RouteObject[] => [
 
 // ======================= MAIN CONFIG =======================
 function ConfigRoutes() {
-  const { isLoading, isAdmin } = useAuth();
+  const { isLoading, isAuthed, isAdmin, isUser } = useAuth();
 
-  // โหลด /me ตอนเปิดเว็บ
-  if (isLoading) return useRoutes([{ path: "*", element: <Loader /> }]);
+  if (isLoading) {
+    return useRoutes([{ path: "*", element: <Loader /> }]);
+  }
 
-  // Admin เท่านั้นถึงเห็น admin routes
-  if (isAdmin) return useRoutes(AdminRoutes());
+  if (!isAuthed) {
+    return useRoutes(MainRoutes());
+  }
 
-  // ไม่ใช่ admin -> ไป login routes
+  if (isAdmin) {
+    return useRoutes(AdminRoutes());
+  }
+
+  if (isUser) {
+    return useRoutes(UserRoutes());
+  }
+
   return useRoutes(MainRoutes());
 }
 

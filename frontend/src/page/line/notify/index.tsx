@@ -12,6 +12,7 @@ import {
   FiSend,
   FiHash,
   FiLayers,
+  FiMessageSquare,
 } from "react-icons/fi";
 import {
   ListAppNotification,
@@ -19,6 +20,7 @@ import {
   UpdateAppNotificationByID,
   DeleteAppNotificationByID,
   ListAppLineMaster,
+  TestLineNotifyByAppNotificationID,
   type AppNotificationResponse,
   type AppLineMasterResponse,
 } from "../../../services";
@@ -45,6 +47,10 @@ type NotificationFormData = {
   app_line_master_id: string;
 };
 
+type TestLineFormData = {
+  message: string;
+};
+
 const alertBadgeClass = (alert: boolean) => {
   if (alert) {
     return "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-200 dark:border-emerald-400/20";
@@ -61,6 +67,12 @@ const cardGlowClass = [
 
 const inputClass = [
   "w-full h-11 rounded-2xl px-4 text-[14px] outline-none transition",
+  "border border-gray-200 bg-white text-slate-800 placeholder:text-slate-400 focus:ring-2 focus:ring-violet-200",
+  "dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:placeholder:text-white/35 dark:focus:ring-violet-400/10",
+].join(" ");
+
+const textareaClass = [
+  "w-full min-h-32 rounded-2xl px-4 py-3 text-[14px] outline-none transition resize-none",
   "border border-gray-200 bg-white text-slate-800 placeholder:text-slate-400 focus:ring-2 focus:ring-violet-200",
   "dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:placeholder:text-white/35 dark:focus:ring-violet-400/10",
 ].join(" ");
@@ -206,6 +218,15 @@ const Index: React.FC = () => {
   const [deleteTarget, setDeleteTarget] = useState<UiNotification | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+
+  const [openTestModal, setOpenTestModal] = useState(false);
+  const [testTarget, setTestTarget] = useState<UiNotification | null>(null);
+  const [testingLine, setTestingLine] = useState(false);
+  const [testLineError, setTestLineError] = useState("");
+  const [testLineSuccess, setTestLineSuccess] = useState("");
+  const [testLineForm, setTestLineForm] = useState<TestLineFormData>({
+    message: "",
+  });
 
   const [createForm, setCreateForm] = useState<NotificationFormData>({
     name: "",
@@ -355,6 +376,14 @@ const Index: React.FC = () => {
     setEditError("");
   };
 
+  const resetTestLineForm = () => {
+    setTestLineForm({
+      message: "",
+    });
+    setTestLineError("");
+    setTestLineSuccess("");
+  };
+
   const openCreate = () => {
     setCreateForm({
       name: "",
@@ -402,6 +431,23 @@ const Index: React.FC = () => {
     setDeleteError("");
   };
 
+  const openTestLineModal = (row: UiNotification) => {
+    setTestTarget(row);
+    setTestLineForm({
+      message: "",
+    });
+    setTestLineError("");
+    setTestLineSuccess("");
+    setOpenTestModal(true);
+  };
+
+  const closeTestLineModal = () => {
+    if (testingLine) return;
+    setOpenTestModal(false);
+    setTestTarget(null);
+    resetTestLineForm();
+  };
+
   const validateForm = (form: NotificationFormData) => {
     if (!form.name.trim()) return "กรุณากรอก Name";
     if (!form.send_id.trim()) return "กรุณากรอก Send ID";
@@ -412,6 +458,12 @@ const Index: React.FC = () => {
       return "App Line Master ไม่ถูกต้อง";
     }
 
+    return "";
+  };
+
+  const validateTestLineForm = (form: TestLineFormData) => {
+    if (!form.message.trim()) return "กรุณากรอก message สำหรับทดสอบ";
+    if (form.message.trim().length < 2) return "message ต้องมีอย่างน้อย 2 ตัวอักษร";
     return "";
   };
 
@@ -493,6 +545,52 @@ const Index: React.FC = () => {
       );
     } finally {
       setEditing(false);
+    }
+  };
+
+  const submitTestLine = async () => {
+    if (!testTarget) return;
+
+    const validationError = validateTestLineForm(testLineForm);
+    if (validationError) {
+      setTestLineError(validationError);
+      return;
+    }
+
+    try {
+      setTestingLine(true);
+      setTestLineError("");
+      setTestLineSuccess("");
+
+      const res = await TestLineNotifyByAppNotificationID({
+        app_notification_id: testTarget.id,
+        message: testLineForm.message.trim(),
+      });
+
+      if (!res) {
+        setTestLineError("ทดสอบส่ง LINE ไม่สำเร็จ");
+        return;
+      }
+
+      if (!res.success) {
+        setTestLineError(res.message || "ทดสอบส่ง LINE ไม่สำเร็จ");
+        return;
+      }
+
+      setTestLineSuccess(res.message || "ส่งข้อความทดสอบสำเร็จ");
+      setTestLineForm((prev) => ({
+        ...prev,
+        message: "",
+      }));
+    } catch (err: any) {
+      setTestLineError(
+        err?.response?.data?.error ||
+          err?.response?.data?.message ||
+          err?.message ||
+          "เกิดข้อผิดพลาดระหว่างทดสอบส่ง LINE"
+      );
+    } finally {
+      setTestingLine(false);
     }
   };
 
@@ -666,7 +764,7 @@ const Index: React.FC = () => {
 
           <div className="mt-4 flex-1 flex flex-col overflow-hidden rounded-3xl border border-gray-200/80 bg-white/80 dark:border-white/10 dark:bg-white/3">
             <div className="flex-1 overflow-x-auto overflow-y-auto">
-              <table className="min-w-280 w-full border-separate border-spacing-0">
+              <table className="min-w-7xl w-full border-separate border-spacing-0">
                 <thead className="sticky top-0 z-10 bg-white/95 backdrop-blur dark:bg-[#0f172a]/95">
                   <tr className="text-left">
                     <th className="border-b border-gray-200/80 px-4 py-4 text-[12px] font-semibold text-slate-600 dark:border-white/10 dark:text-white/60">
@@ -792,7 +890,22 @@ const Index: React.FC = () => {
                                 : ""
                             }`}
                           >
-                            <div className="inline-flex items-center gap-2">
+                            <div className="inline-flex items-center gap-2 flex-wrap justify-end">
+                              <button
+                                type="button"
+                                onClick={() => openTestLineModal(item)}
+                                className={[
+                                  "inline-flex h-10 items-center gap-2 rounded-2xl px-3 transition-colors",
+                                  "text-violet-700 bg-violet-50 hover:bg-violet-100 active:bg-violet-200",
+                                  "dark:text-violet-300 dark:bg-violet-500/10 dark:hover:bg-violet-500/15 dark:active:bg-violet-500/20",
+                                ].join(" ")}
+                                title="ทดสอบ alert line"
+                                aria-label="ทดสอบ alert line"
+                              >
+                                <FiMessageSquare />
+                                <span className="text-[12px] font-semibold">Test Line</span>
+                              </button>
+
                               <button
                                 type="button"
                                 onClick={() => openEdit(item)}
@@ -1147,6 +1260,126 @@ const Index: React.FC = () => {
                 ].join(" ")}
               >
                 {editing ? "Updating..." : "Update Notification"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {openTestModal && testTarget && (
+        <div className="fixed inset-0 z-200 flex items-center justify-center p-4">
+          <button
+            type="button"
+            onClick={closeTestLineModal}
+            className="absolute inset-0 bg-slate-900/35 backdrop-blur-[2px]"
+            aria-label="Close test line modal overlay"
+          />
+
+          <div
+            className={[
+              "relative z-10 w-full max-w-2xl rounded-[18px] border border-gray-200 bg-white p-5 shadow-[0_20px_70px_rgba(15,23,42,0.18)]",
+              "dark:border-white/10 dark:bg-[#0d1524]",
+            ].join(" ")}
+          >
+            <button
+              type="button"
+              onClick={closeTestLineModal}
+              disabled={testingLine}
+              className="absolute right-4 top-4 text-gray-400 transition hover:text-gray-600 disabled:cursor-not-allowed dark:text-white/45 dark:hover:text-white/70"
+              aria-label="Close"
+            >
+              <FiX className="text-[20px]" />
+            </button>
+
+            <div className="mb-5">
+              <div className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-[12px] font-semibold text-violet-700 dark:border-violet-400/20 dark:bg-violet-500/10 dark:text-violet-300">
+                <FiMessageSquare className="text-[13px]" />
+                Test Alert Line
+              </div>
+
+              <h3 className="mt-3 text-[22px] font-semibold text-slate-800 dark:text-white">
+                ทดสอบส่งข้อความ LINE
+              </h3>
+
+              <p className="mt-1 text-[13px] text-slate-500 dark:text-white/55">
+                ระบบจะส่ง <span className="font-semibold">{testTarget.name}</span> โดยใช้{" "}
+                <span className="font-semibold">{testTarget.send_id}</span>
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-white/5">
+                <div className="flex flex-wrap items-center gap-3 text-[13px] text-slate-600 dark:text-white/70">
+                  <span className="inline-flex items-center gap-1">
+                    <FiHash />
+                    Notification ID: {testTarget.id}
+                  </span>
+                  <span
+                    className={[
+                      "inline-flex items-center rounded-full border px-3 py-1 text-[12px] font-semibold",
+                      alertBadgeClass(testTarget.alert),
+                    ].join(" ")}
+                  >
+                    {testTarget.alert ? "Alert On" : "Alert Off"}
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <label className={labelClass}>Message</label>
+                <textarea
+                  value={testLineForm.message}
+                  onChange={(e) =>
+                    setTestLineForm((prev) => ({
+                      ...prev,
+                      message: e.target.value,
+                    }))
+                  }
+                  placeholder="กรอกข้อความที่ต้องการใช้ทดสอบระบบส่ง LINE"
+                  className={textareaClass}
+                />
+              </div>
+            </div>
+
+            {testLineError && (
+              <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300">
+                {testLineError}
+              </div>
+            )}
+
+            {testLineSuccess && (
+              <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-[13px] text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-500/10 dark:text-emerald-300">
+                {testLineSuccess}
+              </div>
+            )}
+
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={closeTestLineModal}
+                disabled={testingLine}
+                className={[
+                  "rounded-xl px-4 py-2.5 text-[14px] font-medium transition",
+                  "bg-slate-100 text-slate-700 hover:bg-slate-200",
+                  "dark:bg-white/8 dark:text-white/80 dark:hover:bg-white/12",
+                  "disabled:cursor-not-allowed disabled:opacity-60",
+                ].join(" ")}
+              >
+                Close
+              </button>
+
+              <button
+                type="button"
+                onClick={submitTestLine}
+                disabled={testingLine}
+                className={[
+                  "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-[14px] font-medium transition",
+                  "bg-violet-600 text-white hover:bg-violet-700",
+                  "disabled:cursor-not-allowed disabled:opacity-60",
+                ].join(" ")}
+              >
+                <FiSend />
+                {testingLine ? "Sending..." : "Send Test Line"}
               </button>
             </div>
           </div>

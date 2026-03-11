@@ -101,12 +101,12 @@ const Account: React.FC = () => {
 
   return (
     <div className="w-full">
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 sm:gap-5">
-        <div className="xl:col-span-8">
+      <div className="grid grid-cols-1 gap-4 sm:gap-5 xl:grid-cols-12 items-stretch">
+        <div className="xl:col-span-8 h-full">
           <Setting user={user} onUpdated={handleProfileUpdated} />
         </div>
 
-        <div className="xl:col-span-4">
+        <div className="xl:col-span-4 h-full">
           <Profile user={user} />
         </div>
       </div>

@@ -9,7 +9,7 @@ const Index: React.FC = () => {
   return (
     <div className="w-full">
       {/* Row 1: Master 40% / Notify 60% */}
-      <div className="mb-4 sm:mb-5 grid grid-cols-1 xl:grid-cols-10 gap-4 sm:gap-5 items-stretch">
+      <div className="mb-4 grid grid-cols-1 gap-4 xl:grid-cols-10">
         <div className="xl:col-span-4 h-full">
           <Master />
         </div>
@@ -20,7 +20,7 @@ const Index: React.FC = () => {
       </div>
 
       {/* Row 2: Graph 70% / Count 30% */}
-      <div className="mb-4 sm:mb-5 grid grid-cols-1 xl:grid-cols-10 gap-4 sm:gap-5 items-stretch">
+      <div className="mb-4 grid grid-cols-1 gap-4 xl:grid-cols-10">
         <div className="xl:col-span-7 h-full">
           <Count />
         </div>
@@ -30,8 +30,8 @@ const Index: React.FC = () => {
         </div>
       </div>
 
-      {/* Row 3: HistoryNotify full width */}
-      <div className="mb-2">
+      {/* Row 3: History full width */}
+      <div>
         <HistoryNotify />
       </div>
     </div>

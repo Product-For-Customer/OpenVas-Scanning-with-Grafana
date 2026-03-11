@@ -41,52 +41,57 @@ func main() {
 	r.POST("/verify-otp-password", otp.VerifyOTPAddUpdatePassword)
 	r.POST("/auth/logout", auth.Logout)
 
-	r.POST("/create-users", user.CreateUser)
-	r.GET("/roles", user.ListRoles)
-	r.PATCH("/admin/users/:id", user.UpdateUserIDByAdmin)
-
-	r.GET("/send-emails", otp.ListSendEmail)
-	r.PUT("/send-email/:id", otp.UpdateSendEmailByID)
-
 	// ===== Public Routes =====
 	r.GET("/line/test", line.TestSendLineHandler)
 	r.POST("/automation/feed/update", automation.TriggerFeedUpdateHandler)
 	r.GET("/automation/feed/status", automation.GetFeedUpdateStatusHandler)
 	r.GET("/api/report", report.GetReportCSVSourceHandler)
 
-	// ===== Public Routes for Line Notifications =====
-	r.GET("/app-notifications", line.ListAppNotification)
-	r.POST("/create-app-notifications", line.CreateAppNotification)
-	r.PATCH("/update-app-notifications/:id", line.UpdateAppNotificationByID)
-	r.DELETE("/delete-app-notifications/:id", line.DeleteAppNotificationByID)
-
-	// ===== Public Routes for Line Master =====
-	r.GET("/app-line-masters", line.ListAppLineMaster)
-	r.POST("/create-app-line-masters", line.CreateAppLineMaster)
-	r.PATCH("/update-app-line-masters/:id", line.UpdateAppLineMasterByID)
-	r.DELETE("/delete-app-line-masters/:id", line.DeleteAppLineMasterByID)
-
-	// Service API with Frontend
-	r.GET("/tasks/status", vulnerability.ListStatus)                                      //
-	r.GET("/tasks/summary-vulnerability", vulnerability.ListTaskVulnSummary)              //
-	r.GET("/vulnerabilities/list", vulnerability.ListVulnerability)                       //
-	r.GET("/assets/risk", vulnerability.ListAssetRisk)                                    //
-	r.GET("/devices/risk", vulnerability.ListDeviceRisk)                                  //
-	r.GET("/vulnerabilities/detail/by-name", vulnerability.ListVulnerabilityDetailByName) //
-	r.GET("/vulnerabilities/:task_id", vulnerability.ListVulnerabilityByTaskID)           //
-	r.GET("/target-differ", vulnerability.ListTargetDiffer)
-
 	// ===== Protected Routes =====
 	authorized := r.Group("")
 	authorized.Use(middlewares.Authorizes())
 	{
 		authorized.GET("/auth/me", auth.Me)
+
+		// ===== Protected Routes for Vulnerability Management Authorization =====
+		authorized.GET("/tasks/status", vulnerability.ListStatus)
+		authorized.GET("/tasks/summary-vulnerability", vulnerability.ListTaskVulnSummary)
+		authorized.GET("/vulnerabilities/list", vulnerability.ListVulnerability)
+		authorized.GET("/assets/risk", vulnerability.ListAssetRisk)
+		authorized.GET("/devices/risk", vulnerability.ListDeviceRisk)
+		authorized.GET("/vulnerabilities/detail/by-name", vulnerability.ListVulnerabilityDetailByName)
+		authorized.GET("/vulnerabilities/:task_id", vulnerability.ListVulnerabilityByTaskID)
+		authorized.GET("/target-differ", vulnerability.ListTargetDiffer)
+
+		// ===== Protected Routes for Line Notify History Authorization =====
+		authorized.GET("/history-notifies", line.ListHistoryNotify)
+		authorized.DELETE("/delete-history-notifies", line.DeleteHistoryNotifyByIDs)
+
+		// ===== Protected Routes for User Management Authorization =====
 		authorized.GET("/users", user.ListUser)
 		authorized.GET("/users/:id", user.ListUserByID)
 		authorized.PATCH("/update-users/:id", user.UpdateUserByID)
 		authorized.DELETE("/delete-users/:id", user.DeleteUserByID)
-		authorized.GET("/history-notifies", line.ListHistoryNotify)
-		authorized.DELETE("/delete-history-notifies", line.DeleteHistoryNotifyByIDs)
+		authorized.POST("/create-users", user.CreateUser)
+		authorized.GET("/roles", user.ListRoles)
+		authorized.PATCH("/admin/users/:id", user.UpdateUserIDByAdmin)
+
+		// ===== Protected Routes for OTP Management Authorization =====
+		authorized.GET("/send-emails", otp.ListSendEmail)
+		authorized.PUT("/send-email/:id", otp.UpdateSendEmailByID)
+
+		// ===== Protected Routes for Line Master Authorization =====
+		authorized.GET("/app-line-masters", line.ListAppLineMaster)
+		authorized.POST("/create-app-line-masters", line.CreateAppLineMaster)
+		authorized.PATCH("/update-app-line-masters/:id", line.UpdateAppLineMasterByID)
+		authorized.DELETE("/delete-app-line-masters/:id", line.DeleteAppLineMasterByID)
+		authorized.POST("/line/test-notify", line.TestLineNotifyByAppNotificationID)
+
+		// ===== Protected Routes for Line Notifications Authorization =====
+		authorized.GET("/app-notifications", line.ListAppNotification)
+		authorized.POST("/create-app-notifications", line.CreateAppNotification)
+		authorized.PATCH("/update-app-notifications/:id", line.UpdateAppNotificationByID)
+		authorized.DELETE("/delete-app-notifications/:id", line.DeleteAppNotificationByID)
 	}
 
 	log.Printf("✅ Server starting on port %s\n", PORT)

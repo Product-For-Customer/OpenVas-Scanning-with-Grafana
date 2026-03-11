@@ -397,5 +397,63 @@ export const DeleteAppLineMasterByID = async (
   }
 };
 
+//
+
+// =======================
+// Types
+// =======================
+export type TestLineNotifyByAppNotificationIDInput = {
+  app_notification_id: number;
+  message: string;
+};
+
+export type TestLineNotifyByAppNotificationIDResponse = {
+  success: boolean;
+  message: string;
+  data?: {
+    app_notification_id: number;
+    name: string;
+    send_id: string;
+    alert: boolean;
+    app_line_master_id: number;
+    line_master_name: string;
+    text: string;
+  };
+  error?: string;
+};
+
+// =======================
+// API: POST /line/test-notify
+// body: { app_notification_id, message }
+// =======================
+export const TestLineNotifyByAppNotificationID = async (
+  payload: TestLineNotifyByAppNotificationIDInput
+): Promise<TestLineNotifyByAppNotificationIDResponse | null> => {
+  try {
+    const response = await historyNotifyApi.post("/line/test-notify", payload);
+
+    console.log("TestLineNotifyByAppNotificationID raw response:", response.data);
+
+    if (
+      response.data &&
+      typeof response.data === "object" &&
+      "success" in response.data
+    ) {
+      return response.data as TestLineNotifyByAppNotificationIDResponse;
+    }
+
+    console.error(
+      "Unexpected TestLineNotifyByAppNotificationID response:",
+      response.data
+    );
+    return null;
+  } catch (error) {
+    console.error("TestLineNotifyByAppNotificationID error:", error);
+    return null;
+  }
+};
+
 export default historyNotifyApi;
+
+
 

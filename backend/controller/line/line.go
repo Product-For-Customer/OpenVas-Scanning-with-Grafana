@@ -12,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Tawunchai/openvas/config"
+	"github.com/Tawunchai/openvas/entity"
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
 	"github.com/lib/pq"
@@ -165,6 +167,19 @@ func fallbackStatusFromChannel(ch string) string {
 	}
 }
 
+func humanizeChannelTitle(channel string) string {
+	switch channel {
+	case "scan_started":
+		return "OpenVAS Scan Started"
+	case "scan_stopped":
+		return "OpenVAS Scan Stopped"
+	case "scan_done":
+		return "OpenVAS Scan Done"
+	default:
+		return "OpenVAS Scan Update"
+	}
+}
+
 func buildScanStatusLineMessage(channel string, rawPayload string) (string, error) {
 	var data map[string]interface{}
 	if err := json.Unmarshal([]byte(rawPayload), &data); err != nil {
@@ -201,8 +216,114 @@ func buildScanStatusLineMessage(channel string, rawPayload string) (string, erro
 }
 
 // =====================================================
+// Save AppHistoryNotify for Status Notification
+// =====================================================
+
+func saveScanStatusHistory(subject string, description string) {
+	db := config.DB()
+	if db == nil {
+		log.Println("saveScanStatusHistory error: database connection is nil")
+		return
+	}
+
+	var status entity.AppStatusNotify
+	if err := db.Where("status = ?", "Status Notification").First(&status).Error; err != nil {
+		log.Println("saveScanStatusHistory error: cannot find AppStatusNotify 'Status Notification':", err)
+		return
+	}
+
+	history := entity.AppHistoryNotify{
+		Subject:           subject,
+		Description:       description,
+		DateTime:          time.Now(),
+		AppStatusNotifyID: &status.ID,
+	}
+
+	if err := db.Create(&history).Error; err != nil {
+		log.Println("saveScanStatusHistory error: cannot create AppHistoryNotify:", err)
+		return
+	}
+
+	log.Println("✅ AppHistoryNotify saved for Status Notification")
+}
+
+func buildScanHistoryDescription(channel string, rawPayload string) string {
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(rawPayload), &data); err != nil {
+		return fmt.Sprintf(
+			"Scan status event\nStatus: %s\nSummary: received notification but payload could not be parsed\nRaw Payload: %s",
+			fallbackStatusFromChannel(channel),
+			strings.TrimSpace(rawPayload),
+		)
+	}
+
+	taskName, _ := data["task_name"].(string)
+	if strings.TrimSpace(taskName) == "" {
+		taskName = "Unknown"
+	}
+
+	statusText, _ := data["status"].(string)
+	if strings.TrimSpace(statusText) == "" {
+		statusText = fallbackStatusFromChannel(channel)
+	}
+
+	taskID := ""
+	if v, ok := data["task_id"]; ok && v != nil {
+		taskID = fmt.Sprintf("%v", v)
+	}
+	if strings.TrimSpace(taskID) == "" {
+		taskID = "Unknown"
+	}
+
+	reportID := ""
+	if v, ok := data["report_id"]; ok && v != nil {
+		reportID = fmt.Sprintf("%v", v)
+	}
+	if strings.TrimSpace(reportID) == "" {
+		reportID = "Unknown"
+	}
+
+	source := channel
+	if strings.TrimSpace(source) == "" {
+		source = "unknown"
+	}
+
+	var b strings.Builder
+	b.WriteString("Scan status event")
+	b.WriteString("\n")
+	b.WriteString("Title: " + humanizeChannelTitle(channel))
+	b.WriteString("\n")
+	b.WriteString("Task: " + taskName)
+	b.WriteString("\n")
+	b.WriteString("Task ID: " + taskID)
+	b.WriteString("\n")
+	b.WriteString("Report ID: " + reportID)
+	b.WriteString("\n")
+	b.WriteString("Status: " + statusText)
+	b.WriteString("\n")
+	b.WriteString("Source: " + source)
+	b.WriteString("\n")
+	b.WriteString("Summary: system received scan status notification from PostgreSQL listener")
+
+	return b.String()
+}
+
+func buildScanHistorySubject(channel string) string {
+	switch channel {
+	case "scan_started":
+		return "Scan Status - Running"
+	case "scan_stopped":
+		return "Scan Status - Stopped"
+	case "scan_done":
+		return "Scan Status - Done"
+	default:
+		return "Scan Status - Unknown"
+	}
+}
+
+// =====================================================
 // Public Function: Start background PG LISTEN -> LINE
-// เรียกจาก main.go ด้วย go controllers.StartLineStatusListener()
+// เรียกจาก main.go ด้วย go line.StartLineStatusListener()
 // =====================================================
 
 func StartLineStatusListener() {
@@ -247,6 +368,12 @@ func StartLineStatusListener() {
 
 			log.Println("📩 Notify received channel:", n.Channel, "payload:", n.Extra)
 
+			// 1) บันทึกลง AppHistoryNotify ก่อน
+			subject := buildScanHistorySubject(n.Channel)
+			description := buildScanHistoryDescription(n.Channel, n.Extra)
+			saveScanStatusHistory(subject, description)
+
+			// 2) ส่ง LINE ตามเดิม
 			message, err := buildScanStatusLineMessage(n.Channel, n.Extra)
 			if err != nil {
 				log.Println("❌ buildScanStatusLineMessage error:", err, "raw:", n.Extra)
