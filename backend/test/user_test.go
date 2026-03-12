@@ -9,11 +9,6 @@ import (
 	"github.com/Tawunchai/openvas/entity"
 )
 
-//
-// ========================= AppUser =========================
-//
-
-// ✅ valid: ข้อมูลครบทั้งหมด
 func TestValidAppUserInput(t *testing.T) {
 	g := NewGomegaWithT(t)
 
@@ -22,7 +17,7 @@ func TestValidAppUserInput(t *testing.T) {
 		Password:    "12345678",
 		FirstName:   "Tawunchai",
 		LastName:    "Burakhon",
-		Profile:     "profile.png",
+		Profile:     "This is profile text",
 		PhoneNumber: "0812345678",
 		Location:    "Bangkok",
 		Position:    "Developer",
@@ -34,7 +29,6 @@ func TestValidAppUserInput(t *testing.T) {
 	g.Expect(err).To(BeNil())
 }
 
-// --------- Email required ---------
 func TestInvalidAppUserEmailRequired(t *testing.T) {
 	g := NewGomegaWithT(t)
 
@@ -43,7 +37,7 @@ func TestInvalidAppUserEmailRequired(t *testing.T) {
 		Password:    "12345678",
 		FirstName:   "Tawunchai",
 		LastName:    "Burakhon",
-		Profile:     "profile.png",
+		Profile:     "This is profile text",
 		PhoneNumber: "0812345678",
 		Location:    "Bangkok",
 		Position:    "Developer",
@@ -56,7 +50,6 @@ func TestInvalidAppUserEmailRequired(t *testing.T) {
 	g.Expect(err.Error()).To(Equal("Email is required"))
 }
 
-// --------- Email format invalid ---------
 func TestInvalidAppUserEmailFormat(t *testing.T) {
 	g := NewGomegaWithT(t)
 
@@ -65,7 +58,7 @@ func TestInvalidAppUserEmailFormat(t *testing.T) {
 		Password:    "12345678",
 		FirstName:   "Tawunchai",
 		LastName:    "Burakhon",
-		Profile:     "profile.png",
+		Profile:     "This is profile text",
 		PhoneNumber: "0812345678",
 		Location:    "Bangkok",
 		Position:    "Developer",
@@ -78,7 +71,6 @@ func TestInvalidAppUserEmailFormat(t *testing.T) {
 	g.Expect(err.Error()).To(Equal("Email is invalid"))
 }
 
-// --------- Password required ---------
 func TestInvalidAppUserPasswordRequired(t *testing.T) {
 	g := NewGomegaWithT(t)
 
@@ -87,7 +79,7 @@ func TestInvalidAppUserPasswordRequired(t *testing.T) {
 		Password:    "",
 		FirstName:   "Tawunchai",
 		LastName:    "Burakhon",
-		Profile:     "profile.png",
+		Profile:     "This is profile text",
 		PhoneNumber: "0812345678",
 		Location:    "Bangkok",
 		Position:    "Developer",
@@ -100,7 +92,6 @@ func TestInvalidAppUserPasswordRequired(t *testing.T) {
 	g.Expect(err.Error()).To(Equal("Password is required"))
 }
 
-// --------- Password too short ---------
 func TestInvalidAppUserPasswordMinLength(t *testing.T) {
 	g := NewGomegaWithT(t)
 
@@ -109,7 +100,7 @@ func TestInvalidAppUserPasswordMinLength(t *testing.T) {
 		Password:    "1234",
 		FirstName:   "Tawunchai",
 		LastName:    "Burakhon",
-		Profile:     "profile.png",
+		Profile:     "This is profile text",
 		PhoneNumber: "0812345678",
 		Location:    "Bangkok",
 		Position:    "Developer",
@@ -122,8 +113,7 @@ func TestInvalidAppUserPasswordMinLength(t *testing.T) {
 	g.Expect(err.Error()).To(Equal("Password must be at least 8 characters"))
 }
 
-// --------- FirstName ---------
-func TestInvalidAppUserFirstName(t *testing.T) {
+func TestInvalidAppUserFirstNameRequired(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	u := entity.AppUser{
@@ -131,7 +121,7 @@ func TestInvalidAppUserFirstName(t *testing.T) {
 		Password:    "12345678",
 		FirstName:   "",
 		LastName:    "Burakhon",
-		Profile:     "profile.png",
+		Profile:     "This is profile text",
 		PhoneNumber: "0812345678",
 		Location:    "Bangkok",
 		Position:    "Developer",
@@ -144,8 +134,7 @@ func TestInvalidAppUserFirstName(t *testing.T) {
 	g.Expect(err.Error()).To(Equal("FirstName is required"))
 }
 
-// --------- LastName ---------
-func TestInvalidAppUserLastName(t *testing.T) {
+func TestInvalidAppUserLastNameRequired(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	u := entity.AppUser{
@@ -153,7 +142,7 @@ func TestInvalidAppUserLastName(t *testing.T) {
 		Password:    "12345678",
 		FirstName:   "Tawunchai",
 		LastName:    "",
-		Profile:     "profile.png",
+		Profile:     "This is profile text",
 		PhoneNumber: "0812345678",
 		Location:    "Bangkok",
 		Position:    "Developer",
@@ -166,8 +155,7 @@ func TestInvalidAppUserLastName(t *testing.T) {
 	g.Expect(err.Error()).To(Equal("LastName is required"))
 }
 
-// --------- Profile ---------
-func TestInvalidAppUserProfile(t *testing.T) {
+func TestInvalidAppUserProfileRequired(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	u := entity.AppUser{
@@ -188,8 +176,7 @@ func TestInvalidAppUserProfile(t *testing.T) {
 	g.Expect(err.Error()).To(Equal("Profile is required"))
 }
 
-// --------- PhoneNumber ---------
-func TestInvalidAppUserPhoneNumber(t *testing.T) {
+func TestInvalidAppUserPhoneNumberRequired(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	u := entity.AppUser{
@@ -197,7 +184,7 @@ func TestInvalidAppUserPhoneNumber(t *testing.T) {
 		Password:    "12345678",
 		FirstName:   "Tawunchai",
 		LastName:    "Burakhon",
-		Profile:     "profile.png",
+		Profile:     "This is profile text",
 		PhoneNumber: "",
 		Location:    "Bangkok",
 		Position:    "Developer",
@@ -210,8 +197,7 @@ func TestInvalidAppUserPhoneNumber(t *testing.T) {
 	g.Expect(err.Error()).To(Equal("PhoneNumber is required"))
 }
 
-// --------- Location ---------
-func TestInvalidAppUserLocation(t *testing.T) {
+func TestInvalidAppUserLocationRequired(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	u := entity.AppUser{
@@ -219,7 +205,7 @@ func TestInvalidAppUserLocation(t *testing.T) {
 		Password:    "12345678",
 		FirstName:   "Tawunchai",
 		LastName:    "Burakhon",
-		Profile:     "profile.png",
+		Profile:     "This is profile text",
 		PhoneNumber: "0812345678",
 		Location:    "",
 		Position:    "Developer",
@@ -232,8 +218,7 @@ func TestInvalidAppUserLocation(t *testing.T) {
 	g.Expect(err.Error()).To(Equal("Location is required"))
 }
 
-// --------- Position ---------
-func TestInvalidAppUserPosition(t *testing.T) {
+func TestInvalidAppUserPositionRequired(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	u := entity.AppUser{
@@ -241,7 +226,7 @@ func TestInvalidAppUserPosition(t *testing.T) {
 		Password:    "12345678",
 		FirstName:   "Tawunchai",
 		LastName:    "Burakhon",
-		Profile:     "profile.png",
+		Profile:     "This is profile text",
 		PhoneNumber: "0812345678",
 		Location:    "Bangkok",
 		Position:    "",
@@ -254,8 +239,7 @@ func TestInvalidAppUserPosition(t *testing.T) {
 	g.Expect(err.Error()).To(Equal("Position is required"))
 }
 
-// --------- AppRoleID ---------
-func TestInvalidAppUserAppRoleID(t *testing.T) {
+func TestInvalidAppUserAppRoleIDRequired(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	u := entity.AppUser{
@@ -263,7 +247,7 @@ func TestInvalidAppUserAppRoleID(t *testing.T) {
 		Password:    "12345678",
 		FirstName:   "Tawunchai",
 		LastName:    "Burakhon",
-		Profile:     "profile.png",
+		Profile:     "This is profile text",
 		PhoneNumber: "0812345678",
 		Location:    "Bangkok",
 		Position:    "Developer",
