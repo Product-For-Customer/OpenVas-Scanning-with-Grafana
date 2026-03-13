@@ -1,4 +1,3 @@
-// TopPerforming.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ResponsiveContainer,
@@ -6,10 +5,7 @@ import {
   RadialBar,
   PolarAngleAxis,
 } from "recharts";
-import {
-  FiShield,
-  FiTrendingUp,
-} from "react-icons/fi";
+import { FiShield, FiTrendingUp } from "react-icons/fi";
 import { ListAssetRisk, type AssetRiskDTO } from "../../../services";
 
 const clamp = (v: number, min: number, max: number) =>
@@ -141,7 +137,7 @@ const TopPerforming: React.FC = () => {
     if (criticalCount > 0) {
       return `${criticalCount} critical tasks require immediate attention`;
     }
-    return "";
+    return "Average exposure score across latest asset snapshots";
   }, [loading, summary.taskCount, criticalCount]);
 
   const gaugeData = useMemo(() => {
@@ -162,7 +158,6 @@ const TopPerforming: React.FC = () => {
         "dark:bg-white/5 dark:border-white/10 dark:ring-1 dark:ring-white/10 dark:shadow-none",
       ].join(" ")}
     >
-      {/* background */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -top-16 -right-10 h-44 w-44 rounded-full bg-cyan-400/10 blur-3xl" />
         <div className="absolute -bottom-16 -left-10 h-44 w-44 rounded-full bg-violet-500/10 blur-3xl" />
@@ -181,7 +176,6 @@ const TopPerforming: React.FC = () => {
       </div>
 
       <div className="relative z-10 h-full flex flex-col">
-        {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -219,7 +213,6 @@ const TopPerforming: React.FC = () => {
           </div>
         </div>
 
-        {/* Gauge only */}
         <div className="mt-5 flex-1">
           <div
             className={[
@@ -255,7 +248,6 @@ const TopPerforming: React.FC = () => {
               </div>
 
               <div className="relative flex-1 min-h-65 sm:min-h-75">
-                {/* center text */}
                 <div className="pointer-events-none absolute left-1/2 top-[52%] z-10 -translate-x-1/2 -translate-y-1/2 text-center">
                   <div
                     className={`text-[34px] sm:text-[42px] font-semibold leading-none ${tone.text}`}
@@ -278,21 +270,19 @@ const TopPerforming: React.FC = () => {
                   >
                     <PolarAngleAxis type="number" domain={[0, 10]} tick={false} />
                     <RadialBar
-                      background={{ fill: "rgba(148,163,184,0.12)" }}             
+                      background={{ fill: "rgba(148,163,184,0.12)" }}
                       dataKey="value"
                       cornerRadius={999}
                     />
                   </RadialBarChart>
                 </ResponsiveContainer>
 
-                {/* min max label */}
                 <div className="pointer-events-none absolute inset-x-3 bottom-3 flex items-center justify-between text-[11px] sm:text-[12px] text-gray-400 dark:text-white/40">
                   <span>0</span>
                   <span>10</span>
                 </div>
               </div>
 
-              {/* bottom stats */}
               <div className="mt-3 grid grid-cols-2 gap-3">
                 <div
                   className={[

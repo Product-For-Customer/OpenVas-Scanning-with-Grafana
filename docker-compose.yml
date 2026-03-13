@@ -277,12 +277,30 @@ services:
       - ./backend/scripts:/app/scripts:ro
       - .:/workspace:ro
       - ./logs:/app/logs
+      - ./backend/tmp/reports:/app/tmp/reports
     environment:
       - DATABASE_URL=host=pg-gvm port=5432 user=pbi password=Pbi12345 dbname=gvmd sslmode=disable
       - LINE_CHANNEL_ACCESS_TOKEN=${LINE_CHANNEL_ACCESS_TOKEN}
       - LINE_USER_ID=${LINE_USER_ID}
       - PORT=9000
       - AUTOMATION_TOKEN=${AUTOMATION_TOKEN}
+
+      - FRONTEND_CAPTURE_URL=http://frontend/capture
+      - REPORT_OUTPUT_DIR=/app/tmp/reports
+
+      - REPORT_EMAIL_TO=tawunchaien@gmail.com
+      - REPORT_EMAIL_SUBJECT=OpenVAS Test Capture Report
+
+      - SMTP_HOST=smtp.gmail.com
+      - SMTP_PORT=587
+      - SMTP_FROM=b6534240@g.sut.ac.th
+      - SMTP_PASS=wkeg dbhx tllh mtif
+
+      - REPORT_SCHEDULE_HOUR=2
+      - REPORT_SCHEDULE_MINUTE=0
+
+      - CHROME_PATH=/usr/bin/chromium
+      - TZ=Asia/Bangkok
     depends_on:
       - pg-gvm
       

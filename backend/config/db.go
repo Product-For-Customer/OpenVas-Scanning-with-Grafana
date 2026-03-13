@@ -89,6 +89,8 @@ func SetupDatabase() {
 		&entity.AppUser{},
 		&entity.AppStatusNotify{},
 		&entity.AppHistoryNotify{},
+		&entity.AppTarget{},
+		&entity.AppLocation{},
 	)
 	if err != nil {
 		log.Fatalf("❌ AutoMigrate failed: %v", err)
@@ -234,6 +236,96 @@ func SeedDatabase() {
 		Name:            notification1.Name,
 		SendID:          notification1.SendID,
 		AppLineMasterID: lineMaster1.ID,
+	})
+
+	// =========================
+	// Seed AppTarget
+	// =========================
+	target1 := entity.AppTarget{
+		Name:       "Core Switch ITS",
+		MacAddress: "AA:BB:CC:DD:EE:01",
+	}
+
+	db.FirstOrCreate(&target1, &entity.AppTarget{
+		Name:       target1.Name,
+		MacAddress: target1.MacAddress,
+	})
+
+	target2 := entity.AppTarget{
+		Name:       "Access Point Building A",
+		MacAddress: "AA:BB:CC:DD:EE:02",
+	}
+
+	db.FirstOrCreate(&target2, &entity.AppTarget{
+		Name:       target2.Name,
+		MacAddress: target2.MacAddress,
+	})
+
+	target3 := entity.AppTarget{
+		Name:       "Server Rack 01",
+		MacAddress: "AA:BB:CC:DD:EE:03",
+	}
+
+	db.FirstOrCreate(&target3, &entity.AppTarget{
+		Name:       target3.Name,
+		MacAddress: target3.MacAddress,
+	})
+
+	// =========================
+	// Seed AppLocation
+	// =========================
+	location1 := entity.AppLocation{
+		Location:    "ห้อง Network Center",
+		Building:    "อาคารเทคโนโลยีสารสนเทศ",
+		Floor:       1,
+		Latitude:    14.881800,
+		Longtitude:  102.018500,
+		AppTargetID: target1.ID,
+	}
+
+	db.FirstOrCreate(&location1, &entity.AppLocation{
+		Location:    location1.Location,
+		Building:    location1.Building,
+		Floor:       location1.Floor,
+		Latitude:    location1.Latitude,
+		Longtitude:  location1.Longtitude,
+		AppTargetID: target1.ID,
+	})
+
+	location2 := entity.AppLocation{
+		Location:    "โถงทางเดินชั้น 2",
+		Building:    "อาคาร A",
+		Floor:       2,
+		Latitude:    14.882100,
+		Longtitude:  102.018900,
+		AppTargetID: target2.ID,
+	}
+
+	db.FirstOrCreate(&location2, &entity.AppLocation{
+		Location:    location2.Location,
+		Building:    location2.Building,
+		Floor:       location2.Floor,
+		Latitude:    location2.Latitude,
+		Longtitude:  location2.Longtitude,
+		AppTargetID: target2.ID,
+	})
+
+	location3 := entity.AppLocation{
+		Location:    "ห้อง Server ชั้น 3",
+		Building:    "อาคาร Data Center",
+		Floor:       3,
+		Latitude:    14.882500,
+		Longtitude:  102.019300,
+		AppTargetID: target3.ID,
+	}
+
+	db.FirstOrCreate(&location3, &entity.AppLocation{
+		Location:    location3.Location,
+		Building:    location3.Building,
+		Floor:       location3.Floor,
+		Latitude:    location3.Latitude,
+		Longtitude:  location3.Longtitude,
+		AppTargetID: target3.ID,
 	})
 
 	// =========================

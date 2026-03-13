@@ -319,3 +319,218 @@ export const UpdateSendEmailByID = async (
     return null;
   }
 };
+
+// =======================
+// Types
+// =======================
+export type AppTargetMiniResponse = {
+  id: number;
+  name: string;
+  mac_address: string;
+};
+
+export type LocationResponse = {
+  id: number;
+  location: string;
+  building: string;
+  floor: number;
+  latitude: number;
+  longtitude: number;
+  app_target_id: number;
+  app_target?: AppTargetMiniResponse;
+  created_at?: string;
+  updated_at?: string;
+  message?: string;
+  error?: string;
+};
+
+export type CreateLocationInput = {
+  location: string;
+  building: string;
+  floor: number;
+  latitude: number;
+  longtitude: number;
+  app_target_id: number;
+};
+
+export type UpdateLocationInput = {
+  location?: string;
+  building?: string;
+  floor?: number;
+  latitude?: number;
+  longtitude?: number;
+  app_target_id?: number;
+};
+
+export type DeleteLocationResponse = {
+  message: string;
+};
+
+// =======================
+// API: GET /locations
+// =======================
+export const ListLocation = async (): Promise<LocationResponse[] | null> => {
+  try {
+    const response = await userApi.get("/locations");
+
+    console.log("ListLocation raw response:", response.data);
+
+    if (Array.isArray(response.data)) {
+      return response.data as LocationResponse[];
+    }
+
+    const data = response.data?.data ?? response.data;
+
+    if (Array.isArray(data)) {
+      return data as LocationResponse[];
+    }
+
+    console.error("Expected location array but got:", response.data);
+    return null;
+  } catch (error) {
+    console.error("ListLocation error:", error);
+    return null;
+  }
+};
+
+// =======================
+// API: GET /locations/:id
+// =======================
+export const ListLocationByID = async (
+  id: number | string
+): Promise<LocationResponse | null> => {
+  try {
+    const response = await userApi.get(`/locations/${id}`);
+
+    console.log("ListLocationByID raw response:", response.data);
+
+    if (response.data?.data && typeof response.data.data === "object") {
+      return response.data.data as LocationResponse;
+    }
+
+    if (response.data && typeof response.data === "object") {
+      return response.data as LocationResponse;
+    }
+
+    console.error("Unexpected ListLocationByID response:", response.data);
+    return null;
+  } catch (error) {
+    console.error("ListLocationByID error:", error);
+    return null;
+  }
+};
+
+// =======================
+// API: POST /create-locations
+// =======================
+export const CreateLocation = async (
+  payload: CreateLocationInput
+): Promise<LocationResponse | null> => {
+  try {
+    const response = await userApi.post("/create-locations", payload);
+
+    console.log("CreateLocation raw response:", response.data);
+
+    if (response.data?.data && typeof response.data.data === "object") {
+      return response.data.data as LocationResponse;
+    }
+
+    if (response.data && typeof response.data === "object") {
+      return response.data as LocationResponse;
+    }
+
+    console.error("Unexpected CreateLocation response:", response.data);
+    return null;
+  } catch (error) {
+    console.error("CreateLocation error:", error);
+    return null;
+  }
+};
+
+// =======================
+// API: PATCH /update-locations/:id
+// =======================
+export const UpdateLocationByID = async (
+  id: number | string,
+  payload: UpdateLocationInput
+): Promise<LocationResponse | null> => {
+  try {
+    const response = await userApi.patch(`/update-locations/${id}`, payload);
+
+    console.log("UpdateLocationByID raw response:", response.data);
+
+    if (response.data?.data && typeof response.data.data === "object") {
+      return response.data.data as LocationResponse;
+    }
+
+    if (response.data && typeof response.data === "object") {
+      return response.data as LocationResponse;
+    }
+
+    console.error("Unexpected UpdateLocationByID response:", response.data);
+    return null;
+  } catch (error) {
+    console.error("UpdateLocationByID error:", error);
+    return null;
+  }
+};
+
+// =======================
+// API: DELETE /delete-locations/:id
+// =======================
+export const DeleteLocationByID = async (
+  id: number | string
+): Promise<DeleteLocationResponse | null> => {
+  try {
+    const response = await userApi.delete(`/delete-locations/${id}`);
+
+    console.log("DeleteLocationByID raw response:", response.data);
+
+    if (response.data && response.data.message) {
+      return response.data as DeleteLocationResponse;
+    }
+
+    console.error("Unexpected DeleteLocationByID response:", response.data);
+    return null;
+  } catch (error) {
+    console.error("DeleteLocationByID error:", error);
+    return null;
+  }
+};
+
+// =======================
+// Types
+// =======================
+export type AppTargetResponse = {
+  id: number;
+  name: string;
+  mac_address: string;
+  error?: string;
+};
+
+// =======================
+// API: GET /targets
+// =======================
+export const ListAppTarget = async (): Promise<AppTargetResponse[] | null> => {
+  try {
+    const response = await userApi.get("/targets");
+
+    console.log("ListAppTarget raw response:", response.data);
+
+    if (Array.isArray(response.data)) {
+      return response.data as AppTargetResponse[];
+    }
+
+    const data = response.data?.data ?? response.data;
+
+    if (Array.isArray(data)) {
+      return data as AppTargetResponse[];
+    }
+
+    console.error("Expected app target array but got:", response.data);
+    return null;
+  } catch (error) {
+    console.error("ListAppTarget error:", error);
+    return null;
+  }
+};

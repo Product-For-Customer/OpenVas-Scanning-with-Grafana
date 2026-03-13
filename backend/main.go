@@ -8,11 +8,13 @@ import (
 	"github.com/Tawunchai/openvas/controller/auth"
 	"github.com/Tawunchai/openvas/controller/automation"
 	"github.com/Tawunchai/openvas/controller/line"
+	"github.com/Tawunchai/openvas/controller/location"
 	"github.com/Tawunchai/openvas/controller/otp"
 	"github.com/Tawunchai/openvas/controller/report"
 	"github.com/Tawunchai/openvas/controller/user"
 	"github.com/Tawunchai/openvas/controller/vulnerability"
 	middlewares "github.com/Tawunchai/openvas/middleware"
+	"github.com/Tawunchai/openvas/services"
 	"github.com/gin-gonic/gin"
 )
 
@@ -22,6 +24,8 @@ func main() {
 	config.ConnectDB()
 	config.SetupDatabase()
 	config.SeedDatabase()
+
+	services.StartCaptureReportScheduler()
 
 	go line.StartLineStatusListener()
 
@@ -41,6 +45,9 @@ func main() {
 	r.POST("/verify-otp-password", otp.VerifyOTPAddUpdatePassword)
 	r.POST("/auth/logout", auth.Logout)
 
+	// ==== Report Capture =====
+	r.GET("/automation/report/test-send", report.TriggerCaptureAndSendReport)
+
 	// ===== Public Routes =====
 	r.GET("/line/test", line.TestSendLineHandler)
 	r.POST("/automation/feed/update", automation.TriggerFeedUpdateHandler)
@@ -54,13 +61,13 @@ func main() {
 		authorized.GET("/auth/me", auth.Me)
 
 		// ===== Protected Routes for Vulnerability Management Authorization =====
-		authorized.GET("/tasks/status", vulnerability.ListStatus)
-		authorized.GET("/tasks/summary-vulnerability", vulnerability.ListTaskVulnSummary)
-		authorized.GET("/vulnerabilities/list", vulnerability.ListVulnerability)
-		authorized.GET("/assets/risk", vulnerability.ListAssetRisk)
-		authorized.GET("/devices/risk", vulnerability.ListDeviceRisk)
-		authorized.GET("/vulnerabilities/detail/by-name", vulnerability.ListVulnerabilityDetailByName)
-		authorized.GET("/vulnerabilities/:task_id", vulnerability.ListVulnerabilityByTaskID)
+		authorized.GET("/tasks/status", vulnerability.ListStatus) // complete
+		authorized.GET("/tasks/summary-vulnerability", vulnerability.ListTaskVulnSummary) // complete
+		authorized.GET("/vulnerabilities/list", vulnerability.ListVulnerability) // complete
+		authorized.GET("/assets/risk", vulnerability.ListAssetRisk) // complete
+		authorized.GET("/devices/risk", vulnerability.ListDeviceRisk) // complete
+		authorized.GET("/vulnerabilities/detail/by-name", vulnerability.ListVulnerabilityDetailByName) // complete
+		authorized.GET("/vulnerabilities/:task_id", vulnerability.ListVulnerabilityByTaskID) // complete
 		authorized.GET("/target-differ", vulnerability.ListTargetDiffer)
 
 		// ===== Protected Routes for Line Notify History Authorization =====
@@ -92,6 +99,14 @@ func main() {
 		authorized.POST("/create-app-notifications", line.CreateAppNotification)
 		authorized.PATCH("/update-app-notifications/:id", line.UpdateAppNotificationByID)
 		authorized.DELETE("/delete-app-notifications/:id", line.DeleteAppNotificationByID)
+
+		// ===== Location =====
+		authorized.GET("/locations", location.ListLocation)
+		authorized.GET("/locations/:id", location.ListLocationByID)
+		authorized.POST("/create-locations", location.CreateLocation)
+		authorized.PATCH("/update-locations/:id", location.UpdateLocationByID)
+		authorized.DELETE("/delete-locations/:id", location.DeleteLocationByID)
+		authorized.GET("/targets", location.ListAppTarget)
 	}
 
 	log.Printf("✅ Server starting on port %s\n", PORT)
@@ -112,6 +127,7 @@ func CORSMiddleware() gin.HandlerFunc {
 			"http://127.0.0.1:5173":           true,
 			"http://localhost:3000":           true,
 			"http://127.0.0.1:3000":           true,
+			"http://frontend":                 true,
 			"https://openvaswebv1.vercel.app": true,
 		}
 

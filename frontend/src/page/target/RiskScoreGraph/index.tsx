@@ -38,13 +38,11 @@ const RANGE_OPTIONS: RangeKey[] = [
 type Row = {
   label: string;
   date: string;
-  macAddress: string;
+  host: string;
+  taskName: string;
 
-  latestTaskName: string;
-  previousTaskName: string;
-
-  latestHost: string;
-  previousHost: string;
+  latestTaskID: string;
+  previousTaskID: string;
 
   latestDetectedTime: number | null;
   previousDetectedTime: number | null;
@@ -52,8 +50,8 @@ type Row = {
   latestTotal: number;
   previousTotal: number;
 
-  riskScore: number; // latest risk
-  threatLevel: number; // previous risk
+  riskScore: number;
+  threatLevel: number;
 };
 
 /** =========================
@@ -113,11 +111,10 @@ const isDateBetween = (targetYMD: string, startYMD: string, endYMD: string) => {
 const clamp = (num: number, min: number, max: number) =>
   Math.max(min, Math.min(num, max));
 
-const shortenMac = (mac: string) => {
-  if (!mac) return "-";
-  const parts = mac.split(":");
-  if (parts.length < 6) return mac;
-  return `${parts[0]}:${parts[1]}:${parts[2]}...`;
+const shortenTaskName = (taskName: string) => {
+  if (!taskName) return "-";
+  if (taskName.length <= 18) return taskName;
+  return `${taskName.slice(0, 18)}...`;
 };
 
 /** =========================
@@ -125,7 +122,7 @@ const shortenMac = (mac: string) => {
  * ========================= */
 type CustomTooltipProps = {
   active?: boolean;
-  payload?: any[];
+  payload?: Array<{ payload: Row }>;
   label?: string;
 };
 
@@ -136,7 +133,7 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({
 }) => {
   if (!active || !payload || !payload.length) return null;
 
-  const row = payload?.[0]?.payload as Row | undefined;
+  const row = payload?.[0]?.payload;
   if (!row) return null;
 
   return (
@@ -151,7 +148,7 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({
       </p>
 
       <p className="mb-2 text-[11px] text-gray-500 dark:text-white/50">
-        MAC: {row.macAddress}
+        Host: {row.host}
       </p>
 
       <div className="space-y-1.5 text-[12px]">
@@ -172,30 +169,30 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({
         <div className="my-2 h-px bg-gray-200 dark:bg-white/10" />
 
         <div className="flex items-center justify-between gap-3">
-          <span className="text-gray-500 dark:text-white/55">Latest Task:</span>
+          <span className="text-gray-500 dark:text-white/55">Task Name:</span>
           <span className="font-medium text-[#1f2240] dark:text-white/85 text-right">
-            {row.latestTaskName || "-"}
+            {row.taskName || "-"}
           </span>
         </div>
 
         <div className="flex items-center justify-between gap-3">
-          <span className="text-gray-500 dark:text-white/55">Previous Task:</span>
+          <span className="text-gray-500 dark:text-white/55">Host:</span>
           <span className="font-medium text-[#1f2240] dark:text-white/85 text-right">
-            {row.previousTaskName || "-"}
+            {row.host || "-"}
           </span>
         </div>
 
         <div className="flex items-center justify-between gap-3">
-          <span className="text-gray-500 dark:text-white/55">Latest Host:</span>
+          <span className="text-gray-500 dark:text-white/55">Latest Task ID:</span>
           <span className="font-medium text-[#1f2240] dark:text-white/85 text-right">
-            {row.latestHost || "-"}
+            {row.latestTaskID || "-"}
           </span>
         </div>
 
         <div className="flex items-center justify-between gap-3">
-          <span className="text-gray-500 dark:text-white/55">Previous Host:</span>
+          <span className="text-gray-500 dark:text-white/55">Previous Task ID:</span>
           <span className="font-medium text-[#1f2240] dark:text-white/85 text-right">
-            {row.previousHost || "-"}
+            {row.previousTaskID || "-"}
           </span>
         </div>
 
@@ -296,21 +293,19 @@ const RiskScoreGraph: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchData("initial");
+    void fetchData("initial");
   }, []);
 
   const mappedRows = useMemo<Row[]>(() => {
     return rawData
       .map((item) => ({
-        label: shortenMac(item.mac_address),
+        label: shortenTaskName(item.task_name || "-"),
         date: formatUnixToYMD(item.latest_creation_time),
-        macAddress: item.mac_address,
+        host: item.host || "-",
+        taskName: item.task_name || "-",
 
-        latestTaskName: item.latest_task_name || "-",
-        previousTaskName: item.previous_task_name || "-",
-
-        latestHost: item.latest_host || "-",
-        previousHost: item.previous_host || "-",
+        latestTaskID: item.latest_task_id || "-",
+        previousTaskID: item.previous_task_id || "-",
 
         latestDetectedTime: item.latest_creation_time ?? null,
         previousDetectedTime: item.previous_creation_time ?? null,
@@ -321,10 +316,7 @@ const RiskScoreGraph: React.FC = () => {
         riskScore: clamp(Number(item.latest_risk_score ?? 0), 0, 10),
         threatLevel: clamp(Number(item.previous_risk_score ?? 0), 0, 10),
       }))
-      .sort(
-        (a, b) =>
-          (b.latestDetectedTime || 0) - (a.latestDetectedTime || 0)
-      );
+      .sort((a, b) => (b.latestDetectedTime || 0) - (a.latestDetectedTime || 0));
   }, [rawData]);
 
   const data = useMemo<Row[]>(() => {
@@ -402,13 +394,13 @@ const RiskScoreGraph: React.FC = () => {
   const rangeDescription = useMemo(() => {
     switch (range) {
       case "Today":
-        return "Filled area shows previous risk while lines compare latest and previous risk for assets detected today";
+        return "Filled area shows previous risk while lines compare latest and previous risk for targets detected today";
       case "This Week":
-        return "Compare latest risk against previous risk for assets detected this week";
+        return "Compare latest risk against previous risk for targets detected this week";
       case "This Month":
-        return "Compare latest risk against previous risk for assets detected this month";
+        return "Compare latest risk against previous risk for targets detected this month";
       case "This Year":
-        return "Compare latest risk against previous risk for assets detected this year";
+        return "Compare latest risk against previous risk for targets detected this year";
       case "Custom Range":
         return "Compare latest risk against previous risk within selected detected date range";
       default:

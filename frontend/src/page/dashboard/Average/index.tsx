@@ -28,12 +28,10 @@ import { ListTargetDiffer, type TargetDifferDTO } from "../../../services";
 type SortType = "Latest Updated" | "Highest Latest Risk" | "Biggest Change";
 
 type ChartRow = {
-  mac_address: string;
+  host: string;
+  task_name: string;
   asset_label: string;
-  latest_task_name: string;
-  latest_host: string;
-  previous_task_name: string;
-  previous_host: string;
+  latest_task_id: string;
   latest_risk_score: number;
   previous_risk_score: number;
   diff_risk_score: number;
@@ -59,11 +57,10 @@ const COLORS = {
 
 const formatRisk = (value: number) => Number(value || 0).toFixed(2);
 
-const shortenMac = (mac: string) => {
-  if (!mac) return "-";
-  const parts = mac.split(":");
-  if (parts.length < 6) return mac;
-  return `${parts[0]}:${parts[1]}:${parts[2]}...`;
+const shortenTaskName = (taskName: string) => {
+  if (!taskName) return "-";
+  if (taskName.length <= 18) return taskName;
+  return `${taskName.slice(0, 18)}...`;
 };
 
 const formatUnixThai = (unix?: number | null) => {
@@ -88,11 +85,11 @@ const CustomTooltip = ({
   payload,
 }: {
   active?: boolean;
-  payload?: any[];
+  payload?: Array<{ payload: ChartRow }>;
 }) => {
   if (!active || !payload || payload.length === 0) return null;
 
-  const item = payload[0]?.payload as ChartRow | undefined;
+  const item = payload[0]?.payload;
   if (!item) return null;
 
   const diff = item.diff_risk_score ?? 0;
@@ -103,10 +100,10 @@ const CustomTooltip = ({
     <div className="min-w-70 max-w-90 rounded-2xl border border-gray-200/90 bg-white/96 px-4 py-3 shadow-[0_18px_40px_rgba(15,23,42,0.14)] backdrop-blur dark:border-white/10 dark:bg-[#0B1220]/96 dark:shadow-[0_16px_34px_rgba(0,0,0,0.34)]">
       <div className="mb-2">
         <p className="text-sm font-semibold text-[#1f2240] dark:text-white/92">
-          {item.latest_task_name || "Unknown Asset"}
+          {item.task_name || "Unknown Task"}
         </p>
         <p className="mt-0.5 text-[12px] text-gray-500 dark:text-white/45">
-          MAC: {item.mac_address}
+          Host: {item.host || "-"}
         </p>
       </div>
 
@@ -131,13 +128,13 @@ const CustomTooltip = ({
 
         <div className="grid grid-cols-1 gap-1.5">
           <div className="flex items-center justify-between gap-3 text-gray-600 dark:text-white/68">
-            <span>Latest Host</span>
-            <span className="font-medium text-right">{item.latest_host || "-"}</span>
+            <span>Task Name</span>
+            <span className="font-medium text-right">{item.task_name || "-"}</span>
           </div>
 
           <div className="flex items-center justify-between gap-3 text-gray-600 dark:text-white/68">
-            <span>Previous Host</span>
-            <span className="font-medium text-right">{item.previous_host || "-"}</span>
+            <span>Host</span>
+            <span className="font-medium text-right">{item.host || "-"}</span>
           </div>
 
           <div className="flex items-center justify-between gap-3 text-gray-600 dark:text-white/68">
@@ -194,8 +191,12 @@ const CustomTooltip = ({
   );
 };
 
-const CustomXAxisTick = (props: any) => {
-  const { x, y, payload } = props;
+const CustomXAxisTick = (props: {
+  x?: number;
+  y?: number;
+  payload?: { value?: string };
+}) => {
+  const { x = 0, y = 0, payload } = props;
   const value = String(payload?.value || "");
   const dark = isDarkMode();
 
@@ -265,17 +266,15 @@ const AverageEnrollment: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchData("initial");
+    void fetchData("initial");
   }, []);
 
   const chartData = useMemo<ChartRow[]>(() => {
     const mapped: ChartRow[] = rows.map((item) => ({
-      mac_address: item.mac_address,
-      asset_label: shortenMac(item.mac_address),
-      latest_task_name: item.latest_task_name || "-",
-      latest_host: item.latest_host || "-",
-      previous_task_name: item.previous_task_name || "-",
-      previous_host: item.previous_host || "-",
+      host: item.host || "-",
+      task_name: item.task_name || "-",
+      asset_label: shortenTaskName(item.task_name || "-"),
+      latest_task_id: item.latest_task_id || "-",
       latest_risk_score: Number(item.latest_risk_score ?? 0),
       previous_risk_score: Number(item.previous_risk_score ?? 0),
       diff_risk_score: Number(item.diff_risk_score ?? 0),
@@ -372,7 +371,7 @@ const AverageEnrollment: React.FC = () => {
                   Target Risk Comparison
                 </h2>
                 <p className="text-[13px] text-gray-500 dark:text-white/55 sm:text-[14px]">
-                  เปรียบเทียบ Previous Risk Score กับ Latest Risk Score ของแต่ละ asset โดยใช้ MAC เป็นตัวตนหลัก
+                  เปรียบเทียบ Previous Risk Score กับ Latest Risk Score ของแต่ละ target โดยใช้ Task Name เป็นแกนหลัก
                 </p>
               </div>
             </div>
@@ -417,7 +416,7 @@ const AverageEnrollment: React.FC = () => {
         <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-2xl border border-gray-200/80 bg-linear-to-br from-white to-slate-50 p-4 dark:border-white/10 dark:bg-linear-to-br dark:from-white/8 dark:to-white/4">
             <p className="text-[11px] uppercase tracking-[0.14em] text-gray-400 dark:text-white/38">
-              Assets
+              Targets
             </p>
             <p className="mt-1 text-[22px] font-semibold text-[#1f2240] dark:text-white/92">
               {summary.totalAssets}
@@ -543,7 +542,7 @@ const AverageEnrollment: React.FC = () => {
                     <LabelList
                       dataKey="previous_risk_score"
                       position="top"
-                      formatter={(value) => formatRisk(Number(value || 0))}
+                      formatter={(value) => formatRisk(Number(value ?? 0))}
                       style={{
                         fill: isDarkMode() ? "rgba(255,255,255,0.70)" : "#6B7280",
                         fontSize: 11,
@@ -564,7 +563,7 @@ const AverageEnrollment: React.FC = () => {
                     <LabelList
                       dataKey="latest_risk_score"
                       position="top"
-                      formatter={(value) => formatRisk(Number(value || 0))}
+                      formatter={(value) => formatRisk(Number(value ?? 0))}
                       style={{
                         fill: isDarkMode() ? "rgba(255,255,255,0.88)" : "#475467",
                         fontSize: 11,
@@ -586,7 +585,7 @@ const AverageEnrollment: React.FC = () => {
         <div className="mt-4 flex flex-wrap items-center gap-3 text-[12px] text-gray-500 dark:text-white/50">
           <div className="inline-flex items-center gap-2 rounded-xl bg-gray-50 px-3 py-2 dark:bg-white/6">
             <FiActivity />
-            X = MAC Address ของ asset
+            X = Task Name
           </div>
           <div className="inline-flex items-center gap-2 rounded-xl bg-gray-50 px-3 py-2 dark:bg-white/6">
             <FiShield />

@@ -26,6 +26,10 @@ const Forget = Loadable(lazy(() => import("../page/Authentication/Forget/index")
 const Reset = Loadable(lazy(() => import("../page/Authentication/Reset/index")));
 const Loader = Loadable(lazy(() => import("../component/third-patry/Loader")));
 
+
+//====== Test Captuer ======
+const CaptureTest = Loadable(lazy(() => import("../page/report/CaptureTest")));
+
 // ======================= ROUTES =======================
 
 // Admin เห็นทุกหน้า
@@ -48,6 +52,7 @@ const AdminRoutes = (): RouteObject[] => [
       { path: "user", element: <User /> },
       { path: "vulnerability-detail", element: <VulnerabilityDetail /> },
       { path: "service", element: <Service /> },
+      { path: "capture-test", element: <CaptureTest /> },
     ],
   },
   { path: "*", element: <Navigate to="/admin" replace /> },
@@ -71,6 +76,7 @@ const UserRoutes = (): RouteObject[] => [
       { path: "vulnerability-by-device", element: <VulnerabilityByDevice /> },
       { path: "vulnerability-detail", element: <VulnerabilityDetail /> },
       { path: "service", element: <Service /> },
+      { path: "capture-test", element: <CaptureTest /> },
 
       // กัน user เข้าหน้าที่ไม่อนุญาต
       { path: "line notification", element: <Navigate to="/admin" replace /> },
@@ -89,6 +95,7 @@ const MainRoutes = (): RouteObject[] => [
       { path: "loader", element: <Loader /> },
       { path: "forgot-password", element: <Forget /> },
       { path: "reset-password", element: <Reset /> },
+      { path: "capture", element: <CaptureTest /> },
       { path: "*", element: <SignIn /> },
     ],
   },

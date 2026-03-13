@@ -58,7 +58,6 @@ export const ListTaskStatus = async (): Promise<TaskStatusDTO[] | null> => {
 export type TaskVulnSummaryDTO = {
   task_id: string;
   task_name: string;
-  mac_address: string;
   total: number;
   critical: number;
   high: number;
@@ -92,7 +91,7 @@ export const ListTaskVulnSummary = async (): Promise<TaskVulnSummaryDTO[] | null
 export type VulnerabilityLevelDTO = {
   vulnerability_id: string;
   task_id: string;
-  mac_address: string;
+  task_name: string;
   host_ip: string;
   vulnerability_family: string;
   vulnerability_name: string;
@@ -127,7 +126,7 @@ export const ListVulnerability = async (): Promise<VulnerabilityLevelDTO[] | nul
 export type AssetRiskDTO = {
   task_id: string;
   task_name: string;
-  mac_address: string;
+  host_ip: string;
   detected_date: string;
   aging_day: number;
   vulnerability_total: number;
@@ -157,6 +156,7 @@ export const ListAssetRisk = async (): Promise<AssetRiskDTO[] | null> => {
 // API: GET /devices/risk
 // =======================
 export type DeviceRiskDTO = {
+  task_id: string;
   task_name: string;
   ip_address: string;
   firmware_version: string;
@@ -226,11 +226,26 @@ export const ListVulnerabilityDetailByName = async (
 };
 
 // =======================
+// DTO: /vulnerabilities/:task_id
+// =======================
+export type VulnerabilityByTaskIDDTO = {
+  vulnerability_id: string;
+  task_id: string;
+  task_name: string;
+  host_ip: string;
+  vulnerability_family: string;
+  vulnerability_name: string;
+  level: "Critical" | "High" | "Medium" | "Low" | "Info";
+  total: number;
+  detected_time: string;
+};
+
+// =======================
 // API: GET /vulnerabilities/:task_id
 // =======================
 export const ListVulnerabilityByTaskID = async (
   taskID: string
-): Promise<VulnerabilityLevelDTO[] | null> => {
+): Promise<VulnerabilityByTaskIDDTO[] | null> => {
   try {
     if (!taskID || !taskID.trim()) {
       console.error("taskID is required");
@@ -245,7 +260,7 @@ export const ListVulnerabilityByTaskID = async (
 
     if (response.status === 200) {
       const data = response.data?.data ?? response.data;
-      return Array.isArray(data) ? (data as VulnerabilityLevelDTO[]) : [];
+      return Array.isArray(data) ? (data as VulnerabilityByTaskIDDTO[]) : [];
     }
 
     console.error("Unexpected status:", response.status);
@@ -260,11 +275,10 @@ export const ListVulnerabilityByTaskID = async (
 // API: GET /target-differ
 // =======================
 export type TargetDifferDTO = {
-  mac_address: string;
+  host: string;
+  task_name: string;
 
   latest_task_id: string;
-  latest_task_name: string;
-  latest_host: string;
   latest_report_id: number;
   latest_creation_time: number | null;
   latest_total: number;
@@ -276,8 +290,6 @@ export type TargetDifferDTO = {
   latest_risk_score: number;
 
   previous_task_id: string | null;
-  previous_task_name: string | null;
-  previous_host: string | null;
   previous_report_id: number | null;
   previous_creation_time: number | null;
   previous_total: number | null;

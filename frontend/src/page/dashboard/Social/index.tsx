@@ -11,6 +11,7 @@ import { ListAssetRisk, type AssetRiskDTO } from "../../../services";
 type RowItem = {
   id: string;
   name: string;
+  subName?: string;
   valueLeft: string;
   valueRight: string;
   percent?: number;
@@ -98,7 +99,7 @@ const Social: React.FC = () => {
       setLoading(true);
       const res = await ListAssetRisk();
       if (!mounted) return;
-      setData(res);
+      setData(Array.isArray(res) ? res : []);
       setLoading(false);
     })();
 
@@ -108,7 +109,7 @@ const Social: React.FC = () => {
   }, []);
 
   const summary = useMemo(() => {
-  const list = Array.isArray(data) ? data : [];
+    const list = Array.isArray(data) ? data : [];
     const taskCount = list.length;
 
     const totalVuln = list.reduce(
@@ -120,7 +121,7 @@ const Social: React.FC = () => {
       taskCount === 0
         ? 0
         : list.reduce((sum, x) => sum + (Number(x.risk_score) || 0), 0) /
-        taskCount;
+          taskCount;
 
     const maxRisk = list.reduce(
       (m, x) => Math.max(m, Number(x.risk_score) || 0),
@@ -131,7 +132,7 @@ const Social: React.FC = () => {
   }, [data]);
 
   const rows: RowItem[] = useMemo(() => {
-    const list = data ?? [];
+    const list = Array.isArray(data) ? data : [];
 
     const maxRisk = list.reduce(
       (m, x) => Math.max(m, Number(x.risk_score) || 0),
@@ -151,8 +152,8 @@ const Social: React.FC = () => {
           maxRisk > 0
             ? (risk / maxRisk) * 100
             : maxVuln > 0
-              ? (vuln / maxVuln) * 100
-              : 0;
+            ? (vuln / maxVuln) * 100
+            : 0;
 
         const initials = String(x.task_name ?? "T")
           .trim()
@@ -160,8 +161,9 @@ const Social: React.FC = () => {
           .toUpperCase();
 
         return {
-          id: x.mac_address || x.task_name,
+          id: `${x.task_id || "task"}-${x.host_ip || "host"}-${x.task_name || "name"}`,
           name: x.task_name || "Unknown Asset",
+          subName: x.host_ip || "-",
           valueLeft: formatNumber(vuln),
           valueRight: formatRisk(risk),
           percent: clamp(percent, 0, 100),
@@ -249,7 +251,6 @@ const Social: React.FC = () => {
         "dark:bg-white/5 dark:border-white/10 dark:ring-1 dark:ring-white/10 dark:shadow-none",
       ].join(" ")}
     >
-      {/* background */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -top-16 -right-10 h-44 w-44 rounded-full bg-cyan-400/10 blur-3xl" />
         <div className="absolute -bottom-16 -left-10 h-44 w-44 rounded-full bg-violet-500/10 blur-3xl" />
@@ -268,7 +269,6 @@ const Social: React.FC = () => {
       </div>
 
       <div className="relative z-10">
-        {/* Header */}
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -320,7 +320,6 @@ const Social: React.FC = () => {
           </button>
         </div>
 
-        {/* rows */}
         <div className="mt-4 space-y-3">
           {loading ? (
             <div className="space-y-3">
@@ -371,7 +370,6 @@ const Social: React.FC = () => {
                       : "border border-gray-200/80 bg-white hover:shadow-sm dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/[0.07]",
                   ].join(" ")}
                 >
-                  {/* icon */}
                   <div
                     className={[
                       "h-11 w-11 rounded-2xl flex items-center justify-center shrink-0 border",
@@ -390,7 +388,6 @@ const Social: React.FC = () => {
                     )}
                   </div>
 
-                  {/* name */}
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="truncate text-[13px] sm:text-[14px] font-medium text-[#1f2240] dark:text-white/85">
@@ -429,13 +426,12 @@ const Social: React.FC = () => {
                         Security summary from latest imported asset dataset
                       </p>
                     ) : (
-                      <p className="mt-1 text-[11px] text-gray-500 dark:text-white/45">
-                        Asset vulnerabilities and calculated exposure score
+                      <p className="mt-1 text-[11px] text-gray-500 dark:text-white/45 truncate">
+                        Host: {s.subName || "-"}
                       </p>
                     )}
                   </div>
 
-                  {/* values */}
                   <div className="shrink-0 flex items-center gap-4 sm:gap-6">
                     <div className="w-16 sm:w-20 text-right">
                       <p className="text-[11px] text-gray-400 dark:text-white/40">
@@ -452,8 +448,9 @@ const Social: React.FC = () => {
                           Risk
                         </p>
                         <p
-                          className={`text-[13px] sm:text-[14px] font-semibold tabular-nums ${tone ? tone.text : "text-[#1f2240] dark:text-white/85"
-                            }`}
+                          className={`text-[13px] sm:text-[14px] font-semibold tabular-nums ${
+                            tone ? tone.text : "text-[#1f2240] dark:text-white/85"
+                          }`}
                         >
                           {s.valueRight}
                         </p>

@@ -8,7 +8,7 @@ import {
   MdSecurity,
 } from "react-icons/md";
 import { useNavigate } from "react-router-dom";
-import { ListAssetRisk, type AssetRiskDTO } from "../../../services";
+import { ListDeviceRisk, type DeviceRiskDTO } from "../../../services";
 
 type RangeKey = "This Month" | "This Year";
 const RANGE_OPTIONS: RangeKey[] = ["This Month", "This Year"];
@@ -16,9 +16,10 @@ const RANGE_OPTIONS: RangeKey[] = ["This Month", "This Year"];
 type Row = {
   id: string;
   taskID: string;
-  name: string;
+  taskName: string;
+  ipAddress: string;
+  firmwareVersion: string;
   vulnTotal: number;
-  mac: string;
   risk: number;
   iconIndex: number;
 };
@@ -74,7 +75,6 @@ const formatRisk = (n: number) => {
   return n.toFixed(2);
 };
 
-// ✅ ใช้คะแนนจริง 0-10 ไม่อิง maxRisk ของข้อมูลในตาราง
 const getRiskMeta = (risk: number) => {
   if (risk >= 8) {
     return {
@@ -130,7 +130,6 @@ const getRiskMeta = (risk: number) => {
   };
 };
 
-// ✅ dots ตามคะแนนจริง 0-10
 const DangerDots: React.FC<{ value: number }> = ({ value }) => {
   let level = 0;
 
@@ -171,7 +170,7 @@ const RiskScoreTable: React.FC = () => {
   const [range, setRange] = useState<RangeKey>("This Month");
   const [open, setOpen] = useState(false);
 
-  const [data, setData] = useState<AssetRiskDTO[] | null>(null);
+  const [data, setData] = useState<DeviceRiskDTO[] | null>(null);
   const [loading, setLoading] = useState(true);
 
   const dropdownRef = useRef<HTMLDivElement | null>(null);
@@ -181,7 +180,8 @@ const RiskScoreTable: React.FC = () => {
 
     const fetchData = async () => {
       setLoading(true);
-      const res = await ListAssetRisk();
+      const res = await ListDeviceRisk();
+      console.log("ListDeviceRisk:", res);
 
       if (!mounted) return;
 
@@ -217,27 +217,31 @@ const RiskScoreTable: React.FC = () => {
     }, 0);
 
     const mapped: Row[] = list.map((x, idx) => {
-      const taskID = String(x?.task_id ?? "");
-      const name = String(x?.task_name ?? "-");
-      const mac = String(x?.mac_address ?? "");
+      const taskID = String(x?.task_id ?? "").trim();
+      const taskName = String(x?.task_name ?? "").trim();
+      const ipAddress = String(x?.ip_address ?? "").trim();
+      const firmwareVersion = String(x?.firmware_version ?? "").trim();
       const vulnTotal = Number(x?.vulnerability_total) || 0;
       const risk = Number(x?.risk_score) || 0;
 
       return {
-        id: `${taskID}-${mac || name}-${idx}`,
+        id: `${taskID || "taskid"}-${taskName || "task"}-${ipAddress || "ip"}-${idx}`,
         taskID,
-        name,
-        mac,
+        taskName: taskName || "Unknown Task",
+        ipAddress: ipAddress || "-",
+        firmwareVersion: firmwareVersion || "Unknown Device",
         vulnTotal,
         risk,
-        iconIndex: stableIconIndex(`${taskID}-${mac}-${name}`),
+        iconIndex: stableIconIndex(
+          `${taskID}-${taskName}-${ipAddress}-${firmwareVersion}`
+        ),
       };
     });
 
     mapped.sort((a, b) => {
       if (b.risk !== a.risk) return b.risk - a.risk;
       if (b.vulnTotal !== a.vulnTotal) return b.vulnTotal - a.vulnTotal;
-      return a.name.localeCompare(b.name);
+      return a.taskName.localeCompare(b.taskName);
     });
 
     return {
@@ -246,19 +250,18 @@ const RiskScoreTable: React.FC = () => {
     };
   }, [data, range]);
 
-  const goToDevice = (taskID: string) => {
-    const cleanTaskID = String(taskID || "").trim();
-
-    if (!cleanTaskID) {
+  const goToDevice = (row: Row) => {
+    if (!row.taskID.trim()) {
       console.warn("Cannot navigate: task_id is empty");
       return;
     }
 
-    console.log("Navigate with state task_id:", cleanTaskID);
-
     navigate("/admin/vulnerability-by-device", {
       state: {
-        task_id: cleanTaskID,
+        task_id: row.taskID,
+        ip_address: row.ipAddress,
+        task_name: row.taskName,
+        firmware_version: row.firmwareVersion,
       },
     });
   };
@@ -424,11 +427,11 @@ const RiskScoreTable: React.FC = () => {
                     key={p.id}
                     role="button"
                     tabIndex={0}
-                    onClick={() => goToDevice(p.taskID)}
+                    onClick={() => goToDevice(p)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
                         e.preventDefault();
-                        goToDevice(p.taskID);
+                        goToDevice(p);
                       }
                     }}
                     className={[
@@ -437,7 +440,11 @@ const RiskScoreTable: React.FC = () => {
                       "focus:outline-none focus:ring-2 focus:ring-cyan-400/40",
                       "dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/[0.07] dark:hover:border-cyan-400/20 dark:focus:ring-cyan-300/30",
                     ].join(" ")}
-                    title={p.taskID ? `Open vulnerabilities for task_id=${p.taskID}` : "No task_id"}
+                    title={
+                      p.taskID
+                        ? `Open vulnerabilities for task_id ${p.taskID}`
+                        : "No task_id"
+                    }
                   >
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -455,7 +462,7 @@ const RiskScoreTable: React.FC = () => {
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
                             <p className="truncate text-[15px] sm:text-[16px] font-semibold text-[#1f2240] dark:text-white/85">
-                              {p.name}
+                              {p.taskName}
                             </p>
 
                             <span
@@ -469,12 +476,13 @@ const RiskScoreTable: React.FC = () => {
                             </span>
 
                             <span className="text-[11px] text-gray-400 dark:text-white/35">
-                              • task_id: {p.taskID || "-"}
+                              • IP: {p.ipAddress || "-"}
                             </span>
                           </div>
 
                           <p className="mt-1 text-[12.5px] sm:text-[13px] text-gray-500 dark:text-white/55 truncate">
-                            {formatNumber(p.vulnTotal)} Vulns • {p.mac || "No MAC"}
+                            {formatNumber(p.vulnTotal)} Vulns •{" "}
+                            {p.firmwareVersion || "Unknown Device"}
                           </p>
 
                           <div className="mt-2">
