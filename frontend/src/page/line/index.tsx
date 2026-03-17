@@ -21,11 +21,11 @@ const Index: React.FC = () => {
 
       {/* Row 2: Graph 70% / Count 30% */}
       <div className="mb-4 grid grid-cols-1 gap-4 xl:grid-cols-10">
-        <div className="xl:col-span-7 h-full">
+        <div className="xl:col-span-6 h-full">
           <Count />
         </div>
 
-        <div className="xl:col-span-3 h-full">
+        <div className="xl:col-span-4 h-full">
           <Graph />
         </div>
       </div>

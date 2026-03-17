@@ -221,7 +221,7 @@ const Social: React.FC = () => {
           riskValue: risk,
           rowType: "task" as const,
           icon: (
-            <span className="text-[12px] font-bold text-slate-600 dark:text-white/70">
+            <span className="text-[10px] font-bold text-slate-600 dark:text-white/70">
               {initials || "T"}
             </span>
           ),
@@ -247,7 +247,7 @@ const Social: React.FC = () => {
         valueRight: "",
         rowType: "summary",
         icon: (
-          <span className="text-[12px] font-bold text-slate-600 dark:text-white/70">
+          <span className="text-[10px] font-bold text-slate-600 dark:text-white/70">
             TA
           </span>
         ),
@@ -259,7 +259,7 @@ const Social: React.FC = () => {
         valueRight: "",
         rowType: "summary",
         icon: (
-          <span className="text-[12px] font-bold text-slate-600 dark:text-white/70">
+          <span className="text-[10px] font-bold text-slate-600 dark:text-white/70">
             AR
           </span>
         ),
@@ -271,7 +271,7 @@ const Social: React.FC = () => {
         valueRight: "",
         rowType: "summary",
         icon: (
-          <span className="text-[12px] font-bold text-slate-600 dark:text-white/70">
+          <span className="text-[10px] font-bold text-slate-600 dark:text-white/70">
             TV
           </span>
         ),
@@ -297,15 +297,15 @@ const Social: React.FC = () => {
   return (
     <section
       className={[
-        "relative overflow-hidden rounded-[22px] p-4 sm:p-5 md:p-6 h-full",
-        "bg-white border border-gray-200/80 shadow-sm",
+        "relative overflow-hidden rounded-[22px] p-3 sm:p-4 md:p-4.5 h-full",
+        "bg-white border border-gray-200/80 shadow-[0_14px_34px_-24px_rgba(15,23,42,0.22)]",
         "dark:bg-white/5 dark:border-white/10 dark:ring-1 dark:ring-white/10 dark:shadow-none",
       ].join(" ")}
     >
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-16 -right-10 h-44 w-44 rounded-full bg-cyan-400/10 blur-3xl" />
-        <div className="absolute -bottom-16 -left-10 h-44 w-44 rounded-full bg-violet-500/10 blur-3xl" />
-        <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.06]">
+        <div className="absolute -top-14 -right-8 h-32 w-32 rounded-full bg-cyan-400/10 blur-3xl" />
+        <div className="absolute -bottom-14 -left-8 h-32 w-32 rounded-full bg-violet-500/10 blur-3xl" />
+        <div className="absolute inset-0 opacity-[0.035] dark:opacity-[0.055]">
           <div
             className="h-full w-full"
             style={{
@@ -320,43 +320,43 @@ const Social: React.FC = () => {
       </div>
 
       <div className="relative z-10 h-full flex flex-col">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
-            <div className="mb-3 flex flex-wrap items-center gap-2">
+            <div className="mb-2.5 flex flex-wrap items-center gap-2">
               <div
                 className={[
-                  "inline-flex items-center gap-2 rounded-full px-3 py-1.5",
+                  "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5",
                   "bg-cyan-50 text-cyan-700 border border-cyan-200/80",
                   "dark:bg-cyan-500/10 dark:text-cyan-300 dark:border-cyan-400/20",
                 ].join(" ")}
               >
-                <FiShield className="text-[14px]" />
-                <span className="text-[12px] font-semibold tracking-wide">
+                <FiShield className="text-[11px]" />
+                <span className="text-[10.5px] font-semibold tracking-wide">
                   Asset Risk Overview
                 </span>
               </div>
             </div>
 
-            <h3 className="text-[18px] sm:text-[20px] font-semibold text-[#1f2240] dark:text-white/90">
+            <h3 className="text-[17px] sm:text-[18px] font-semibold text-[#1f2240] dark:text-white/90">
               Asset Risk Overview
             </h3>
-            <p className="text-[12px] sm:text-[13px] text-gray-500 dark:text-white/55 mt-1">
+            <p className="text-[11px] sm:text-[12px] text-gray-500 dark:text-white/55 mt-1">
               {subtitle}
             </p>
           </div>
 
-          <div className="w-full sm:w-auto flex flex-col items-stretch sm:items-end gap-3">
+          <div className="w-full sm:w-auto flex flex-col items-stretch sm:items-end gap-2.5">
             <div className="flex items-center gap-3">
               <div className="w-full sm:w-auto">
                 <ConfigProvider
                   theme={{
                     token: {
                       colorPrimary: "#e2e8f0",
-                      borderRadius: 20,
+                      borderRadius: 18,
                       colorBgElevated: "#ffffff",
                       colorBorder: "#e5e7eb",
                       boxShadowSecondary:
-                        "0 16px 40px -20px rgba(15,23,42,0.12)",
+                        "0 14px 34px -22px rgba(15,23,42,0.14)",
                       colorText: "#334155",
                       colorTextPlaceholder: "#94a3b8",
                     },
@@ -371,7 +371,7 @@ const Social: React.FC = () => {
                     },
                   }}
                 >
-                  <div className="relative w-full sm:min-w-52">
+                  <div className="relative w-full sm:min-w-46">
                     <Select
                       value={selectedTask}
                       onChange={(value) => setSelectedTask(value)}
@@ -384,7 +384,7 @@ const Social: React.FC = () => {
                         <span
                           style={{
                             color: "#94a3b8",
-                            fontSize: 13,
+                            fontSize: 12,
                             lineHeight: 1,
                             pointerEvents: "none",
                           }}
@@ -403,11 +403,11 @@ const Social: React.FC = () => {
                         popup: {
                           root: {
                             padding: 8,
-                            borderRadius: 22,
+                            borderRadius: 20,
                             border: "1px solid #e5e7eb",
                             overflow: "hidden",
                             boxShadow:
-                              "0 16px 40px -20px rgba(15,23,42,0.12)",
+                              "0 14px 34px -22px rgba(15,23,42,0.14)",
                             background: "#ffffff",
                           },
                           list: {
@@ -415,13 +415,13 @@ const Social: React.FC = () => {
                             background: "#ffffff",
                           },
                           listItem: {
-                            minHeight: 42,
-                            borderRadius: 14,
+                            minHeight: 38,
+                            borderRadius: 12,
                             margin: "4px 0",
-                            paddingInline: 14,
+                            paddingInline: 12,
                             display: "flex",
                             alignItems: "center",
-                            fontSize: 13,
+                            fontSize: 12,
                             fontWeight: 500,
                             color: "#334155",
                             transition: "all 0.18s ease",
@@ -463,7 +463,7 @@ const Social: React.FC = () => {
                             />
                             <span
                               style={{
-                                fontSize: 13,
+                                fontSize: 12,
                                 fontWeight: isSelected ? 600 : 500,
                                 color: "#334155",
                                 whiteSpace: "nowrap",
@@ -480,7 +480,7 @@ const Social: React.FC = () => {
                         <span
                           style={{
                             color: "#334155",
-                            fontSize: 13,
+                            fontSize: 12,
                             fontWeight: 500,
                           }}
                         >
@@ -490,10 +490,10 @@ const Social: React.FC = () => {
                     />
 
                     <div
-                      className="pointer-events-none absolute inset-0 rounded-[20px]"
+                      className="pointer-events-none absolute inset-0 rounded-[18px]"
                       style={{
                         border: "1px solid #dbeafe",
-                        boxShadow: "0 8px 24px -18px rgba(15,23,42,0.10)",
+                        boxShadow: "0 8px 20px -18px rgba(15,23,42,0.10)",
                       }}
                     />
                   </div>
@@ -503,25 +503,25 @@ const Social: React.FC = () => {
           </div>
         </div>
 
-        <div className="mt-4 space-y-3 flex-1">
+        <div className="mt-3.5 space-y-2.5 flex-1">
           {loading ? (
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               {Array.from({ length: 6 }).map((_, i) => (
                 <div
                   key={i}
                   className={[
-                    "rounded-2xl px-4 py-4 border animate-pulse",
+                    "rounded-2xl px-3.5 py-3 border animate-pulse",
                     "border-gray-200/80 bg-white",
                     "dark:border-white/10 dark:bg-white/5",
                   ].join(" ")}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-2xl bg-gray-200 dark:bg-white/10" />
+                    <div className="h-9 w-9 rounded-2xl bg-gray-200 dark:bg-white/10" />
                     <div className="flex-1">
-                      <div className="h-4 w-36 rounded bg-gray-200 dark:bg-white/10" />
-                      <div className="mt-2 h-2.5 w-full rounded bg-gray-200 dark:bg-white/10" />
+                      <div className="h-3.5 w-32 rounded bg-gray-200 dark:bg-white/10" />
+                      <div className="mt-2 h-2 w-full rounded bg-gray-200 dark:bg-white/10" />
                     </div>
-                    <div className="h-4 w-14 rounded bg-gray-200 dark:bg-white/10" />
+                    <div className="h-4 w-12 rounded bg-gray-200 dark:bg-white/10" />
                   </div>
                 </div>
               ))}
@@ -529,7 +529,7 @@ const Social: React.FC = () => {
           ) : rows.length === 0 ? (
             <div
               className={[
-                "rounded-2xl px-4 py-4 text-[13px]",
+                "rounded-2xl px-4 py-4 text-[12px]",
                 "border border-gray-200/80 bg-white text-gray-500",
                 "dark:border-white/10 dark:bg-white/5 dark:text-white/55",
               ].join(" ")}
@@ -547,7 +547,7 @@ const Social: React.FC = () => {
                 <div
                   key={s.id}
                   className={[
-                    "rounded-2xl px-3.5 sm:px-4 py-3 flex items-center gap-3 transition-all duration-200",
+                    "rounded-2xl px-3 sm:px-3.5 py-2.5 flex items-center gap-2.5 transition-all duration-200",
                     s.rowType === "summary"
                       ? "border border-cyan-100 bg-cyan-50/60 dark:border-cyan-400/15 dark:bg-cyan-500/5"
                       : "border border-gray-200/80 bg-white hover:shadow-sm dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/[0.07]",
@@ -555,7 +555,7 @@ const Social: React.FC = () => {
                 >
                   <div
                     className={[
-                      "h-11 w-11 rounded-2xl flex items-center justify-center shrink-0 border",
+                      "h-9.5 w-9.5 rounded-2xl flex items-center justify-center shrink-0 border",
                       s.rowType === "summary"
                         ? "border-cyan-200/80 bg-white dark:border-cyan-400/15 dark:bg-white/10"
                         : "border-gray-200/80 bg-[#fbfbfc] dark:border-white/10 dark:bg-white/8",
@@ -563,7 +563,7 @@ const Social: React.FC = () => {
                   >
                     {s.rowType === "task" ? (
                       <div className="flex flex-col items-center justify-center">
-                        <FiCpu className="text-[14px] text-cyan-500 mb-0.5" />
+                        <FiCpu className="text-[12px] text-cyan-500 mb-0.5" />
                         {s.icon}
                       </div>
                     ) : (
@@ -573,14 +573,14 @@ const Social: React.FC = () => {
 
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <p className="truncate text-[13px] sm:text-[14px] font-medium text-[#1f2240] dark:text-white/85">
+                      <p className="truncate text-[12px] sm:text-[13px] font-medium text-[#1f2240] dark:text-white/85">
                         {s.name}
                       </p>
 
                       {s.rowType === "task" && tone ? (
                         <span
                           className={[
-                            "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold border",
+                            "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-semibold border",
                             tone.chip,
                           ].join(" ")}
                         >
@@ -591,8 +591,8 @@ const Social: React.FC = () => {
                     </div>
 
                     {typeof s.percent === "number" && tone && (
-                      <div className="mt-2">
-                        <div className="h-2.5 rounded-full bg-[#eef0f6] dark:bg-white/10 overflow-hidden">
+                      <div className="mt-1.5">
+                        <div className="h-2 rounded-full bg-[#eef0f6] dark:bg-white/10 overflow-hidden">
                           <div
                             className="h-full rounded-full transition-all duration-300"
                             style={{
@@ -605,33 +605,33 @@ const Social: React.FC = () => {
                     )}
 
                     {s.rowType === "summary" ? (
-                      <p className="mt-1 text-[11px] text-gray-500 dark:text-white/45">
+                      <p className="mt-1 text-[10px] text-gray-500 dark:text-white/45">
                         Security summary from latest imported asset dataset
                       </p>
                     ) : (
-                      <p className="mt-1 text-[11px] text-gray-500 dark:text-white/45 truncate">
+                      <p className="mt-1 text-[10px] text-gray-500 dark:text-white/45 truncate">
                         Host: {s.subName || "-"}
                       </p>
                     )}
                   </div>
 
-                  <div className="shrink-0 flex items-center gap-4 sm:gap-6">
-                    <div className="w-16 sm:w-20 text-right">
-                      <p className="text-[11px] text-gray-400 dark:text-white/40">
+                  <div className="shrink-0 flex items-center gap-3 sm:gap-5">
+                    <div className="w-13 sm:w-16 text-right">
+                      <p className="text-[10px] text-gray-400 dark:text-white/40">
                         {s.rowType === "summary" ? "Value" : "Vulns"}
                       </p>
-                      <p className="text-[13px] sm:text-[14px] font-semibold text-[#1f2240] dark:text-white/85 tabular-nums">
+                      <p className="text-[12px] sm:text-[13px] font-semibold text-[#1f2240] dark:text-white/85 tabular-nums">
                         {s.valueLeft}
                       </p>
                     </div>
 
                     {s.valueRight !== "" && (
-                      <div className="w-16 sm:w-20 text-right">
-                        <p className="text-[11px] text-gray-400 dark:text-white/40">
+                      <div className="w-13 sm:w-16 text-right">
+                        <p className="text-[10px] text-gray-400 dark:text-white/40">
                           Risk
                         </p>
                         <p
-                          className={`text-[13px] sm:text-[14px] font-semibold tabular-nums ${
+                          className={`text-[12px] sm:text-[13px] font-semibold tabular-nums ${
                             tone ? tone.text : "text-[#1f2240] dark:text-white/85"
                           }`}
                         >
@@ -641,7 +641,7 @@ const Social: React.FC = () => {
                     )}
 
                     {s.rowType === "task" && Number(s.riskValue || 0) >= 8 ? (
-                      <FiAlertTriangle className="shrink-0 text-red-500 text-[16px]" />
+                      <FiAlertTriangle className="shrink-0 text-red-500 text-[14px]" />
                     ) : null}
                   </div>
                 </div>

@@ -18,7 +18,12 @@ import {
   FiCopy,
   FiChevronRight,
 } from "react-icons/fi";
-import { FaTiktok, FaGoogle, FaYoutube, FaMicrosoft } from "react-icons/fa";
+import {
+  FaTiktok,
+  FaGoogle,
+  FaYoutube,
+  FaMicrosoft,
+} from "react-icons/fa";
 import {
   ListAppLineMaster,
   CreateAppLineMaster,
@@ -200,7 +205,9 @@ const Master: React.FC = () => {
   const [formMode, setFormMode] = useState<FormMode>("create");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
-  const [editingItem, setEditingItem] = useState<AppLineMasterResponse | null>(null);
+  const [editingItem, setEditingItem] = useState<AppLineMasterResponse | null>(
+    null
+  );
   const [formData, setFormData] = useState<FormData>({
     name: "",
     token: "",
@@ -208,7 +215,8 @@ const Master: React.FC = () => {
   const [showToken, setShowToken] = useState(false);
 
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<AppLineMasterResponse | null>(null);
+  const [deleteTarget, setDeleteTarget] =
+    useState<AppLineMasterResponse | null>(null);
   const [deleteError, setDeleteError] = useState("");
   const [deleting, setDeleting] = useState(false);
 
@@ -254,7 +262,9 @@ const Master: React.FC = () => {
     const q = search.trim().toLowerCase();
 
     return uiItems.filter((item) => {
-      const blob = [item.name, item.category, item.description].join(" ").toLowerCase();
+      const blob = [item.name, item.category, item.description]
+        .join(" ")
+        .toLowerCase();
       return blob.includes(q);
     });
   }, [uiItems, search]);
@@ -434,13 +444,13 @@ const Master: React.FC = () => {
     <>
       <section
         className={[
-          "relative h-full overflow-hidden rounded-4xl border px-5 py-5 sm:px-6 sm:py-6",
-          "border-slate-200 bg-[#f9fcff] shadow-[0_18px_45px_-28px_rgba(15,23,42,0.18)]",
+          "relative h-full overflow-hidden rounded-3xl border px-3.5 py-3.5 sm:px-4 sm:py-4 md:px-4.5 md:py-4.5",
+          "border-slate-200 bg-[#f9fcff] shadow-[0_14px_34px_-24px_rgba(15,23,42,0.20)]",
           "dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:ring-1 dark:ring-white/10",
         ].join(" ")}
       >
-        <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-4xl">
-          <div className="absolute inset-0 opacity-[0.05] dark:opacity-[0.06]">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl">
+          <div className="absolute inset-0 opacity-[0.035] dark:opacity-[0.055]">
             <div
               className="h-full w-full text-slate-500 dark:text-white/15"
               style={{
@@ -448,73 +458,75 @@ const Master: React.FC = () => {
                   linear-gradient(to right, currentColor 1px, transparent 1px),
                   linear-gradient(to bottom, currentColor 1px, transparent 1px)
                 `,
-                backgroundSize: "28px 28px",
+                backgroundSize: "26px 26px",
               }}
             />
           </div>
-          <div className="absolute -top-10 right-0 h-40 w-40 rounded-full bg-cyan-100/60 blur-3xl dark:bg-cyan-400/10" />
-          <div className="absolute bottom-0 left-0 h-32 w-32 rounded-full bg-sky-100/60 blur-3xl dark:bg-sky-400/10" />
+          <div className="absolute -top-10 right-0 h-32 w-32 rounded-full bg-cyan-100/60 blur-3xl dark:bg-cyan-400/10" />
+          <div className="absolute bottom-0 left-0 h-26 w-26 rounded-full bg-sky-100/60 blur-3xl dark:bg-sky-400/10" />
         </div>
 
         <div className="relative z-10">
-          <div className="flex flex-col gap-5">
+          <div className="flex flex-col gap-4">
             <div className="max-w-xl">
-              <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-4 py-2 text-[12px] font-semibold text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-400/10 dark:text-cyan-300">
-                <FiSettings className="text-[13px]" />
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1.5 text-[10.5px] font-semibold text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-400/10 dark:text-cyan-300">
+                <FiSettings className="text-[11px]" />
                 Integration Management
               </div>
 
-              <h2 className="mt-5 text-[28px] font-semibold tracking-tight text-slate-900 sm:text-[34px] dark:text-white/90">
+              <h2 className="mt-3 text-[19px] font-semibold tracking-tight text-slate-900 sm:text-[22px] dark:text-white/90">
                 All Integrations
               </h2>
 
-              <p className="mt-3 max-w-md text-[15px] leading-8 text-slate-500 dark:text-white/55">
+              <p className="mt-1.5 max-w-md text-[12px] leading-6 text-slate-500 dark:text-white/55">
                 Manage connected apps in one place.
               </p>
             </div>
 
-            <div className="flex flex-col gap-3">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="flex flex-col gap-2.5">
+              <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
                 <div className="relative flex-1">
-                  <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-white/35" />
+                  <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-slate-400 dark:text-white/35" />
                   <input
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Search integrations..."
                     className={[
-                      "h-12 w-full rounded-[18px] border pl-11 pr-4 text-[14px] outline-none transition",
+                      "h-10 w-full rounded-2xl border pl-9 pr-3.5 text-[12px] outline-none transition",
                       "border-slate-200 bg-white text-slate-800 placeholder:text-slate-400",
-                      "focus:border-cyan-300 focus:ring-4 focus:ring-cyan-100",
+                      "focus:border-cyan-300 focus:ring-2 focus:ring-cyan-100",
                       "dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:placeholder:text-white/30 dark:focus:border-cyan-400/30 dark:focus:ring-cyan-400/10",
                     ].join(" ")}
                   />
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2.5">
                   <button
                     type="button"
                     onClick={() => loadAppLineMasters(true)}
                     disabled={refreshing}
                     className={[
-                      "inline-flex h-12 w-12 items-center justify-center rounded-[18px] border transition",
+                      "inline-flex h-10 w-10 items-center justify-center rounded-2xl border transition",
                       "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
                       "disabled:cursor-not-allowed disabled:opacity-60",
                       "dark:border-white/10 dark:bg-white/5 dark:text-white/70 dark:hover:bg-white/10",
                     ].join(" ")}
                     title="Refresh"
                   >
-                    <FiRefreshCw className={refreshing ? "animate-spin" : ""} />
+                    <FiRefreshCw
+                      className={`text-[13px] ${refreshing ? "animate-spin" : ""}`}
+                    />
                   </button>
 
                   <button
                     type="button"
                     onClick={openCreateModal}
                     className={[
-                      "inline-flex h-12 items-center gap-2 rounded-[18px] px-4 text-[14px] font-medium transition",
+                      "inline-flex h-10 items-center gap-2 rounded-2xl px-3.5 text-[12px] font-medium transition",
                       "bg-cyan-600 text-white hover:bg-cyan-700 shadow-sm",
                     ].join(" ")}
                   >
-                    <FiPlus />
+                    <FiPlus className="text-[13px]" />
                     Add
                   </button>
                 </div>
@@ -523,60 +535,62 @@ const Master: React.FC = () => {
           </div>
 
           {error && (
-            <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-300">
+            <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-[12px] text-red-700 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-300">
               {error}
             </div>
           )}
 
-          <div className="mt-8">
+          <div className="mt-5">
             {loading ? (
-              <div className="flex min-h-65 items-center justify-center rounded-[28px] border border-slate-200 bg-white/80 px-6 py-14 text-center dark:border-white/10 dark:bg-white/5">
+              <div className="flex min-h-52 items-center justify-center rounded-[22px] border border-slate-200 bg-white/80 px-5 py-10 text-center dark:border-white/10 dark:bg-white/5">
                 <div>
-                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-400/10 dark:text-cyan-300">
-                    <FiRefreshCw className="animate-spin text-[22px]" />
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-400/10 dark:text-cyan-300">
+                    <FiRefreshCw className="animate-spin text-[18px]" />
                   </div>
-                  <h3 className="mt-4 text-[16px] font-semibold text-slate-900 dark:text-white/90">
+                  <h3 className="mt-3 text-[14px] font-semibold text-slate-900 dark:text-white/90">
                     Loading integrations...
                   </h3>
-                  <p className="mt-1 text-[13px] text-slate-500 dark:text-white/50">
+                  <p className="mt-1 text-[11px] text-slate-500 dark:text-white/50">
                     Please wait while we load your integration list.
                   </p>
                 </div>
               </div>
             ) : filteredItems.length === 0 ? (
-              <div className="flex min-h-65 items-center justify-center rounded-[28px] border border-slate-200 bg-white/80 px-6 py-14 text-center dark:border-white/10 dark:bg-white/5">
+              <div className="flex min-h-52 items-center justify-center rounded-[22px] border border-slate-200 bg-white/80 px-5 py-10 text-center dark:border-white/10 dark:bg-white/5">
                 <div>
-                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-400/10 dark:text-cyan-300">
-                    <FiAlertCircle className="text-[22px]" />
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-400/10 dark:text-cyan-300">
+                    <FiAlertCircle className="text-[18px]" />
                   </div>
-                  <h3 className="mt-4 text-[16px] font-semibold text-slate-900 dark:text-white/90">
+                  <h3 className="mt-3 text-[14px] font-semibold text-slate-900 dark:text-white/90">
                     No integrations found
                   </h3>
-                  <p className="mt-1 text-[13px] text-slate-500 dark:text-white/50">
+                  <p className="mt-1 text-[11px] text-slate-500 dark:text-white/50">
                     Try adjusting your search or add a new integration.
                   </p>
                 </div>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {filteredItems.map((item) => {
-                  const originalItem = items.find((x) => x.id === item.id) as AppLineMasterResponse;
+                  const originalItem = items.find(
+                    (x) => x.id === item.id
+                  ) as AppLineMasterResponse;
 
                   return (
                     <div
                       key={item.id}
                       className={[
-                        "rounded-[28px] border px-5 py-5 transition sm:px-6 sm:py-6",
-                        "border-slate-200 bg-white shadow-[0_10px_35px_-24px_rgba(15,23,42,0.18)] hover:border-cyan-200",
+                        "rounded-[22px] border px-4 py-4 transition sm:px-4.5 sm:py-4.5",
+                        "border-slate-200 bg-white shadow-[0_10px_28px_-24px_rgba(15,23,42,0.18)] hover:border-cyan-200",
                         "dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:hover:border-cyan-400/20",
                       ].join(" ")}
                     >
-                      <div className="flex flex-col gap-5">
-                        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-                          <div className="flex min-w-0 items-start gap-4 sm:gap-5">
+                      <div className="flex flex-col gap-4">
+                        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                          <div className="flex min-w-0 items-start gap-3.5">
                             <div
                               className={[
-                                "grid h-16 w-16 shrink-0 place-items-center rounded-[22px] border text-[24px]",
+                                "grid h-13 w-13 shrink-0 place-items-center rounded-[18px] border text-[20px]",
                                 item.iconWrapClass,
                               ].join(" ")}
                             >
@@ -584,14 +598,14 @@ const Master: React.FC = () => {
                             </div>
 
                             <div className="min-w-0 flex-1">
-                              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-                                <h3 className="truncate text-[22px] font-semibold tracking-tight text-slate-900 dark:text-white/90">
+                              <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2.5">
+                                <h3 className="truncate text-[17px] font-semibold tracking-tight text-slate-900 dark:text-white/90">
                                   {item.name}
                                 </h3>
 
                                 <span
                                   className={[
-                                    "inline-flex w-fit items-center rounded-full border px-3 py-1 text-[12px] font-medium",
+                                    "inline-flex w-fit items-center rounded-full border px-2.5 py-1 text-[10.5px] font-medium",
                                     item.chipClass,
                                   ].join(" ")}
                                 >
@@ -599,49 +613,49 @@ const Master: React.FC = () => {
                                 </span>
                               </div>
 
-                              <p className="mt-2 max-w-2xl text-[14px] leading-8 text-slate-500 dark:text-white/55">
+                              <p className="mt-1.5 max-w-2xl text-[12px] leading-6 text-slate-500 dark:text-white/55">
                                 {item.description}
                               </p>
                             </div>
                           </div>
 
-                          <div className="flex flex-wrap items-center gap-2 sm:gap-3 lg:justify-end">
+                          <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 lg:justify-end">
                             <button
                               type="button"
                               onClick={() => openEditModal(originalItem)}
                               className={[
-                                "inline-flex h-11 w-11 items-center justify-center rounded-2xl border transition",
+                                "inline-flex h-9 w-9 items-center justify-center rounded-[14px] border transition",
                                 "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
                                 "dark:border-white/10 dark:bg-white/5 dark:text-white/70 dark:hover:bg-white/10",
                               ].join(" ")}
                               title="Edit"
                             >
-                              <FiEdit2 />
+                              <FiEdit2 className="text-[13px]" />
                             </button>
 
                             <button
                               type="button"
                               onClick={() => openDeleteModal(originalItem)}
                               className={[
-                                "inline-flex h-11 w-11 items-center justify-center rounded-2xl border transition",
+                                "inline-flex h-9 w-9 items-center justify-center rounded-[14px] border transition",
                                 "border-red-200 bg-red-50 text-red-500 hover:bg-red-100",
                                 "dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-300 dark:hover:bg-red-400/15",
                               ].join(" ")}
                               title="Delete"
                             >
-                              <FiTrash2 />
+                              <FiTrash2 className="text-[13px]" />
                             </button>
 
                             <button
                               type="button"
                               className={[
-                                "inline-flex h-11 items-center gap-2 rounded-2xl border px-5 text-[14px] font-medium transition",
+                                "inline-flex h-9 items-center gap-1.5 rounded-[14px] border px-3.5 text-[12px] font-medium transition",
                                 "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
                                 "dark:border-white/10 dark:bg-white/5 dark:text-white/75 dark:hover:bg-white/10",
                               ].join(" ")}
                             >
                               Connect
-                              <FiChevronRight className="text-[15px]" />
+                              <FiChevronRight className="text-[13px]" />
                             </button>
                           </div>
                         </div>
@@ -664,62 +678,62 @@ const Master: React.FC = () => {
             aria-label="Close form modal overlay"
           />
 
-          <div className="relative z-10 w-full max-w-2xl rounded-3xl border border-slate-200 bg-white px-5 py-5 shadow-[0_24px_70px_rgba(15,23,42,0.18)] sm:px-6 sm:py-6 dark:border-white/10 dark:bg-[#0b1220] dark:shadow-none dark:ring-1 dark:ring-white/10">
+          <div className="relative z-10 w-full max-w-xl rounded-[22px] border border-slate-200 bg-white px-4 py-4 shadow-[0_24px_70px_rgba(15,23,42,0.18)] sm:px-5 sm:py-5 dark:border-white/10 dark:bg-[#0b1220] dark:shadow-none dark:ring-1 dark:ring-white/10">
             <button
               type="button"
               onClick={closeFormModal}
               disabled={submitting}
-              className="absolute right-4 top-4 text-slate-400 transition hover:text-slate-600 disabled:cursor-not-allowed dark:text-white/35 dark:hover:text-white/70"
+              className="absolute right-3.5 top-3.5 text-slate-400 transition hover:text-slate-600 disabled:cursor-not-allowed dark:text-white/35 dark:hover:text-white/70"
               aria-label="Close"
             >
-              <FiX className="text-[20px]" />
+              <FiX className="text-[18px]" />
             </button>
 
-            <div className="flex justify-center pt-2">
-              <div className="grid h-14 w-14 place-items-center rounded-full bg-cyan-50 text-cyan-600 dark:bg-cyan-400/10 dark:text-cyan-300">
+            <div className="flex justify-center pt-1">
+              <div className="grid h-11 w-11 place-items-center rounded-full bg-cyan-50 text-cyan-600 dark:bg-cyan-400/10 dark:text-cyan-300">
                 {formMode === "create" ? (
-                  <FiPlus className="text-[28px]" />
+                  <FiPlus className="text-[22px]" />
                 ) : (
-                  <FiEdit2 className="text-[26px]" />
+                  <FiEdit2 className="text-[20px]" />
                 )}
               </div>
             </div>
 
-            <h3 className="mt-4 text-center text-[24px] font-semibold text-slate-800 dark:text-white/90">
+            <h3 className="mt-3 text-center text-[18px] font-semibold text-slate-800 dark:text-white/90">
               {formMode === "create" ? "Create Integration" : "Update Integration"}
             </h3>
 
-            <p className="mx-auto mt-2 max-w-130 text-center text-[14px] leading-6 text-slate-500 dark:text-white/55">
+            <p className="mx-auto mt-1.5 max-w-110 text-center text-[12px] leading-5 text-slate-500 dark:text-white/55">
               {formMode === "create"
                 ? "Add a new integration card to your management page."
                 : "Edit the selected integration information."}
             </p>
 
-            <div className="mt-6 space-y-4">
+            <div className="mt-5 space-y-3.5">
               <div>
-                <label className="mb-2 block text-[13px] font-medium text-slate-700 dark:text-white/75">
+                <label className="mb-1.5 block text-[12px] font-medium text-slate-700 dark:text-white/75">
                   Integration Name
                 </label>
                 <div className="relative">
-                  <FiLink2 className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-white/35" />
+                  <FiLink2 className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-slate-400 dark:text-white/35" />
                   <input
                     value={formData.name}
                     onChange={(e) =>
                       setFormData((prev) => ({ ...prev, name: e.target.value }))
                     }
                     placeholder="e.g. Slack, Google Meet, LINE Notify"
-                    className="h-12 w-full rounded-2xl border border-slate-200 bg-white pl-10 pr-4 text-[14px] text-slate-800 outline-none transition focus:border-cyan-300 focus:ring-4 focus:ring-cyan-100 dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:placeholder:text-white/30 dark:focus:border-cyan-400/30 dark:focus:ring-cyan-400/10"
+                    className="h-10 w-full rounded-2xl border border-slate-200 bg-white pl-9 pr-3.5 text-[12px] text-slate-800 outline-none transition focus:border-cyan-300 focus:ring-2 focus:ring-cyan-100 dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:placeholder:text-white/30 dark:focus:border-cyan-400/30 dark:focus:ring-cyan-400/10"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="mb-2 block text-[13px] font-medium text-slate-700 dark:text-white/75">
+                <label className="mb-1.5 block text-[12px] font-medium text-slate-700 dark:text-white/75">
                   Token
                 </label>
 
                 <div className="relative">
-                  <FiBell className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-white/35" />
+                  <FiBell className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-slate-400 dark:text-white/35" />
 
                   <input
                     type={showToken ? "text" : "password"}
@@ -728,33 +742,37 @@ const Master: React.FC = () => {
                       setFormData((prev) => ({ ...prev, token: e.target.value }))
                     }
                     placeholder="Enter token"
-                    className="h-12 w-full rounded-2xl border border-slate-200 bg-white pl-10 pr-24 text-[14px] text-slate-800 outline-none transition focus:border-cyan-300 focus:ring-4 focus:ring-cyan-100 dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:placeholder:text-white/30 dark:focus:border-cyan-400/30 dark:focus:ring-cyan-400/10"
+                    className="h-10 w-full rounded-2xl border border-slate-200 bg-white pl-9 pr-20 text-[12px] text-slate-800 outline-none transition focus:border-cyan-300 focus:ring-2 focus:ring-cyan-100 dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:placeholder:text-white/30 dark:focus:border-cyan-400/30 dark:focus:ring-cyan-400/10"
                   />
 
-                  <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
+                  <div className="absolute right-1.5 top-1/2 flex -translate-y-1/2 items-center gap-1">
                     <button
                       type="button"
                       onClick={handleCopyToken}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:text-white/45 dark:hover:bg-white/10 dark:hover:text-white/80"
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:text-white/45 dark:hover:bg-white/10 dark:hover:text-white/80"
                       title="Copy token"
                     >
-                      <FiCopy />
+                      <FiCopy className="text-[13px]" />
                     </button>
 
                     <button
                       type="button"
                       onClick={() => setShowToken((prev) => !prev)}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:text-white/45 dark:hover:bg-white/10 dark:hover:text-white/80"
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:text-white/45 dark:hover:bg-white/10 dark:hover:text-white/80"
                       title={showToken ? "Hide token" : "Show token"}
                     >
-                      {showToken ? <FiEyeOff /> : <FiEye />}
+                      {showToken ? (
+                        <FiEyeOff className="text-[13px]" />
+                      ) : (
+                        <FiEye className="text-[13px]" />
+                      )}
                     </button>
                   </div>
                 </div>
 
                 {copiedToken && (
                   <div className="mt-2">
-                    <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-medium text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300">
+                    <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-medium text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300">
                       Copied token
                     </span>
                   </div>
@@ -762,29 +780,29 @@ const Master: React.FC = () => {
               </div>
 
               {formError && (
-                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-300">
+                <div className="rounded-2xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-[12px] text-red-700 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-300">
                   {formError}
                 </div>
               )}
 
-              <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-white/5">
-                <p className="text-[12px] font-semibold uppercase tracking-wide text-slate-500 dark:text-white/45">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-3.5 dark:border-white/10 dark:bg-white/5">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-white/45">
                   Preview
                 </p>
 
-                <div className="mt-3 flex items-start gap-3">
-                  <div className="grid h-12 w-12 place-items-center rounded-2xl border border-cyan-200 bg-cyan-50 text-cyan-600 dark:border-cyan-400/20 dark:bg-cyan-400/10 dark:text-cyan-300">
+                <div className="mt-2.5 flex items-start gap-3">
+                  <div className="grid h-10 w-10 place-items-center rounded-2xl border border-cyan-200 bg-cyan-50 text-[18px] text-cyan-600 dark:border-cyan-400/20 dark:bg-cyan-400/10 dark:text-cyan-300">
                     {getMetaByName(formData.name).icon}
                   </div>
 
                   <div className="min-w-0">
-                    <p className="text-[16px] font-semibold text-slate-900 dark:text-white/90">
+                    <p className="text-[14px] font-semibold text-slate-900 dark:text-white/90">
                       {normalizeText(formData.name) || "Integration Name"}
                     </p>
-                    <p className="mt-1 text-[13px] text-slate-500 dark:text-white/50">
+                    <p className="mt-0.5 text-[11px] text-slate-500 dark:text-white/50">
                       {getCategoryFromName(formData.name)}
                     </p>
-                    <p className="mt-2 text-[13px] leading-6 text-slate-500 dark:text-white/55">
+                    <p className="mt-1.5 text-[12px] leading-5 text-slate-500 dark:text-white/55">
                       {getDescriptionFromName(formData.name)}
                     </p>
                   </div>
@@ -792,12 +810,12 @@ const Master: React.FC = () => {
               </div>
             </div>
 
-            <div className="mt-6 flex items-center justify-center gap-3">
+            <div className="mt-5 flex items-center justify-center gap-2.5">
               <button
                 type="button"
                 onClick={handleSubmit}
                 disabled={submitting}
-                className="min-w-35 rounded-xl bg-cyan-600 px-4 py-2.5 text-[15px] font-medium text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="min-w-28 rounded-xl bg-cyan-600 px-4 py-2.5 text-[12px] font-medium text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {submitting
                   ? formMode === "create"
@@ -812,7 +830,7 @@ const Master: React.FC = () => {
                 type="button"
                 onClick={closeFormModal}
                 disabled={submitting}
-                className="min-w-35 rounded-xl bg-slate-100 px-4 py-2.5 text-[15px] font-medium text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white/10 dark:text-white/75 dark:hover:bg-white/15"
+                className="min-w-28 rounded-xl bg-slate-100 px-4 py-2.5 text-[12px] font-medium text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white/10 dark:text-white/75 dark:hover:bg-white/15"
               >
                 Cancel
               </button>
@@ -830,28 +848,28 @@ const Master: React.FC = () => {
             aria-label="Close delete modal overlay"
           />
 
-          <div className="relative z-10 w-full max-w-xl rounded-3xl border border-slate-200 bg-white px-5 py-5 shadow-[0_24px_70px_rgba(15,23,42,0.18)] sm:px-6 sm:py-6 dark:border-white/10 dark:bg-[#0b1220] dark:shadow-none dark:ring-1 dark:ring-white/10">
+          <div className="relative z-10 w-full max-w-lg rounded-[22px] border border-slate-200 bg-white px-4 py-4 shadow-[0_24px_70px_rgba(15,23,42,0.18)] sm:px-5 sm:py-5 dark:border-white/10 dark:bg-[#0b1220] dark:shadow-none dark:ring-1 dark:ring-white/10">
             <button
               type="button"
               onClick={closeDeleteModal}
               disabled={deleting}
-              className="absolute right-4 top-4 text-slate-400 transition hover:text-slate-600 disabled:cursor-not-allowed dark:text-white/35 dark:hover:text-white/70"
+              className="absolute right-3.5 top-3.5 text-slate-400 transition hover:text-slate-600 disabled:cursor-not-allowed dark:text-white/35 dark:hover:text-white/70"
               aria-label="Close"
             >
-              <FiX className="text-[20px]" />
+              <FiX className="text-[18px]" />
             </button>
 
-            <div className="flex justify-center pt-2">
-              <div className="grid h-14 w-14 place-items-center rounded-full bg-red-50 text-red-500 dark:bg-red-400/10 dark:text-red-300">
-                <FiTrash2 className="text-[28px]" />
+            <div className="flex justify-center pt-1">
+              <div className="grid h-11 w-11 place-items-center rounded-full bg-red-50 text-red-500 dark:bg-red-400/10 dark:text-red-300">
+                <FiTrash2 className="text-[22px]" />
               </div>
             </div>
 
-            <h3 className="mt-4 text-center text-[24px] font-semibold text-slate-800 dark:text-white/90">
+            <h3 className="mt-3 text-center text-[18px] font-semibold text-slate-800 dark:text-white/90">
               Delete Integration
             </h3>
 
-            <p className="mx-auto mt-3 max-w-110 text-center text-[14px] leading-6 text-slate-500 dark:text-white/55">
+            <p className="mx-auto mt-2 max-w-95 text-center text-[12px] leading-5 text-slate-500 dark:text-white/55">
               Are you sure you want to delete{" "}
               <span className="font-semibold text-slate-700 dark:text-white/80">
                 {deleteTarget.name}
@@ -859,20 +877,20 @@ const Master: React.FC = () => {
               ? This action cannot be undone.
             </p>
 
-            <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50/70 p-4 dark:border-white/10 dark:bg-white/5">
+            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-3.5 dark:border-white/10 dark:bg-white/5">
               <div className="flex items-start gap-3">
-                <div className="grid h-12 w-12 place-items-center rounded-2xl border border-red-200 bg-red-50 text-red-600 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-300">
+                <div className="grid h-10 w-10 place-items-center rounded-2xl border border-red-200 bg-red-50 text-[18px] text-red-600 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-300">
                   {getMetaByName(deleteTarget.name).icon}
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <p className="text-[15px] font-semibold text-slate-800 dark:text-white/90">
+                  <p className="text-[14px] font-semibold text-slate-800 dark:text-white/90">
                     {deleteTarget.name}
                   </p>
-                  <p className="mt-1 text-[13px] text-slate-500 dark:text-white/50">
+                  <p className="mt-0.5 text-[11px] text-slate-500 dark:text-white/50">
                     {getCategoryFromName(deleteTarget.name)}
                   </p>
-                  <p className="mt-2 text-[13px] leading-6 text-slate-500 dark:text-white/55">
+                  <p className="mt-1.5 text-[12px] leading-5 text-slate-500 dark:text-white/55">
                     {getDescriptionFromName(deleteTarget.name)}
                   </p>
                 </div>
@@ -880,17 +898,17 @@ const Master: React.FC = () => {
             </div>
 
             {deleteError && (
-              <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-center text-[13px] text-red-700 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-300">
+              <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-center text-[12px] text-red-700 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-300">
                 {deleteError}
               </div>
             )}
 
-            <div className="mt-6 flex items-center justify-center gap-3">
+            <div className="mt-5 flex items-center justify-center gap-2.5">
               <button
                 type="button"
                 onClick={handleDelete}
                 disabled={deleting}
-                className="min-w-35 rounded-xl bg-[#f8dedd] px-4 py-2.5 text-[15px] font-medium text-[#ff5a3c] transition hover:bg-[#f4d2d1] disabled:cursor-not-allowed disabled:opacity-60 dark:bg-red-400/10 dark:text-red-300 dark:hover:bg-red-400/15"
+                className="min-w-28 rounded-xl bg-[#f8dedd] px-4 py-2.5 text-[12px] font-medium text-[#ff5a3c] transition hover:bg-[#f4d2d1] disabled:cursor-not-allowed disabled:opacity-60 dark:bg-red-400/10 dark:text-red-300 dark:hover:bg-red-400/15"
               >
                 {deleting ? "Deleting..." : "Yes, Delete!"}
               </button>
@@ -899,7 +917,7 @@ const Master: React.FC = () => {
                 type="button"
                 onClick={closeDeleteModal}
                 disabled={deleting}
-                className="min-w-35 rounded-xl bg-[#6d5efc] px-4 py-2.5 text-[15px] font-medium text-white transition hover:bg-[#5f51eb] disabled:cursor-not-allowed disabled:opacity-60"
+                className="min-w-28 rounded-xl bg-[#6d5efc] px-4 py-2.5 text-[12px] font-medium text-white transition hover:bg-[#5f51eb] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 No, Keep It.
               </button>

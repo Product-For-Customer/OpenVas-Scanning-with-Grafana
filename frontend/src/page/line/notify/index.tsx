@@ -70,29 +70,29 @@ const typeBadgeClass = (isGroup: boolean) => {
 };
 
 const cardGlowClass = [
-  "relative h-full overflow-hidden rounded-[26px] p-4 sm:p-5 md:p-6",
-  "bg-white border border-gray-200/80 shadow-[0_16px_40px_-24px_rgba(15,23,42,0.25)]",
+  "relative h-full overflow-hidden rounded-[22px] p-3 sm:p-4 md:p-4.5",
+  "bg-white border border-gray-200/80 shadow-[0_14px_34px_-24px_rgba(15,23,42,0.25)]",
   "dark:bg-[#08111f]/90 dark:border-white/10 dark:ring-1 dark:ring-cyan-400/10 dark:shadow-none",
   "flex flex-col",
 ].join(" ");
 
 const inputClass = [
-  "w-full h-11 rounded-2xl px-4 text-[14px] outline-none transition",
+  "w-full h-9.5 rounded-2xl px-3.5 text-[12px] outline-none transition",
   "border border-gray-200 bg-white text-slate-800 placeholder:text-slate-400 focus:ring-2 focus:ring-violet-200",
   "dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:placeholder:text-white/35 dark:focus:ring-violet-400/10",
 ].join(" ");
 
 const textareaClass = [
-  "w-full min-h-32 rounded-2xl px-4 py-3 text-[14px] outline-none transition resize-none",
+  "w-full min-h-26 rounded-2xl px-3.5 py-3 text-[12px] outline-none transition resize-none",
   "border border-gray-200 bg-white text-slate-800 placeholder:text-slate-400 focus:ring-2 focus:ring-violet-200",
   "dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:placeholder:text-white/35 dark:focus:ring-violet-400/10",
 ].join(" ");
 
 const labelClass =
-  "mb-2 block text-[13px] font-medium text-slate-700 dark:text-white/75";
+  "mb-1.5 block text-[11px] font-medium text-slate-700 dark:text-white/75";
 
 const selectClass = [
-  "w-full h-11 rounded-2xl px-4 text-[14px] outline-none transition appearance-none",
+  "w-full h-9.5 rounded-2xl px-3.5 text-[12px] outline-none transition appearance-none",
   "border border-gray-200 bg-white text-slate-800 focus:ring-2 focus:ring-violet-200",
   "dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:focus:ring-violet-400/10",
 ].join(" ");
@@ -102,32 +102,32 @@ const AlertToggle: React.FC<{
   onChange: (next: boolean) => void;
 }> = ({ value, onChange }) => {
   return (
-    <div className="grid grid-cols-2 gap-3">
+    <div className="grid grid-cols-2 gap-2.5">
       <button
         type="button"
         onClick={() => onChange(true)}
         className={[
-          "group relative flex min-h-23 flex-col justify-center rounded-2xl border px-4 py-3 text-left transition-all",
+          "group relative flex min-h-19 flex-col justify-center rounded-2xl border px-3 py-2.5 text-left transition-all",
           value
-            ? "border-emerald-300 bg-emerald-50 shadow-[0_10px_30px_-18px_rgba(16,185,129,0.7)] dark:border-emerald-400/30 dark:bg-emerald-500/10"
+            ? "border-emerald-300 bg-emerald-50 shadow-[0_10px_24px_-18px_rgba(16,185,129,0.7)] dark:border-emerald-400/30 dark:bg-emerald-500/10"
             : "border-gray-200 bg-white hover:border-emerald-200 hover:bg-emerald-50/50 dark:border-white/10 dark:bg-white/5 dark:hover:border-emerald-400/20 dark:hover:bg-emerald-500/5",
         ].join(" ")}
       >
         <div className="flex items-center justify-between">
           <div
             className={[
-              "grid h-10 w-10 place-items-center rounded-xl border transition",
+              "grid h-8.5 w-8.5 place-items-center rounded-xl border transition",
               value
                 ? "border-emerald-300 bg-emerald-100 text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-500/15 dark:text-emerald-300"
                 : "border-gray-200 bg-gray-50 text-gray-500 dark:border-white/10 dark:bg-white/5 dark:text-white/45",
             ].join(" ")}
           >
-            <FiCheckCircle className="text-[18px]" />
+            <FiCheckCircle className="text-[15px]" />
           </div>
 
           <div
             className={[
-              "h-3.5 w-3.5 rounded-full border transition",
+              "h-3 w-3 rounded-full border transition",
               value
                 ? "border-emerald-500 bg-emerald-500"
                 : "border-gray-300 bg-transparent dark:border-white/20",
@@ -135,10 +135,10 @@ const AlertToggle: React.FC<{
           />
         </div>
 
-        <div className="mt-3">
+        <div className="mt-2.5">
           <p
             className={[
-              "text-[14px] font-semibold",
+              "text-[12px] font-semibold",
               value
                 ? "text-emerald-700 dark:text-emerald-300"
                 : "text-slate-700 dark:text-white/75",
@@ -146,7 +146,7 @@ const AlertToggle: React.FC<{
           >
             Alert On
           </p>
-          <p className="mt-1 text-[12px] text-slate-500 dark:text-white/45">
+          <p className="mt-0.5 text-[10.5px] text-slate-500 dark:text-white/45">
             เปิดการแจ้งเตือนสำหรับผู้รับนี้
           </p>
         </div>
@@ -156,27 +156,27 @@ const AlertToggle: React.FC<{
         type="button"
         onClick={() => onChange(false)}
         className={[
-          "group relative flex min-h-23 flex-col justify-center rounded-2xl border px-4 py-3 text-left transition-all",
+          "group relative flex min-h-19 flex-col justify-center rounded-2xl border px-3 py-2.5 text-left transition-all",
           !value
-            ? "border-rose-300 bg-rose-50 shadow-[0_10px_30px_-18px_rgba(244,63,94,0.7)] dark:border-rose-400/30 dark:bg-rose-500/10"
+            ? "border-rose-300 bg-rose-50 shadow-[0_10px_24px_-18px_rgba(244,63,94,0.7)] dark:border-rose-400/30 dark:bg-rose-500/10"
             : "border-gray-200 bg-white hover:border-rose-200 hover:bg-rose-50/50 dark:border-white/10 dark:bg-white/5 dark:hover:border-rose-400/20 dark:hover:bg-rose-500/5",
         ].join(" ")}
       >
         <div className="flex items-center justify-between">
           <div
             className={[
-              "grid h-10 w-10 place-items-center rounded-xl border transition",
+              "grid h-8.5 w-8.5 place-items-center rounded-xl border transition",
               !value
                 ? "border-rose-300 bg-rose-100 text-rose-700 dark:border-rose-400/30 dark:bg-rose-500/15 dark:text-rose-300"
                 : "border-gray-200 bg-gray-50 text-gray-500 dark:border-white/10 dark:bg-white/5 dark:text-white/45",
             ].join(" ")}
           >
-            <FiAlertCircle className="text-[18px]" />
+            <FiAlertCircle className="text-[15px]" />
           </div>
 
           <div
             className={[
-              "h-3.5 w-3.5 rounded-full border transition",
+              "h-3 w-3 rounded-full border transition",
               !value
                 ? "border-rose-500 bg-rose-500"
                 : "border-gray-300 bg-transparent dark:border-white/20",
@@ -184,10 +184,10 @@ const AlertToggle: React.FC<{
           />
         </div>
 
-        <div className="mt-3">
+        <div className="mt-2.5">
           <p
             className={[
-              "text-[14px] font-semibold",
+              "text-[12px] font-semibold",
               !value
                 ? "text-rose-700 dark:text-rose-300"
                 : "text-slate-700 dark:text-white/75",
@@ -195,7 +195,7 @@ const AlertToggle: React.FC<{
           >
             Alert Off
           </p>
-          <p className="mt-1 text-[12px] text-slate-500 dark:text-white/45">
+          <p className="mt-0.5 text-[10.5px] text-slate-500 dark:text-white/45">
             ปิดการแจ้งเตือนสำหรับผู้รับนี้
           </p>
         </div>
@@ -209,32 +209,32 @@ const ReceiverTypeToggle: React.FC<{
   onChange: (next: boolean) => void;
 }> = ({ value, onChange }) => {
   return (
-    <div className="grid grid-cols-2 gap-3">
+    <div className="grid grid-cols-2 gap-2.5">
       <button
         type="button"
         onClick={() => onChange(true)}
         className={[
-          "group relative flex min-h-23 flex-col justify-center rounded-2xl border px-4 py-3 text-left transition-all",
+          "group relative flex min-h-19 flex-col justify-center rounded-2xl border px-3 py-2.5 text-left transition-all",
           value
-            ? "border-cyan-300 bg-cyan-50 shadow-[0_10px_30px_-18px_rgba(6,182,212,0.7)] dark:border-cyan-400/30 dark:bg-cyan-500/10"
+            ? "border-cyan-300 bg-cyan-50 shadow-[0_10px_24px_-18px_rgba(6,182,212,0.7)] dark:border-cyan-400/30 dark:bg-cyan-500/10"
             : "border-gray-200 bg-white hover:border-cyan-200 hover:bg-cyan-50/50 dark:border-white/10 dark:bg-white/5 dark:hover:border-cyan-400/20 dark:hover:bg-cyan-500/5",
         ].join(" ")}
       >
         <div className="flex items-center justify-between">
           <div
             className={[
-              "grid h-10 w-10 place-items-center rounded-xl border transition",
+              "grid h-8.5 w-8.5 place-items-center rounded-xl border transition",
               value
                 ? "border-cyan-300 bg-cyan-100 text-cyan-700 dark:border-cyan-400/30 dark:bg-cyan-500/15 dark:text-cyan-300"
                 : "border-gray-200 bg-gray-50 text-gray-500 dark:border-white/10 dark:bg-white/5 dark:text-white/45",
             ].join(" ")}
           >
-            <FiUsers className="text-[18px]" />
+            <FiUsers className="text-[15px]" />
           </div>
 
           <div
             className={[
-              "h-3.5 w-3.5 rounded-full border transition",
+              "h-3 w-3 rounded-full border transition",
               value
                 ? "border-cyan-500 bg-cyan-500"
                 : "border-gray-300 bg-transparent dark:border-white/20",
@@ -242,10 +242,10 @@ const ReceiverTypeToggle: React.FC<{
           />
         </div>
 
-        <div className="mt-3">
+        <div className="mt-2.5">
           <p
             className={[
-              "text-[14px] font-semibold",
+              "text-[12px] font-semibold",
               value
                 ? "text-cyan-700 dark:text-cyan-300"
                 : "text-slate-700 dark:text-white/75",
@@ -253,7 +253,7 @@ const ReceiverTypeToggle: React.FC<{
           >
             Group
           </p>
-          <p className="mt-1 text-[12px] text-slate-500 dark:text-white/45">
+          <p className="mt-0.5 text-[10.5px] text-slate-500 dark:text-white/45">
             ใช้สำหรับ LINE Group หรือห้องแชตกลุ่ม
           </p>
         </div>
@@ -263,27 +263,27 @@ const ReceiverTypeToggle: React.FC<{
         type="button"
         onClick={() => onChange(false)}
         className={[
-          "group relative flex min-h-23 flex-col justify-center rounded-2xl border px-4 py-3 text-left transition-all",
+          "group relative flex min-h-19 flex-col justify-center rounded-2xl border px-3 py-2.5 text-left transition-all",
           !value
-            ? "border-violet-300 bg-violet-50 shadow-[0_10px_30px_-18px_rgba(139,92,246,0.7)] dark:border-violet-400/30 dark:bg-violet-500/10"
+            ? "border-violet-300 bg-violet-50 shadow-[0_10px_24px_-18px_rgba(139,92,246,0.7)] dark:border-violet-400/30 dark:bg-violet-500/10"
             : "border-gray-200 bg-white hover:border-violet-200 hover:bg-violet-50/50 dark:border-white/10 dark:bg-white/5 dark:hover:border-violet-400/20 dark:hover:bg-violet-500/5",
         ].join(" ")}
       >
         <div className="flex items-center justify-between">
           <div
             className={[
-              "grid h-10 w-10 place-items-center rounded-xl border transition",
+              "grid h-8.5 w-8.5 place-items-center rounded-xl border transition",
               !value
                 ? "border-violet-300 bg-violet-100 text-violet-700 dark:border-violet-400/30 dark:bg-violet-500/15 dark:text-violet-300"
                 : "border-gray-200 bg-gray-50 text-gray-500 dark:border-white/10 dark:bg-white/5 dark:text-white/45",
             ].join(" ")}
           >
-            <FiUser className="text-[18px]" />
+            <FiUser className="text-[15px]" />
           </div>
 
           <div
             className={[
-              "h-3.5 w-3.5 rounded-full border transition",
+              "h-3 w-3 rounded-full border transition",
               !value
                 ? "border-violet-500 bg-violet-500"
                 : "border-gray-300 bg-transparent dark:border-white/20",
@@ -291,10 +291,10 @@ const ReceiverTypeToggle: React.FC<{
           />
         </div>
 
-        <div className="mt-3">
+        <div className="mt-2.5">
           <p
             className={[
-              "text-[14px] font-semibold",
+              "text-[12px] font-semibold",
               !value
                 ? "text-violet-700 dark:text-violet-300"
                 : "text-slate-700 dark:text-white/75",
@@ -302,7 +302,7 @@ const ReceiverTypeToggle: React.FC<{
           >
             Personal
           </p>
-          <p className="mt-1 text-[12px] text-slate-500 dark:text-white/45">
+          <p className="mt-0.5 text-[10.5px] text-slate-500 dark:text-white/45">
             ใช้สำหรับผู้ใช้ส่วนตัวหรือบัญชีรายบุคคล
           </p>
         </div>
@@ -757,9 +757,9 @@ const Index: React.FC = () => {
     <>
       <section className={cardGlowClass}>
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -top-16 right-8 h-36 w-36 rounded-full bg-cyan-400/10 blur-3xl" />
-          <div className="absolute bottom-0 left-0 h-36 w-36 rounded-full bg-violet-500/10 blur-3xl" />
-          <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.06]">
+          <div className="absolute -top-14 right-6 h-28 w-28 rounded-full bg-cyan-400/10 blur-3xl" />
+          <div className="absolute bottom-0 left-0 h-28 w-28 rounded-full bg-violet-500/10 blur-3xl" />
+          <div className="absolute inset-0 opacity-[0.035] dark:opacity-[0.055]">
             <div
               className="h-full w-full"
               style={{
@@ -767,25 +767,25 @@ const Index: React.FC = () => {
                   linear-gradient(to right, currentColor 1px, transparent 1px),
                   linear-gradient(to bottom, currentColor 1px, transparent 1px)
                 `,
-                backgroundSize: "28px 28px",
+                backgroundSize: "26px 26px",
               }}
             />
           </div>
         </div>
 
         <div className="relative z-10 flex h-full flex-col">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0">
-              <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1.5 text-[12px] font-semibold text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-300">
-                <FiBell className="text-[13px]" />
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-cyan-200 bg-cyan-50 px-2.5 py-1.5 text-[10.5px] font-semibold text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-300">
+                <FiBell className="text-[11px]" />
                 App Notification Monitoring
               </div>
 
-              <h2 className="mt-3 text-[22px] font-semibold tracking-tight text-slate-900 sm:text-[26px] dark:text-white">
+              <h2 className="mt-2.5 text-[18px] font-semibold tracking-tight text-slate-900 sm:text-[20px] dark:text-white">
                 App Notification Table
               </h2>
 
-              <p className="mt-1 text-[13px] text-slate-500 sm:text-[14px] dark:text-white/55">
+              <p className="mt-1 text-[11px] sm:text-[12px] text-slate-500 dark:text-white/55">
                 Manage notification recipients, send targets, and alert status.
               </p>
             </div>
@@ -795,26 +795,26 @@ const Index: React.FC = () => {
                 type="button"
                 onClick={openCreate}
                 className={[
-                  "inline-flex h-11 items-center gap-2 rounded-2xl px-4 text-[13px] font-semibold transition",
+                  "inline-flex h-9 items-center gap-1.5 rounded-2xl px-3.5 text-[12px] font-semibold transition",
                   "bg-violet-600 text-white hover:bg-violet-700 active:bg-violet-800",
                   "dark:bg-violet-500 dark:hover:bg-violet-400 dark:active:bg-violet-600",
                 ].join(" ")}
               >
-                <FiPlus />
+                <FiPlus className="text-[13px]" />
                 Create Notification
               </button>
             </div>
           </div>
 
-          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="relative w-full sm:max-w-md">
-              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-white/35" />
+          <div className="mt-4 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative w-full sm:max-w-sm">
+              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-gray-400 dark:text-white/35" />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search id / name / send id / alert / type / line master..."
                 className={[
-                  "w-full h-11 rounded-2xl pl-10 pr-4 text-[13px] outline-none transition",
+                  "w-full h-9 rounded-2xl pl-9 pr-3.5 text-[12px] outline-none transition",
                   "border border-gray-200 bg-white text-slate-800 focus:ring-2 focus:ring-violet-200",
                   "dark:border-white/10 dark:bg-white/5 dark:text-white/80 dark:placeholder:text-white/35 dark:focus:ring-violet-400/10",
                 ].join(" ")}
@@ -826,21 +826,21 @@ const Index: React.FC = () => {
                 type="button"
                 onClick={() => setOpenSort((s) => !s)}
                 className={[
-                  "inline-flex h-11 items-center gap-2 rounded-2xl px-4 transition",
-                  "bg-white border border-gray-200/80 text-[13px] font-medium text-gray-700 hover:bg-gray-50",
+                  "inline-flex h-9 items-center gap-2 rounded-2xl px-3.5 transition",
+                  "bg-white border border-gray-200/80 text-[12px] font-medium text-gray-700 hover:bg-gray-50",
                   "dark:bg-white/5 dark:border-white/10 dark:text-white/75 dark:hover:bg-white/8",
                 ].join(" ")}
               >
                 {sortBy}
                 <FiChevronDown
-                  className={`text-gray-400 transition dark:text-white/45 ${
+                  className={`text-[13px] text-gray-400 transition dark:text-white/45 ${
                     openSort ? "rotate-180" : ""
                   }`}
                 />
               </button>
 
               {openSort && (
-                <div className="absolute right-0 z-20 mt-2 w-56 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg dark:border-white/10 dark:bg-[#0B1220] dark:shadow-none">
+                <div className="absolute right-0 z-20 mt-2 w-48 overflow-hidden rounded-[18px] border border-gray-200 bg-white shadow-lg dark:border-white/10 dark:bg-[#0B1220] dark:shadow-none">
                   {(
                     [
                       "Newest",
@@ -858,7 +858,7 @@ const Index: React.FC = () => {
                         setOpenSort(false);
                       }}
                       className={[
-                        "w-full px-4 py-3 text-left text-[13px] transition",
+                        "w-full px-3.5 py-2.5 text-left text-[12px] transition",
                         sortBy === opt
                           ? "bg-violet-50 text-violet-700 font-semibold dark:bg-violet-500/10 dark:text-violet-200"
                           : "text-gray-700 hover:bg-gray-50 dark:text-white/70 dark:hover:bg-white/8",
@@ -872,7 +872,7 @@ const Index: React.FC = () => {
             </div>
           </div>
 
-          <div className="mt-3 flex flex-col gap-1 text-[12px] text-slate-500 dark:text-white/50">
+          <div className="mt-2.5 flex flex-col gap-1 text-[11px] text-slate-500 dark:text-white/50">
             {loading ? (
               <span className="inline-flex items-center gap-2">
                 <span className="h-2 w-2 animate-pulse rounded-full bg-violet-500/70" />
@@ -894,27 +894,27 @@ const Index: React.FC = () => {
             )}
           </div>
 
-          <div className="mt-4 flex-1 flex flex-col overflow-hidden rounded-3xl border border-gray-200/80 bg-white/80 dark:border-white/10 dark:bg-white/3">
+          <div className="mt-3 flex-1 flex flex-col overflow-hidden rounded-[22px] border border-gray-200/80 bg-white/80 dark:border-white/10 dark:bg-white/3">
             <div className="flex-1 overflow-x-auto overflow-y-auto">
-              <table className="min-w-300 w-full border-separate border-spacing-0">
+              <table className="min-w-260 w-full border-separate border-spacing-0">
                 <thead className="sticky top-0 z-10 bg-white/95 backdrop-blur dark:bg-[#0f172a]/95">
                   <tr className="text-left">
-                    <th className="border-b border-gray-200/80 px-4 py-4 text-[12px] font-semibold text-slate-600 dark:border-white/10 dark:text-white/60">
+                    <th className="border-b border-gray-200/80 px-3.5 py-3 text-[11px] font-semibold text-slate-600 dark:border-white/10 dark:text-white/60">
                       Notification
                     </th>
-                    <th className="border-b border-gray-200/80 px-4 py-4 text-[12px] font-semibold text-slate-600 dark:border-white/10 dark:text-white/60">
+                    <th className="border-b border-gray-200/80 px-3.5 py-3 text-[11px] font-semibold text-slate-600 dark:border-white/10 dark:text-white/60">
                       Send ID
                     </th>
-                    <th className="border-b border-gray-200/80 px-4 py-4 text-[12px] font-semibold text-slate-600 dark:border-white/10 dark:text-white/60">
+                    <th className="border-b border-gray-200/80 px-3.5 py-3 text-[11px] font-semibold text-slate-600 dark:border-white/10 dark:text-white/60">
                       Type
                     </th>
-                    <th className="border-b border-gray-200/80 px-4 py-4 text-[12px] font-semibold text-slate-600 dark:border-white/10 dark:text-white/60">
+                    <th className="border-b border-gray-200/80 px-3.5 py-3 text-[11px] font-semibold text-slate-600 dark:border-white/10 dark:text-white/60">
                       Alert
                     </th>
-                    <th className="border-b border-gray-200/80 px-4 py-4 text-[12px] font-semibold text-slate-600 dark:border-white/10 dark:text-white/60">
+                    <th className="border-b border-gray-200/80 px-3.5 py-3 text-[11px] font-semibold text-slate-600 dark:border-white/10 dark:text-white/60">
                       App Line Master
                     </th>
-                    <th className="border-b border-gray-200/80 px-4 py-4 text-right text-[12px] font-semibold text-slate-600 dark:border-white/10 dark:text-white/60">
+                    <th className="border-b border-gray-200/80 px-3.5 py-3 text-right text-[11px] font-semibold text-slate-600 dark:border-white/10 dark:text-white/60">
                       Action
                     </th>
                   </tr>
@@ -933,31 +933,31 @@ const Index: React.FC = () => {
                           className="transition-colors hover:bg-violet-50/40 dark:hover:bg-white/4"
                         >
                           <td
-                            className={`px-4 py-4 ${
+                            className={`px-3.5 py-3 ${
                               idx !== notifications.length - 1
                                 ? "border-b border-gray-100 dark:border-white/10"
                                 : ""
                             }`}
                           >
-                            <div className="flex min-w-0 items-center gap-3">
+                            <div className="flex min-w-0 items-center gap-2.5">
                               <div
                                 className={[
-                                  "grid h-12 w-12 place-items-center rounded-2xl ring-1",
+                                  "grid h-10 w-10 place-items-center rounded-2xl ring-1",
                                   "bg-cyan-50 ring-cyan-100 text-cyan-700",
                                   "dark:bg-cyan-500/10 dark:ring-cyan-400/15 dark:text-cyan-300",
                                 ].join(" ")}
                               >
-                                <FiBell className="text-[18px]" />
+                                <FiBell className="text-[15px]" />
                               </div>
 
                               <div className="min-w-0">
-                                <p className="truncate text-[14px] font-semibold text-slate-900 dark:text-white/85">
+                                <p className="truncate text-[12.5px] font-semibold text-slate-900 dark:text-white/85">
                                   {item.name || "-"}
                                 </p>
 
-                                <div className="mt-1 flex flex-wrap items-center gap-2 text-[12px] text-slate-500 dark:text-white/50">
+                                <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[10.5px] text-slate-500 dark:text-white/50">
                                   <span className="inline-flex items-center gap-1">
-                                    <FiHash className="text-[12px]" />
+                                    <FiHash className="text-[11px]" />
                                     ID: {item.id}
                                   </span>
                                 </div>
@@ -966,20 +966,20 @@ const Index: React.FC = () => {
                           </td>
 
                           <td
-                            className={`px-4 py-4 ${
+                            className={`px-3.5 py-3 ${
                               idx !== notifications.length - 1
                                 ? "border-b border-gray-100 dark:border-white/10"
                                 : ""
                             }`}
                           >
-                            <div className="flex items-center gap-2 text-[13px] text-slate-700 dark:text-white/75">
-                              <FiSend className="text-[13px] text-violet-600 dark:text-violet-300" />
+                            <div className="flex items-center gap-2 text-[12px] text-slate-700 dark:text-white/75">
+                              <FiSend className="text-[12px] text-violet-600 dark:text-violet-300" />
                               <span className="break-all">{item.send_id || "-"}</span>
                             </div>
                           </td>
 
                           <td
-                            className={`px-4 py-4 ${
+                            className={`px-3.5 py-3 ${
                               idx !== notifications.length - 1
                                 ? "border-b border-gray-100 dark:border-white/10"
                                 : ""
@@ -987,18 +987,18 @@ const Index: React.FC = () => {
                           >
                             <span
                               className={[
-                                "inline-flex items-center rounded-full border px-3 py-1.5 text-[12px] font-semibold",
+                                "inline-flex items-center rounded-full border px-2.5 py-1 text-[10.5px] font-semibold",
                                 typeBadgeClass(item.is_group),
                               ].join(" ")}
                             >
                               {item.is_group ? (
                                 <>
-                                  <FiUsers className="mr-1.5" />
+                                  <FiUsers className="mr-1 text-[11px]" />
                                   Group
                                 </>
                               ) : (
                                 <>
-                                  <FiUser className="mr-1.5" />
+                                  <FiUser className="mr-1 text-[11px]" />
                                   Personal
                                 </>
                               )}
@@ -1006,7 +1006,7 @@ const Index: React.FC = () => {
                           </td>
 
                           <td
-                            className={`px-4 py-4 ${
+                            className={`px-3.5 py-3 ${
                               idx !== notifications.length - 1
                                 ? "border-b border-gray-100 dark:border-white/10"
                                 : ""
@@ -1014,18 +1014,18 @@ const Index: React.FC = () => {
                           >
                             <span
                               className={[
-                                "inline-flex items-center rounded-full border px-3 py-1.5 text-[12px] font-semibold",
+                                "inline-flex items-center rounded-full border px-2.5 py-1 text-[10.5px] font-semibold",
                                 alertBadgeClass(item.alert),
                               ].join(" ")}
                             >
                               {item.alert ? (
                                 <>
-                                  <FiCheckCircle className="mr-1.5" />
+                                  <FiCheckCircle className="mr-1 text-[11px]" />
                                   Alert On
                                 </>
                               ) : (
                                 <>
-                                  <FiAlertCircle className="mr-1.5" />
+                                  <FiAlertCircle className="mr-1 text-[11px]" />
                                   Alert Off
                                 </>
                               )}
@@ -1033,67 +1033,67 @@ const Index: React.FC = () => {
                           </td>
 
                           <td
-                            className={`px-4 py-4 ${
+                            className={`px-3.5 py-3 ${
                               idx !== notifications.length - 1
                                 ? "border-b border-gray-100 dark:border-white/10"
                                 : ""
                             }`}
                           >
-                            <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[12px] font-semibold text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-white/75">
-                              <FiLayers className="shrink-0" />
+                            <div className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10.5px] font-semibold text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-white/75">
+                              <FiLayers className="shrink-0 text-[11px]" />
                               <span className="truncate">{lineMasterName}</span>
                             </div>
                           </td>
 
                           <td
-                            className={`px-4 py-4 text-right ${
+                            className={`px-3.5 py-3 text-right ${
                               idx !== notifications.length - 1
                                 ? "border-b border-gray-100 dark:border-white/10"
                                 : ""
                             }`}
                           >
-                            <div className="inline-flex items-center gap-2 flex-wrap justify-end">
+                            <div className="inline-flex items-center gap-1.5 flex-wrap justify-end">
                               <button
                                 type="button"
                                 onClick={() => openTestLineModal(item)}
                                 className={[
-                                  "inline-flex h-10 items-center gap-2 rounded-2xl px-3 transition-colors",
+                                  "inline-flex h-8.5 items-center gap-1.5 rounded-[14px] px-2.5 transition-colors",
                                   "text-violet-700 bg-violet-50 hover:bg-violet-100 active:bg-violet-200",
                                   "dark:text-violet-300 dark:bg-violet-500/10 dark:hover:bg-violet-500/15 dark:active:bg-violet-500/20",
                                 ].join(" ")}
                                 title="ทดสอบ alert line"
                                 aria-label="ทดสอบ alert line"
                               >
-                                <FiMessageSquare />
-                                <span className="text-[12px] font-semibold">Test Line</span>
+                                <FiMessageSquare className="text-[12px]" />
+                                <span className="text-[11px] font-semibold">Test Line</span>
                               </button>
 
                               <button
                                 type="button"
                                 onClick={() => openEdit(item)}
                                 className={[
-                                  "inline-flex h-10 w-10 items-center justify-center rounded-2xl transition-colors",
+                                  "inline-flex h-8.5 w-8.5 items-center justify-center rounded-[14px] transition-colors",
                                   "text-cyan-600 bg-cyan-50 hover:bg-cyan-100 active:bg-cyan-200",
                                   "dark:text-cyan-300 dark:bg-cyan-500/10 dark:hover:bg-cyan-500/15 dark:active:bg-cyan-500/20",
                                 ].join(" ")}
                                 title="Update notification"
                                 aria-label="Update notification"
                               >
-                                <FiEdit2 />
+                                <FiEdit2 className="text-[12px]" />
                               </button>
 
                               <button
                                 type="button"
                                 onClick={() => openDeleteModal(item)}
                                 className={[
-                                  "inline-flex h-10 w-10 items-center justify-center rounded-2xl transition-colors",
+                                  "inline-flex h-8.5 w-8.5 items-center justify-center rounded-[14px] transition-colors",
                                   "text-red-600 bg-red-50 hover:bg-red-100 active:bg-red-200",
                                   "dark:text-red-300 dark:bg-red-500/10 dark:hover:bg-red-500/15 dark:active:bg-red-500/20",
                                 ].join(" ")}
                                 title="Delete notification"
                                 aria-label="Delete notification"
                               >
-                                <FiTrash2 />
+                                <FiTrash2 className="text-[12px]" />
                               </button>
                             </div>
                           </td>
@@ -1105,7 +1105,7 @@ const Index: React.FC = () => {
                     <tr>
                       <td
                         colSpan={6}
-                        className="px-4 py-10 text-center text-[14px] text-slate-500 dark:text-white/50"
+                        className="px-4 py-8 text-center text-[12px] text-slate-500 dark:text-white/50"
                       >
                         No app notification data found
                       </td>
@@ -1116,7 +1116,7 @@ const Index: React.FC = () => {
                     <tr>
                       <td
                         colSpan={6}
-                        className="px-4 py-10 text-center text-[14px] text-slate-500 dark:text-white/50"
+                        className="px-4 py-8 text-center text-[12px] text-slate-500 dark:text-white/50"
                       >
                         Loading...
                       </td>
@@ -1149,7 +1149,7 @@ const Index: React.FC = () => {
 
           <div
             className={[
-              "relative z-10 w-full max-w-2xl rounded-[18px] border border-gray-200 bg-white p-5 shadow-[0_20px_70px_rgba(15,23,42,0.18)]",
+              "relative z-10 w-full max-w-xl rounded-[18px] border border-gray-200 bg-white p-4 shadow-[0_20px_70px_rgba(15,23,42,0.18)]",
               "dark:border-white/10 dark:bg-[#0d1524]",
             ].join(" ")}
           >
@@ -1157,28 +1157,28 @@ const Index: React.FC = () => {
               type="button"
               onClick={closeCreate}
               disabled={creating}
-              className="absolute right-4 top-4 text-gray-400 transition hover:text-gray-600 disabled:cursor-not-allowed dark:text-white/45 dark:hover:text-white/70"
+              className="absolute right-3.5 top-3.5 text-gray-400 transition hover:text-gray-600 disabled:cursor-not-allowed dark:text-white/45 dark:hover:text-white/70"
               aria-label="Close"
             >
-              <FiX className="text-[20px]" />
+              <FiX className="text-[18px]" />
             </button>
 
-            <div className="mb-5">
-              <div className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-[12px] font-semibold text-violet-700 dark:border-violet-400/20 dark:bg-violet-500/10 dark:text-violet-300">
-                <FiPlus className="text-[13px]" />
+            <div className="mb-4">
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1.5 text-[10.5px] font-semibold text-violet-700 dark:border-violet-400/20 dark:bg-violet-500/10 dark:text-violet-300">
+                <FiPlus className="text-[11px]" />
                 Create Notification
               </div>
 
-              <h3 className="mt-3 text-[22px] font-semibold text-slate-800 dark:text-white">
+              <h3 className="mt-2.5 text-[18px] font-semibold text-slate-800 dark:text-white">
                 Add New App Notification
               </h3>
 
-              <p className="mt-1 text-[13px] text-slate-500 dark:text-white/55">
+              <p className="mt-1 text-[11px] text-slate-500 dark:text-white/55">
                 Create a new notification receiver and configure its alert status.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               <div>
                 <label className={labelClass}>Name</label>
                 <input
@@ -1240,7 +1240,7 @@ const Index: React.FC = () => {
                     )}
                   </select>
 
-                  <FiChevronDown className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[16px] text-slate-400 dark:text-white/40" />
+                  <FiChevronDown className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[14px] text-slate-400 dark:text-white/40" />
                 </div>
               </div>
 
@@ -1256,18 +1256,18 @@ const Index: React.FC = () => {
             </div>
 
             {createError && (
-              <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300">
+              <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-[12px] text-red-700 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300">
                 {createError}
               </div>
             )}
 
-            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <div className="mt-5 flex flex-col-reverse gap-2.5 sm:flex-row sm:justify-end">
               <button
                 type="button"
                 onClick={closeCreate}
                 disabled={creating}
                 className={[
-                  "rounded-xl px-4 py-2.5 text-[14px] font-medium transition",
+                  "rounded-xl px-3.5 py-2 text-[12px] font-medium transition",
                   "bg-slate-100 text-slate-700 hover:bg-slate-200",
                   "dark:bg-white/8 dark:text-white/80 dark:hover:bg-white/12",
                   "disabled:cursor-not-allowed disabled:opacity-60",
@@ -1281,7 +1281,7 @@ const Index: React.FC = () => {
                 onClick={submitCreate}
                 disabled={creating || loadingLineMasters || lineMasters.length === 0}
                 className={[
-                  "rounded-xl px-4 py-2.5 text-[14px] font-medium transition",
+                  "rounded-xl px-3.5 py-2 text-[12px] font-medium transition",
                   "bg-violet-600 text-white hover:bg-violet-700",
                   "disabled:cursor-not-allowed disabled:opacity-60",
                 ].join(" ")}
@@ -1304,7 +1304,7 @@ const Index: React.FC = () => {
 
           <div
             className={[
-              "relative z-10 w-full max-w-2xl rounded-[18px] border border-gray-200 bg-white p-5 shadow-[0_20px_70px_rgba(15,23,42,0.18)]",
+              "relative z-10 w-full max-w-xl rounded-[18px] border border-gray-200 bg-white p-4 shadow-[0_20px_70px_rgba(15,23,42,0.18)]",
               "dark:border-white/10 dark:bg-[#0d1524]",
             ].join(" ")}
           >
@@ -1312,28 +1312,28 @@ const Index: React.FC = () => {
               type="button"
               onClick={closeEdit}
               disabled={editing}
-              className="absolute right-4 top-4 text-gray-400 transition hover:text-gray-600 disabled:cursor-not-allowed dark:text-white/45 dark:hover:text-white/70"
+              className="absolute right-3.5 top-3.5 text-gray-400 transition hover:text-gray-600 disabled:cursor-not-allowed dark:text-white/45 dark:hover:text-white/70"
               aria-label="Close"
             >
-              <FiX className="text-[20px]" />
+              <FiX className="text-[18px]" />
             </button>
 
-            <div className="mb-5">
-              <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1.5 text-[12px] font-semibold text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-300">
-                <FiEdit2 className="text-[13px]" />
+            <div className="mb-4">
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-cyan-200 bg-cyan-50 px-2.5 py-1.5 text-[10.5px] font-semibold text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-300">
+                <FiEdit2 className="text-[11px]" />
                 Update Notification
               </div>
 
-              <h3 className="mt-3 text-[22px] font-semibold text-slate-800 dark:text-white">
+              <h3 className="mt-2.5 text-[18px] font-semibold text-slate-800 dark:text-white">
                 Edit App Notification
               </h3>
 
-              <p className="mt-1 text-[13px] text-slate-500 dark:text-white/55">
+              <p className="mt-1 text-[11px] text-slate-500 dark:text-white/55">
                 Update the selected notification information.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               <div>
                 <label className={labelClass}>Name</label>
                 <input
@@ -1395,7 +1395,7 @@ const Index: React.FC = () => {
                     )}
                   </select>
 
-                  <FiChevronDown className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[16px] text-slate-400 dark:text-white/40" />
+                  <FiChevronDown className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[14px] text-slate-400 dark:text-white/40" />
                 </div>
               </div>
 
@@ -1411,18 +1411,18 @@ const Index: React.FC = () => {
             </div>
 
             {editError && (
-              <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300">
+              <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-[12px] text-red-700 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300">
                 {editError}
               </div>
             )}
 
-            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <div className="mt-5 flex flex-col-reverse gap-2.5 sm:flex-row sm:justify-end">
               <button
                 type="button"
                 onClick={closeEdit}
                 disabled={editing}
                 className={[
-                  "rounded-xl px-4 py-2.5 text-[14px] font-medium transition",
+                  "rounded-xl px-3.5 py-2 text-[12px] font-medium transition",
                   "bg-slate-100 text-slate-700 hover:bg-slate-200",
                   "dark:bg-white/8 dark:text-white/80 dark:hover:bg-white/12",
                   "disabled:cursor-not-allowed disabled:opacity-60",
@@ -1436,7 +1436,7 @@ const Index: React.FC = () => {
                 onClick={submitEdit}
                 disabled={editing || loadingLineMasters || lineMasters.length === 0}
                 className={[
-                  "rounded-xl px-4 py-2.5 text-[14px] font-medium transition",
+                  "rounded-xl px-3.5 py-2 text-[12px] font-medium transition",
                   "bg-cyan-600 text-white hover:bg-cyan-700",
                   "disabled:cursor-not-allowed disabled:opacity-60",
                 ].join(" ")}
@@ -1459,7 +1459,7 @@ const Index: React.FC = () => {
 
           <div
             className={[
-              "relative z-10 w-full max-w-2xl rounded-[18px] border border-gray-200 bg-white p-5 shadow-[0_20px_70px_rgba(15,23,42,0.18)]",
+              "relative z-10 w-full max-w-xl rounded-[18px] border border-gray-200 bg-white p-4 shadow-[0_20px_70px_rgba(15,23,42,0.18)]",
               "dark:border-white/10 dark:bg-[#0d1524]",
             ].join(" ")}
           >
@@ -1467,50 +1467,50 @@ const Index: React.FC = () => {
               type="button"
               onClick={closeTestLineModal}
               disabled={testingLine}
-              className="absolute right-4 top-4 text-gray-400 transition hover:text-gray-600 disabled:cursor-not-allowed dark:text-white/45 dark:hover:text-white/70"
+              className="absolute right-3.5 top-3.5 text-gray-400 transition hover:text-gray-600 disabled:cursor-not-allowed dark:text-white/45 dark:hover:text-white/70"
               aria-label="Close"
             >
-              <FiX className="text-[20px]" />
+              <FiX className="text-[18px]" />
             </button>
 
-            <div className="mb-5">
-              <div className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-[12px] font-semibold text-violet-700 dark:border-violet-400/20 dark:bg-violet-500/10 dark:text-violet-300">
-                <FiMessageSquare className="text-[13px]" />
+            <div className="mb-4">
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1.5 text-[10.5px] font-semibold text-violet-700 dark:border-violet-400/20 dark:bg-violet-500/10 dark:text-violet-300">
+                <FiMessageSquare className="text-[11px]" />
                 Test Alert Line
               </div>
 
-              <h3 className="mt-3 text-[22px] font-semibold text-slate-800 dark:text-white">
+              <h3 className="mt-2.5 text-[18px] font-semibold text-slate-800 dark:text-white">
                 ทดสอบส่งข้อความ LINE
               </h3>
 
-              <p className="mt-1 text-[13px] text-slate-500 dark:text-white/55">
+              <p className="mt-1 text-[11px] text-slate-500 dark:text-white/55">
                 ระบบจะส่ง <span className="font-semibold">{testTarget.name}</span> โดยใช้{" "}
                 <span className="font-semibold">{testTarget.send_id}</span>
               </p>
             </div>
 
-            <div className="grid grid-cols-1 gap-4">
-              <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-white/5">
-                <div className="flex flex-wrap items-center gap-3 text-[13px] text-slate-600 dark:text-white/70">
+            <div className="grid grid-cols-1 gap-3">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-3.5 dark:border-white/10 dark:bg-white/5">
+                <div className="flex flex-wrap items-center gap-2.5 text-[11px] text-slate-600 dark:text-white/70">
                   <span className="inline-flex items-center gap-1">
-                    <FiHash />
+                    <FiHash className="text-[11px]" />
                     Notification ID: {testTarget.id}
                   </span>
 
                   <span
                     className={[
-                      "inline-flex items-center rounded-full border px-3 py-1 text-[12px] font-semibold",
+                      "inline-flex items-center rounded-full border px-2.5 py-1 text-[10.5px] font-semibold",
                       typeBadgeClass(testTarget.is_group),
                     ].join(" ")}
                   >
                     {testTarget.is_group ? (
                       <>
-                        <FiUsers className="mr-1.5" />
+                        <FiUsers className="mr-1 text-[11px]" />
                         Group
                       </>
                     ) : (
                       <>
-                        <FiUser className="mr-1.5" />
+                        <FiUser className="mr-1 text-[11px]" />
                         Personal
                       </>
                     )}
@@ -1518,7 +1518,7 @@ const Index: React.FC = () => {
 
                   <span
                     className={[
-                      "inline-flex items-center rounded-full border px-3 py-1 text-[12px] font-semibold",
+                      "inline-flex items-center rounded-full border px-2.5 py-1 text-[10.5px] font-semibold",
                       alertBadgeClass(testTarget.alert),
                     ].join(" ")}
                   >
@@ -1544,24 +1544,24 @@ const Index: React.FC = () => {
             </div>
 
             {testLineError && (
-              <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300">
+              <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-[12px] text-red-700 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300">
                 {testLineError}
               </div>
             )}
 
             {testLineSuccess && (
-              <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-[13px] text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-500/10 dark:text-emerald-300">
+              <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-[12px] text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-500/10 dark:text-emerald-300">
                 {testLineSuccess}
               </div>
             )}
 
-            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <div className="mt-5 flex flex-col-reverse gap-2.5 sm:flex-row sm:justify-end">
               <button
                 type="button"
                 onClick={closeTestLineModal}
                 disabled={testingLine}
                 className={[
-                  "rounded-xl px-4 py-2.5 text-[14px] font-medium transition",
+                  "rounded-xl px-3.5 py-2 text-[12px] font-medium transition",
                   "bg-slate-100 text-slate-700 hover:bg-slate-200",
                   "dark:bg-white/8 dark:text-white/80 dark:hover:bg-white/12",
                   "disabled:cursor-not-allowed disabled:opacity-60",
@@ -1575,12 +1575,12 @@ const Index: React.FC = () => {
                 onClick={submitTestLine}
                 disabled={testingLine}
                 className={[
-                  "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-[14px] font-medium transition",
+                  "inline-flex items-center justify-center gap-1.5 rounded-xl px-3.5 py-2 text-[12px] font-medium transition",
                   "bg-violet-600 text-white hover:bg-violet-700",
                   "disabled:cursor-not-allowed disabled:opacity-60",
                 ].join(" ")}
               >
-                <FiSend />
+                <FiSend className="text-[12px]" />
                 {testingLine ? "Sending..." : "Send Test Line"}
               </button>
             </div>
@@ -1599,7 +1599,7 @@ const Index: React.FC = () => {
 
           <div
             className={[
-              "relative z-10 w-full max-w-135 rounded-[14px] border border-gray-200 bg-white px-5 py-5 shadow-[0_20px_70px_rgba(15,23,42,0.18)]",
+              "relative z-10 w-full max-w-lg rounded-[18px] border border-gray-200 bg-white px-4 py-4 shadow-[0_20px_70px_rgba(15,23,42,0.18)]",
               "dark:border-white/10 dark:bg-[#0d1524]",
             ].join(" ")}
           >
@@ -1607,23 +1607,23 @@ const Index: React.FC = () => {
               type="button"
               onClick={closeDeleteModal}
               disabled={deleting}
-              className="absolute right-4 top-4 text-gray-400 transition hover:text-gray-600 disabled:cursor-not-allowed dark:text-white/45 dark:hover:text-white/70"
+              className="absolute right-3.5 top-3.5 text-gray-400 transition hover:text-gray-600 disabled:cursor-not-allowed dark:text-white/45 dark:hover:text-white/70"
               aria-label="Close"
             >
-              <FiX className="text-[20px]" />
+              <FiX className="text-[18px]" />
             </button>
 
-            <div className="flex justify-center pt-2">
-              <div className="grid h-14 w-14 place-items-center rounded-full bg-red-50 text-red-500 dark:bg-red-500/10 dark:text-red-300">
-                <FiTrash2 className="text-[28px]" />
+            <div className="flex justify-center pt-1">
+              <div className="grid h-11 w-11 place-items-center rounded-full bg-red-50 text-red-500 dark:bg-red-500/10 dark:text-red-300">
+                <FiTrash2 className="text-[22px]" />
               </div>
             </div>
 
-            <h3 className="mt-4 text-center text-[22px] font-semibold text-slate-800 dark:text-white">
+            <h3 className="mt-3 text-center text-[18px] font-semibold text-slate-800 dark:text-white">
               Delete Notification
             </h3>
 
-            <p className="mx-auto mt-3 max-w-100 text-center text-[14px] leading-6 text-slate-500 dark:text-white/55">
+            <p className="mx-auto mt-2 max-w-95 text-center text-[12px] leading-5 text-slate-500 dark:text-white/55">
               Are you sure you want to delete{" "}
               <span className="font-semibold text-slate-700 dark:text-white/80">
                 {deleteTarget.name}
@@ -1631,25 +1631,25 @@ const Index: React.FC = () => {
               ? This action cannot be undone.
             </p>
 
-            <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
-              <span className="text-center text-[13px] text-slate-400 dark:text-white/40">
+            <div className="mt-2.5 flex flex-wrap items-center justify-center gap-2">
+              <span className="text-center text-[11px] text-slate-400 dark:text-white/40">
                 Send ID: {deleteTarget.send_id || "-"}
               </span>
 
               <span
                 className={[
-                  "inline-flex items-center rounded-full border px-3 py-1 text-[12px] font-semibold",
+                  "inline-flex items-center rounded-full border px-2.5 py-1 text-[10.5px] font-semibold",
                   typeBadgeClass(deleteTarget.is_group),
                 ].join(" ")}
               >
                 {deleteTarget.is_group ? (
                   <>
-                    <FiUsers className="mr-1.5" />
+                    <FiUsers className="mr-1 text-[11px]" />
                     Group
                   </>
                 ) : (
                   <>
-                    <FiUser className="mr-1.5" />
+                    <FiUser className="mr-1 text-[11px]" />
                     Personal
                   </>
                 )}
@@ -1657,18 +1657,18 @@ const Index: React.FC = () => {
             </div>
 
             {deleteError && (
-              <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-center text-[13px] text-red-700 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300">
+              <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-center text-[12px] text-red-700 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300">
                 {deleteError}
               </div>
             )}
 
-            <div className="mt-6 flex items-center justify-center gap-3">
+            <div className="mt-5 flex items-center justify-center gap-2.5">
               <button
                 type="button"
                 onClick={confirmDelete}
                 disabled={deleting}
                 className={[
-                  "min-w-30 rounded-[10px] px-4 py-2.5 text-[15px] font-medium transition",
+                  "min-w-27.5 rounded-[10px] px-3.5 py-2 text-[12px] font-medium transition",
                   "bg-[#f8dedd] text-[#ff5a3c] hover:bg-[#f4d2d1]",
                   "disabled:cursor-not-allowed disabled:opacity-60",
                 ].join(" ")}
@@ -1681,7 +1681,7 @@ const Index: React.FC = () => {
                 onClick={closeDeleteModal}
                 disabled={deleting}
                 className={[
-                  "min-w-30 rounded-[10px] px-4 py-2.5 text-[15px] font-medium transition",
+                  "min-w-27.5 rounded-[10px] px-3.5 py-2 text-[12px] font-medium transition",
                   "bg-[#6d5efc] text-white hover:bg-[#5f51eb]",
                   "disabled:cursor-not-allowed disabled:opacity-60",
                 ].join(" ")}

@@ -45,6 +45,8 @@ func main() {
 	r.POST("/verify-otp-password", otp.VerifyOTPAddUpdatePassword)
 	r.POST("/auth/logout", auth.Logout)
 
+	// เปิดให้รูปที่แคปไว้เข้าถึงผ่าน URL
+	r.Static("/public/reports", "./tmp/reports")
 	// ==== Report Capture =====
 	r.GET("/automation/report/test-send", report.TriggerCaptureAndSendReport)
 

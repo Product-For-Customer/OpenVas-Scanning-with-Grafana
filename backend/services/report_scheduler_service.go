@@ -57,13 +57,20 @@ func StartCaptureReportScheduler() {
 				continue
 			}
 
-			if err := SendReportEmailWithAttachment(filePath); err != nil {
-				log.Printf("[capture-report] email failed: %v", err)
+			publicURL, err := BuildReportPublicURL(filePath)
+			if err != nil {
+				log.Printf("[capture-report] build public url failed: %v", err)
 				time.Sleep(2 * time.Second)
 				continue
 			}
 
-			log.Printf("[capture-report] success: %s", filePath)
+			if err := SendReportToLINE(filePath, publicURL); err != nil {
+				log.Printf("[capture-report] line send failed: %v", err)
+				time.Sleep(2 * time.Second)
+				continue
+			}
+
+			log.Printf("[capture-report] success: %s | %s", filePath, publicURL)
 			time.Sleep(2 * time.Second)
 		}
 	}()

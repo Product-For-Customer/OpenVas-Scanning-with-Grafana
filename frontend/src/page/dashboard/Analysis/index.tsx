@@ -1,8 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import {
-  FiShield,
-} from "react-icons/fi";
+import { FiShield } from "react-icons/fi";
 import { ConfigProvider, Select } from "antd";
 import type { SelectProps } from "antd";
 import {
@@ -48,17 +46,17 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({
 
   return (
     <div
-      className="rounded-2xl px-4 py-3 shadow-2xl text-white text-[13px] font-semibold border border-white/10 backdrop-blur-sm"
+      className="rounded-2xl px-2.5 py-2 shadow-2xl text-white text-[10.5px] font-semibold border border-white/10 backdrop-blur-sm"
       style={{
         background: `linear-gradient(135deg, ${item.color}, ${item.color}dd)`,
-        minWidth: 200,
+        minWidth: 150,
       }}
     >
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-2">
         <span className="truncate">{item.name}</span>
         <span className="tabular-nums">{item.value.toLocaleString()}</span>
       </div>
-      <div className="mt-1.5 text-[12px] font-medium text-white/90">
+      <div className="mt-1 text-[10px] font-medium text-white/90">
         {formatPercent(percent)} of total findings
       </div>
     </div>
@@ -77,7 +75,6 @@ const DeliveryAnalysis: React.FC = () => {
       try {
         setLoading(true);
         const res = await ListTaskVulnSummary();
-        console.log("Fetched vulnerability summary:", res);
         if (!alive) return;
 
         setRows(Array.isArray(res) ? res : []);
@@ -168,15 +165,15 @@ const DeliveryAnalysis: React.FC = () => {
   return (
     <section
       className={[
-        "relative overflow-hidden rounded-3xl p-4 sm:p-5 md:p-6 h-full",
-        "bg-white border border-slate-200/80 shadow-[0_12px_40px_rgba(15,23,42,0.06)]",
+        "relative overflow-hidden rounded-[18px] p-2.5 sm:p-3 md:p-3.5 h-full",
+        "bg-white border border-slate-200/80 shadow-[0_10px_26px_-20px_rgba(15,23,42,0.18)]",
         "dark:bg-[#08111f]/95 dark:border-white/10 dark:shadow-none",
       ].join(" ")}
     >
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-20 -right-16 h-52 w-52 rounded-full bg-cyan-400/10 blur-3xl" />
-        <div className="absolute -bottom-20 -left-16 h-52 w-52 rounded-full bg-violet-500/10 blur-3xl" />
-        <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.06]">
+        <div className="absolute -top-10 -right-6 h-24 w-24 rounded-full bg-cyan-400/10 blur-3xl" />
+        <div className="absolute -bottom-10 -left-6 h-24 w-24 rounded-full bg-violet-500/10 blur-3xl" />
+        <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]">
           <div
             className="h-full w-full"
             style={{
@@ -184,41 +181,47 @@ const DeliveryAnalysis: React.FC = () => {
                 linear-gradient(to right, currentColor 1px, transparent 1px),
                 linear-gradient(to bottom, currentColor 1px, transparent 1px)
               `,
-              backgroundSize: "28px 28px",
+              backgroundSize: "22px 22px",
             }}
           />
         </div>
       </div>
 
       <div className="relative z-10">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2 mb-3 mt-1">
+            <div className="flex flex-wrap items-center gap-1.5 mb-2">
               <div
                 className={[
-                  "inline-flex items-center gap-2 rounded-full px-3 py-1.5",
+                  "inline-flex items-center gap-1.5 rounded-full px-2 py-1",
                   "bg-cyan-50 text-cyan-700 border border-cyan-200/80",
                   "dark:bg-cyan-500/10 dark:text-cyan-300 dark:border-cyan-400/20",
                 ].join(" ")}
               >
-                <FiShield className="text-[14px]" />
-                <span className="text-[12px] font-semibold tracking-wide">
+                <FiShield className="text-[10px]" />
+                <span className="text-[9.5px] font-semibold tracking-wide">
                   Total Vulnerability Scanner
                 </span>
               </div>
             </div>
+
+            <h3 className="text-[14px] sm:text-[15px] font-semibold text-[#1f2240] dark:text-white/90">
+              Vulnerability Distribution
+            </h3>
+            <p className="mt-0.5 text-[10px] sm:text-[10.5px] text-slate-500 dark:text-white/55">
+              Severity overview from imported scan results
+            </p>
           </div>
 
           <div className="w-full sm:w-auto">
-
             <ConfigProvider
               theme={{
                 token: {
                   colorPrimary: "#e2e8f0",
-                  borderRadius: 20,
+                  borderRadius: 16,
                   colorBgElevated: "#ffffff",
                   colorBorder: "#e5e7eb",
-                  boxShadowSecondary: "0 16px 40px -20px rgba(15,23,42,0.12)",
+                  boxShadowSecondary: "0 12px 28px -22px rgba(15,23,42,0.12)",
                   colorText: "#334155",
                   colorTextPlaceholder: "#94a3b8",
                 },
@@ -233,7 +236,7 @@ const DeliveryAnalysis: React.FC = () => {
                 },
               }}
             >
-              <div className="relative w-full sm:min-w-75">
+              <div className="relative w-full sm:min-w-48">
                 <Select
                   value={selectedTask}
                   onChange={(value) => setSelectedTask(value)}
@@ -246,7 +249,7 @@ const DeliveryAnalysis: React.FC = () => {
                     <span
                       style={{
                         color: "#94a3b8",
-                        fontSize: 13,
+                        fontSize: 11,
                         lineHeight: 1,
                         pointerEvents: "none",
                       }}
@@ -264,11 +267,11 @@ const DeliveryAnalysis: React.FC = () => {
                     },
                     popup: {
                       root: {
-                        padding: 8,
-                        borderRadius: 22,
+                        padding: 6,
+                        borderRadius: 18,
                         border: "1px solid #e5e7eb",
                         overflow: "hidden",
-                        boxShadow: "0 16px 40px -20px rgba(15,23,42,0.12)",
+                        boxShadow: "0 12px 28px -22px rgba(15,23,42,0.12)",
                         background: "#ffffff",
                       },
                       list: {
@@ -276,13 +279,13 @@ const DeliveryAnalysis: React.FC = () => {
                         background: "#ffffff",
                       },
                       listItem: {
-                        minHeight: 42,
-                        borderRadius: 14,
-                        margin: "4px 0",
-                        paddingInline: 14,
+                        minHeight: 34,
+                        borderRadius: 10,
+                        margin: "3px 0",
+                        paddingInline: 10,
                         display: "flex",
                         alignItems: "center",
-                        fontSize: 13,
+                        fontSize: 11,
                         fontWeight: 500,
                         color: "#334155",
                         transition: "all 0.18s ease",
@@ -304,15 +307,15 @@ const DeliveryAnalysis: React.FC = () => {
                         style={{
                           display: "flex",
                           alignItems: "center",
-                          gap: 10,
+                          gap: 8,
                           width: "100%",
                           padding: "2px 0",
                         }}
                       >
                         <div
                           style={{
-                            width: 8,
-                            height: 8,
+                            width: 7,
+                            height: 7,
                             borderRadius: 999,
                             background: isSelected
                               ? "#cbd5e1"
@@ -324,7 +327,7 @@ const DeliveryAnalysis: React.FC = () => {
                         />
                         <span
                           style={{
-                            fontSize: 13,
+                            fontSize: 11,
                             fontWeight: isSelected ? 600 : 500,
                             color: "#334155",
                             whiteSpace: "nowrap",
@@ -341,7 +344,7 @@ const DeliveryAnalysis: React.FC = () => {
                     <span
                       style={{
                         color: "#334155",
-                        fontSize: 13,
+                        fontSize: 11,
                         fontWeight: 500,
                       }}
                     >
@@ -351,10 +354,10 @@ const DeliveryAnalysis: React.FC = () => {
                 />
 
                 <div
-                  className="pointer-events-none absolute inset-0 rounded-[20px]"
+                  className="pointer-events-none absolute inset-0 rounded-2xl"
                   style={{
                     border: "1px solid #dbeafe",
-                    boxShadow: "0 8px 24px -18px rgba(15,23,42,0.10)",
+                    boxShadow: "0 6px 16px -16px rgba(15,23,42,0.10)",
                   }}
                 />
               </div>
@@ -364,46 +367,46 @@ const DeliveryAnalysis: React.FC = () => {
 
         <div
           className={[
-            "mt-5 rounded-2xl px-4 py-3 flex flex-wrap items-center gap-3",
+            "mt-3 rounded-2xl px-3 py-2 flex flex-wrap items-center gap-2",
             "bg-slate-50 border border-slate-200/80",
             "dark:bg-white/4 dark:border-white/10",
           ].join(" ")}
         >
-          <div className="inline-flex items-center gap-2">
-            <span className="relative flex h-2.5 w-2.5">
+          <div className="inline-flex items-center gap-1.5">
+            <span className="relative flex h-2 w-2">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-400 opacity-75" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-cyan-500" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-cyan-500" />
             </span>
-            <span className="text-[12px] font-medium text-slate-700 dark:text-white/75">
+            <span className="text-[10px] font-medium text-slate-700 dark:text-white/75">
               Scanner Telemetry Active
             </span>
           </div>
 
-          <div className="hidden sm:block h-4 w-px bg-slate-200 dark:bg-white/10" />
+          <div className="hidden sm:block h-3 w-px bg-slate-200 dark:bg-white/10" />
 
-          <div className="text-[12px] text-slate-500 dark:text-white/50">
+          <div className="text-[10px] text-slate-500 dark:text-white/50">
             {selectedTask === "all"
               ? "Severity distribution across the latest imported scan results"
               : `Severity distribution for ${selectedTask}`}
           </div>
         </div>
 
-        <div className="mt-5 sm:mt-6 h-72 sm:h-80 relative">
-          <div className="pointer-events-none absolute left-1/2 top-1/2 h-36 w-36 -translate-x-1/2 -translate-y-1/2 rounded-full bg-cyan-400/10 blur-2xl dark:bg-cyan-400/10" />
+        <div className="mt-2.5 h-66 sm:h-72 relative">
+          <div className="pointer-events-none absolute left-1/2 top-1/2 h-28 w-28 -translate-x-1/2 -translate-y-1/2 rounded-full bg-cyan-400/10 blur-2xl dark:bg-cyan-400/10" />
 
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
             <div
               className={[
-                "rounded-full h-28 w-28 sm:h-32 sm:w-32 flex flex-col items-center justify-center text-center",
+                "rounded-full h-24 w-24 sm:h-26 sm:w-26 flex flex-col items-center justify-center text-center",
                 "bg-white/90 border border-slate-200 shadow-sm",
                 "dark:bg-[#0b1728]/80 dark:border-white/10 dark:shadow-none backdrop-blur-md",
               ].join(" ")}
             >
-              <div className="text-[22px] sm:text-[28px] font-semibold text-slate-900 dark:text-white/90 tabular-nums leading-none">
+              <div className="text-[18px] sm:text-[20px] font-semibold text-slate-900 dark:text-white/90 tabular-nums leading-none">
                 {loading ? "..." : total.toLocaleString()}
               </div>
-              <div className="mt-2 text-[11px] sm:text-[12px] text-slate-500 dark:text-white/55">
-                Total Findings
+              <div className="mt-1 text-[9.5px] sm:text-[10px] text-slate-500 dark:text-white/55">
+                Total
               </div>
             </div>
           </div>
@@ -420,11 +423,11 @@ const DeliveryAnalysis: React.FC = () => {
                 data={data}
                 dataKey="value"
                 nameKey="name"
-                innerRadius="58%"
-                outerRadius="84%"
-                paddingAngle={3}
+                innerRadius="56%"
+                outerRadius="94%"
+                paddingAngle={2}
                 stroke="rgba(255,255,255,0.95)"
-                strokeWidth={3}
+                strokeWidth={2.5}
                 isAnimationActive
                 animationDuration={800}
               >
@@ -436,15 +439,15 @@ const DeliveryAnalysis: React.FC = () => {
           </ResponsiveContainer>
         </div>
 
-        <div className="mt-4 sm:mt-5">
+        <div className="mt-2.5">
           <div
             className={[
-              "rounded-2xl px-4 py-3",
+              "rounded-2xl px-3 py-2.5",
               "bg-white border border-gray-200/80",
               "dark:bg-white/5 dark:border-white/10",
             ].join(" ")}
           >
-            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
+            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
               {(["Critical", "High", "Medium"] as SeverityKey[]).map((k) => {
                 const item = data.find((d) => d.name === k) || {
                   name: k,
@@ -454,18 +457,18 @@ const DeliveryAnalysis: React.FC = () => {
                 const p = total > 0 ? item.value / total : 0;
 
                 return (
-                  <div key={k} className="flex items-center gap-2">
+                  <div key={k} className="flex items-center gap-1.5">
                     <span
-                      className="h-4 w-4 rounded-sm"
+                      className="h-3 w-3 rounded-sm"
                       style={{ background: COLORS[k] }}
                     />
-                    <span className="text-[13px] font-medium text-[#1f2240] dark:text-white/85">
+                    <span className="text-[10.5px] font-medium text-[#1f2240] dark:text-white/85">
                       {k}
                     </span>
-                    <span className="text-[12px] text-gray-500 dark:text-white/55 tabular-nums">
+                    <span className="text-[10px] text-gray-500 dark:text-white/55 tabular-nums">
                       {loading ? "..." : item.value.toLocaleString()}
                     </span>
-                    <span className="text-[12px] text-gray-400 dark:text-white/40 tabular-nums">
+                    <span className="text-[10px] text-gray-400 dark:text-white/40 tabular-nums">
                       {loading ? "" : `(${formatPercent(p)})`}
                     </span>
                   </div>
@@ -473,7 +476,7 @@ const DeliveryAnalysis: React.FC = () => {
               })}
             </div>
 
-            <div className="mt-3 flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
+            <div className="mt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
               {(["Low", "Info"] as SeverityKey[]).map((k) => {
                 const item = data.find((d) => d.name === k) || {
                   name: k,
@@ -483,18 +486,18 @@ const DeliveryAnalysis: React.FC = () => {
                 const p = total > 0 ? item.value / total : 0;
 
                 return (
-                  <div key={k} className="flex items-center gap-2">
+                  <div key={k} className="flex items-center gap-1.5">
                     <span
-                      className="h-4 w-4 rounded-sm"
+                      className="h-3 w-3 rounded-sm"
                       style={{ background: COLORS[k] }}
                     />
-                    <span className="text-[13px] font-medium text-[#1f2240] dark:text-white/85">
+                    <span className="text-[10.5px] font-medium text-[#1f2240] dark:text-white/85">
                       {k}
                     </span>
-                    <span className="text-[12px] text-gray-500 dark:text-white/55 tabular-nums">
+                    <span className="text-[10px] text-gray-500 dark:text-white/55 tabular-nums">
                       {loading ? "..." : item.value.toLocaleString()}
                     </span>
-                    <span className="text-[12px] text-gray-400 dark:text-white/40 tabular-nums">
+                    <span className="text-[10px] text-gray-400 dark:text-white/40 tabular-nums">
                       {loading ? "" : `(${formatPercent(p)})`}
                     </span>
                   </div>

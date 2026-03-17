@@ -25,12 +25,12 @@ type FilterOption = {
 
 const badgeClasses: Record<VulnRow["severity"], string> = {
   CRITICAL:
-    "bg-[#ef4444] text-white shadow-[0_8px_20px_rgba(239,68,68,0.25)]",
-  HIGH: "bg-[#f97316] text-white shadow-[0_8px_20px_rgba(249,115,22,0.22)]",
+    "bg-[#ef4444] text-white shadow-[0_6px_16px_rgba(239,68,68,0.22)]",
+  HIGH: "bg-[#f97316] text-white shadow-[0_6px_16px_rgba(249,115,22,0.20)]",
   MEDIUM:
-    "bg-[#eab308] text-white shadow-[0_8px_20px_rgba(234,179,8,0.20)]",
-  LOW: "bg-[#22c55e] text-white shadow-[0_8px_20px_rgba(34,197,94,0.20)]",
-  INFO: "bg-[#3b82f6] text-white shadow-[0_8px_20px_rgba(59,130,246,0.22)]",
+    "bg-[#eab308] text-white shadow-[0_6px_16px_rgba(234,179,8,0.18)]",
+  LOW: "bg-[#22c55e] text-white shadow-[0_6px_16px_rgba(34,197,94,0.18)]",
+  INFO: "bg-[#3b82f6] text-white shadow-[0_6px_16px_rgba(59,130,246,0.20)]",
 };
 
 const dotClasses: Record<VulnRow["severity"], string> = {
@@ -82,7 +82,9 @@ const TopVulnerability: React.FC = () => {
 
   const [openLevelQuery, setOpenLevelQuery] = useState(false);
   const [levelQuerySearch, setLevelQuerySearch] = useState("");
-  const [selectedLevels, setSelectedLevels] = useState<VulnRow["severity"][]>([]);
+  const [selectedLevels, setSelectedLevels] = useState<VulnRow["severity"][]>(
+    []
+  );
 
   const levelRef = useRef<HTMLDivElement | null>(null);
 
@@ -264,15 +266,15 @@ const TopVulnerability: React.FC = () => {
   return (
     <section
       className={[
-        "relative w-full overflow-hidden rounded-[22px] p-4 sm:p-5 md:p-6",
-        "bg-white border border-gray-200/80 shadow-sm",
+        "relative w-full overflow-hidden rounded-[22px] p-3 sm:p-4 md:p-4.5",
+        "bg-white border border-gray-200/80 shadow-[0_14px_34px_-24px_rgba(15,23,42,0.22)]",
         "dark:bg-white/5 dark:border-white/10 dark:ring-1 dark:ring-white/10 dark:shadow-none",
       ].join(" ")}
     >
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-16 -right-10 h-44 w-44 rounded-full bg-cyan-400/10 blur-3xl" />
-        <div className="absolute -bottom-16 -left-10 h-44 w-44 rounded-full bg-violet-500/10 blur-3xl" />
-        <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.06]">
+        <div className="absolute -top-14 -right-8 h-32 w-32 rounded-full bg-cyan-400/10 blur-3xl" />
+        <div className="absolute -bottom-14 -left-8 h-32 w-32 rounded-full bg-violet-500/10 blur-3xl" />
+        <div className="absolute inset-0 opacity-[0.035] dark:opacity-[0.055]">
           <div
             className="h-full w-full"
             style={{
@@ -287,19 +289,19 @@ const TopVulnerability: React.FC = () => {
       </div>
 
       <div className="relative z-10 flex flex-col">
-        <div className="mb-4 flex shrink-0 flex-col gap-3">
+        <div className="mb-3.5 flex shrink-0 flex-col gap-2.5">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <div className="mb-3 flex flex-wrap items-center gap-2">
+              <div className="mb-2.5 flex flex-wrap items-center gap-2">
                 <div
                   className={[
-                    "inline-flex items-center gap-2 rounded-full px-3 py-1.5",
+                    "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5",
                     "bg-cyan-50 text-cyan-700 border border-cyan-200/80",
                     "dark:bg-cyan-500/10 dark:text-cyan-300 dark:border-cyan-400/20",
                   ].join(" ")}
                 >
-                  <FiShield className="text-[14px]" />
-                  <span className="text-[12px] font-semibold tracking-wide">
+                  <FiShield className="text-[11px]" />
+                  <span className="text-[10.5px] font-semibold tracking-wide">
                     Threat Feed
                   </span>
                 </div>
@@ -307,22 +309,22 @@ const TopVulnerability: React.FC = () => {
                 {selectedLevels.length > 0 && (
                   <div
                     className={[
-                      "inline-flex items-center gap-2 rounded-full px-3 py-1.5",
+                      "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5",
                       "bg-slate-50 text-slate-600 border border-slate-200/80",
                       "dark:bg-white/5 dark:text-white/65 dark:border-white/10",
                     ].join(" ")}
                   >
-                    <span className="text-[12px] font-medium">
+                    <span className="text-[10.5px] font-medium">
                       {selectedLevels.length} level selected
                     </span>
                   </div>
                 )}
               </div>
 
-              <h3 className="text-[18px] sm:text-[20px] font-semibold text-[#1f2240] dark:text-white/90">
+              <h3 className="text-[17px] sm:text-[18px] font-semibold text-[#1f2240] dark:text-white/90">
                 Top Vulnerabilities
               </h3>
-              <p className="mt-1 text-[12.5px] text-gray-500 dark:text-white/55">
+              <p className="mt-1 text-[11px] text-gray-500 dark:text-white/55">
                 {statusText}
               </p>
             </div>
@@ -333,8 +335,8 @@ const TopVulnerability: React.FC = () => {
                   type="button"
                   onClick={() => setOpenLevelQuery((prev) => !prev)}
                   className={[
-                    "h-10 px-4 rounded-2xl inline-flex items-center justify-between gap-3 transition min-w-42.5",
-                    "bg-white border border-gray-200/80 text-[13px] font-medium text-gray-600 hover:bg-gray-50",
+                    "h-9 px-3.5 rounded-2xl inline-flex items-center justify-between gap-3 transition min-w-36",
+                    "bg-white border border-gray-200/80 text-[12px] font-medium text-gray-600 hover:bg-gray-50",
                     "dark:bg-white/5 dark:border-white/10 dark:text-white/70 dark:hover:bg-white/8",
                   ].join(" ")}
                 >
@@ -342,13 +344,13 @@ const TopVulnerability: React.FC = () => {
 
                   <div className="flex items-center gap-2 shrink-0">
                     {selectedLevels.length > 0 && (
-                      <span className="inline-flex items-center justify-center min-w-5.5 h-5.5 px-1.5 rounded-full text-[11px] font-semibold bg-cyan-50 text-cyan-700 border border-cyan-200 dark:bg-cyan-500/10 dark:text-cyan-300 dark:border-cyan-400/20">
+                      <span className="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-[10px] font-semibold bg-cyan-50 text-cyan-700 border border-cyan-200 dark:bg-cyan-500/10 dark:text-cyan-300 dark:border-cyan-400/20">
                         {selectedLevels.length}
                       </span>
                     )}
 
                     <FiChevronDown
-                      className={`text-gray-400 dark:text-white/45 transition-transform ${
+                      className={`text-[13px] text-gray-400 dark:text-white/45 transition-transform ${
                         openLevelQuery ? "rotate-180" : ""
                       }`}
                     />
@@ -358,7 +360,7 @@ const TopVulnerability: React.FC = () => {
                 {openLevelQuery && (
                   <div
                     className={[
-                      "absolute right-0 mt-2 w-[min(20rem,calc(100vw-2rem))] rounded-3xl overflow-hidden z-30",
+                      "absolute right-0 mt-2 w-[min(19rem,calc(100vw-2rem))] rounded-[22px] overflow-hidden z-30",
                       "border border-gray-200 bg-white shadow-xl",
                       "dark:border-white/10 dark:bg-[#0B1220] dark:shadow-none",
                     ].join(" ")}
@@ -366,18 +368,18 @@ const TopVulnerability: React.FC = () => {
                     <div className="p-3 border-b border-gray-100 dark:border-white/10">
                       <div
                         className={[
-                          "flex items-center gap-2 rounded-2xl px-3 h-11",
+                          "flex items-center gap-2 rounded-2xl px-3 h-9.5",
                           "bg-slate-50 border border-slate-200/80",
                           "dark:bg-white/5 dark:border-white/10",
                         ].join(" ")}
                       >
-                        <FiSearch className="text-gray-400 dark:text-white/40 shrink-0" />
+                        <FiSearch className="text-[13px] text-gray-400 dark:text-white/40 shrink-0" />
                         <input
                           type="text"
                           value={levelQuerySearch}
                           onChange={(e) => setLevelQuerySearch(e.target.value)}
                           placeholder="Search level..."
-                          className="w-full bg-transparent outline-none text-[13px] text-gray-700 placeholder:text-gray-400 dark:text-white/80 dark:placeholder:text-white/30"
+                          className="w-full bg-transparent outline-none text-[12px] text-gray-700 placeholder:text-gray-400 dark:text-white/80 dark:placeholder:text-white/30"
                         />
                         {levelQuerySearch.trim() !== "" && (
                           <button
@@ -386,16 +388,16 @@ const TopVulnerability: React.FC = () => {
                             className="text-gray-400 hover:text-gray-600 dark:text-white/35 dark:hover:text-white/70"
                             aria-label="Clear level query"
                           >
-                            <FiX />
+                            <FiX className="text-[13px]" />
                           </button>
                         )}
                       </div>
 
-                      <div className="mt-3 flex items-center justify-between gap-2">
+                      <div className="mt-2.5 flex items-center justify-between gap-2">
                         <button
                           type="button"
                           onClick={handleSelectAllVisibleLevels}
-                          className="text-[12px] font-medium text-cyan-600 hover:text-cyan-700 dark:text-cyan-300 dark:hover:text-cyan-200"
+                          className="text-[11px] font-medium text-cyan-600 hover:text-cyan-700 dark:text-cyan-300 dark:hover:text-cyan-200"
                         >
                           {allVisibleLevelsSelected
                             ? "Unselect visible"
@@ -405,16 +407,16 @@ const TopVulnerability: React.FC = () => {
                         <button
                           type="button"
                           onClick={clearAllLevels}
-                          className="text-[12px] font-medium text-gray-500 hover:text-gray-700 dark:text-white/50 dark:hover:text-white/75"
+                          className="text-[11px] font-medium text-gray-500 hover:text-gray-700 dark:text-white/50 dark:hover:text-white/75"
                         >
                           Clear all
                         </button>
                       </div>
                     </div>
 
-                    <div className="max-h-72 overflow-y-auto p-2">
+                    <div className="max-h-64 overflow-y-auto p-2">
                       {filteredLevelOptions.length === 0 ? (
-                        <div className="px-3 py-8 text-center text-[13px] text-gray-500 dark:text-white/50">
+                        <div className="px-3 py-7 text-center text-[12px] text-gray-500 dark:text-white/50">
                           No matching level
                         </div>
                       ) : (
@@ -428,7 +430,7 @@ const TopVulnerability: React.FC = () => {
                                 type="button"
                                 onClick={() => toggleLevel(opt.key)}
                                 className={[
-                                  "w-full flex items-start gap-3 rounded-2xl px-3 py-3 text-left transition",
+                                  "w-full flex items-start gap-3 rounded-2xl px-3 py-2.5 text-left transition",
                                   checked
                                     ? "bg-cyan-50 border border-cyan-200 dark:bg-cyan-500/10 dark:border-cyan-400/20"
                                     : "border border-transparent hover:bg-gray-50 dark:hover:bg-white/5",
@@ -436,17 +438,17 @@ const TopVulnerability: React.FC = () => {
                               >
                                 <span
                                   className={[
-                                    "mt-0.5 h-5 w-5 rounded-md border flex items-center justify-center shrink-0 transition",
+                                    "mt-0.5 h-4.5 w-4.5 rounded-md border flex items-center justify-center shrink-0 transition",
                                     checked
                                       ? "bg-cyan-500 border-cyan-500 text-white"
                                       : "bg-white border-gray-300 text-transparent dark:bg-white/5 dark:border-white/20",
                                   ].join(" ")}
                                 >
-                                  <FiCheck className="text-[12px]" />
+                                  <FiCheck className="text-[10px]" />
                                 </span>
 
                                 <span className="min-w-0 flex-1">
-                                  <span className="block text-[13px] font-medium text-gray-700 dark:text-white/80 wrap-break-word">
+                                  <span className="block text-[12px] font-medium text-gray-700 dark:text-white/80 wrap-break-word">
                                     {opt.label}
                                   </span>
                                 </span>
@@ -463,13 +465,13 @@ const TopVulnerability: React.FC = () => {
               {!loading && topCriticalCount > 0 ? (
                 <div
                   className={[
-                    "shrink-0 inline-flex items-center gap-2 rounded-2xl px-3 py-2",
+                    "shrink-0 inline-flex items-center gap-1.5 rounded-2xl px-2.5 py-2",
                     "bg-red-50 border border-red-200 text-red-600",
                     "dark:bg-red-500/10 dark:border-red-400/20 dark:text-red-300",
                   ].join(" ")}
                 >
-                  <FiAlertTriangle className="text-[14px]" />
-                  <span className="text-[12px] font-semibold">
+                  <FiAlertTriangle className="text-[12px]" />
+                  <span className="text-[10.5px] font-semibold">
                     {topCriticalCount} Critical
                   </span>
                 </div>
@@ -486,20 +488,20 @@ const TopVulnerability: React.FC = () => {
               "dark:border-white/10 dark:bg-white/3",
             ].join(" ")}
           >
-            <div className="space-y-3 p-3 sm:p-3.5">
+            <div className="space-y-2.5 p-3">
               {Array.from({ length: 6 }).map((_, i) => (
                 <div
                   key={i}
                   className={[
-                    "rounded-2xl border px-4 py-3 animate-pulse",
+                    "rounded-2xl border px-3.5 py-2.5 animate-pulse",
                     "border-gray-200 bg-gray-50/80",
                     "dark:border-white/10 dark:bg-white/4",
                   ].join(" ")}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="h-6 w-20 rounded-md bg-gray-200 dark:bg-white/10" />
-                    <div className="h-4 flex-1 rounded bg-gray-200 dark:bg-white/10" />
-                    <div className="h-7 w-10 rounded-md bg-gray-200 dark:bg-white/10" />
+                    <div className="h-5.5 w-18 rounded-md bg-gray-200 dark:bg-white/10" />
+                    <div className="h-3.5 flex-1 rounded bg-gray-200 dark:bg-white/10" />
+                    <div className="h-7 w-9 rounded-md bg-gray-200 dark:bg-white/10" />
                   </div>
                 </div>
               ))}
@@ -508,14 +510,14 @@ const TopVulnerability: React.FC = () => {
         ) : rows.length === 0 ? (
           <div
             className={[
-              "flex items-center justify-center rounded-2xl px-4 py-10 text-center",
+              "flex items-center justify-center rounded-2xl px-4 py-9 text-center",
               "border border-gray-200 bg-gray-50/70 text-gray-500",
               "dark:border-white/10 dark:bg-white/4 dark:text-white/55",
             ].join(" ")}
           >
             <div>
-              <div className="text-[14px] font-medium">No Data</div>
-              <div className="mt-1 text-[12px] opacity-80">
+              <div className="text-[13px] font-medium">No Data</div>
+              <div className="mt-1 text-[11px] opacity-80">
                 No vulnerabilities were returned from the latest query
               </div>
             </div>
@@ -530,29 +532,29 @@ const TopVulnerability: React.FC = () => {
           >
             <div
               className={[
-                "overflow-y-auto p-3 sm:p-3.5",
-                "max-h-[calc(6*72px+5*12px)]",
+                "overflow-y-auto p-3",
+                "max-h-[calc(6*64px+5*10px)]",
               ].join(" ")}
             >
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 {rows.map((row) => (
                   <div
                     key={row.id}
                     className={[
-                      "group rounded-2xl border px-3.5 sm:px-4 py-3 transition-all duration-200",
+                      "group rounded-2xl border px-3 sm:px-3.5 py-2.5 transition-all duration-200",
                       "border-gray-200/80 bg-white hover:shadow-sm",
                       "dark:border-white/10 dark:bg-white/3 dark:hover:bg-white/5",
                       rowGlowClasses[row.severity],
                     ].join(" ")}
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="flex shrink-0 items-center gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex shrink-0 items-center gap-2.5">
                         <span
                           className={`h-2.5 w-2.5 rounded-full ${dotClasses[row.severity]}`}
                         />
                         <span
                           className={[
-                            "shrink-0 rounded-md px-2.5 py-1 text-[11px] font-bold tracking-wide",
+                            "shrink-0 rounded-md px-2.5 py-1 text-[10px] font-bold tracking-wide",
                             badgeClasses[row.severity],
                           ].join(" ")}
                         >
@@ -561,10 +563,10 @@ const TopVulnerability: React.FC = () => {
                       </div>
 
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-[13px] sm:text-[14px] font-medium text-[#1f2240] dark:text-white/85">
+                        <p className="truncate text-[12px] sm:text-[13px] font-medium text-[#1f2240] dark:text-white/85">
                           {row.title}
                         </p>
-                        <div className="mt-1 flex items-center gap-2 text-[11px] text-gray-400 dark:text-white/40">
+                        <div className="mt-0.5 flex items-center gap-2 text-[10px] text-gray-400 dark:text-white/40">
                           <span>Vulnerability signature</span>
                           <span className="h-1 w-1 rounded-full bg-current" />
                           <span>Detected in scan results</span>
@@ -574,8 +576,8 @@ const TopVulnerability: React.FC = () => {
                       <div className="shrink-0 flex items-center gap-2">
                         <span
                           className={[
-                            "inline-flex h-8 min-w-8 items-center justify-center rounded-lg border px-2",
-                            "text-[12px] font-semibold tabular-nums",
+                            "inline-flex h-7.5 min-w-7.5 items-center justify-center rounded-lg border px-2",
+                            "text-[11px] font-semibold tabular-nums",
                             "border-gray-200 bg-[#fbfbfc] text-gray-700",
                             "dark:border-white/10 dark:bg-white/8 dark:text-white/75",
                           ].join(" ")}
@@ -583,7 +585,7 @@ const TopVulnerability: React.FC = () => {
                           {row.count}
                         </span>
 
-                        <FiChevronRight className="text-gray-300 transition-colors dark:text-white/20 group-hover:text-gray-500 dark:group-hover:text-white/45" />
+                        <FiChevronRight className="text-[13px] text-gray-300 transition-colors dark:text-white/20 group-hover:text-gray-500 dark:group-hover:text-white/45" />
                       </div>
                     </div>
                   </div>
