@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -11,12 +11,14 @@ import {
 } from "recharts";
 import {
   FiShield,
-  FiRadio,
   FiActivity,
   FiChevronDown,
   FiCalendar,
   FiRefreshCw,
   FiAlertCircle,
+  FiCheck,
+  FiSearch,
+  FiX,
 } from "react-icons/fi";
 import { ListTargetDiffer, type TargetDifferDTO } from "../../../services";
 
@@ -26,14 +28,6 @@ type RangeKey =
   | "This Month"
   | "This Year"
   | "Custom Range";
-
-const RANGE_OPTIONS: RangeKey[] = [
-  "Today",
-  "This Week",
-  "This Month",
-  "This Year",
-  "Custom Range",
-];
 
 type Row = {
   label: string;
@@ -52,6 +46,11 @@ type Row = {
 
   riskScore: number;
   threatLevel: number;
+};
+
+type FilterOption = {
+  key: string;
+  label: string;
 };
 
 const pad2 = (n: number) => String(n).padStart(2, "0");
@@ -250,13 +249,20 @@ const useIsSmall = () => {
   return isSmall;
 };
 
-const RiskScoreGraph: React.FC = () => {
+const RiskScoreGraph: React.FC = () => { //@ts-ignore
   const [range, setRange] = useState<RangeKey>("This Year");
   const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);//@ts-ignore
   const [refreshing, setRefreshing] = useState(false);
   const [rawData, setRawData] = useState<TargetDifferDTO[]>([]);
   const isSmall = useIsSmall();
+
+  const [queryOpen, setQueryOpen] = useState(false);
+  const [querySearch, setQuerySearch] = useState("");
+  const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
+
+  const queryDropdownRef = useRef<HTMLDivElement | null>(null);
+  const rangeDropdownRef = useRef<HTMLDivElement | null>(null);
 
   const todayYMD = useMemo(() => formatDateToYMD(new Date()), []);
   const sevenDaysAgoYMD = useMemo(
@@ -287,6 +293,27 @@ const RiskScoreGraph: React.FC = () => {
     void fetchData("initial");
   }, []);
 
+  useEffect(() => {
+    const onClickOutside = (e: MouseEvent) => {
+      if (
+        queryDropdownRef.current &&
+        !queryDropdownRef.current.contains(e.target as Node)
+      ) {
+        setQueryOpen(false);
+      }
+
+      if (
+        rangeDropdownRef.current &&
+        !rangeDropdownRef.current.contains(e.target as Node)
+      ) {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, []);
+
   const mappedRows = useMemo<Row[]>(() => {
     return rawData
       .map((item) => ({
@@ -310,11 +337,48 @@ const RiskScoreGraph: React.FC = () => {
       .sort((a, b) => (b.latestDetectedTime || 0) - (a.latestDetectedTime || 0));
   }, [rawData]);
 
+  const filterOptions = useMemo<FilterOption[]>(() => {
+    const seen = new Set<string>();
+    const options: FilterOption[] = [];
+
+    for (const row of mappedRows) {
+      const key = `${row.taskName}__${row.host}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      options.push({
+        key,
+        label: `${row.taskName || "-"} - ${row.host || "-"}`,
+      });
+    }
+
+    options.sort((a, b) => a.label.localeCompare(b.label));
+    return options;
+  }, [mappedRows]);
+
+  const filteredOptions = useMemo(() => {
+    const keyword = querySearch.trim().toLowerCase();
+    if (!keyword) return filterOptions;
+
+    return filterOptions.filter((opt) =>
+      opt.label.toLowerCase().includes(keyword)
+    );
+  }, [filterOptions, querySearch]);
+
+  const queryFilteredRows = useMemo(() => {
+    if (selectedKeys.length === 0) return mappedRows;
+
+    const selectedSet = new Set(selectedKeys);
+    return mappedRows.filter((row) =>
+      selectedSet.has(`${row.taskName}__${row.host}`)
+    );
+  }, [mappedRows, selectedKeys]);
+
   const data = useMemo<Row[]>(() => {
     const now = new Date();
     const today = formatDateToYMD(now);
 
-    let filtered = [...mappedRows];
+    let filtered = [...queryFilteredRows];
 
     switch (range) {
       case "Today": {
@@ -356,7 +420,7 @@ const RiskScoreGraph: React.FC = () => {
     }
 
     return filtered;
-  }, [mappedRows, range, startDate, endDate]);
+  }, [queryFilteredRows, range, startDate, endDate]);
 
   const peakRisk = useMemo(() => {
     if (!data.length) return null;
@@ -399,6 +463,47 @@ const RiskScoreGraph: React.FC = () => {
     }
   }, [range]);
 
+  const selectedCount = selectedKeys.length;
+
+  const queryButtonLabel = useMemo(() => {
+    if (selectedCount === 0) return "Query Select";
+    if (selectedCount === 1) {
+      const found = filterOptions.find((x) => x.key === selectedKeys[0]);
+      return found?.label || "1 selected";
+    }
+    return `${selectedCount} selected`;
+  }, [selectedCount, filterOptions, selectedKeys]);
+
+  const toggleSelect = (key: string) => {
+    setSelectedKeys((prev) =>
+      prev.includes(key) ? prev.filter((item) => item !== key) : [...prev, key]
+    );
+  };
+
+  const handleSelectAllVisible = () => {
+    const visibleKeys = filteredOptions.map((x) => x.key);
+
+    setSelectedKeys((prev) => {
+      const prevSet = new Set(prev);
+      const allVisibleSelected = visibleKeys.every((key) => prevSet.has(key));
+
+      if (allVisibleSelected) {
+        return prev.filter((key) => !visibleKeys.includes(key));
+      }
+
+      const merged = new Set([...prev, ...visibleKeys]);
+      return Array.from(merged);
+    });
+  };
+
+  const clearAllSelections = () => {
+    setSelectedKeys([]);
+  };
+
+  const allVisibleSelected =
+    filteredOptions.length > 0 &&
+    filteredOptions.every((opt) => selectedKeys.includes(opt.key));
+
   return (
     <section
       className={[
@@ -428,17 +533,6 @@ const RiskScoreGraph: React.FC = () => {
                   <span className="text-[10.5px] font-semibold tracking-wide">
                     Risk Analytics
                   </span>
-                </div>
-
-                <div
-                  className={[
-                    "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5",
-                    "bg-slate-50 text-slate-600 border border-slate-200/80",
-                    "dark:bg-white/5 dark:text-white/65 dark:border-white/10",
-                  ].join(" ")}
-                >
-                  <FiRadio className="text-[11px] text-cyan-500" />
-                  <span className="text-[10.5px] font-medium">Live risk trend</span>
                 </div>
 
                 {peakRisk && (
@@ -474,64 +568,135 @@ const RiskScoreGraph: React.FC = () => {
             </div>
 
             <div className="flex w-full flex-col gap-2.5 xl:w-auto xl:min-w-70">
-              <div className="flex justify-end gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => void fetchData("refresh")}
-                  disabled={refreshing}
-                  className={[
-                    "h-9 px-3.5 rounded-2xl inline-flex items-center gap-2 transition select-none whitespace-nowrap",
-                    "bg-white border border-gray-200/80 text-[12px] font-medium text-gray-500 hover:bg-gray-50",
-                    "dark:bg-white/5 dark:border-white/10 dark:text-white/65 dark:hover:bg-white/10",
-                    refreshing ? "opacity-70 cursor-not-allowed" : "",
-                  ].join(" ")}
+              <div className="flex flex-col gap-2.5 sm:flex-row sm:justify-end">
+                <div
+                  className="relative min-w-full sm:min-w-72.5"
+                  ref={queryDropdownRef}
                 >
-                  <FiRefreshCw className={`${refreshing ? "animate-spin" : ""} text-[13px]`} />
-                  Refresh
-                </button>
-
-                <div className="relative self-end">
                   <button
                     type="button"
-                    onClick={() => setOpen((s) => !s)}
+                    onClick={() => setQueryOpen((prev) => !prev)}
                     className={[
-                      "h-9 px-3.5 rounded-2xl inline-flex items-center gap-2 transition select-none whitespace-nowrap",
-                      "bg-white border border-gray-200/80 text-[12px] font-medium text-gray-500 hover:bg-gray-50",
-                      "dark:bg-white/5 dark:border-white/10 dark:text-white/65 dark:hover:bg-white/10",
+                      "w-full min-h-9 px-3.5 rounded-2xl inline-flex items-center justify-between gap-3 transition text-left",
+                      "bg-white border border-gray-200/80 text-[12px] font-medium text-gray-600 hover:bg-gray-50",
+                      "dark:bg-white/5 dark:border-white/10 dark:text-white/70 dark:hover:bg-white/10",
                     ].join(" ")}
                   >
-                    {range}
-                    <FiChevronDown
-                      className={[
-                        "text-gray-400 dark:text-white/45 transition text-[13px]",
-                        open ? "rotate-180" : "",
-                      ].join(" ")}
-                    />
+                    <span className="truncate">{queryButtonLabel}</span>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      {selectedCount > 0 && (
+                        <span className="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-[10px] font-semibold bg-cyan-50 text-cyan-700 border border-cyan-200 dark:bg-cyan-500/10 dark:text-cyan-300 dark:border-cyan-400/20">
+                          {selectedCount}
+                        </span>
+                      )}
+
+                      <FiChevronDown
+                        className={`text-[13px] text-gray-400 dark:text-white/45 transition-transform ${
+                          queryOpen ? "rotate-180" : ""
+                        }`}
+                      />
+                    </div>
                   </button>
 
-                  {open && (
-                    <div className="absolute right-0 mt-2 w-40 rounded-[18px] border border-gray-200 bg-white shadow-lg overflow-hidden z-30 dark:border-white/10 dark:bg-[#0B1220] dark:shadow-none">
-                      {RANGE_OPTIONS.map((opt) => (
-                        <button
-                          key={opt}
-                          type="button"
-                          onClick={() => {
-                            setRange(opt);
-                            setOpen(false);
-                          }}
+                  {queryOpen && (
+                    <div className="absolute right-0 mt-2 w-full rounded-[22px] border border-gray-200 bg-white shadow-xl overflow-hidden z-30 dark:border-white/10 dark:bg-[#0B1220] dark:shadow-[0_18px_44px_rgba(0,0,0,0.28)]">
+                      <div className="p-2.5 border-b border-gray-100 dark:border-white/10">
+                        <div
                           className={[
-                            "w-full text-left px-3.5 py-2.5 text-[12px] transition",
-                            range === opt
-                              ? "bg-cyan-50 text-cyan-700 font-semibold dark:bg-cyan-500/10 dark:text-cyan-300"
-                              : "text-gray-600 hover:bg-gray-50 dark:text-white/70 dark:hover:bg-white/8",
+                            "flex items-center gap-2 rounded-2xl px-3 h-9",
+                            "bg-slate-50 border border-slate-200/80",
+                            "dark:bg-white/5 dark:border-white/10",
                           ].join(" ")}
                         >
-                          {opt}
-                        </button>
-                      ))}
+                          <FiSearch className="text-gray-400 dark:text-white/40 shrink-0 text-[13px]" />
+                          <input
+                            type="text"
+                            value={querySearch}
+                            onChange={(e) => setQuerySearch(e.target.value)}
+                            placeholder="Search task name or host..."
+                            className="w-full bg-transparent outline-none text-[12px] text-gray-700 placeholder:text-gray-400 dark:text-white/80 dark:placeholder:text-white/30"
+                          />
+                          {querySearch.trim() !== "" && (
+                            <button
+                              type="button"
+                              onClick={() => setQuerySearch("")}
+                              className="text-gray-400 hover:text-gray-600 dark:text-white/35 dark:hover:text-white/70"
+                              aria-label="Clear search"
+                            >
+                              <FiX className="text-[13px]" />
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="mt-2.5 flex items-center justify-between gap-2">
+                          <button
+                            type="button"
+                            onClick={handleSelectAllVisible}
+                            className="text-[11px] font-medium text-cyan-600 hover:text-cyan-700 dark:text-cyan-300 dark:hover:text-cyan-200"
+                          >
+                            {allVisibleSelected ? "Unselect visible" : "Select visible"}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={clearAllSelections}
+                            className="text-[11px] font-medium text-gray-500 hover:text-gray-700 dark:text-white/50 dark:hover:text-white/75"
+                          >
+                            Clear all
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="max-h-64 overflow-y-auto p-2">
+                        {filteredOptions.length === 0 ? (
+                          <div className="px-3 py-7 text-center text-[12px] text-gray-500 dark:text-white/50">
+                            No matching task / host
+                          </div>
+                        ) : (
+                          <div className="space-y-1">
+                            {filteredOptions.map((opt) => {
+                              const checked = selectedKeys.includes(opt.key);
+
+                              return (
+                                <button
+                                  key={opt.key}
+                                  type="button"
+                                  onClick={() => toggleSelect(opt.key)}
+                                  className={[
+                                    "w-full flex items-start gap-3 rounded-2xl px-3 py-2.5 text-left transition",
+                                    checked
+                                      ? "bg-cyan-50 border border-cyan-200 dark:bg-cyan-500/10 dark:border-cyan-400/20"
+                                      : "border border-transparent hover:bg-gray-50 dark:hover:bg-white/5",
+                                  ].join(" ")}
+                                >
+                                  <span
+                                    className={[
+                                      "mt-0.5 h-4.5 w-4.5 rounded-md border flex items-center justify-center shrink-0 transition",
+                                      checked
+                                        ? "bg-cyan-500 border-cyan-500 text-white"
+                                        : "bg-white border-gray-300 text-transparent dark:bg-white/5 dark:border-white/20",
+                                    ].join(" ")}
+                                  >
+                                    <FiCheck className="text-[10px]" />
+                                  </span>
+
+                                  <span className="min-w-0 flex-1">
+                                    <span className="block text-[12px] font-medium text-gray-700 dark:text-white/80 wrap-break-word">
+                                      {opt.label}
+                                    </span>
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
+
+                
               </div>
 
               {range === "Custom Range" && (
@@ -662,6 +827,16 @@ const RiskScoreGraph: React.FC = () => {
             <div className="text-[11px] text-slate-500 dark:text-white/50">
               {rangeDescription}
             </div>
+
+            {selectedCount > 0 && (
+              <>
+                <div className="hidden sm:block h-4 w-px bg-slate-200 dark:bg-white/10" />
+                <div className="inline-flex items-center gap-2 text-[11px] text-cyan-700 dark:text-cyan-300">
+                  <span className="inline-flex h-1.5 w-1.5 rounded-full bg-cyan-500" />
+                  Filtered by {selectedCount} selected target{selectedCount > 1 ? "s" : ""}
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -788,10 +963,13 @@ const RiskScoreGraph: React.FC = () => {
           )}
         </div>
 
-        {open && (
+        {(open || queryOpen) && (
           <button
             type="button"
-            onClick={() => setOpen(false)}
+            onClick={() => {
+              setOpen(false);
+              setQueryOpen(false);
+            }}
             className="fixed inset-0 z-20 cursor-default"
             aria-label="Close dropdown"
           />

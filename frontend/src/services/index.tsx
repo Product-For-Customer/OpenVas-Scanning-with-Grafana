@@ -330,4 +330,46 @@ export const ListTargetDiffer = async (): Promise<TargetDifferDTO[] | null> => {
   }
 };
 
+// =======================
+// API: GET /vulnerabilities/level/:level
+// =======================
+export type VulnerabilityByLevelDTO = {
+  vulnerability_id: string;
+  task_id: string;
+  task_name: string;
+  host_ip: string;
+  vulnerability_family: string;
+  vulnerability_name: string;
+  level: string;
+  total: number;
+  detected_time: string;
+};
+
+export const ListVulnerabilityByLevel = async (
+  level: "Critical" | "High" | "Medium" | "Low" | "Info"
+): Promise<VulnerabilityByLevelDTO[] | null> => {
+  try {
+    const response = await vulnerabilityApi.get(`/vulnerabilities/level/${level}`);
+
+    console.log("ListVulnerabilityByLevel raw response:", response.data);
+
+    if (Array.isArray(response.data)) {
+      return response.data as VulnerabilityByLevelDTO[];
+    }
+
+    const data = response.data?.data ?? response.data;
+
+    if (Array.isArray(data)) {
+      return data as VulnerabilityByLevelDTO[];
+    }
+
+    console.error("Expected array but got:", response.data);
+    return null;
+  } catch (error) {
+    console.error("ListVulnerabilityByLevel error:", error);
+    return null;
+  }
+};
+
 export default vulnerabilityApi;
+

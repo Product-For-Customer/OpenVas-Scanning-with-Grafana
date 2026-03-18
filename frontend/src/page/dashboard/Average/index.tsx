@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ResponsiveContainer,
   BarChart,
@@ -12,7 +12,6 @@ import {
   LabelList,
 } from "recharts";
 import {
-  MdKeyboardArrowDown,
   MdTrendingUp,
   MdTrendingDown,
 } from "react-icons/md";
@@ -22,6 +21,10 @@ import {
   FiRefreshCw,
   FiShield,
   FiBarChart2,
+  FiChevronDown,
+  FiCheck,
+  FiSearch,
+  FiX,
 } from "react-icons/fi";
 import { ListTargetDiffer, type TargetDifferDTO } from "../../../services";
 
@@ -41,6 +44,17 @@ type ChartRow = {
   latest_creation_time: number | null;
   previous_creation_time: number | null;
 };
+
+type FilterOption = {
+  key: string;
+  label: string;
+};
+
+const SORT_OPTIONS: SortType[] = [
+  "Latest Updated",
+  "Highest Latest Risk",
+  "Biggest Change",
+];
 
 const COLORS = {
   previous: "#8B7CFF",
@@ -173,8 +187,8 @@ const CustomTooltip = ({
               isUp
                 ? "bg-rose-100 text-rose-700 dark:bg-rose-400/15 dark:text-rose-300"
                 : isDown
-                  ? "bg-cyan-100 text-cyan-700 dark:bg-cyan-400/15 dark:text-cyan-300"
-                  : "bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-white/70",
+                ? "bg-cyan-100 text-cyan-700 dark:bg-cyan-400/15 dark:text-cyan-300"
+                : "bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-white/70",
             ].join(" ")}
           >
             {isUp ? (
@@ -245,9 +259,17 @@ const CustomLegend = () => {
 
 const AverageEnrollment: React.FC = () => {
   const [sortBy, setSortBy] = useState<SortType>("Latest Updated");
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(true); //@ts-ignore
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [rows, setRows] = useState<TargetDifferDTO[]>([]);
+
+  const [open, setOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+
+  const [sortOpen, setSortOpen] = useState(false);
+  const sortDropdownRef = useRef<HTMLDivElement | null>(null);
 
   const fetchData = async (mode: "initial" | "refresh" = "initial") => {
     try {
@@ -269,8 +291,26 @@ const AverageEnrollment: React.FC = () => {
     void fetchData("initial");
   }, []);
 
-  const chartData = useMemo<ChartRow[]>(() => {
-    const mapped: ChartRow[] = rows.map((item) => ({
+  useEffect(() => {
+    const onClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+
+      if (
+        sortDropdownRef.current &&
+        !sortDropdownRef.current.contains(e.target as Node)
+      ) {
+        setSortOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, []);
+
+  const mappedRows = useMemo<ChartRow[]>(() => {
+    return rows.map((item) => ({
       host: item.host || "-",
       task_name: item.task_name || "-",
       asset_label: shortenTaskName(item.task_name || "-"),
@@ -284,8 +324,47 @@ const AverageEnrollment: React.FC = () => {
       latest_creation_time: item.latest_creation_time ?? null,
       previous_creation_time: item.previous_creation_time ?? null,
     }));
+  }, [rows]);
 
-    const sorted = [...mapped];
+  const filterOptions = useMemo<FilterOption[]>(() => {
+    const seen = new Set<string>();
+    const options: FilterOption[] = [];
+
+    for (const row of mappedRows) {
+      const key = `${row.task_name}__${row.host}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      options.push({
+        key,
+        label: `${row.task_name || "-"} - ${row.host || "-"}`,
+      });
+    }
+
+    options.sort((a, b) => a.label.localeCompare(b.label));
+    return options;
+  }, [mappedRows]);
+
+  const filteredOptions = useMemo(() => {
+    const keyword = searchQuery.trim().toLowerCase();
+    if (!keyword) return filterOptions;
+
+    return filterOptions.filter((opt) =>
+      opt.label.toLowerCase().includes(keyword)
+    );
+  }, [filterOptions, searchQuery]);
+
+  const filteredMappedRows = useMemo(() => {
+    if (selectedKeys.length === 0) return mappedRows;
+
+    const selectedSet = new Set(selectedKeys);
+    return mappedRows.filter((row) =>
+      selectedSet.has(`${row.task_name}__${row.host}`)
+    );
+  }, [mappedRows, selectedKeys]);
+
+  const chartData = useMemo<ChartRow[]>(() => {
+    const sorted = [...filteredMappedRows];
 
     if (sortBy === "Highest Latest Risk") {
       sorted.sort((a, b) => b.latest_risk_score - a.latest_risk_score);
@@ -301,23 +380,23 @@ const AverageEnrollment: React.FC = () => {
     }
 
     return sorted.slice(0, 12);
-  }, [rows, sortBy]);
+  }, [filteredMappedRows, sortBy]);
 
   const summary = useMemo(() => {
-    const totalAssets = rows.length;
+    const totalAssets = filteredMappedRows.length;
     const avgLatestRisk =
       totalAssets > 0
-        ? rows.reduce(
+        ? filteredMappedRows.reduce(
             (sum, item) => sum + Number(item.latest_risk_score || 0),
             0
           ) / totalAssets
         : 0;
 
-    const increasedCount = rows.filter(
+    const increasedCount = filteredMappedRows.filter(
       (item) => Number(item.diff_risk_score || 0) > 0
     ).length;
 
-    const decreasedCount = rows.filter(
+    const decreasedCount = filteredMappedRows.filter(
       (item) => Number(item.diff_risk_score || 0) < 0
     ).length;
 
@@ -327,7 +406,7 @@ const AverageEnrollment: React.FC = () => {
       increasedCount,
       decreasedCount,
     };
-  }, [rows]);
+  }, [filteredMappedRows]);
 
   const maxRisk = useMemo(() => {
     const values = chartData.flatMap((item) => [
@@ -348,6 +427,49 @@ const AverageEnrollment: React.FC = () => {
     return ticks;
   }, [maxRisk]);
 
+  const selectedCount = selectedKeys.length;
+
+  const dropdownButtonLabel = useMemo(() => {
+    if (selectedCount === 0) return "Query Select";
+    if (selectedCount === 1) {
+      const found = filterOptions.find((x) => x.key === selectedKeys[0]);
+      return found?.label || "1 selected";
+    }
+    return `${selectedCount} selected`;
+  }, [selectedCount, filterOptions, selectedKeys]);
+
+  const toggleSelect = (key: string) => {
+    setSelectedKeys((prev) =>
+      prev.includes(key) ? prev.filter((item) => item !== key) : [...prev, key]
+    );
+  };
+
+  const handleSelectAllVisible = () => {
+    const visibleKeys = filteredOptions.map((x) => x.key);
+
+    setSelectedKeys((prev) => {
+      const prevSet = new Set(prev);
+      const allVisibleSelected = visibleKeys.every((key) => prevSet.has(key));
+
+      if (allVisibleSelected) {
+        return prev.filter((key) => !visibleKeys.includes(key));
+      }
+
+      const merged = new Set([...prev, ...visibleKeys]);
+      return Array.from(merged);
+    });
+  };
+
+  const clearAllSelections = () => {
+    setSelectedKeys([]);
+  };
+
+  const allVisibleSelected =
+    filteredOptions.length > 0 &&
+    filteredOptions.every((opt) => selectedKeys.includes(opt.key));
+
+  const sortButtonLabel = sortBy;
+
   return (
     <section
       className={[
@@ -362,61 +484,283 @@ const AverageEnrollment: React.FC = () => {
       </div>
 
       <div className="relative z-10">
-        <div className="mb-4 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-linear-to-br from-cyan-500 via-sky-500 to-violet-500 text-white shadow-sm">
-                <FiBarChart2 className="text-[15px]" />
+        <div className="mb-4 flex flex-col gap-3">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-linear-to-br from-cyan-500 via-sky-500 to-violet-500 text-white shadow-sm">
+                  <FiBarChart2 className="text-[15px]" />
+                </div>
+
+                <div className="min-w-0">
+                  <h2 className="text-[17px] font-semibold tracking-tight text-[#1f2240] dark:text-white/92 sm:text-[19px]">
+                    Target Risk Comparison
+                  </h2>
+                  <p className="text-[11px] text-gray-500 dark:text-white/55 sm:text-[12px]">
+                    เปรียบเทียบ Previous Risk Score กับ Latest Risk Score ของแต่ละ target โดยใช้ Task Name เป็นแกนหลัก
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start xl:items-center">
+              <div className="relative min-w-full sm:min-w-72.5" ref={dropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setOpen((prev) => !prev)}
+                  className={[
+                    "w-full min-h-9 px-3.5 rounded-2xl inline-flex items-center justify-between gap-3 transition text-left",
+                    "bg-white border border-gray-200/80 text-[12px] font-medium text-gray-600 hover:bg-gray-50",
+                    "dark:bg-white/6 dark:border-white/10 dark:text-white/75 dark:hover:bg-white/10",
+                  ].join(" ")}
+                >
+                  <span className="truncate">{dropdownButtonLabel}</span>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    {selectedCount > 0 && (
+                      <span className="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-[10px] font-semibold bg-cyan-50 text-cyan-700 border border-cyan-200 dark:bg-cyan-500/10 dark:text-cyan-300 dark:border-cyan-400/20">
+                        {selectedCount}
+                      </span>
+                    )}
+
+                    <FiChevronDown
+                      className={`text-[13px] text-gray-400 dark:text-white/45 transition-transform ${
+                        open ? "rotate-180" : ""
+                      }`}
+                    />
+                  </div>
+                </button>
+
+                {open && (
+                  <div className="absolute right-0 mt-2 w-full rounded-[22px] border border-gray-200 bg-white shadow-xl overflow-hidden z-30 dark:border-white/10 dark:bg-[#0B1220] dark:shadow-[0_18px_44px_rgba(0,0,0,0.28)]">
+                    <div className="p-2.5 border-b border-gray-100 dark:border-white/10">
+                      <div
+                        className={[
+                          "flex items-center gap-2 rounded-2xl px-3 h-9",
+                          "bg-slate-50 border border-slate-200/80",
+                          "dark:bg-white/5 dark:border-white/10",
+                        ].join(" ")}
+                      >
+                        <FiSearch className="text-gray-400 dark:text-white/40 shrink-0 text-[13px]" />
+                        <input
+                          type="text"
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          placeholder="Search task name or host..."
+                          className="w-full bg-transparent outline-none text-[12px] text-gray-700 placeholder:text-gray-400 dark:text-white/80 dark:placeholder:text-white/30"
+                        />
+                        {searchQuery.trim() !== "" && (
+                          <button
+                            type="button"
+                            onClick={() => setSearchQuery("")}
+                            className="text-gray-400 hover:text-gray-600 dark:text-white/35 dark:hover:text-white/70"
+                            aria-label="Clear search"
+                          >
+                            <FiX className="text-[13px]" />
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="mt-2.5 flex items-center justify-between gap-2">
+                        <button
+                          type="button"
+                          onClick={handleSelectAllVisible}
+                          className="text-[11px] font-medium text-cyan-600 hover:text-cyan-700 dark:text-cyan-300 dark:hover:text-cyan-200"
+                        >
+                          {allVisibleSelected ? "Unselect visible" : "Select visible"}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={clearAllSelections}
+                          className="text-[11px] font-medium text-gray-500 hover:text-gray-700 dark:text-white/50 dark:hover:text-white/75"
+                        >
+                          Clear all
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="max-h-64 overflow-y-auto p-2">
+                      {filteredOptions.length === 0 ? (
+                        <div className="px-3 py-7 text-center text-[12px] text-gray-500 dark:text-white/50">
+                          No matching task / host
+                        </div>
+                      ) : (
+                        <div className="space-y-1">
+                          {filteredOptions.map((opt) => {
+                            const checked = selectedKeys.includes(opt.key);
+
+                            return (
+                              <button
+                                key={opt.key}
+                                type="button"
+                                onClick={() => toggleSelect(opt.key)}
+                                className={[
+                                  "w-full flex items-start gap-3 rounded-2xl px-3 py-2.5 text-left transition",
+                                  checked
+                                    ? "bg-cyan-50 border border-cyan-200 dark:bg-cyan-500/10 dark:border-cyan-400/20"
+                                    : "border border-transparent hover:bg-gray-50 dark:hover:bg-white/5",
+                                ].join(" ")}
+                              >
+                                <span
+                                  className={[
+                                    "mt-0.5 h-4.5 w-4.5 rounded-md border flex items-center justify-center shrink-0 transition",
+                                    checked
+                                      ? "bg-cyan-500 border-cyan-500 text-white"
+                                      : "bg-white border-gray-300 text-transparent dark:bg-white/5 dark:border-white/20",
+                                  ].join(" ")}
+                                >
+                                  <FiCheck className="text-[10px]" />
+                                </span>
+
+                                <span className="min-w-0 flex-1">
+                                  <span className="block text-[12px] font-medium text-gray-700 dark:text-white/80 wrap-break-word">
+                                    {opt.label}
+                                  </span>
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
-              <div className="min-w-0">
-                <h2 className="text-[17px] font-semibold tracking-tight text-[#1f2240] dark:text-white/92 sm:text-[19px]">
-                  Target Risk Comparison
-                </h2>
-                <p className="text-[11px] text-gray-500 dark:text-white/55 sm:text-[12px]">
-                  เปรียบเทียบ Previous Risk Score กับ Latest Risk Score ของแต่ละ target โดยใช้ Task Name เป็นแกนหลัก
-                </p>
+              <div
+                className="relative min-w-full sm:min-w-62.5"
+                ref={sortDropdownRef}
+              >
+                <button
+                  type="button"
+                  onClick={() => setSortOpen((prev) => !prev)}
+                  className={[
+                    "w-full min-h-9 px-3.5 rounded-2xl inline-flex items-center justify-between gap-3 transition text-left",
+                    "bg-white border border-gray-200/80 text-[12px] font-medium text-gray-600 hover:bg-gray-50",
+                    "dark:bg-white/6 dark:border-white/10 dark:text-white/75 dark:hover:bg-white/10",
+                  ].join(" ")}
+                >
+                  <span className="truncate">{sortButtonLabel}</span>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-[10px] font-semibold bg-violet-50 text-violet-700 border border-violet-200 dark:bg-violet-500/10 dark:text-violet-300 dark:border-violet-400/20">
+                      Sort
+                    </span>
+
+                    <FiChevronDown
+                      className={`text-[13px] text-gray-400 dark:text-white/45 transition-transform ${
+                        sortOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </div>
+                </button>
+
+                {sortOpen && (
+                  <div className="absolute right-0 mt-2 w-full rounded-[22px] border border-gray-200 bg-white shadow-xl overflow-hidden z-30 dark:border-white/10 dark:bg-[#0B1220] dark:shadow-[0_18px_44px_rgba(0,0,0,0.28)]">
+                    <div className="border-b border-gray-100 px-3 py-2.5 dark:border-white/10">
+                      <p className="text-[11px] font-semibold text-gray-500 dark:text-white/45">
+                        Sort By
+                      </p>
+                    </div>
+
+                    <div className="p-2 space-y-1">
+                      {SORT_OPTIONS.map((option) => {
+                        const checked = sortBy === option;
+
+                        return (
+                          <button
+                            key={option}
+                            type="button"
+                            onClick={() => {
+                              setSortBy(option);
+                              setSortOpen(false);
+                            }}
+                            className={[
+                              "w-full flex items-start gap-3 rounded-2xl px-3 py-2.5 text-left transition",
+                              checked
+                                ? "bg-violet-50 border border-violet-200 dark:bg-violet-500/10 dark:border-violet-400/20"
+                                : "border border-transparent hover:bg-gray-50 dark:hover:bg-white/5",
+                            ].join(" ")}
+                          >
+                            <span
+                              className={[
+                                "mt-0.5 h-4.5 w-4.5 rounded-md border flex items-center justify-center shrink-0 transition",
+                                checked
+                                  ? "bg-violet-500 border-violet-500 text-white"
+                                  : "bg-white border-gray-300 text-transparent dark:bg-white/5 dark:border-white/20",
+                              ].join(" ")}
+                            >
+                              <FiCheck className="text-[10px]" />
+                            </span>
+
+                            <span className="min-w-0 flex-1">
+                              <span className="block text-[12px] font-medium text-gray-700 dark:text-white/80 wrap-break-word">
+                                {option}
+                              </span>
+                              <span className="mt-0.5 block text-[10px] text-gray-400 dark:text-white/35">
+                                {option === "Latest Updated"
+                                  ? "เรียงตามเวลาล่าสุด"
+                                  : option === "Highest Latest Risk"
+                                  ? "เรียงตาม latest risk สูงสุด"
+                                  : "เรียงตามความเปลี่ยนแปลงมากที่สุด"}
+                              </span>
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
+
             </div>
           </div>
 
-          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
-            <div className="relative">
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as SortType)}
-                className={[
-                  "appearance-none h-9 rounded-2xl px-3 pr-9 text-[12px] sm:text-[13px] outline-none transition w-full sm:w-auto",
-                  "border border-gray-200 bg-white text-gray-700 hover:bg-[#fafcff]",
-                  "dark:border-white/10 dark:bg-white/6 dark:text-white/80 dark:hover:bg-white/10",
-                ].join(" ")}
-                aria-label="Sort target differ"
-              >
-                <option>Latest Updated</option>
-                <option>Highest Latest Risk</option>
-                <option>Biggest Change</option>
-              </select>
-              <MdKeyboardArrowDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[18px] text-gray-400 dark:text-white/45" />
+          <div
+            className={[
+              "rounded-[18px] px-3.5 py-2.5 flex flex-wrap items-center gap-2.5",
+              "bg-slate-50 border border-slate-200/80",
+              "dark:bg-white/4 dark:border-white/10",
+            ].join(" ")}
+          >
+            <div className="inline-flex items-center gap-2">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-400 opacity-75" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-cyan-500" />
+              </span>
+              <span className="text-[11px] font-medium text-slate-700 dark:text-white/75">
+                Risk comparison telemetry active
+              </span>
             </div>
 
-            <button
-              type="button"
-              onClick={() => void fetchData("refresh")}
-              disabled={refreshing}
-              className={[
-                "inline-flex h-9 items-center justify-center gap-2 rounded-2xl px-3.5 text-[12px] font-semibold transition-all",
-                "border border-gray-200 bg-white text-[#3a3d4f] hover:bg-[#fafcff]",
-                "dark:border-white/10 dark:bg-white/6 dark:text-white/80 dark:hover:bg-white/10",
-                refreshing ? "cursor-not-allowed opacity-70" : "",
-              ].join(" ")}
-            >
-              <FiRefreshCw className={refreshing ? "animate-spin" : ""} />
-              Refresh
-            </button>
+            <div className="hidden sm:block h-4 w-px bg-slate-200 dark:bg-white/10" />
+
+            <div className="inline-flex items-center gap-2 text-[11px] text-slate-500 dark:text-white/50">
+              <FiActivity className="text-cyan-500 text-[12px]" />
+              Previous vs Latest risk score by task and host
+            </div>
+
+            {selectedCount > 0 && (
+              <>
+                <div className="hidden sm:block h-4 w-px bg-slate-200 dark:bg-white/10" />
+                <div className="inline-flex items-center gap-2 text-[11px] text-cyan-700 dark:text-cyan-300">
+                  <span className="inline-flex h-1.5 w-1.5 rounded-full bg-cyan-500" />
+                  Filtered by {selectedCount} selected target{selectedCount > 1 ? "s" : ""}
+                </div>
+              </>
+            )}
+
+            <div className="hidden sm:block h-4 w-px bg-slate-200 dark:bg-white/10" />
+
+            <div className="inline-flex items-center gap-2 text-[11px] text-violet-700 dark:text-violet-300">
+              <span className="inline-flex h-1.5 w-1.5 rounded-full bg-violet-500" />
+              Sort: {sortBy}
+            </div>
           </div>
         </div>
 
-        <div className="mb-4 grid grid-cols-2 gap-2.5 xl:grid-cols-4">
+        <div className="mb-4 mt-4 grid grid-cols-2 gap-2.5 xl:grid-cols-4">
           <div className="rounded-[18px] border border-gray-200/80 bg-linear-to-br from-white to-slate-50 p-3 dark:border-white/10 dark:bg-linear-to-br dark:from-white/8 dark:to-white/4">
             <p className="text-[9px] uppercase tracking-[0.14em] text-gray-400 dark:text-white/38">
               Targets

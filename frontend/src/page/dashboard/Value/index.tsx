@@ -11,6 +11,7 @@ import {
 } from "react-icons/fi";
 import { ConfigProvider, Select } from "antd";
 import type { SelectProps } from "antd";
+import { useNavigate } from "react-router-dom";
 
 import {
   ListTaskVulnSummary,
@@ -38,6 +39,8 @@ type StatCard = {
 };
 
 const Value: React.FC = () => {
+  const navigate = useNavigate();
+
   const [rows, setRows] = useState<TaskVulnSummaryDTO[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedTask, setSelectedTask] = useState<string>("all");
@@ -49,6 +52,7 @@ const Value: React.FC = () => {
       try {
         setLoading(true);
         const res = await ListTaskVulnSummary();
+        console.log(res);
         if (!alive) return;
         setRows(Array.isArray(res) ? res : []);
       } catch (error) {
@@ -328,6 +332,15 @@ const Value: React.FC = () => {
     [loading, totals]
   );
 
+  const handleNavigateByLevel = (level: SeverityKey) => {
+    navigate("/admin/vulnerability-by-level", {
+      state: {
+        level,
+        scopeTask: selectedTask,
+      },
+    });
+  };
+
   return (
     <section
       className={[
@@ -534,8 +547,8 @@ const Value: React.FC = () => {
                               background: isSelected
                                 ? "#cbd5e1"
                                 : isAll
-                                  ? "#cbd5e1"
-                                  : "#6366f1",
+                                ? "#cbd5e1"
+                                : "#6366f1",
                               flexShrink: 0,
                             }}
                           />
@@ -605,22 +618,25 @@ const Value: React.FC = () => {
                 item.title === "Critical"
                   ? totals.critical
                   : item.title === "High"
-                    ? totals.high
-                    : item.title === "Medium"
-                      ? totals.medium
-                      : item.title === "Low"
-                        ? totals.low
-                        : totals.info;
+                  ? totals.high
+                  : item.title === "Medium"
+                  ? totals.medium
+                  : item.title === "Low"
+                  ? totals.low
+                  : totals.info;
 
               const w = loading ? "0%" : barWidth(rawNumber);
 
               return (
-                <div
+                <button
                   key={item.id}
+                  type="button"
+                  onClick={() => handleNavigateByLevel(item.title)}
                   className={[
-                    "relative min-w-0 overflow-hidden rounded-2xl p-2 sm:p-2.5",
+                    "relative min-w-0 overflow-hidden rounded-2xl p-2 sm:p-2.5 text-left",
                     "text-slate-900 dark:text-white",
                     "transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-lg",
+                    "cursor-pointer",
                     item.bg,
                     item.ring,
                     item.glow,
@@ -718,7 +734,7 @@ const Value: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>

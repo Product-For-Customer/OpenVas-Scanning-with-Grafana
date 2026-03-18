@@ -6,7 +6,7 @@ import { TooltipComponent } from "@syncfusion/ej2-react-popups";
 import { Notification, UserProfile } from ".";
 import { useStateContext } from "../../contexts/ContextProvider";
 
-import { FiSearch, FiShield } from "react-icons/fi";
+import { FiSearch } from "react-icons/fi";
 import { HiOutlineMoon, HiOutlineSun } from "react-icons/hi2";
 
 type NavBtnProps = {
@@ -157,14 +157,6 @@ const Navbar: React.FC = () => {
                 <AiOutlineMenu className="text-[20px]" />
               </button>
             </TooltipComponent>
-
-            {/* status chip */}
-            <div className="hidden lg:flex items-center gap-2 shrink-0">
-              <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1.5 text-[11px] font-semibold text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-300">
-                <FiShield className="text-[12px]" />
-                Security Command
-              </div>
-            </div>
 
             {/* Search desktop */}
             <div

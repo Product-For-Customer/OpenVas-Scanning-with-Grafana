@@ -71,6 +71,7 @@ func main() {
 		authorized.GET("/vulnerabilities/detail/by-name", vulnerability.ListVulnerabilityDetailByName) // complete
 		authorized.GET("/vulnerabilities/:task_id", vulnerability.ListVulnerabilityByTaskID)           // complete
 		authorized.GET("/target-differ", vulnerability.ListTargetDiffer)
+		authorized.GET("/vulnerabilities/level/:level", vulnerability.ListVulnerabilityByLevel)
 
 		// ===== Protected Routes for Line Notify History Authorization =====
 		authorized.GET("/history-notifies", line.ListHistoryNotify)
