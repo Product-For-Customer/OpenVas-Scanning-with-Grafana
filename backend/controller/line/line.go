@@ -24,38 +24,12 @@ import (
 // =====================================================
 
 func getPGConnString() string {
-	// ใช้ DATABASE_URL จาก docker-compose/.env ก่อน
-	// ตัวอย่าง:
-	// DATABASE_URL=host=pg-gvm port=5432 user=pbi password=Pbi12345 dbname=gvmd sslmode=disable
 	dsn := strings.TrimSpace(os.Getenv("DATABASE_URL"))
 	if dsn != "" {
 		return dsn
 	}
 
-	// fallback สำหรับ dev/local
 	return "host=pg-gvm port=5432 user=pbi password=Pbi12345 dbname=gvmd sslmode=disable"
-}
-
-func getLineToken() string {
-	// รองรับหลายชื่อ env เผื่อคุณเปลี่ยนภายหลัง
-	if v := strings.TrimSpace(os.Getenv("LINE_CHANNEL_ACCESS_TOKEN")); v != "" {
-		return v
-	}
-	if v := strings.TrimSpace(os.Getenv("LINE_ACCESS_TOKEN")); v != "" {
-		return v
-	}
-	return ""
-}
-
-func getLineDefaultTo() string {
-	// userId / groupId / roomId
-	if v := strings.TrimSpace(os.Getenv("LINE_USER_ID")); v != "" {
-		return v
-	}
-	if v := strings.TrimSpace(os.Getenv("LINE_DEFAULT_TO")); v != "" {
-		return v
-	}
-	return ""
 }
 
 // =====================================================
@@ -72,15 +46,12 @@ type linePushRequest struct {
 	Messages []lineTextMessage `json:"messages"`
 }
 
-func sendLinePush(message string) error {
-	token := getLineToken()
-	to := getLineDefaultTo()
-
-	if token == "" {
-		return fmt.Errorf("LINE token is empty (set LINE_CHANNEL_ACCESS_TOKEN)")
+func sendLinePushTo(channelToken string, to string, message string) error {
+	if strings.TrimSpace(channelToken) == "" {
+		return fmt.Errorf("LINE token is empty")
 	}
-	if to == "" {
-		return fmt.Errorf("LINE destination is empty (set LINE_USER_ID or LINE_DEFAULT_TO)")
+	if strings.TrimSpace(to) == "" {
+		return fmt.Errorf("LINE destination is empty")
 	}
 
 	url := "https://api.line.me/v2/bot/message/push"
@@ -106,7 +77,7 @@ func sendLinePush(message string) error {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Authorization", "Bearer "+channelToken)
 
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)
@@ -121,7 +92,68 @@ func sendLinePush(message string) error {
 		return fmt.Errorf("line send failed: status=%s response=%s", resp.Status, string(body))
 	}
 
-	log.Println("✅ LINE Sent:", resp.Status, "Response:", string(body))
+	log.Println("✅ LINE Sent:", resp.Status, "To:", to, "Response:", string(body))
+	return nil
+}
+
+func sendLinePushToAllNotifications(message string) error {
+	db := config.DB()
+	if db == nil {
+		return fmt.Errorf("database connection is nil")
+	}
+
+	var notifications []entity.AppNotification
+	if err := db.
+		Preload("AppLineMaster").
+		Where("alert = ?", true).
+		Find(&notifications).Error; err != nil {
+		return fmt.Errorf("failed to query AppNotification: %w", err)
+	}
+
+	if len(notifications) == 0 {
+		log.Println("ℹ️ no AppNotification with alert = true")
+		return nil
+	}
+
+	var failed []string
+	successCount := 0
+
+	for _, notify := range notifications {
+		sendID := strings.TrimSpace(notify.SendID)
+		if sendID == "" {
+			log.Printf("⚠️ skip notification id=%d because send_id is empty\n", notify.ID)
+			failed = append(failed, fmt.Sprintf("id=%d send_id empty", notify.ID))
+			continue
+		}
+
+		if notify.AppLineMaster == nil {
+			log.Printf("⚠️ skip notification id=%d because AppLineMaster is nil\n", notify.ID)
+			failed = append(failed, fmt.Sprintf("id=%d no AppLineMaster", notify.ID))
+			continue
+		}
+
+		token := strings.TrimSpace(notify.AppLineMaster.Token)
+		if token == "" {
+			log.Printf("⚠️ skip notification id=%d because token is empty\n", notify.ID)
+			failed = append(failed, fmt.Sprintf("id=%d token empty", notify.ID))
+			continue
+		}
+
+		if err := sendLinePushTo(token, sendID, message); err != nil {
+			log.Printf("❌ sendLinePushTo failed id=%d send_id=%s error=%v\n", notify.ID, sendID, err)
+			failed = append(failed, fmt.Sprintf("id=%d send_id=%s err=%v", notify.ID, sendID, err))
+			continue
+		}
+
+		successCount++
+	}
+
+	log.Printf("✅ LINE notify done: success=%d failed=%d\n", successCount, len(failed))
+
+	if len(failed) > 0 {
+		return fmt.Errorf("some notifications failed: %s", strings.Join(failed, " | "))
+	}
+
 	return nil
 }
 
@@ -342,7 +374,6 @@ func StartLineStatusListener() {
 
 	listener := pq.NewListener(connStr, 5*time.Second, 30*time.Second, eventCallback)
 
-	// LISTEN channels ตาม trigger SQL ของคุณ
 	if err := listener.Listen("scan_started"); err != nil {
 		log.Println("❌ LISTEN scan_started failed:", err)
 		return
@@ -373,20 +404,19 @@ func StartLineStatusListener() {
 			description := buildScanHistoryDescription(n.Channel, n.Extra)
 			saveScanStatusHistory(subject, description)
 
-			// 2) ส่ง LINE ตามเดิม
+			// 2) ส่ง LINE ให้ทุกคนใน AppNotification ที่ Alert = true
 			message, err := buildScanStatusLineMessage(n.Channel, n.Extra)
 			if err != nil {
 				log.Println("❌ buildScanStatusLineMessage error:", err, "raw:", n.Extra)
 				continue
 			}
 
-			if err := sendLinePush(message); err != nil {
-				log.Println("❌ sendLinePush error:", err)
+			if err := sendLinePushToAllNotifications(message); err != nil {
+				log.Println("⚠️ sendLinePushToAllNotifications error:", err)
 				continue
 			}
 
 		case <-time.After(60 * time.Second):
-			// keep alive
 			if err := listener.Ping(); err != nil {
 				log.Println("⚠️ listener.Ping error:", err)
 			}
@@ -405,9 +435,9 @@ func TestSendLineHandler(c *gin.Context) {
 		message = "✅ Test message from OpenVAS backend"
 	}
 
-	if err := sendLinePush(message); err != nil {
+	if err := sendLinePushToAllNotifications(message); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"status":  "error",
+			"status":  "partial_or_error",
 			"message": err.Error(),
 		})
 		return
@@ -415,7 +445,7 @@ func TestSendLineHandler(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"status":  "success",
-		"message": "LINE message sent",
+		"message": "LINE message sent to all AppNotification with alert = true",
 		"data": gin.H{
 			"text": message,
 		},

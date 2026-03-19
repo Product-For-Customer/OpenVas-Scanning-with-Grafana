@@ -12,4 +12,6 @@ type AppLocation struct {
 
 	AppTargetID uint       `json:"app_target_id" valid:"required~AppTargetID is required"`
 	AppTarget   *AppTarget `gorm:"foreignKey:AppTargetID" json:"app_target,omitempty" valid:"-"`
+
+	AppGroups []AppGroup `gorm:"many2many:app_group_locations;" json:"app_groups,omitempty"`
 }

@@ -77,6 +77,7 @@ const UserRoutes = (): RouteObject[] => [
       { path: "vulnerability", element: <Vulnerability /> },
       { path: "vulnerability-by-device", element: <VulnerabilityByDevice /> },
       { path: "vulnerability-detail", element: <VulnerabilityDetail /> },
+      { path: "vulnerability-by-level", element: <VulnerabilityByLevel /> },
       { path: "service", element: <Service /> },
       { path: "capture-test", element: <CaptureTest /> },
       { path: "p.thor", element: <THOR /> },

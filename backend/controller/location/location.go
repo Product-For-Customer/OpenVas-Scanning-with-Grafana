@@ -607,3 +607,72 @@ func DeleteTargetByID(c *gin.Context) {
 		"message": "target deleted successfully",
 	})
 }
+
+// test group 
+
+type AppLocationResponse struct {
+	ID          uint              `json:"id"`
+	Location    string            `json:"location"`
+	Building    string            `json:"building"`
+	Floor       uint              `json:"floor"`
+	Latitude    float64           `json:"latitude"`
+	Longtitude  float64           `json:"longtitude"`
+	AppTargetID uint              `json:"app_target_id"`
+	AppTarget   *entity.AppTarget `json:"app_target,omitempty"`
+}
+
+type AppGroupResponse struct {
+	ID           uint                  `json:"id"`
+	GroupName    string                `json:"group_name"`
+	AppLocations []AppLocationResponse `json:"app_locations"`
+}
+
+func ListGropAndLocation(c *gin.Context) {
+	var groups []entity.AppGroup
+
+	db := config.DB()
+
+	err := db.
+		Preload("AppLocations").
+		Preload("AppLocations.AppTarget").
+		Find(&groups).Error
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status":  false,
+			"message": "Failed to fetch groups and locations",
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	result := make([]AppGroupResponse, 0, len(groups))
+
+	for _, group := range groups {
+		locationResponses := make([]AppLocationResponse, 0, len(group.AppLocations))
+
+		for _, location := range group.AppLocations {
+			locationResponses = append(locationResponses, AppLocationResponse{
+				ID:          location.ID,
+				Location:    location.Location,
+				Building:    location.Building,
+				Floor:       location.Floor,
+				Latitude:    location.Latitude,
+				Longtitude:  location.Longtitude,
+				AppTargetID: location.AppTargetID,
+				AppTarget:   location.AppTarget,
+			})
+		}
+
+		result = append(result, AppGroupResponse{
+			ID:           group.ID,
+			GroupName:    group.GroupName,
+			AppLocations: locationResponses,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status":  true,
+		"message": "Success",
+		"data":    result,
+	})
+}

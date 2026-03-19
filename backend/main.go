@@ -50,11 +50,15 @@ func main() {
 	// ==== Report Capture =====
 	r.GET("/automation/report/test-send", report.TriggerCaptureAndSendReport)
 
+	// test group
+	r.GET("/group-locations", location.ListGropAndLocation)
+
 	// ===== Public Routes =====
 	r.GET("/line/test", line.TestSendLineHandler)
 	r.POST("/automation/feed/update", automation.TriggerFeedUpdateHandler)
 	r.GET("/automation/feed/status", automation.GetFeedUpdateStatusHandler)
 	r.GET("/api/report", report.GetReportCSVSourceHandler)
+	r.POST("/line/webhook/notification", line.CreateAppNotificationByLine)
 
 	// ===== Protected Routes =====
 	authorized := r.Group("")

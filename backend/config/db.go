@@ -90,7 +90,9 @@ func SetupDatabase() {
 		&entity.AppStatusNotify{},
 		&entity.AppHistoryNotify{},
 		&entity.AppTarget{},
+		&entity.AppGroup{},
 		&entity.AppLocation{},
+		&entity.AppGroupLocation{},
 	)
 	if err != nil {
 		log.Fatalf("❌ AutoMigrate failed: %v", err)
@@ -227,15 +229,14 @@ func SeedDatabase() {
 	// =========================
 	notification1 := entity.AppNotification{
 		Name:            "Get on Technology",
-		SendID:          "U3af93a2f92b1048757172584d47571c8",
+		SendID:          "Ccce70e6ebcd7e88dfa9b4049b4a66ff2",
 		Alert:           true,
+		IsGroup:         true,
 		AppLineMasterID: lineMaster1.ID,
 	}
 
 	db.FirstOrCreate(&notification1, &entity.AppNotification{
-		Name:            notification1.Name,
-		SendID:          notification1.SendID,
-		AppLineMasterID: lineMaster1.ID,
+		SendID: notification1.SendID,
 	})
 
 	// =========================
@@ -272,6 +273,23 @@ func SeedDatabase() {
 	db.FirstOrCreate(&target3, &entity.AppTarget{
 		Name:       target3.Name,
 		MacAddress: target3.MacAddress,
+	})
+
+	// =========================
+	// Seed AppGroup
+	// =========================
+	group1 := entity.AppGroup{
+		GroupName: "Core Network",
+	}
+	db.FirstOrCreate(&group1, &entity.AppGroup{
+		GroupName: group1.GroupName,
+	})
+
+	group2 := entity.AppGroup{
+		GroupName: "Data Center",
+	}
+	db.FirstOrCreate(&group2, &entity.AppGroup{
+		GroupName: group2.GroupName,
 	})
 
 	// =========================
@@ -330,6 +348,12 @@ func SeedDatabase() {
 		Longtitude:  location3.Longtitude,
 		AppTargetID: target3.ID,
 	})
+
+	// group1 = Core Network
+	db.Model(&group1).Association("AppLocations").Append(&location1,&location2)
+
+	// group2 = Data Center
+	db.Model(&group2).Association("AppLocations").Append(&location3)
 
 	// =========================
 	// Seed Admin User
