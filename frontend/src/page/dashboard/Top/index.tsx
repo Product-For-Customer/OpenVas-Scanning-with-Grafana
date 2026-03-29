@@ -87,6 +87,8 @@ const TopPerforming: React.FC = () => {
   const [data, setData] = useState<AssetRiskDTO[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedTask, setSelectedTask] = useState<string>("all");
+  const [searchValue, setSearchValue] = useState<string>("");
+  const [open, setOpen] = useState<boolean>(false);
 
   useEffect(() => {
     let mounted = true;
@@ -134,14 +136,24 @@ const TopPerforming: React.FC = () => {
   }, [data]);
 
   const selectOptions: SelectProps["options"] = useMemo(() => {
-    return [
-      { value: "all", label: "All Tasks" },
-      ...taskOptions.map((task) => ({
-        value: task.task_name,
-        label: task.task_name,
-      })),
-    ];
-  }, [taskOptions]);
+    const deviceOptions = taskOptions.map((task) => ({
+      value: task.task_name,
+      label: task.task_name,
+    }));
+
+    if (searchValue.trim() !== "") {
+      return deviceOptions;
+    }
+
+    return [{ value: "all", label: "All" }, ...deviceOptions];
+  }, [taskOptions, searchValue]);
+
+  const displayedValue = useMemo(() => {
+    if (open && searchValue.trim() !== "") {
+      return undefined;
+    }
+    return selectedTask;
+  }, [open, searchValue, selectedTask]);
 
   const filteredData = useMemo(() => {
     const list = Array.isArray(data) ? data : [];
@@ -150,7 +162,6 @@ const TopPerforming: React.FC = () => {
       (item) => String((item as any).task_name ?? "") === selectedTask
     );
   }, [data, selectedTask]);
-
 
   const summary = useMemo(() => {
     const list = filteredData;
@@ -225,12 +236,10 @@ const TopPerforming: React.FC = () => {
               >
                 <FiShield className="text-[14px]" />
                 <span className="text-[12px] font-semibold tracking-wide">
-                  Average Risk Score
+                  Risk Score
                 </span>
               </div>
             </div>
-
-            
           </div>
 
           <div className="w-full sm:w-auto flex flex-col items-stretch sm:items-end gap-3">
@@ -246,6 +255,8 @@ const TopPerforming: React.FC = () => {
                       "0 16px 40px -20px rgba(15,23,42,0.12)",
                     colorText: "#334155",
                     colorTextPlaceholder: "#94a3b8",
+                    controlHeightLG: 42,
+                    fontSize: 13,
                   },
                   components: {
                     Select: {
@@ -260,13 +271,34 @@ const TopPerforming: React.FC = () => {
               >
                 <div className="relative w-full sm:min-w-50">
                   <Select
-                    value={selectedTask}
-                    onChange={(value) => setSelectedTask(value)}
+                    value={displayedValue}
+                    open={open}
+                    onOpenChange={(nextOpen) => {
+                      setOpen(nextOpen);
+                      if (!nextOpen) {
+                        setSearchValue("");
+                      }
+                    }}
+                    onChange={(value) => {
+                      setSelectedTask(value);
+                      setSearchValue("");
+                      setOpen(false);
+                    }}
                     options={selectOptions}
                     popupMatchSelectWidth
-                    showSearch={false}
+                    showSearch
+                    searchValue={searchValue}
+                    onSearch={(value) => setSearchValue(value)}
+                    optionFilterProp="label"
+                    filterOption={(input, option) => {
+                      const label = String(option?.label ?? "").toLowerCase();
+                      return label.includes(input.toLowerCase());
+                    }}
                     size="large"
                     variant="outlined"
+                    listHeight={176}
+                    notFoundContent="No task found"
+                    placeholder="Filter Task"
                     suffixIcon={
                       <span
                         style={{
@@ -363,17 +395,23 @@ const TopPerforming: React.FC = () => {
                         </div>
                       );
                     }}
-                    labelRender={(props) => (
-                      <span
-                        style={{
-                          color: "#334155",
-                          fontSize: 13,
-                          fontWeight: 500,
-                        }}
-                      >
-                        {props.label}
-                      </span>
-                    )}
+                    labelRender={(props) => {
+                      if (open && searchValue.trim() !== "") {
+                        return <span />;
+                      }
+
+                      return (
+                        <span
+                          style={{
+                            color: "#334155",
+                            fontSize: 13,
+                            fontWeight: 500,
+                          }}
+                        >
+                          {props.value === "all" ? "All" : props.label}
+                        </span>
+                      );
+                    }}
                   />
 
                   <div

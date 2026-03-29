@@ -446,7 +446,7 @@ const AverageEnrollment: React.FC = () => {
   const selectedCount = selectedKeys.length;
 
   const dropdownButtonLabel = useMemo(() => {
-    if (selectedCount === 0) return "Query Select";
+    if (selectedCount === 0) return "Filter Device";
     if (selectedCount === 1) {
       const found = filterOptions.find((x) => x.key === selectedKeys[0]);
       return found?.label || "1 selected";
@@ -596,7 +596,7 @@ const AverageEnrollment: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="max-h-64 overflow-y-auto p-2">
+                    <div className="max-h-62 overflow-y-auto overscroll-contain p-2 pr-1">
                       {filteredOptions.length === 0 ? (
                         <div className="px-3 py-7 text-center text-[12px] text-gray-500 dark:text-white/50">
                           No matching task / host

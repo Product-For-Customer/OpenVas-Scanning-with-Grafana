@@ -1,10 +1,12 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type { ReactNode } from "react";
-import {
-  FiShield,
-  FiCpu,
-  FiAlertTriangle,
-} from "react-icons/fi";
+import { FiShield, FiCpu, FiAlertTriangle } from "react-icons/fi";
 import { ConfigProvider, Select } from "antd";
 import type { SelectProps } from "antd";
 import { ListAssetRisk, type AssetRiskDTO } from "../../../services";
@@ -94,6 +96,14 @@ const Social: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [selectedTask, setSelectedTask] = useState<string>("all");
 
+  const summaryBlockRef = useRef<HTMLDivElement | null>(null);
+  const firstTargetRef = useRef<HTMLDivElement | null>(null);
+  const secondTargetRef = useRef<HTMLDivElement | null>(null);
+
+  const [scrollMaxHeight, setScrollMaxHeight] = useState<number | undefined>(
+    undefined
+  );
+
   useEffect(() => {
     let mounted = true;
 
@@ -173,12 +183,7 @@ const Social: React.FC = () => {
         : list.reduce((sum, x) => sum + (Number(x.risk_score) || 0), 0) /
           taskCount;
 
-    const maxRisk = list.reduce(
-      (m, x) => Math.max(m, Number(x.risk_score) || 0),
-      0
-    );
-
-    return { taskCount, totalVuln, avgRisk, maxRisk };
+    return { taskCount, totalVuln, avgRisk };
   }, [filteredData]);
 
   const rows: RowItem[] = useMemo(() => {
@@ -281,6 +286,16 @@ const Social: React.FC = () => {
     return [...summaryRows, ...taskRows];
   }, [filteredData, summary]);
 
+  const summaryRows = useMemo(
+    () => rows.filter((item) => item.rowType === "summary"),
+    [rows]
+  );
+
+  const taskRows = useMemo(
+    () => rows.filter((item) => item.rowType === "task"),
+    [rows]
+  );
+
   const criticalAssets = useMemo(() => {
     return filteredData.filter((x) => (Number(x.risk_score) || 0) >= 8).length;
   }, [filteredData]);
@@ -293,6 +308,144 @@ const Social: React.FC = () => {
     }
     return "Live asset exposure summary from latest scan results";
   }, [loading, filteredData, criticalAssets]);
+
+  const isAllMode = selectedTask === "all";
+  const shouldScrollInAllMode = isAllMode && taskRows.length > 2;
+
+  useLayoutEffect(() => {
+    const updateScrollHeight = () => {
+      if (!shouldScrollInAllMode) {
+        setScrollMaxHeight(undefined);
+        return;
+      }
+
+      const summaryHeight = summaryBlockRef.current?.offsetHeight ?? 0;
+      const firstHeight = firstTargetRef.current?.offsetHeight ?? 0;
+      const secondHeight = secondTargetRef.current?.offsetHeight ?? 0;
+
+      setScrollMaxHeight(summaryHeight + firstHeight + secondHeight);
+    };
+
+    updateScrollHeight();
+
+    const timer = window.setTimeout(updateScrollHeight, 0);
+    window.addEventListener("resize", updateScrollHeight);
+
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("resize", updateScrollHeight);
+    };
+  }, [shouldScrollInAllMode, taskRows.length, selectedTask, rows]);
+
+  const renderRow = (s: RowItem, ref?: React.Ref<HTMLDivElement>) => {
+    const tone =
+      s.rowType === "task" ? getRiskTone(Number(s.riskValue || 0)) : null;
+
+    return (
+      <div
+        ref={ref}
+        key={s.id}
+        className={[
+          "rounded-2xl px-3 sm:px-3.5 py-2.5 flex items-center gap-2.5 transition-all duration-200",
+          s.rowType === "summary"
+            ? "border border-cyan-100 bg-cyan-50/60 dark:border-cyan-400/15 dark:bg-cyan-500/5"
+            : "border border-gray-200/80 bg-white hover:shadow-sm dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/[0.07]",
+        ].join(" ")}
+      >
+        <div
+          className={[
+            "h-9.5 w-9.5 rounded-2xl flex items-center justify-center shrink-0 border",
+            s.rowType === "summary"
+              ? "border-cyan-200/80 bg-white dark:border-cyan-400/15 dark:bg-white/10"
+              : "border-gray-200/80 bg-[#fbfbfc] dark:border-white/10 dark:bg-white/8",
+          ].join(" ")}
+        >
+          {s.rowType === "task" ? (
+            <div className="flex flex-col items-center justify-center">
+              <FiCpu className="text-[12px] text-cyan-500 mb-0.5" />
+              {s.icon}
+            </div>
+          ) : (
+            s.icon
+          )}
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="truncate text-[12px] sm:text-[13px] font-medium text-[#1f2240] dark:text-white/85">
+              {s.name}
+            </p>
+
+            {s.rowType === "task" && tone ? (
+              <span
+                className={[
+                  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-semibold border",
+                  tone.chip,
+                ].join(" ")}
+              >
+                <span className={`h-1.5 w-1.5 rounded-full ${tone.dot}`} />
+                {tone.label}
+              </span>
+            ) : null}
+          </div>
+
+          {typeof s.percent === "number" && tone && (
+            <div className="mt-1.5">
+              <div className="h-2 rounded-full bg-[#eef0f6] dark:bg-white/10 overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-300"
+                  style={{
+                    width: `${s.percent}%`,
+                    background: tone.bar,
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {s.rowType === "summary" ? (
+            <p className="mt-1 text-[10px] text-gray-500 dark:text-white/45">
+              Security summary from latest imported asset dataset
+            </p>
+          ) : (
+            <p className="mt-1 text-[10px] text-gray-500 dark:text-white/45 truncate">
+              Host: {s.subName || "-"}
+            </p>
+          )}
+        </div>
+
+        <div className="shrink-0 flex items-center gap-3 sm:gap-5">
+          <div className="w-13 sm:w-16 text-right">
+            <p className="text-[10px] text-gray-400 dark:text-white/40">
+              {s.rowType === "summary" ? "Value" : "Vulns"}
+            </p>
+            <p className="text-[12px] sm:text-[13px] font-semibold text-[#1f2240] dark:text-white/85 tabular-nums">
+              {s.valueLeft}
+            </p>
+          </div>
+
+          {s.valueRight !== "" && (
+            <div className="w-13 sm:w-16 text-right">
+              <p className="text-[10px] text-gray-400 dark:text-white/40">
+                Risk
+              </p>
+              <p
+                className={`text-[12px] sm:text-[13px] font-semibold tabular-nums ${
+                  tone ? tone.text : "text-[#1f2240] dark:text-white/85"
+                }`}
+              >
+                {s.valueRight}
+              </p>
+            </div>
+          )}
+
+          {s.rowType === "task" && Number(s.riskValue || 0) >= 8 ? (
+            <FiAlertTriangle className="shrink-0 text-red-500 text-[14px]" />
+          ) : null}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <section
@@ -503,7 +656,7 @@ const Social: React.FC = () => {
           </div>
         </div>
 
-        <div className="mt-3.5 space-y-2.5 flex-1">
+        <div className="mt-3.5 flex-1 min-h-0">
           {loading ? (
             <div className="space-y-2.5">
               {Array.from({ length: 6 }).map((_, i) => (
@@ -537,116 +690,27 @@ const Social: React.FC = () => {
               No Data
             </div>
           ) : (
-            rows.map((s) => {
-              const tone =
-                s.rowType === "task"
-                  ? getRiskTone(Number(s.riskValue || 0))
-                  : null;
+            <div
+              className={[
+                "pr-1 space-y-2.5",
+                shouldScrollInAllMode ? "overflow-y-auto" : "overflow-visible",
+              ].join(" ")}
+              style={
+                shouldScrollInAllMode && scrollMaxHeight
+                  ? { maxHeight: `${scrollMaxHeight}px` }
+                  : undefined
+              }
+            >
+              <div ref={summaryBlockRef} className="space-y-2.5">
+                {summaryRows.map((s) => renderRow(s))}
+              </div>
 
-              return (
-                <div
-                  key={s.id}
-                  className={[
-                    "rounded-2xl px-3 sm:px-3.5 py-2.5 flex items-center gap-2.5 transition-all duration-200",
-                    s.rowType === "summary"
-                      ? "border border-cyan-100 bg-cyan-50/60 dark:border-cyan-400/15 dark:bg-cyan-500/5"
-                      : "border border-gray-200/80 bg-white hover:shadow-sm dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/[0.07]",
-                  ].join(" ")}
-                >
-                  <div
-                    className={[
-                      "h-9.5 w-9.5 rounded-2xl flex items-center justify-center shrink-0 border",
-                      s.rowType === "summary"
-                        ? "border-cyan-200/80 bg-white dark:border-cyan-400/15 dark:bg-white/10"
-                        : "border-gray-200/80 bg-[#fbfbfc] dark:border-white/10 dark:bg-white/8",
-                    ].join(" ")}
-                  >
-                    {s.rowType === "task" ? (
-                      <div className="flex flex-col items-center justify-center">
-                        <FiCpu className="text-[12px] text-cyan-500 mb-0.5" />
-                        {s.icon}
-                      </div>
-                    ) : (
-                      s.icon
-                    )}
-                  </div>
-
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="truncate text-[12px] sm:text-[13px] font-medium text-[#1f2240] dark:text-white/85">
-                        {s.name}
-                      </p>
-
-                      {s.rowType === "task" && tone ? (
-                        <span
-                          className={[
-                            "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-semibold border",
-                            tone.chip,
-                          ].join(" ")}
-                        >
-                          <span className={`h-1.5 w-1.5 rounded-full ${tone.dot}`} />
-                          {tone.label}
-                        </span>
-                      ) : null}
-                    </div>
-
-                    {typeof s.percent === "number" && tone && (
-                      <div className="mt-1.5">
-                        <div className="h-2 rounded-full bg-[#eef0f6] dark:bg-white/10 overflow-hidden">
-                          <div
-                            className="h-full rounded-full transition-all duration-300"
-                            style={{
-                              width: `${s.percent}%`,
-                              background: tone.bar,
-                            }}
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {s.rowType === "summary" ? (
-                      <p className="mt-1 text-[10px] text-gray-500 dark:text-white/45">
-                        Security summary from latest imported asset dataset
-                      </p>
-                    ) : (
-                      <p className="mt-1 text-[10px] text-gray-500 dark:text-white/45 truncate">
-                        Host: {s.subName || "-"}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="shrink-0 flex items-center gap-3 sm:gap-5">
-                    <div className="w-13 sm:w-16 text-right">
-                      <p className="text-[10px] text-gray-400 dark:text-white/40">
-                        {s.rowType === "summary" ? "Value" : "Vulns"}
-                      </p>
-                      <p className="text-[12px] sm:text-[13px] font-semibold text-[#1f2240] dark:text-white/85 tabular-nums">
-                        {s.valueLeft}
-                      </p>
-                    </div>
-
-                    {s.valueRight !== "" && (
-                      <div className="w-13 sm:w-16 text-right">
-                        <p className="text-[10px] text-gray-400 dark:text-white/40">
-                          Risk
-                        </p>
-                        <p
-                          className={`text-[12px] sm:text-[13px] font-semibold tabular-nums ${
-                            tone ? tone.text : "text-[#1f2240] dark:text-white/85"
-                          }`}
-                        >
-                          {s.valueRight}
-                        </p>
-                      </div>
-                    )}
-
-                    {s.rowType === "task" && Number(s.riskValue || 0) >= 8 ? (
-                      <FiAlertTriangle className="shrink-0 text-red-500 text-[14px]" />
-                    ) : null}
-                  </div>
-                </div>
-              );
-            })
+              {taskRows.map((s, index) => {
+                if (index === 0) return renderRow(s, firstTargetRef);
+                if (index === 1) return renderRow(s, secondTargetRef);
+                return renderRow(s);
+              })}
+            </div>
           )}
         </div>
       </div>

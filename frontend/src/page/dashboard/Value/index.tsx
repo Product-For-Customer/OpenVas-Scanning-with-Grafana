@@ -44,6 +44,8 @@ const Value: React.FC = () => {
   const [rows, setRows] = useState<TaskVulnSummaryDTO[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedTask, setSelectedTask] = useState<string>("all");
+  const [searchValue, setSearchValue] = useState<string>("");
+  const [open, setOpen] = useState<boolean>(false);
 
   useEffect(() => {
     let alive = true;
@@ -90,14 +92,24 @@ const Value: React.FC = () => {
   }, [rows]);
 
   const selectOptions: SelectProps["options"] = useMemo(() => {
-    return [
-      { value: "all", label: "All Tasks" },
-      ...taskOptions.map((task) => ({
-        value: task.task_name,
-        label: task.task_name,
-      })),
-    ];
-  }, [taskOptions]);
+    const deviceOptions = taskOptions.map((task) => ({
+      value: task.task_name,
+      label: task.task_name,
+    }));
+
+    if (searchValue.trim() !== "") {
+      return deviceOptions;
+    }
+
+    return [{ value: "all", label: "All" }, ...deviceOptions];
+  }, [taskOptions, searchValue]);
+
+  const displayedValue = useMemo(() => {
+    if (open && searchValue.trim() !== "") {
+      return undefined;
+    }
+    return selectedTask;
+  }, [open, searchValue, selectedTask]);
 
   const filteredRows = useMemo(() => {
     if (selectedTask === "all") return rows;
@@ -465,13 +477,34 @@ const Value: React.FC = () => {
               >
                 <div className="relative w-full xl:min-w-55">
                   <Select
-                    value={selectedTask}
-                    onChange={(value) => setSelectedTask(value)}
+                    value={displayedValue}
+                    open={open}
+                    onOpenChange={(nextOpen) => {
+                      setOpen(nextOpen);
+                      if (!nextOpen) {
+                        setSearchValue("");
+                      }
+                    }}
+                    onChange={(value) => {
+                      setSelectedTask(value);
+                      setSearchValue("");
+                      setOpen(false);
+                    }}
                     options={selectOptions}
                     popupMatchSelectWidth
-                    showSearch={false}
+                    showSearch
+                    searchValue={searchValue}
+                    onSearch={(value) => setSearchValue(value)}
+                    optionFilterProp="label"
+                    filterOption={(input, option) => {
+                      const label = String(option?.label ?? "").toLowerCase();
+                      return label.includes(input.toLowerCase());
+                    }}
                     size="large"
                     variant="outlined"
+                    listHeight={132}
+                    notFoundContent="No device found"
+                    placeholder="Filter Device"
                     suffixIcon={
                       <span
                         style={{
@@ -567,17 +600,23 @@ const Value: React.FC = () => {
                         </div>
                       );
                     }}
-                    labelRender={(props) => (
-                      <span
-                        style={{
-                          color: "#334155",
-                          fontSize: 11,
-                          fontWeight: 500,
-                        }}
-                      >
-                        {props.label}
-                      </span>
-                    )}
+                    labelRender={(props) => {
+                      if (open && searchValue.trim() !== "") {
+                        return <span />;
+                      }
+
+                      return (
+                        <span
+                          style={{
+                            color: "#334155",
+                            fontSize: 11,
+                            fontWeight: 500,
+                          }}
+                        >
+                          {props.value === "all" ? "All" : props.label}
+                        </span>
+                      );
+                    }}
                   />
 
                   <div
