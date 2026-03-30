@@ -13,7 +13,6 @@ import {
   FiTrash2,
   FiX,
   FiAlertTriangle,
-  FiLayers,
   FiHome,
   FiHash,
   FiPlus,
@@ -28,11 +27,11 @@ import {
   DeleteLocationByID,
   CreateLocation as CreateLocationService,
   UpdateLocationByID as UpdateLocationByIDService,
-  ListAppTarget,
+  ListTaskIDForOwn,
   type LocationResponse,
-  type AppTargetResponse,
   type CreateLocationInput,
   type UpdateLocationInput,
+  type OwnTargetItem,
 } from "../../../services";
 
 type DeviceStatus = "online" | "offline" | "warning";
@@ -40,7 +39,6 @@ type DeviceStatus = "online" | "offline" | "warning";
 type Device = {
   id: number;
   device_name: string;
-  macc: string;
   lat: number;
   lng: number;
   ip: string;
@@ -49,7 +47,7 @@ type Device = {
   floor: number;
   status: DeviceStatus;
   lastSeen: string;
-  app_target_id: number;
+  target_id: string;
 };
 
 type LocationFormState = {
@@ -58,7 +56,7 @@ type LocationFormState = {
   floor: string;
   latitude: string;
   longtitude: string;
-  app_target_id: string;
+  target_id: string;
 };
 
 const MAP_STYLE =
@@ -70,7 +68,7 @@ const emptyForm: LocationFormState = {
   floor: "",
   latitude: "",
   longtitude: "",
-  app_target_id: "",
+  target_id: "",
 };
 
 const getGoogleMapsLink = (lat: number, lng: number) =>
@@ -90,10 +88,11 @@ const getStatusColor = (status: DeviceStatus) => {
 };
 
 const deriveStatus = (item: LocationResponse): DeviceStatus => {
-  const targetName = (item.app_target?.name || "").toLowerCase();
-  const ip = (item.app_target?.ip_host || "").trim();
+  const targetName = (item.target_info?.hostname || "").toLowerCase();
+  const ip = (item.target_info?.ip || "").trim();
 
   if (!ip) return "offline";
+
   if (
     targetName.includes("firewall") ||
     targetName.includes("server") ||
@@ -162,7 +161,7 @@ type TargetSelectorProps = {
   label: string;
   value: string;
   onChange: (value: string) => void;
-  options: AppTargetResponse[];
+  options: OwnTargetItem[];
   loading?: boolean;
   placeholder?: string;
 };
@@ -173,7 +172,7 @@ const TargetSelector: React.FC<TargetSelectorProps> = ({
   onChange,
   options,
   loading = false,
-  placeholder = "Select App Target",
+  placeholder = "Select Target",
 }) => {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement | null>(null);
@@ -191,7 +190,7 @@ const TargetSelector: React.FC<TargetSelectorProps> = ({
   }, []);
 
   const selectedTarget = useMemo(() => {
-    return options.find((t) => String(t.id) === value) || null;
+    return options.find((t) => String(t.task_id) === value) || null;
   }, [options, value]);
 
   return (
@@ -215,8 +214,8 @@ const TargetSelector: React.FC<TargetSelectorProps> = ({
             {loading
               ? "Loading targets..."
               : selectedTarget
-                ? `${selectedTarget.name}${
-                    selectedTarget.ip_host ? ` (${selectedTarget.ip_host})` : ""
+                ? `${selectedTarget.hostname}${
+                    selectedTarget.ip ? ` (${selectedTarget.ip})` : ""
                   }`
                 : placeholder}
           </span>
@@ -234,18 +233,18 @@ const TargetSelector: React.FC<TargetSelectorProps> = ({
           <div className="max-h-56 overflow-y-auto py-1">
             {!loading && options.length === 0 && (
               <div className="px-3.5 py-3 text-[12px] text-slate-500 dark:text-white/50">
-                No app target found
+                No target found
               </div>
             )}
 
             {options.map((target) => {
-              const active = String(target.id) === value;
+              const active = String(target.task_id) === value;
               return (
                 <button
-                  key={target.id}
+                  key={`${target.own_id}-${target.task_id}`}
                   type="button"
                   onClick={() => {
-                    onChange(String(target.id));
+                    onChange(String(target.task_id));
                     setOpen(false);
                   }}
                   className={[
@@ -256,10 +255,9 @@ const TargetSelector: React.FC<TargetSelectorProps> = ({
                   ].join(" ")}
                 >
                   <div className="flex flex-col">
-                    <span className="truncate">{target.name}</span>
+                    <span className="truncate">{target.hostname || "-"}</span>
                     <span className="mt-0.5 text-[10px] text-slate-400 dark:text-white/40">
-                      {target.ip_host || "-"}{" "}
-                      {target.mac_address ? `• ${target.mac_address}` : ""}
+                      {target.ip || "-"} • {target.task_id}
                     </span>
                   </div>
                 </button>
@@ -275,7 +273,7 @@ const TargetSelector: React.FC<TargetSelectorProps> = ({
 type MultiTargetSelectorProps = {
   values: string[];
   onChange: (values: string[]) => void;
-  options: AppTargetResponse[];
+  options: OwnTargetItem[];
   loading?: boolean;
 };
 
@@ -301,26 +299,26 @@ const MultiTargetSelector: React.FC<MultiTargetSelectorProps> = ({
   }, []);
 
   const selectedTargets = useMemo(() => {
-    return options.filter((t) => values.includes(String(t.id)));
+    return options.filter((t) => values.includes(String(t.task_id)));
   }, [options, values]);
 
-  const toggleValue = (id: string) => {
-    if (values.includes(id)) {
-      onChange(values.filter((v) => v !== id));
+  const toggleValue = (taskID: string) => {
+    if (values.includes(taskID)) {
+      onChange(values.filter((v) => v !== taskID));
     } else {
-      onChange([...values, id]);
+      onChange([...values, taskID]);
     }
   };
 
   const clearAll = () => onChange([]);
-  const selectAll = () => onChange(options.map((t) => String(t.id)));
+  const selectAll = () => onChange(options.map((t) => String(t.task_id)));
 
   const label = useMemo(() => {
     if (loading) return "Loading targets...";
     if (selectedTargets.length === 0) return "Query by Target";
     if (selectedTargets.length === 1) {
       const target = selectedTargets[0];
-      return `${target.name}${target.ip_host ? ` (${target.ip_host})` : ""}`;
+      return `${target.hostname}${target.ip ? ` (${target.ip})` : ""}`;
     }
     return `${selectedTargets.length} targets selected`;
   }, [loading, selectedTargets]);
@@ -376,18 +374,18 @@ const MultiTargetSelector: React.FC<MultiTargetSelectorProps> = ({
           <div className="max-h-60 overflow-y-auto py-1">
             {!loading && options.length === 0 && (
               <div className="px-3.5 py-3 text-[12px] text-slate-500 dark:text-white/50">
-                No app target found
+                No target found
               </div>
             )}
 
             {options.map((target) => {
-              const checked = values.includes(String(target.id));
+              const checked = values.includes(String(target.task_id));
 
               return (
                 <button
-                  key={target.id}
+                  key={`${target.own_id}-${target.task_id}`}
                   type="button"
-                  onClick={() => toggleValue(String(target.id))}
+                  onClick={() => toggleValue(String(target.task_id))}
                   className={[
                     "flex w-full items-start gap-3 px-3.5 py-2.5 text-left text-[12px] transition",
                     checked
@@ -415,11 +413,10 @@ const MultiTargetSelector: React.FC<MultiTargetSelectorProps> = ({
                           : "text-slate-700 dark:text-white/75",
                       ].join(" ")}
                     >
-                      {target.name}
+                      {target.hostname || "-"}
                     </span>
                     <span className="mt-0.5 block truncate text-[10px] text-slate-400 dark:text-white/40">
-                      {target.ip_host || "-"}{" "}
-                      {target.mac_address ? `• ${target.mac_address}` : ""}
+                      {target.ip || "-"} • {target.task_id}
                     </span>
                   </span>
                 </button>
@@ -432,10 +429,111 @@ const MultiTargetSelector: React.FC<MultiTargetSelectorProps> = ({
   );
 };
 
+const MapPopupCard: React.FC<{
+  device: Device;
+  onClose: () => void;
+}> = ({ device, onClose }) => {
+  return (
+    <div className="absolute bottom-3 left-3 right-3 z-120 md:right-auto md:w-85">
+      <div
+        className={[
+          "overflow-hidden rounded-[18px] backdrop-blur",
+          "border border-white/70 bg-white/92 shadow-xl",
+          "dark:border-white/10 dark:bg-[#0d1524]/92 dark:shadow-none",
+        ].join(" ")}
+      >
+        <div className="border-b border-slate-200 px-3.5 py-2.5 dark:border-white/10">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="truncate text-[13px] font-semibold text-slate-900 dark:text-white/90">
+                {device.device_name}
+              </p>
+              <p className="mt-1 text-[10px] text-slate-500 dark:text-white/45">
+                Last seen: {device.lastSeen}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span
+                className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-medium text-white"
+                style={{ backgroundColor: getStatusColor(device.status) }}
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-white/90" />
+                {device.status}
+              </span>
+
+              <button
+                type="button"
+                onClick={onClose}
+                className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-500 transition hover:bg-slate-200 dark:bg-white/5 dark:text-white/60 dark:hover:bg-white/10"
+                title="Close"
+              >
+                <FiX className="text-[13px]" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-2 p-3">
+          <div className="rounded-[14px] border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-white/5">
+            <div className="flex items-center gap-2 text-[11px] font-medium text-slate-700 dark:text-white/75">
+              <FiHash />
+              Task ID
+            </div>
+            <p className="mt-1.5 break-all text-[12px] text-slate-600 dark:text-white/65">
+              {device.target_id}
+            </p>
+          </div>
+
+          <div className="rounded-[14px] border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-white/5">
+            <div className="flex items-center gap-2 text-[11px] font-medium text-slate-700 dark:text-white/75">
+              <FiNavigation />
+              IP Address
+            </div>
+            <p className="mt-1.5 text-[12px] text-slate-600 dark:text-white/65">
+              {device.ip}
+            </p>
+          </div>
+
+          <div className="rounded-[14px] border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-white/5">
+            <div className="flex items-center gap-2 text-[11px] font-medium text-slate-700 dark:text-white/75">
+              <FiMapPin />
+              Location
+            </div>
+            <p className="mt-1.5 text-[12px] text-slate-600 dark:text-white/65">
+              {device.location}
+            </p>
+          </div>
+
+          <div className="rounded-[14px] border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-white/5">
+            <div className="flex items-center gap-2 text-[11px] font-medium text-slate-700 dark:text-white/75">
+              <FiHome />
+              Building / Floor
+            </div>
+            <p className="mt-1.5 text-[12px] text-slate-600 dark:text-white/65">
+              {device.building} / Floor {device.floor}
+            </p>
+          </div>
+
+          <a
+            href={getGoogleMapsLink(device.lat, device.lng)}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-2xl bg-[#6d5efc] px-4 text-[12px] font-medium text-white transition hover:bg-[#5f51eb]"
+          >
+            <FiExternalLink className="text-[13px]" />
+            Open in Google Maps
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const MapDevice: React.FC = () => {
   const [search, setSearch] = useState("");
   const [rows, setRows] = useState<Device[]>([]);
-  const [targets, setTargets] = useState<AppTargetResponse[]>([]);
+  const [targets, setTargets] = useState<OwnTargetItem[]>([]);
   const [selectedTargetIds, setSelectedTargetIds] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [loadingTargets, setLoadingTargets] = useState<boolean>(true);
@@ -471,7 +569,7 @@ const MapDevice: React.FC = () => {
         return;
       }
 
-      const mapped: Device[] = (data as LocationResponse[])
+      const mapped: Device[] = data
         .filter(
           (item) =>
             typeof item.latitude === "number" &&
@@ -479,17 +577,19 @@ const MapDevice: React.FC = () => {
         )
         .map((item) => ({
           id: item.id,
-          device_name: item.app_target?.name || `Target #${item.app_target_id}`,
-          macc: item.app_target?.mac_address || "-",
+          device_name:
+            item.target_info?.hostname ||
+            item.target_id ||
+            `Location #${item.id}`,
           lat: item.latitude,
           lng: item.longtitude,
-          ip: item.app_target?.ip_host || "-",
+          ip: item.target_info?.ip || "-",
           location: item.location || "-",
           building: item.building || "-",
           floor: Number(item.floor ?? 0),
           status: deriveStatus(item),
           lastSeen: formatUpdatedAt(item.updated_at),
-          app_target_id: Number(item.app_target_id ?? 0),
+          target_id: String(item.target_id ?? ""),
         }));
 
       setRows(mapped);
@@ -498,7 +598,7 @@ const MapDevice: React.FC = () => {
           const found = mapped.find((d) => d.id === prev.id);
           return found ?? null;
         }
-        return mapped.length > 0 ? mapped[0] : null;
+        return null;
       });
     } catch (e) {
       console.error("fetchLocations error:", e);
@@ -512,12 +612,8 @@ const MapDevice: React.FC = () => {
   const fetchTargets = async () => {
     try {
       setLoadingTargets(true);
-      const data = await ListAppTarget();
-      if (!data) {
-        setTargets([]);
-        return;
-      }
-      setTargets(data);
+      const data = await ListTaskIDForOwn();
+      setTargets(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error("fetchTargets error:", e);
       setTargets([]);
@@ -537,15 +633,15 @@ const MapDevice: React.FC = () => {
     return rows.filter((device) => {
       const matchTarget =
         selectedTargetIds.length === 0 ||
-        selectedTargetIds.includes(String(device.app_target_id));
+        selectedTargetIds.includes(String(device.target_id));
 
       const blob = [
         device.device_name,
-        device.macc,
         device.ip,
         device.location,
         device.building,
         String(device.floor),
+        device.target_id,
       ]
         .join(" ")
         .toLowerCase();
@@ -560,7 +656,7 @@ const MapDevice: React.FC = () => {
     if (!selectedDevice) return;
     const stillExists = filteredDevices.find((d) => d.id === selectedDevice.id);
     if (!stillExists) {
-      setSelectedDevice(filteredDevices.length > 0 ? filteredDevices[0] : null);
+      setSelectedDevice(null);
     }
   }, [filteredDevices, selectedDevice]);
 
@@ -652,7 +748,7 @@ const MapDevice: React.FC = () => {
         floor: Number(createForm.floor),
         latitude: Number(createForm.latitude),
         longtitude: Number(createForm.longtitude),
-        app_target_id: Number(createForm.app_target_id),
+        target_id: createForm.target_id.trim(),
       };
 
       if (!payload.location) {
@@ -675,8 +771,8 @@ const MapDevice: React.FC = () => {
         setCreateError("กรุณากรอก Longtitude ให้ถูกต้อง");
         return;
       }
-      if (!payload.app_target_id || Number.isNaN(payload.app_target_id)) {
-        setCreateError("กรุณาเลือก App Target");
+      if (!payload.target_id) {
+        setCreateError("กรุณาเลือก Target");
         return;
       }
 
@@ -710,7 +806,7 @@ const MapDevice: React.FC = () => {
       floor: String(device.floor || ""),
       latitude: String(device.lat || ""),
       longtitude: String(device.lng || ""),
-      app_target_id: String(device.app_target_id || ""),
+      target_id: String(device.target_id || ""),
     });
     setOpenEditModal(true);
   };
@@ -739,7 +835,7 @@ const MapDevice: React.FC = () => {
         floor: Number(editForm.floor),
         latitude: Number(editForm.latitude),
         longtitude: Number(editForm.longtitude),
-        app_target_id: Number(editForm.app_target_id),
+        target_id: editForm.target_id.trim(),
       };
 
       if (!payload.location) {
@@ -762,11 +858,8 @@ const MapDevice: React.FC = () => {
         setEditError("กรุณากรอก Longtitude ให้ถูกต้อง");
         return;
       }
-      if (
-        !payload.app_target_id ||
-        Number.isNaN(Number(payload.app_target_id))
-      ) {
-        setEditError("กรุณาเลือก App Target");
+      if (!payload.target_id) {
+        setEditError("กรุณาเลือก Target");
         return;
       }
 
@@ -871,7 +964,9 @@ const MapDevice: React.FC = () => {
                       ].join(" ")}
                     >
                       <FiPlus className="text-[12px]" />
-                      <span className="text-[11px] font-medium">Create Location</span>
+                      <span className="text-[11px] font-medium">
+                        Create Location
+                      </span>
                     </button>
                   </div>
 
@@ -879,7 +974,7 @@ const MapDevice: React.FC = () => {
                     Device Location Map
                   </h2>
                   <p className="mt-1 text-[11px] sm:text-[12px] text-slate-500 dark:text-white/55">
-                    แสดงตำแหน่งอุปกรณ์จากข้อมูล Location และ AppTarget จริง
+                    แสดงตำแหน่งอุปกรณ์จากข้อมูล Location และ Target จริง
                   </p>
                 </div>
               </div>
@@ -890,7 +985,7 @@ const MapDevice: React.FC = () => {
                     <FiSearch className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-white/40 text-[13px]" />
                     <input
                       type="text"
-                      placeholder="Search device / MAC / IP / building / location..."
+                      placeholder="Search device / IP / building / location / task..."
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                       className={[
@@ -953,6 +1048,12 @@ const MapDevice: React.FC = () => {
                   </div>
                 )}
 
+                {!loading && filteredDevices.length === 0 && (
+                  <div className="rounded-[18px] border border-dashed border-slate-300 bg-white px-3.5 py-5 text-center text-[12px] text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-white/50">
+                    ไม่พบข้อมูลที่ตรงกับเงื่อนไข
+                  </div>
+                )}
+
                 {!loading &&
                   filteredDevices.map((device) => {
                     const active = selectedDevice?.id === device.id;
@@ -979,7 +1080,7 @@ const MapDevice: React.FC = () => {
                                 {device.device_name}
                               </p>
                               <p className="mt-1 truncate text-[10px] text-slate-500 dark:text-white/45">
-                                {device.macc || "-"}
+                                Task ID: {device.target_id}
                               </p>
                               <p className="mt-1 truncate text-[10px] text-slate-400 dark:text-white/35">
                                 {device.location} • {device.building}
@@ -1003,9 +1104,9 @@ const MapDevice: React.FC = () => {
                             className={[
                               "inline-flex h-8 w-8 items-center justify-center rounded-xl transition-colors",
                               "text-cyan-600 bg-cyan-50 hover:bg-cyan-100 active:bg-cyan-200",
-                              "dark:text-cyan-300 dark:bg-cyan-500/10 dark:hover:bg-cyan-500/15 dark:active:bg-cyan-500/20",
+                              "dark:text-cyan-300 dark:bg-cyan-500/10 dark:hover:bg-cyan-500/20",
                             ].join(" ")}
-                            title="Edit location"
+                            title="Edit"
                           >
                             <FiEdit2 className="text-[13px]" />
                           </button>
@@ -1016,9 +1117,9 @@ const MapDevice: React.FC = () => {
                             className={[
                               "inline-flex h-8 w-8 items-center justify-center rounded-xl transition-colors",
                               "text-red-600 bg-red-50 hover:bg-red-100 active:bg-red-200",
-                              "dark:text-red-300 dark:bg-red-500/10 dark:hover:bg-red-500/15 dark:active:bg-red-500/20",
+                              "dark:text-red-300 dark:bg-red-500/10 dark:hover:bg-red-500/20",
                             ].join(" ")}
-                            title="Delete location"
+                            title="Delete"
                           >
                             <FiTrash2 className="text-[13px]" />
                           </button>
@@ -1026,22 +1127,10 @@ const MapDevice: React.FC = () => {
                       </div>
                     );
                   })}
-
-                {!loading && filteredDevices.length === 0 && (
-                  <div
-                    className={[
-                      "rounded-[18px] border border-dashed px-3.5 py-5 text-center text-[12px]",
-                      "border-slate-300 bg-white text-slate-500",
-                      "dark:border-white/10 dark:bg-white/5 dark:text-white/50",
-                    ].join(" ")}
-                  >
-                    No matching locations
-                  </div>
-                )}
               </div>
             </div>
 
-            <div className="relative h-97.5 w-full md:h-125 xl:h-170">
+            <div className="relative h-105 min-h-105 md:h-130 xl:h-155">
               <Map
                 initialViewState={initialViewState}
                 mapStyle={MAP_STYLE}
@@ -1061,7 +1150,7 @@ const MapDevice: React.FC = () => {
                 ))}
               </Map>
 
-              <div className="pointer-events-none absolute left-3 top-3">
+              <div className="pointer-events-none absolute left-3 top-3 z-110">
                 <div
                   className={[
                     "rounded-[14px] px-2.5 py-1.5 text-[10px] font-medium backdrop-blur",
@@ -1075,159 +1164,10 @@ const MapDevice: React.FC = () => {
               </div>
 
               {selectedDevice && (
-                <div className="absolute bottom-3 left-3 right-3 md:right-auto md:w-75">
-                  <div
-                    className={[
-                      "overflow-hidden rounded-[18px] backdrop-blur",
-                      "border border-white/70 bg-white/92 shadow-xl",
-                      "dark:border-white/10 dark:bg-[#0d1524]/92 dark:shadow-none",
-                    ].join(" ")}
-                  >
-                    <div className="border-b border-slate-200 px-3.5 py-2.5 dark:border-white/10">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="truncate text-[12px] font-semibold text-slate-900 dark:text-white/90">
-                            {selectedDevice.device_name}
-                          </p>
-                          <p className="truncate text-[10px] text-slate-500 dark:text-white/45">
-                            {selectedDevice.macc || "-"}
-                          </p>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setSelectedDevice(null)}
-                            className="inline-flex h-7 w-7 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 dark:text-white/45 dark:hover:bg-white/8 dark:hover:text-white/70"
-                            aria-label="Close selected device"
-                            title="Close"
-                          >
-                            <FiX className="text-[14px]" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="p-3.5">
-                      <div className="space-y-1.5 text-[10.5px] text-slate-600 dark:text-white/65">
-                        <div className="flex items-center gap-2">
-                          <FiMapPin className="shrink-0 text-slate-400 text-[12px]" />
-                          <span className="truncate">{selectedDevice.location}</span>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <FiHome className="shrink-0 text-slate-400 text-[12px]" />
-                          <span className="truncate">
-                            Building: {selectedDevice.building}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <FiLayers className="shrink-0 text-slate-400 text-[12px]" />
-                          <span>Floor: {selectedDevice.floor}</span>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <FiHash className="shrink-0 text-slate-400 text-[12px]" />
-                          <span>IP: {selectedDevice.ip}</span>
-                        </div>
-
-                        <p>
-                          <span className="font-medium text-slate-700 dark:text-white/80">
-                            Last Updated:
-                          </span>{" "}
-                          {selectedDevice.lastSeen}
-                        </p>
-
-                        <p>
-                          <span className="font-medium text-slate-700 dark:text-white/80">
-                            Lat / Lng:
-                          </span>{" "}
-                          {selectedDevice.lat}, {selectedDevice.lng}
-                        </p>
-                      </div>
-
-                      <div className="mt-3 flex flex-wrap items-center gap-2">
-                        <a
-                          href={getGoogleMapsLink(selectedDevice.lat, selectedDevice.lng)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={[
-                            "inline-flex items-center gap-2 rounded-[14px] px-2.5 py-2 text-[10.5px] font-medium transition-all duration-200",
-                            "border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100",
-                          ].join(" ")}
-                        >
-                          <FiNavigation className="text-[11px]" />
-                          Open in Google Maps
-                          <FiExternalLink className="text-[10px]" />
-                        </a>
-
-                        <button
-                          type="button"
-                          onClick={() => handleOpenEditModal(selectedDevice)}
-                          className={[
-                            "inline-flex items-center gap-2 rounded-[14px] px-2.5 py-2 text-[10.5px] font-medium transition-all duration-200",
-                            "border border-cyan-200 bg-cyan-50 text-cyan-700 hover:bg-cyan-100",
-                          ].join(" ")}
-                        >
-                          <FiEdit2 className="text-[11px]" />
-                          Edit Location
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => openDeleteModal(selectedDevice)}
-                          className={[
-                            "inline-flex items-center gap-2 rounded-[14px] px-2.5 py-2 text-[10.5px] font-medium transition-all duration-200",
-                            "border border-red-200 bg-red-50 text-red-700 hover:bg-red-100",
-                          ].join(" ")}
-                        >
-                          <FiTrash2 className="text-[11px]" />
-                          Delete Location
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {!loading && filteredDevices.length === 0 && !error && (
-                <div className="absolute inset-0 grid place-items-center bg-white/70 dark:bg-[#08111f]/70">
-                  <div className="rounded-[20px] border border-dashed border-slate-300 bg-white px-5 py-6 text-center shadow-sm dark:border-white/10 dark:bg-white/5">
-                    <div className="mx-auto mb-2.5 grid h-11 w-11 place-items-center rounded-full bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-white/50">
-                      <FiMapPin className="text-[18px]" />
-                    </div>
-                    <h3 className="text-[13px] font-semibold text-slate-800 dark:text-white/85">
-                      No location data found
-                    </h3>
-                    <p className="mt-1 text-[11px] text-slate-500 dark:text-white/50">
-                      ไม่พบข้อมูลที่ตรงกับการค้นหา
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {!loading && error && (
-                <div className="absolute inset-0 grid place-items-center bg-white/70 dark:bg-[#08111f]/70">
-                  <div className="rounded-[20px] border border-red-200 bg-white px-5 py-6 text-center shadow-sm dark:border-red-400/20 dark:bg-[#0d1524]">
-                    <div className="mx-auto mb-2.5 grid h-11 w-11 place-items-center rounded-full bg-red-50 text-red-500 dark:bg-red-500/10 dark:text-red-300">
-                      <FiAlertTriangle className="text-[18px]" />
-                    </div>
-                    <h3 className="text-[13px] font-semibold text-slate-800 dark:text-white/85">
-                      Load failed
-                    </h3>
-                    <p className="mt-1 text-[11px] text-red-600 dark:text-red-300">
-                      {error}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={fetchLocations}
-                      className="mt-3 rounded-[14px] bg-slate-900 px-3.5 py-2 text-[12px] font-medium text-white transition hover:bg-slate-800 dark:bg-cyan-500/15 dark:text-cyan-200 dark:hover:bg-cyan-500/20"
-                    >
-                      Retry
-                    </button>
-                  </div>
-                </div>
+                <MapPopupCard
+                  device={selectedDevice}
+                  onClose={() => setSelectedDevice(null)}
+                />
               )}
             </div>
           </div>
@@ -1235,64 +1175,50 @@ const MapDevice: React.FC = () => {
       </section>
 
       {openCreateModal && (
-        <div className="fixed inset-0 z-210 flex items-center justify-center p-4">
-          <button
-            type="button"
-            onClick={closeCreateModal}
-            className="absolute inset-0 bg-slate-900/35 backdrop-blur-[2px]"
-            aria-label="Close create modal overlay"
-          />
-
-          <div
-            className={[
-              "relative z-10 w-full max-w-190 rounded-[18px] border border-gray-200 bg-white p-4 shadow-[0_20px_70px_rgba(15,23,42,0.18)]",
-              "dark:border-white/10 dark:bg-[#0d1524]",
-            ].join(" ")}
-          >
-            <button
-              type="button"
-              onClick={closeCreateModal}
-              disabled={creating}
-              className="absolute right-4 top-4 text-gray-400 transition hover:text-gray-600 disabled:cursor-not-allowed dark:text-white/45 dark:hover:text-white/70"
-            >
-              <FiX className="text-[18px]" />
-            </button>
-
-            <div className="mb-4">
-              <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-2.5 py-1.5 text-[10.5px] font-semibold text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-300">
-                <FiPlus className="text-[12px]" />
-                Create Location
+        <div className="fixed inset-0 z-300 flex items-center justify-center bg-slate-900/55 p-4 backdrop-blur-[2px]">
+          <div className="w-full max-w-lg rounded-3xl bg-white p-5 shadow-2xl dark:bg-[#0B1220]">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-[16px] font-semibold text-slate-900 dark:text-white">
+                  Create Location
+                </h3>
+                <p className="mt-1 text-[11px] text-slate-500 dark:text-white/50">
+                  เพิ่ม location ใหม่และผูกกับ target
+                </p>
               </div>
-              <h3 className="mt-2.5 text-[18px] font-semibold text-slate-900 dark:text-white">
-                Add New Location
-              </h3>
-              <p className="mt-1 text-[11px] text-slate-500 dark:text-white/55">
-                กรอกข้อมูล location ใหม่และผูกกับ App Target
-              </p>
+
+              <button
+                type="button"
+                onClick={closeCreateModal}
+                disabled={creating}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-500 transition hover:bg-slate-200 dark:bg-white/5 dark:text-white/60 dark:hover:bg-white/10"
+              >
+                <FiX />
+              </button>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <div>
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="sm:col-span-2">
                 <label className="mb-1.5 block text-[12px] font-medium text-slate-700 dark:text-white/75">
                   Location
                 </label>
                 <input
+                  type="text"
                   value={createForm.location}
                   onChange={(e) => handleCreateChange("location", e.target.value)}
-                  className="h-9 w-full rounded-2xl border border-slate-200 bg-white px-3.5 text-[12px] text-slate-700 outline-none focus:border-sky-400 dark:border-white/10 dark:bg-white/5 dark:text-white/80"
-                  placeholder="Enter location"
+                  className="h-10 w-full rounded-2xl border border-slate-200 bg-white px-3.5 text-[12px] text-slate-700 outline-none focus:border-sky-400 dark:border-white/10 dark:bg-white/5 dark:text-white/80"
                 />
               </div>
 
-              <div>
+              <div className="sm:col-span-2">
                 <label className="mb-1.5 block text-[12px] font-medium text-slate-700 dark:text-white/75">
                   Building
                 </label>
                 <input
+                  type="text"
                   value={createForm.building}
                   onChange={(e) => handleCreateChange("building", e.target.value)}
-                  className="h-9 w-full rounded-2xl border border-slate-200 bg-white px-3.5 text-[12px] text-slate-700 outline-none focus:border-sky-400 dark:border-white/10 dark:bg-white/5 dark:text-white/80"
-                  placeholder="Enter building"
+                  className="h-10 w-full rounded-2xl border border-slate-200 bg-white px-3.5 text-[12px] text-slate-700 outline-none focus:border-sky-400 dark:border-white/10 dark:bg-white/5 dark:text-white/80"
                 />
               </div>
 
@@ -1304,19 +1230,19 @@ const MapDevice: React.FC = () => {
                   type="number"
                   value={createForm.floor}
                   onChange={(e) => handleCreateChange("floor", e.target.value)}
-                  className="h-9 w-full rounded-2xl border border-slate-200 bg-white px-3.5 text-[12px] text-slate-700 outline-none focus:border-sky-400 dark:border-white/10 dark:bg-white/5 dark:text-white/80"
-                  placeholder="Enter floor"
+                  className="h-10 w-full rounded-2xl border border-slate-200 bg-white px-3.5 text-[12px] text-slate-700 outline-none focus:border-sky-400 dark:border-white/10 dark:bg-white/5 dark:text-white/80"
                 />
               </div>
 
-              <TargetSelector
-                label="App Target"
-                value={createForm.app_target_id}
-                onChange={(value) => handleCreateChange("app_target_id", value)}
-                options={targets}
-                loading={loadingTargets}
-                placeholder="Select App Target"
-              />
+              <div>
+                <TargetSelector
+                  label="Target"
+                  value={createForm.target_id}
+                  onChange={(value) => handleCreateChange("target_id", value)}
+                  options={targets}
+                  loading={loadingTargets}
+                />
+              </div>
 
               <div>
                 <label className="mb-1.5 block text-[12px] font-medium text-slate-700 dark:text-white/75">
@@ -1327,8 +1253,7 @@ const MapDevice: React.FC = () => {
                   step="any"
                   value={createForm.latitude}
                   onChange={(e) => handleCreateChange("latitude", e.target.value)}
-                  className="h-9 w-full rounded-2xl border border-slate-200 bg-white px-3.5 text-[12px] text-slate-700 outline-none focus:border-sky-400 dark:border-white/10 dark:bg-white/5 dark:text-white/80"
-                  placeholder="Enter latitude"
+                  className="h-10 w-full rounded-2xl border border-slate-200 bg-white px-3.5 text-[12px] text-slate-700 outline-none focus:border-sky-400 dark:border-white/10 dark:bg-white/5 dark:text-white/80"
                 />
               </div>
 
@@ -1343,14 +1268,13 @@ const MapDevice: React.FC = () => {
                   onChange={(e) =>
                     handleCreateChange("longtitude", e.target.value)
                   }
-                  className="h-9 w-full rounded-2xl border border-slate-200 bg-white px-3.5 text-[12px] text-slate-700 outline-none focus:border-sky-400 dark:border-white/10 dark:bg-white/5 dark:text-white/80"
-                  placeholder="Enter longtitude"
+                  className="h-10 w-full rounded-2xl border border-slate-200 bg-white px-3.5 text-[12px] text-slate-700 outline-none focus:border-sky-400 dark:border-white/10 dark:bg-white/5 dark:text-white/80"
                 />
               </div>
             </div>
 
             {createError && (
-              <div className="mt-3 rounded-[14px] border border-red-200 bg-red-50 px-3.5 py-2.5 text-[11px] text-red-700 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300">
+              <div className="mt-3 rounded-[14px] border border-red-200 bg-red-50 px-3.5 py-2.5 text-center text-[11px] text-red-700 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300">
                 {createError}
               </div>
             )}
@@ -1360,19 +1284,18 @@ const MapDevice: React.FC = () => {
                 type="button"
                 onClick={closeCreateModal}
                 disabled={creating}
-                className="rounded-2xl border border-slate-200 bg-white px-3.5 py-2 text-[12px] font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:bg-white/5 dark:text-white/75"
+                className="rounded-xl bg-slate-100 px-4 py-2 text-[12px] font-medium text-slate-600 transition hover:bg-slate-200 disabled:opacity-60 dark:bg-white/5 dark:text-white/70 dark:hover:bg-white/10"
               >
                 Cancel
               </button>
-
               <button
                 type="button"
                 onClick={confirmCreate}
                 disabled={creating}
-                className="inline-flex items-center gap-2 rounded-2xl bg-[#6d5efc] px-3.5 py-2 text-[12px] font-medium text-white transition hover:bg-[#5f51eb] disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-xl bg-[#6d5efc] px-4 py-2 text-[12px] font-medium text-white transition hover:bg-[#5f51eb] disabled:opacity-60"
               >
                 <FiSave className="text-[12px]" />
-                {creating ? "Creating..." : "Create Location"}
+                {creating ? "Creating..." : "Create"}
               </button>
             </div>
           </div>
@@ -1380,64 +1303,50 @@ const MapDevice: React.FC = () => {
       )}
 
       {openEditModal && editTarget && (
-        <div className="fixed inset-0 z-210 flex items-center justify-center p-4">
-          <button
-            type="button"
-            onClick={closeEditModal}
-            className="absolute inset-0 bg-slate-900/35 backdrop-blur-[2px]"
-            aria-label="Close edit modal overlay"
-          />
-
-          <div
-            className={[
-              "relative z-10 w-full max-w-190 rounded-[18px] border border-gray-200 bg-white p-4 shadow-[0_20px_70px_rgba(15,23,42,0.18)]",
-              "dark:border-white/10 dark:bg-[#0d1524]",
-            ].join(" ")}
-          >
-            <button
-              type="button"
-              onClick={closeEditModal}
-              disabled={editing}
-              className="absolute right-4 top-4 text-gray-400 transition hover:text-gray-600 disabled:cursor-not-allowed dark:text-white/45 dark:hover:text-white/70"
-            >
-              <FiX className="text-[18px]" />
-            </button>
-
-            <div className="mb-4">
-              <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-2.5 py-1.5 text-[10.5px] font-semibold text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-300">
-                <FiEdit2 className="text-[12px]" />
-                Update Location
+        <div className="fixed inset-0 z-300 flex items-center justify-center bg-slate-900/55 p-4 backdrop-blur-[2px]">
+          <div className="w-full max-w-lg rounded-3xl bg-white p-5 shadow-2xl dark:bg-[#0B1220]">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-[16px] font-semibold text-slate-900 dark:text-white">
+                  Edit Location
+                </h3>
+                <p className="mt-1 text-[11px] text-slate-500 dark:text-white/50">
+                  แก้ไขข้อมูล location และ target
+                </p>
               </div>
-              <h3 className="mt-2.5 text-[18px] font-semibold text-slate-900 dark:text-white">
-                Edit Location
-              </h3>
-              <p className="mt-1 text-[11px] text-slate-500 dark:text-white/55">
-                แก้ไขข้อมูล location ที่เลือก
-              </p>
+
+              <button
+                type="button"
+                onClick={closeEditModal}
+                disabled={editing}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-500 transition hover:bg-slate-200 dark:bg-white/5 dark:text-white/60 dark:hover:bg-white/10"
+              >
+                <FiX />
+              </button>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <div>
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="sm:col-span-2">
                 <label className="mb-1.5 block text-[12px] font-medium text-slate-700 dark:text-white/75">
                   Location
                 </label>
                 <input
+                  type="text"
                   value={editForm.location}
                   onChange={(e) => handleEditChange("location", e.target.value)}
-                  className="h-9 w-full rounded-2xl border border-slate-200 bg-white px-3.5 text-[12px] text-slate-700 outline-none focus:border-sky-400 dark:border-white/10 dark:bg-white/5 dark:text-white/80"
-                  placeholder="Enter location"
+                  className="h-10 w-full rounded-2xl border border-slate-200 bg-white px-3.5 text-[12px] text-slate-700 outline-none focus:border-sky-400 dark:border-white/10 dark:bg-white/5 dark:text-white/80"
                 />
               </div>
 
-              <div>
+              <div className="sm:col-span-2">
                 <label className="mb-1.5 block text-[12px] font-medium text-slate-700 dark:text-white/75">
                   Building
                 </label>
                 <input
+                  type="text"
                   value={editForm.building}
                   onChange={(e) => handleEditChange("building", e.target.value)}
-                  className="h-9 w-full rounded-2xl border border-slate-200 bg-white px-3.5 text-[12px] text-slate-700 outline-none focus:border-sky-400 dark:border-white/10 dark:bg-white/5 dark:text-white/80"
-                  placeholder="Enter building"
+                  className="h-10 w-full rounded-2xl border border-slate-200 bg-white px-3.5 text-[12px] text-slate-700 outline-none focus:border-sky-400 dark:border-white/10 dark:bg-white/5 dark:text-white/80"
                 />
               </div>
 
@@ -1449,19 +1358,19 @@ const MapDevice: React.FC = () => {
                   type="number"
                   value={editForm.floor}
                   onChange={(e) => handleEditChange("floor", e.target.value)}
-                  className="h-9 w-full rounded-2xl border border-slate-200 bg-white px-3.5 text-[12px] text-slate-700 outline-none focus:border-sky-400 dark:border-white/10 dark:bg-white/5 dark:text-white/80"
-                  placeholder="Enter floor"
+                  className="h-10 w-full rounded-2xl border border-slate-200 bg-white px-3.5 text-[12px] text-slate-700 outline-none focus:border-sky-400 dark:border-white/10 dark:bg-white/5 dark:text-white/80"
                 />
               </div>
 
-              <TargetSelector
-                label="App Target"
-                value={editForm.app_target_id}
-                onChange={(value) => handleEditChange("app_target_id", value)}
-                options={targets}
-                loading={loadingTargets}
-                placeholder="Select App Target"
-              />
+              <div>
+                <TargetSelector
+                  label="Target"
+                  value={editForm.target_id}
+                  onChange={(value) => handleEditChange("target_id", value)}
+                  options={targets}
+                  loading={loadingTargets}
+                />
+              </div>
 
               <div>
                 <label className="mb-1.5 block text-[12px] font-medium text-slate-700 dark:text-white/75">
@@ -1472,8 +1381,7 @@ const MapDevice: React.FC = () => {
                   step="any"
                   value={editForm.latitude}
                   onChange={(e) => handleEditChange("latitude", e.target.value)}
-                  className="h-9 w-full rounded-2xl border border-slate-200 bg-white px-3.5 text-[12px] text-slate-700 outline-none focus:border-sky-400 dark:border-white/10 dark:bg-white/5 dark:text-white/80"
-                  placeholder="Enter latitude"
+                  className="h-10 w-full rounded-2xl border border-slate-200 bg-white px-3.5 text-[12px] text-slate-700 outline-none focus:border-sky-400 dark:border-white/10 dark:bg-white/5 dark:text-white/80"
                 />
               </div>
 
@@ -1486,14 +1394,13 @@ const MapDevice: React.FC = () => {
                   step="any"
                   value={editForm.longtitude}
                   onChange={(e) => handleEditChange("longtitude", e.target.value)}
-                  className="h-9 w-full rounded-2xl border border-slate-200 bg-white px-3.5 text-[12px] text-slate-700 outline-none focus:border-sky-400 dark:border-white/10 dark:bg-white/5 dark:text-white/80"
-                  placeholder="Enter longtitude"
+                  className="h-10 w-full rounded-2xl border border-slate-200 bg-white px-3.5 text-[12px] text-slate-700 outline-none focus:border-sky-400 dark:border-white/10 dark:bg-white/5 dark:text-white/80"
                 />
               </div>
             </div>
 
             {editError && (
-              <div className="mt-3 rounded-[14px] border border-red-200 bg-red-50 px-3.5 py-2.5 text-[11px] text-red-700 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300">
+              <div className="mt-3 rounded-[14px] border border-red-200 bg-red-50 px-3.5 py-2.5 text-center text-[11px] text-red-700 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300">
                 {editError}
               </div>
             )}
@@ -1503,19 +1410,18 @@ const MapDevice: React.FC = () => {
                 type="button"
                 onClick={closeEditModal}
                 disabled={editing}
-                className="rounded-2xl border border-slate-200 bg-white px-3.5 py-2 text-[12px] font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:bg-white/5 dark:text-white/75"
+                className="rounded-xl bg-slate-100 px-4 py-2 text-[12px] font-medium text-slate-600 transition hover:bg-slate-200 disabled:opacity-60 dark:bg-white/5 dark:text-white/70 dark:hover:bg-white/10"
               >
                 Cancel
               </button>
-
               <button
                 type="button"
                 onClick={confirmEdit}
                 disabled={editing}
-                className="inline-flex items-center gap-2 rounded-2xl bg-[#6d5efc] px-3.5 py-2 text-[12px] font-medium text-white transition hover:bg-[#5f51eb] disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-xl bg-[#6d5efc] px-4 py-2 text-[12px] font-medium text-white transition hover:bg-[#5f51eb] disabled:opacity-60"
               >
                 <FiSave className="text-[12px]" />
-                {editing ? "Saving..." : "Update Location"}
+                {editing ? "Saving..." : "Save Changes"}
               </button>
             </div>
           </div>
@@ -1523,50 +1429,21 @@ const MapDevice: React.FC = () => {
       )}
 
       {deleteTarget && (
-        <div className="fixed inset-0 z-220 flex items-center justify-center p-4">
-          <button
-            type="button"
-            onClick={closeDeleteModal}
-            className="absolute inset-0 bg-slate-900/35 backdrop-blur-[2px]"
-            aria-label="Close delete modal overlay"
-          />
-
-          <div
-            className={[
-              "relative z-10 w-full max-w-140 rounded-[18px] border border-gray-200 bg-white px-4 py-4 shadow-[0_20px_70px_rgba(15,23,42,0.18)]",
-              "dark:border-white/10 dark:bg-[#0d1524]",
-            ].join(" ")}
-          >
-            <button
-              type="button"
-              onClick={closeDeleteModal}
-              disabled={deleting}
-              className="absolute right-4 top-4 text-gray-400 transition hover:text-gray-600 disabled:cursor-not-allowed dark:text-white/45 dark:hover:text-white/70"
-              aria-label="Close"
-            >
-              <FiX className="text-[18px]" />
-            </button>
-
-            <div className="flex justify-center pt-1">
-              <div className="grid h-11 w-11 place-items-center rounded-full bg-red-50 text-red-500 dark:bg-red-500/10 dark:text-red-300">
-                <FiTrash2 className="text-[22px]" />
-              </div>
+        <div className="fixed inset-0 z-300 flex items-center justify-center bg-slate-900/55 p-4 backdrop-blur-[2px]">
+          <div className="w-full max-w-md rounded-3xl bg-white p-5 shadow-2xl dark:bg-[#0B1220]">
+            <div className="mx-auto flex h-13 w-13 items-center justify-center rounded-full bg-[#f8dedd] text-[#ff5a3c]">
+              <FiAlertTriangle className="text-[22px]" />
             </div>
 
-            <h3 className="mt-3 text-center text-[18px] font-semibold text-slate-800 dark:text-white">
-              Delete Location
-            </h3>
+            <div className="mt-4 text-center">
+              <h3 className="text-[17px] font-semibold text-slate-900 dark:text-white">
+                Delete Location?
+              </h3>
+              <p className="mt-2 text-[12px] leading-5 text-slate-500 dark:text-white/50">
+                คุณกำลังจะลบ location นี้ออกจากระบบ
+              </p>
 
-            <p className="mx-auto mt-2.5 max-w-105 text-center text-[12px] leading-5 text-slate-500 dark:text-white/55">
-              Are you sure you want to delete location{" "}
-              <span className="font-semibold text-slate-700 dark:text-white/80">
-                {deleteTarget.location}
-              </span>
-              ? This action cannot be undone.
-            </p>
-
-            <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-[11px] text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/60">
-              <div className="space-y-1.5">
+              <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-left text-[11px] text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-white/55">
                 <p>
                   <span className="font-medium text-slate-700 dark:text-white/80">
                     Device:

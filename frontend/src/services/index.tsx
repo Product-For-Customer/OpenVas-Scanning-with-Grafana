@@ -372,4 +372,3 @@ export const ListVulnerabilityByLevel = async (
 };
 
 export default vulnerabilityApi;
-

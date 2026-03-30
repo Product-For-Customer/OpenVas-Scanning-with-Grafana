@@ -12,62 +12,52 @@ import (
 )
 
 type CreateLocationInput struct {
-	Location    string  `json:"location" binding:"required"`
-	Building    string  `json:"building" binding:"required"`
-	Floor       uint    `json:"floor" binding:"required"`
-	Latitude    float64 `json:"latitude" binding:"required"`
-	Longtitude  float64 `json:"longtitude" binding:"required"`
-	AppTargetID uint    `json:"app_target_id" binding:"required"`
+	Location   string  `json:"location" binding:"required"`
+	Building   string  `json:"building" binding:"required"`
+	Floor      uint    `json:"floor" binding:"required"`
+	Latitude   float64 `json:"latitude" binding:"required"`
+	Longtitude float64 `json:"longtitude" binding:"required"`
+	TargetID   string  `json:"target_id" binding:"required"`
 }
 
 type UpdateLocationInput struct {
-	Location    *string  `json:"location"`
-	Building    *string  `json:"building"`
-	Floor       *uint    `json:"floor"`
-	Latitude    *float64 `json:"latitude"`
-	Longtitude  *float64 `json:"longtitude"`
-	AppTargetID *uint    `json:"app_target_id"`
+	Location   *string  `json:"location"`
+	Building   *string  `json:"building"`
+	Floor      *uint    `json:"floor"`
+	Latitude   *float64 `json:"latitude"`
+	Longtitude *float64 `json:"longtitude"`
+	TargetID   *string  `json:"target_id"`
 }
 
-type CreateTargetInput struct {
-	Name       string `json:"name" binding:"required"`
-	IpHost     string `json:"ip_host" binding:"required"`
-	MacAddress string `json:"mac_address"`
-}
-
-type UpdateTargetInput struct {
-	Name       *string `json:"name"`
-	IpHost     *string `json:"ip_host"`
-	MacAddress *string `json:"mac_address"`
-}
-
-type TargetMiniResponse struct {
-	ID         uint   `json:"id"`
-	Name       string `json:"name"`
-	IpHost     string `json:"ip_host"`
-	MacAddress string `json:"mac_address"`
+type TargetInfo struct {
+	TaskID   string `json:"task_id"`
+	Hostname string `json:"hostname"`
+	IP       string `json:"ip"`
 }
 
 type LocationResponse struct {
-	ID          uint               `json:"id"`
-	Location    string             `json:"location"`
-	Building    string             `json:"building"`
-	Floor       uint               `json:"floor"`
-	Latitude    float64            `json:"latitude"`
-	Longtitude  float64            `json:"longtitude"`
-	AppTargetID uint               `json:"app_target_id"`
-	AppTarget   TargetMiniResponse `json:"app_target"`
-	CreatedAt   interface{}        `json:"created_at"`
-	UpdatedAt   interface{}        `json:"updated_at"`
-}
-
-type AppTargetResponse struct {
 	ID         uint        `json:"id"`
-	Name       string      `json:"name"`
-	IpHost     string      `json:"ip_host"`
-	MacAddress string      `json:"mac_address"`
+	Location   string      `json:"location"`
+	Building   string      `json:"building"`
+	Floor      uint        `json:"floor"`
+	Latitude   float64     `json:"latitude"`
+	Longtitude float64     `json:"longtitude"`
+	TargetID   string      `json:"target_id"`
+	Target     *TargetInfo `json:"target,omitempty"`
 	CreatedAt  interface{} `json:"created_at"`
 	UpdatedAt  interface{} `json:"updated_at"`
+}
+
+type locationListRow struct {
+	ID         uint    `json:"id"`
+	Location   string  `json:"location"`
+	Building   string  `json:"building"`
+	Floor      uint    `json:"floor"`
+	Latitude   float64 `json:"latitude"`
+	Longtitude float64 `json:"longtitude"`
+	TargetID   string  `json:"target_id"`
+	Hostname   string  `json:"hostname"`
+	IP         string  `json:"ip"`
 }
 
 func cleanString(value string) string {
@@ -82,40 +72,46 @@ func cleanOptionalString(value *string) string {
 }
 
 func mapLocationResponse(loc entity.AppLocation) LocationResponse {
-	targetResp := TargetMiniResponse{}
-
-	if loc.AppTarget != nil {
-		targetResp = TargetMiniResponse{
-			ID:         loc.AppTarget.ID,
-			Name:       loc.AppTarget.Name,
-			IpHost:     loc.AppTarget.IpHost,
-			MacAddress: loc.AppTarget.MacAddress,
-		}
-	}
-
 	return LocationResponse{
-		ID:          loc.ID,
-		Location:    loc.Location,
-		Building:    loc.Building,
-		Floor:       loc.Floor,
-		Latitude:    loc.Latitude,
-		Longtitude:  loc.Longtitude,
-		AppTargetID: loc.AppTargetID,
-		AppTarget:   targetResp,
-		CreatedAt:   loc.CreatedAt,
-		UpdatedAt:   loc.UpdatedAt,
+		ID:         loc.ID,
+		Location:   loc.Location,
+		Building:   loc.Building,
+		Floor:      loc.Floor,
+		Latitude:   loc.Latitude,
+		Longtitude: loc.Longtitude,
+		TargetID:   loc.TargetID,
+		Target: nil,
+		CreatedAt:  loc.CreatedAt,
+		UpdatedAt:  loc.UpdatedAt,
 	}
 }
 
-func mapAppTargetResponse(t entity.AppTarget) AppTargetResponse {
-	return AppTargetResponse{
-		ID:         t.ID,
-		Name:       t.Name,
-		IpHost:     t.IpHost,
-		MacAddress: t.MacAddress,
-		CreatedAt:  t.CreatedAt,
-		UpdatedAt:  t.UpdatedAt,
+func mapLocationRowResponse(row locationListRow, createdAt interface{}, updatedAt interface{}) LocationResponse {
+	resp := LocationResponse{
+		ID:         row.ID,
+		Location:   row.Location,
+		Building:   row.Building,
+		Floor:      row.Floor,
+		Latitude:   row.Latitude,
+		Longtitude: row.Longtitude,
+		TargetID:   row.TargetID,
+		CreatedAt:  createdAt,
+		UpdatedAt:  updatedAt,
 	}
+
+	trimHostname := strings.TrimSpace(row.Hostname)
+	trimIP := strings.TrimSpace(row.IP)
+	trimTaskID := strings.TrimSpace(row.TargetID)
+
+	if trimTaskID != "" || trimHostname != "" || trimIP != "" {
+		resp.Target = &TargetInfo{
+			TaskID:   trimTaskID,
+			Hostname: trimHostname,
+			IP:       trimIP,
+		}
+	}
+
+	return resp
 }
 
 func CreateLocation(c *gin.Context) {
@@ -129,16 +125,9 @@ func CreateLocation(c *gin.Context) {
 
 	db := config.DB()
 
-	var target entity.AppTarget
-	if err := db.First(&target, input.AppTargetID).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "app target not found",
-		})
-		return
-	}
-
-	locationName := strings.TrimSpace(input.Location)
-	buildingName := strings.TrimSpace(input.Building)
+	locationName := cleanString(input.Location)
+	buildingName := cleanString(input.Building)
+	targetID := cleanString(input.TargetID)
 
 	if locationName == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -154,13 +143,20 @@ func CreateLocation(c *gin.Context) {
 		return
 	}
 
+	if targetID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "target_id cannot be empty",
+		})
+		return
+	}
+
 	location := entity.AppLocation{
-		Location:    locationName,
-		Building:    buildingName,
-		Floor:       input.Floor,
-		Latitude:    input.Latitude,
-		Longtitude:  input.Longtitude,
-		AppTargetID: input.AppTargetID,
+		Location:   locationName,
+		Building:   buildingName,
+		Floor:      input.Floor,
+		Latitude:   input.Latitude,
+		Longtitude: input.Longtitude,
+		TargetID:   targetID,
 	}
 
 	if err := db.Create(&location).Error; err != nil {
@@ -170,7 +166,7 @@ func CreateLocation(c *gin.Context) {
 		return
 	}
 
-	if err := db.Preload("AppTarget").First(&location, location.ID).Error; err != nil {
+	if err := db.First(&location, location.ID).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "failed to reload created location",
 		})
@@ -184,20 +180,93 @@ func CreateLocation(c *gin.Context) {
 }
 
 func ListLocation(c *gin.Context) {
-	var locations []entity.AppLocation
-
 	db := config.DB()
-	result := db.Preload("AppTarget").Order("id asc").Find(&locations)
-	if result.Error != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": result.Error.Error(),
+
+	query := `
+WITH
+LatestReportPerTask AS (
+  SELECT DISTINCT ON (rp.task)
+    rp.task AS task_id,
+    rp.id AS report_id,
+    rp.creation_time
+  FROM public.reports rp
+  WHERE rp.task IS NOT NULL
+  ORDER BY rp.task, rp.creation_time DESC, rp.id DESC
+),
+LatestTaskHosts AS (
+  SELECT DISTINCT
+    lrt.task_id::text AS task_id,
+    COALESCE(NULLIF(BTRIM(t.name), ''), '-') AS hostname,
+    COALESCE(NULLIF(BTRIM(r.host), ''), '') AS ip,
+    lrt.creation_time
+  FROM LatestReportPerTask lrt
+  JOIN public.results r
+    ON r.report = lrt.report_id
+  LEFT JOIN public.tasks t
+    ON t.id = lrt.task_id
+  WHERE r.host IS NOT NULL
+    AND BTRIM(r.host) <> ''
+)
+SELECT
+  al.id,
+  al.location,
+  al.building,
+  al.floor,
+  al.latitude,
+  al.longtitude,
+  al.target_id,
+  al.created_at,
+  al.updated_at,
+  COALESCE(lth.hostname, '') AS hostname,
+  COALESCE(lth.ip, '') AS ip
+FROM app_locations al
+LEFT JOIN LatestTaskHosts lth
+  ON BTRIM(lth.task_id) = BTRIM(al.target_id)
+WHERE al.deleted_at IS NULL
+ORDER BY al.id ASC;
+`
+
+	type locationListResult struct {
+		ID         uint    `json:"id"`
+		Location   string  `json:"location"`
+		Building   string  `json:"building"`
+		Floor      uint    `json:"floor"`
+		Latitude   float64 `json:"latitude"`
+		Longtitude float64 `json:"longtitude"`
+		TargetID   string  `json:"target_id"`
+		CreatedAt  string  `json:"created_at"`
+		UpdatedAt  string  `json:"updated_at"`
+		Hostname   string  `json:"hostname"`
+		IP         string  `json:"ip"`
+	}
+
+	rows := make([]locationListResult, 0)
+	if err := db.Raw(query).Scan(&rows).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":  "failed to list locations",
+			"detail": err.Error(),
 		})
 		return
 	}
 
-	response := make([]LocationResponse, 0, len(locations))
-	for _, loc := range locations {
-		response = append(response, mapLocationResponse(loc))
+	response := make([]gin.H, 0, len(rows))
+	for _, row := range rows {
+		response = append(response, gin.H{
+			"id":          row.ID,
+			"location":    row.Location,
+			"building":    row.Building,
+			"floor":       row.Floor,
+			"latitude":    row.Latitude,
+			"longtitude":  row.Longtitude,
+			"target_id":   row.TargetID,
+			"created_at":  row.CreatedAt,
+			"updated_at":  row.UpdatedAt,
+			"target_info": gin.H{
+				"task_id":  row.TargetID,
+				"hostname": row.Hostname,
+				"ip":       row.IP,
+			},
+		})
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -216,11 +285,77 @@ func ListLocationByID(c *gin.Context) {
 		return
 	}
 
-	var location entity.AppLocation
-
 	db := config.DB()
-	result := db.Preload("AppTarget").First(&location, uint(lid))
-	if result.Error != nil {
+
+	query := `
+WITH
+LatestReportPerTask AS (
+  SELECT DISTINCT ON (rp.task)
+    rp.task AS task_id,
+    rp.id AS report_id,
+    rp.creation_time
+  FROM public.reports rp
+  WHERE rp.task IS NOT NULL
+  ORDER BY rp.task, rp.creation_time DESC, rp.id DESC
+),
+LatestTaskHosts AS (
+  SELECT DISTINCT
+    lrt.task_id::text AS task_id,
+    COALESCE(NULLIF(BTRIM(t.name), ''), '-') AS hostname,
+    COALESCE(NULLIF(BTRIM(r.host), ''), '') AS ip,
+    lrt.creation_time
+  FROM LatestReportPerTask lrt
+  JOIN public.results r
+    ON r.report = lrt.report_id
+  LEFT JOIN public.tasks t
+    ON t.id = lrt.task_id
+  WHERE r.host IS NOT NULL
+    AND BTRIM(r.host) <> ''
+)
+SELECT
+  al.id,
+  al.location,
+  al.building,
+  al.floor,
+  al.latitude,
+  al.longtitude,
+  al.target_id,
+  al.created_at,
+  al.updated_at,
+  COALESCE(lth.hostname, '') AS hostname,
+  COALESCE(lth.ip, '') AS ip
+FROM app_locations al
+LEFT JOIN LatestTaskHosts lth
+  ON BTRIM(lth.task_id) = BTRIM(al.target_id)
+WHERE al.deleted_at IS NULL
+  AND al.id = ?
+LIMIT 1;
+`
+
+	type locationByIDResult struct {
+		ID         uint    `json:"id"`
+		Location   string  `json:"location"`
+		Building   string  `json:"building"`
+		Floor      uint    `json:"floor"`
+		Latitude   float64 `json:"latitude"`
+		Longtitude float64 `json:"longtitude"`
+		TargetID   string  `json:"target_id"`
+		CreatedAt  string  `json:"created_at"`
+		UpdatedAt  string  `json:"updated_at"`
+		Hostname   string  `json:"hostname"`
+		IP         string  `json:"ip"`
+	}
+
+	var row locationByIDResult
+	if err := db.Raw(query, uint(lid)).Scan(&row).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":  "failed to get location by id",
+			"detail": err.Error(),
+		})
+		return
+	}
+
+	if row.ID == 0 {
 		c.JSON(http.StatusNotFound, gin.H{
 			"error": "location not found",
 		})
@@ -228,7 +363,22 @@ func ListLocationByID(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"data": mapLocationResponse(location),
+		"data": gin.H{
+			"id":         row.ID,
+			"location":   row.Location,
+			"building":   row.Building,
+			"floor":      row.Floor,
+			"latitude":   row.Latitude,
+			"longtitude": row.Longtitude,
+			"target_id":  row.TargetID,
+			"created_at": row.CreatedAt,
+			"updated_at": row.UpdatedAt,
+			"target_info": gin.H{
+				"task_id":  row.TargetID,
+				"hostname": row.Hostname,
+				"ip":       row.IP,
+			},
+		},
 	})
 }
 
@@ -254,7 +404,7 @@ func UpdateLocationByID(c *gin.Context) {
 	db := config.DB()
 
 	var location entity.AppLocation
-	if err := db.Preload("AppTarget").First(&location, uint(lid)).Error; err != nil {
+	if err := db.First(&location, uint(lid)).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
 			"error": "location not found",
 		})
@@ -264,7 +414,7 @@ func UpdateLocationByID(c *gin.Context) {
 	updates := map[string]interface{}{}
 
 	if input.Location != nil {
-		newLocation := strings.TrimSpace(*input.Location)
+		newLocation := cleanOptionalString(input.Location)
 		if newLocation == "" {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"error": "location cannot be empty",
@@ -275,7 +425,7 @@ func UpdateLocationByID(c *gin.Context) {
 	}
 
 	if input.Building != nil {
-		newBuilding := strings.TrimSpace(*input.Building)
+		newBuilding := cleanOptionalString(input.Building)
 		if newBuilding == "" {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"error": "building cannot be empty",
@@ -297,15 +447,15 @@ func UpdateLocationByID(c *gin.Context) {
 		updates["longtitude"] = *input.Longtitude
 	}
 
-	if input.AppTargetID != nil {
-		var target entity.AppTarget
-		if err := db.First(&target, *input.AppTargetID).Error; err != nil {
+	if input.TargetID != nil {
+		newTargetID := cleanOptionalString(input.TargetID)
+		if newTargetID == "" {
 			c.JSON(http.StatusBadRequest, gin.H{
-				"error": "app target not found",
+				"error": "target_id cannot be empty",
 			})
 			return
 		}
-		updates["app_target_id"] = *input.AppTargetID
+		updates["target_id"] = newTargetID
 	}
 
 	if len(updates) == 0 {
@@ -327,7 +477,7 @@ func UpdateLocationByID(c *gin.Context) {
 	}
 
 	var updatedLocation entity.AppLocation
-	if err := db.Preload("AppTarget").First(&updatedLocation, location.ID).Error; err != nil {
+	if err := db.First(&updatedLocation, location.ID).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "failed to reload updated location",
 		})
@@ -377,302 +527,5 @@ func DeleteLocationByID(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "location deleted successfully",
-	})
-}
-
-func CreateTarget(c *gin.Context) {
-	var input CreateTargetInput
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
-
-	name := cleanString(input.Name)
-	ipHost := cleanString(input.IpHost)
-	macAddress := cleanString(input.MacAddress)
-
-	if name == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "name cannot be empty",
-		})
-		return
-	}
-
-	if ipHost == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "ip_host cannot be empty",
-		})
-		return
-	}
-
-	db := config.DB()
-
-	target := entity.AppTarget{
-		Name:       name,
-		IpHost:     ipHost,
-		MacAddress: macAddress,
-	}
-
-	if err := db.Create(&target).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
-
-	if err := db.First(&target, target.ID).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "failed to reload created target",
-		})
-		return
-	}
-
-	c.JSON(http.StatusCreated, gin.H{
-		"message": "create target success",
-		"data":    mapAppTargetResponse(target),
-	})
-}
-
-func ListAppTarget(c *gin.Context) {
-	var targets []entity.AppTarget
-
-	db := config.DB()
-	result := db.Order("id asc").Find(&targets)
-	if result.Error != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": result.Error.Error(),
-		})
-		return
-	}
-
-	response := make([]AppTargetResponse, 0, len(targets))
-	for _, t := range targets {
-		response = append(response, mapAppTargetResponse(t))
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"data": response,
-	})
-}
-
-func ListAppTargetByID(c *gin.Context) {
-	id := c.Param("id")
-
-	tid, err := strconv.ParseUint(id, 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "invalid target id",
-		})
-		return
-	}
-
-	db := config.DB()
-
-	var target entity.AppTarget
-	if err := db.First(&target, uint(tid)).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": "app target not found",
-		})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"data": mapAppTargetResponse(target),
-	})
-}
-
-func UpdateTargetByID(c *gin.Context) {
-	id := c.Param("id")
-
-	tid, err := strconv.ParseUint(id, 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "invalid target id",
-		})
-		return
-	}
-
-	var input UpdateTargetInput
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
-
-	db := config.DB()
-
-	var target entity.AppTarget
-	if err := db.First(&target, uint(tid)).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": "app target not found",
-		})
-		return
-	}
-
-	updates := map[string]interface{}{}
-
-	if input.Name != nil {
-		name := strings.TrimSpace(*input.Name)
-		if name == "" {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": "name cannot be empty",
-			})
-			return
-		}
-		updates["name"] = name
-	}
-
-	if input.IpHost != nil {
-		ipHost := strings.TrimSpace(*input.IpHost)
-		if ipHost == "" {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": "ip_host cannot be empty",
-			})
-			return
-		}
-		updates["ip_host"] = ipHost
-	}
-
-	if input.MacAddress != nil {
-		updates["mac_address"] = cleanOptionalString(input.MacAddress)
-	}
-
-	if len(updates) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "no fields to update",
-		})
-		return
-	}
-
-	if err := db.Model(&entity.AppTarget{}).Where("id = ?", target.ID).Updates(updates).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
-
-	var updatedTarget entity.AppTarget
-	if err := db.First(&updatedTarget, target.ID).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "failed to reload updated target",
-		})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"message": "update target success",
-		"data":    mapAppTargetResponse(updatedTarget),
-	})
-}
-
-func DeleteTargetByID(c *gin.Context) {
-	id := c.Param("id")
-
-	tid, err := strconv.ParseUint(id, 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "invalid target id",
-		})
-		return
-	}
-
-	db := config.DB()
-
-	var target entity.AppTarget
-	if err := db.First(&target, uint(tid)).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			c.JSON(http.StatusNotFound, gin.H{
-				"error": "app target not found",
-			})
-			return
-		}
-
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
-
-	if err := db.Delete(&target).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"message": "target deleted successfully",
-	})
-}
-
-// test group 
-
-type AppLocationResponse struct {
-	ID          uint              `json:"id"`
-	Location    string            `json:"location"`
-	Building    string            `json:"building"`
-	Floor       uint              `json:"floor"`
-	Latitude    float64           `json:"latitude"`
-	Longtitude  float64           `json:"longtitude"`
-	AppTargetID uint              `json:"app_target_id"`
-	AppTarget   *entity.AppTarget `json:"app_target,omitempty"`
-}
-
-type AppGroupResponse struct {
-	ID           uint                  `json:"id"`
-	GroupName    string                `json:"group_name"`
-	AppLocations []AppLocationResponse `json:"app_locations"`
-}
-
-func ListGropAndLocation(c *gin.Context) {
-	var groups []entity.AppGroup
-
-	db := config.DB()
-
-	err := db.
-		Preload("AppLocations").
-		Preload("AppLocations.AppTarget").
-		Find(&groups).Error
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"status":  false,
-			"message": "Failed to fetch groups and locations",
-			"error":   err.Error(),
-		})
-		return
-	}
-
-	result := make([]AppGroupResponse, 0, len(groups))
-
-	for _, group := range groups {
-		locationResponses := make([]AppLocationResponse, 0, len(group.AppLocations))
-
-		for _, location := range group.AppLocations {
-			locationResponses = append(locationResponses, AppLocationResponse{
-				ID:          location.ID,
-				Location:    location.Location,
-				Building:    location.Building,
-				Floor:       location.Floor,
-				Latitude:    location.Latitude,
-				Longtitude:  location.Longtitude,
-				AppTargetID: location.AppTargetID,
-				AppTarget:   location.AppTarget,
-			})
-		}
-
-		result = append(result, AppGroupResponse{
-			ID:           group.ID,
-			GroupName:    group.GroupName,
-			AppLocations: locationResponses,
-		})
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"status":  true,
-		"message": "Success",
-		"data":    result,
 	})
 }

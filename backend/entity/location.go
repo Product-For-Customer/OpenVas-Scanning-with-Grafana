@@ -10,8 +10,7 @@ type AppLocation struct {
 	Latitude   float64 `json:"latitude" valid:"required~Latitude is required"`
 	Longtitude float64 `json:"longtitude" valid:"required~Longtitude is required"`
 
-	AppTargetID uint       `json:"app_target_id" valid:"required~AppTargetID is required"`
-	AppTarget   *AppTarget `gorm:"foreignKey:AppTargetID" json:"app_target,omitempty" valid:"-"`
-
-	AppGroups []AppGroup `gorm:"many2many:app_group_locations;" json:"app_groups,omitempty"`
+	// เปลี่ยนจาก AppTargetID/AppTarget entity
+	// มาเก็บ TargetID ตรง ๆ แบบเดียวกับ Own.TargetID
+	TargetID string `json:"target_id" gorm:"type:varchar(255);not null;index"`
 }

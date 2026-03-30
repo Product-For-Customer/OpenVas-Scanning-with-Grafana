@@ -353,11 +353,10 @@ export type DeleteAppTargetResponse = {
 // =======================
 // Types: Location
 // =======================
-export type TargetMiniResponse = {
-  id: number;
-  name: string;
-  ip_host: string;
-  mac_address: string;
+export type TargetInfoResponse = {
+  task_id: string;
+  hostname: string;
+  ip: string;
 };
 
 export type LocationResponse = {
@@ -367,8 +366,8 @@ export type LocationResponse = {
   floor: number;
   latitude: number;
   longtitude: number;
-  app_target_id: number;
-  app_target: TargetMiniResponse;
+  target_id: string;
+  target_info?: TargetInfoResponse;
   created_at?: string;
   updated_at?: string;
   message?: string;
@@ -381,7 +380,7 @@ export type CreateLocationInput = {
   floor: number;
   latitude: number;
   longtitude: number;
-  app_target_id: number;
+  target_id: string;
 };
 
 export type UpdateLocationInput = {
@@ -390,7 +389,7 @@ export type UpdateLocationInput = {
   floor?: number;
   latitude?: number;
   longtitude?: number;
-  app_target_id?: number;
+  target_id?: string;
 };
 
 export type DeleteLocationResponse = {
@@ -398,119 +397,33 @@ export type DeleteLocationResponse = {
 };
 
 // =======================
-// AppTarget APIs
+// Helpers
 // =======================
+const normalizeTargetInfo = (raw: any): TargetInfoResponse | undefined => {
+  if (!raw || typeof raw !== "object") return undefined;
 
-// GET /app-targets
-export const ListAppTarget = async (): Promise<AppTargetResponse[] | null> => {
-  try {
-    const response = await userApi.get("/app-targets");
-
-    console.log("ListAppTarget raw response:", response.data);
-
-    const data = response.data?.data ?? response.data;
-
-    if (Array.isArray(data)) {
-      return data as AppTargetResponse[];
-    }
-
-    console.error("Expected array but got:", response.data);
-    return null;
-  } catch (error) {
-    console.error("ListAppTarget error:", error);
-    return null;
-  }
+  return {
+    task_id: String(raw.task_id ?? ""),
+    hostname: String(raw.hostname ?? ""),
+    ip: String(raw.ip ?? ""),
+  };
 };
 
-// GET /app-targets/:id
-export const ListAppTargetByID = async (
-  id: number | string
-): Promise<AppTargetResponse | null> => {
-  try {
-    const response = await userApi.get(`/app-targets/${id}`);
-
-    console.log("ListAppTargetByID raw response:", response.data);
-
-    const data = response.data?.data ?? response.data;
-
-    if (data && typeof data === "object") {
-      return data as AppTargetResponse;
-    }
-
-    console.error("Unexpected ListAppTargetByID response:", response.data);
-    return null;
-  } catch (error) {
-    console.error("ListAppTargetByID error:", error);
-    return null;
-  }
-};
-
-// POST /create-app-targets
-export const CreateAppTarget = async (
-  payload: CreateAppTargetInput
-): Promise<AppTargetResponse | null> => {
-  try {
-    const response = await userApi.post("/create-app-targets", payload);
-
-    console.log("CreateAppTarget raw response:", response.data);
-
-    const data = response.data?.data ?? response.data;
-
-    if (data && typeof data === "object") {
-      return data as AppTargetResponse;
-    }
-
-    console.error("Unexpected CreateAppTarget response:", response.data);
-    return null;
-  } catch (error) {
-    console.error("CreateAppTarget error:", error);
-    return null;
-  }
-};
-
-// PATCH /update-app-targets/:id
-export const UpdateTargetByID = async (
-  id: number | string,
-  payload: UpdateAppTargetInput
-): Promise<AppTargetResponse | null> => {
-  try {
-    const response = await userApi.patch(`/update-app-targets/${id}`, payload);
-
-    console.log("UpdateTargetByID raw response:", response.data);
-
-    const data = response.data?.data ?? response.data;
-
-    if (data && typeof data === "object") {
-      return data as AppTargetResponse;
-    }
-
-    console.error("Unexpected UpdateTargetByID response:", response.data);
-    return null;
-  } catch (error) {
-    console.error("UpdateTargetByID error:", error);
-    return null;
-  }
-};
-
-// DELETE /delete-app-targets/:id
-export const DeleteTargetByID = async (
-  id: number | string
-): Promise<DeleteAppTargetResponse | null> => {
-  try {
-    const response = await userApi.delete(`/delete-app-targets/${id}`);
-
-    console.log("DeleteTargetByID raw response:", response.data);
-
-    if (response.data && response.data.message) {
-      return response.data as DeleteAppTargetResponse;
-    }
-
-    console.error("Unexpected DeleteTargetByID response:", response.data);
-    return null;
-  } catch (error) {
-    console.error("DeleteTargetByID error:", error);
-    return null;
-  }
+const normalizeLocation = (raw: any): LocationResponse => {
+  return {
+    id: Number(raw?.id ?? 0),
+    location: String(raw?.location ?? ""),
+    building: String(raw?.building ?? ""),
+    floor: Number(raw?.floor ?? 0),
+    latitude: Number(raw?.latitude ?? 0),
+    longtitude: Number(raw?.longtitude ?? 0),
+    target_id: String(raw?.target_id ?? ""),
+    target_info: normalizeTargetInfo(raw?.target_info),
+    created_at: raw?.created_at ? String(raw.created_at) : undefined,
+    updated_at: raw?.updated_at ? String(raw.updated_at) : undefined,
+    message: raw?.message ? String(raw.message) : undefined,
+    error: raw?.error ? String(raw.error) : undefined,
+  };
 };
 
 // =======================
@@ -527,7 +440,7 @@ export const ListLocation = async (): Promise<LocationResponse[] | null> => {
     const data = response.data?.data ?? response.data;
 
     if (Array.isArray(data)) {
-      return data as LocationResponse[];
+      return data.map((item) => normalizeLocation(item));
     }
 
     console.error("Expected array but got:", response.data);
@@ -550,7 +463,7 @@ export const ListLocationByID = async (
     const data = response.data?.data ?? response.data;
 
     if (data && typeof data === "object") {
-      return data as LocationResponse;
+      return normalizeLocation(data);
     }
 
     console.error("Unexpected ListLocationByID response:", response.data);
@@ -573,7 +486,7 @@ export const CreateLocation = async (
     const data = response.data?.data ?? response.data;
 
     if (data && typeof data === "object") {
-      return data as LocationResponse;
+      return normalizeLocation(data);
     }
 
     console.error("Unexpected CreateLocation response:", response.data);
@@ -597,7 +510,7 @@ export const UpdateLocationByID = async (
     const data = response.data?.data ?? response.data;
 
     if (data && typeof data === "object") {
-      return data as LocationResponse;
+      return normalizeLocation(data);
     }
 
     console.error("Unexpected UpdateLocationByID response:", response.data);
@@ -618,7 +531,9 @@ export const DeleteLocationByID = async (
     console.log("DeleteLocationByID raw response:", response.data);
 
     if (response.data && response.data.message) {
-      return response.data as DeleteLocationResponse;
+      return {
+        message: String(response.data.message),
+      };
     }
 
     console.error("Unexpected DeleteLocationByID response:", response.data);
@@ -626,5 +541,194 @@ export const DeleteLocationByID = async (
   } catch (error) {
     console.error("DeleteLocationByID error:", error);
     return null;
+  }
+};
+export type CreateOwnInput = {
+  app_user_id: number;
+  task_id: string;
+};
+
+export type OwnResponseData = {
+  id: number;
+  app_user_id: number;
+  target_id: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CreateOwnResponse = {
+  message: string;
+  data: OwnResponseData;
+};
+
+export type DeleteOwnResponse = {
+  message: string;
+  data?: {
+    id: number;
+    app_user_id: number;
+    target_id: string;
+  };
+};
+
+export type ListTaskIDForOwnResponse = OwnTargetItem[];
+
+export interface OwnTargetItem {
+  own_id: number;
+  task_id: string;
+  hostname: string;
+  ip: string;
+}
+
+export interface ListOwnByUserIDResponse {
+  user_id: number;
+  targets: OwnTargetItem[];
+}
+
+// =======================
+// GET /owns/user/:id
+// =======================
+export const ListOwnByUserID = async (
+  userId: number | string
+): Promise<ListOwnByUserIDResponse | null> => {
+  try {
+    const response = await userApi.get(`/owns/user/${userId}`);
+
+    console.log("ListOwnByUserID raw response:", response.data);
+
+    const data = response.data?.data ?? response.data;
+
+    if (
+      data &&
+      typeof data === "object" &&
+      typeof data.user_id !== "undefined" &&
+      Array.isArray(data.targets)
+    ) {
+      return {
+        user_id: Number(data.user_id),
+        targets: data.targets.map((item: any) => ({
+          own_id: Number(item?.own_id),
+          task_id: String(item?.task_id ?? ""),
+          hostname: String(item?.hostname ?? "-"),
+          ip: String(item?.ip ?? "-"),
+        })),
+      };
+    }
+
+    console.error("Unexpected ListOwnByUserID response:", response.data);
+    return null;
+  } catch (error) {
+    console.error("ListOwnByUserID error:", error);
+    return null;
+  }
+};
+
+// =======================
+// GET /owns/tasks
+// =======================
+export const ListTaskIDForOwn = async (): Promise<ListTaskIDForOwnResponse> => {
+  try {
+    const response = await userApi.get("/owns/tasks");
+
+    console.log("ListTaskIDForOwn raw response:", response.data);
+
+    const data = response.data?.data ?? response.data;
+
+    if (Array.isArray(data)) {
+      return data as ListTaskIDForOwnResponse;
+    }
+
+    console.error("Unexpected ListTaskIDForOwn response:", response.data);
+    return [];
+  } catch (error) {
+    console.error("ListTaskIDForOwn error:", error);
+    return [];
+  }
+};
+
+// =======================
+// POST /create-owns
+// =======================
+export const CreateOwn = async (
+  payload: CreateOwnInput
+): Promise<CreateOwnResponse | null> => {
+  try {
+    const requestBody = {
+      app_user_id: payload.app_user_id,
+      target_id: payload.task_id,
+    };
+
+    const response = await userApi.post("/create-owns", requestBody);
+
+    console.log("CreateOwn raw response:", response.data);
+
+    if (
+      response.data &&
+      typeof response.data === "object" &&
+      response.data.message
+    ) {
+      return response.data as CreateOwnResponse;
+    }
+
+    console.error("Unexpected CreateOwn response:", response.data);
+    return null;
+  } catch (error) {
+    console.error("CreateOwn error:", error);
+    return null;
+  }
+};
+
+// =======================
+// DELETE /delete-owns/:id
+// =======================
+export const DeleteOwnByID = async (
+  id: number | string
+): Promise<DeleteOwnResponse | null> => {
+  try {
+    const response = await userApi.delete(`/delete-owns/${id}`);
+
+    console.log("DeleteOwnByID raw response:", response.data);
+
+    if (response.data && response.data.message) {
+      return response.data as DeleteOwnResponse;
+    }
+
+    console.error("Unexpected DeleteOwnByID response:", response.data);
+    return null;
+  } catch (error) {
+    console.error("DeleteOwnByID error:", error);
+    return null;
+  }
+};
+
+
+export type TaskByTaskIDItem = {
+  hostname: string;
+  ip: string;
+};
+
+export type ListTaskByTaskIDResponse = TaskByTaskIDItem[];
+
+// =======================
+// GET /owns/task/:task_id
+// =======================
+export const ListTaskByTaskID = async (
+  taskId: number | string
+): Promise<ListTaskByTaskIDResponse> => {
+  try {
+    const response = await userApi.get(`/owns/task/${taskId}`);
+
+    console.log("ListTaskByTaskID raw response:", response.data);
+
+    const data = response.data?.data ?? response.data;
+
+    if (Array.isArray(data)) {
+      return data as ListTaskByTaskIDResponse;
+    }
+
+    console.error("Unexpected ListTaskByTaskID response:", response.data);
+    return [];
+  } catch (error) {
+    console.error("ListTaskByTaskID error:", error);
+    return [];
   }
 };

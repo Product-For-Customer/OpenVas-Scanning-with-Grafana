@@ -118,6 +118,7 @@ services:
 
   gsa:
     image: registry.community.greenbone.net/community/gsa:stable
+    user: "0:0"
     restart: on-failure
     ports:
       - "127.0.0.1:9392:9392"

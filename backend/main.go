@@ -10,6 +10,7 @@ import (
 	"github.com/Tawunchai/openvas/controller/line"
 	"github.com/Tawunchai/openvas/controller/location"
 	"github.com/Tawunchai/openvas/controller/otp"
+	"github.com/Tawunchai/openvas/controller/own"
 	"github.com/Tawunchai/openvas/controller/report"
 	"github.com/Tawunchai/openvas/controller/user"
 	"github.com/Tawunchai/openvas/controller/vulnerability"
@@ -50,15 +51,19 @@ func main() {
 	// ==== Report Capture =====
 	r.GET("/automation/report/test-send", report.TriggerCaptureAndSendReport)
 
-	// test group
-	r.GET("/group-locations", location.ListGropAndLocation)
-
 	// ===== Public Routes =====
 	r.GET("/line/test", line.TestSendLineHandler)
 	r.POST("/automation/feed/update", automation.TriggerFeedUpdateHandler)
 	r.GET("/automation/feed/status", automation.GetFeedUpdateStatusHandler)
 	r.GET("/api/report", report.GetReportCSVSourceHandler)
 	r.POST("/line/webhook/notification", line.CreateAppNotificationByLine)
+
+	// ===== Location =====
+	r.GET("/locations", location.ListLocation)
+	r.GET("/locations/:id", location.ListLocationByID)
+	r.POST("/create-locations", location.CreateLocation)
+	r.PATCH("/update-locations/:id", location.UpdateLocationByID)
+	r.DELETE("/delete-locations/:id", location.DeleteLocationByID)
 
 	// ===== Protected Routes =====
 	authorized := r.Group("")
@@ -108,18 +113,19 @@ func main() {
 		authorized.DELETE("/delete-app-notifications/:id", line.DeleteAppNotificationByID)
 
 		// ===== Location =====
-		authorized.GET("/locations", location.ListLocation)
+		/*authorized.GET("/locations", location.ListLocation)
 		authorized.GET("/locations/:id", location.ListLocationByID)
 		authorized.POST("/create-locations", location.CreateLocation)
 		authorized.PATCH("/update-locations/:id", location.UpdateLocationByID)
-		authorized.DELETE("/delete-locations/:id", location.DeleteLocationByID)
+		authorized.DELETE("/delete-locations/:id", location.DeleteLocationByID)*/
 
-		// ===== AppTarget =====
-		authorized.GET("/app-targets", location.ListAppTarget)
-		authorized.GET("/app-targets/:id", location.ListAppTargetByID)
-		authorized.POST("/create-app-targets", location.CreateTarget)
-		authorized.PATCH("/update-app-targets/:id", location.UpdateTargetByID)
-		authorized.DELETE("/delete-app-targets/:id", location.DeleteTargetByID)
+		// ===== Own =====
+		authorized.GET("/owns/user/:id", own.ListOwnByUserID)
+		authorized.GET("/owns/tasks", own.ListTaskIDForOwn)
+		authorized.POST("/create-owns", own.CreateOwn)
+		authorized.DELETE("/delete-owns/:id", own.DeleteOwnByID)
+		authorized.GET("/owns/task/:task_id", own.ListTaskByTaskID)
+
 	}
 
 	log.Printf("✅ Server starting on port %s\n", PORT)

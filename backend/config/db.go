@@ -89,10 +89,10 @@ func SetupDatabase() {
 		&entity.AppUser{},
 		&entity.AppStatusNotify{},
 		&entity.AppHistoryNotify{},
-		&entity.AppTarget{},
 		&entity.AppGroup{},
 		&entity.AppLocation{},
 		&entity.AppGroupLocation{},
+		&entity.Own{},
 	)
 	if err != nil {
 		log.Fatalf("❌ AutoMigrate failed: %v", err)
@@ -240,59 +240,6 @@ func SeedDatabase() {
 	})
 
 	// =========================
-	// Seed AppTarget
-	// =========================
-	target1 := entity.AppTarget{
-		Name:       "Core Switch ITS",
-		IpHost:     "192.168.10.1",
-		MacAddress: "AA:BB:CC:DD:EE:01",
-	}
-
-	db.FirstOrCreate(&target1, &entity.AppTarget{
-		Name:       target1.Name,
-		MacAddress: target1.MacAddress,
-	})
-
-	target2 := entity.AppTarget{
-		Name:       "Access Point Building A",
-		IpHost:     "192.168.10.2",
-		MacAddress: "AA:BB:CC:DD:EE:02",
-	}
-
-	db.FirstOrCreate(&target2, &entity.AppTarget{
-		Name:       target2.Name,
-		MacAddress: target2.MacAddress,
-	})
-
-	target3 := entity.AppTarget{
-		Name:       "Server Rack 01",
-		IpHost:     "192.168.10.3",
-		MacAddress: "AA:BB:CC:DD:EE:03",
-	}
-
-	db.FirstOrCreate(&target3, &entity.AppTarget{
-		Name:       target3.Name,
-		MacAddress: target3.MacAddress,
-	})
-
-	// =========================
-	// Seed AppGroup
-	// =========================
-	group1 := entity.AppGroup{
-		GroupName: "Core Network",
-	}
-	db.FirstOrCreate(&group1, &entity.AppGroup{
-		GroupName: group1.GroupName,
-	})
-
-	group2 := entity.AppGroup{
-		GroupName: "Data Center",
-	}
-	db.FirstOrCreate(&group2, &entity.AppGroup{
-		GroupName: group2.GroupName,
-	})
-
-	// =========================
 	// Seed AppLocation
 	// =========================
 	location1 := entity.AppLocation{
@@ -301,7 +248,7 @@ func SeedDatabase() {
 		Floor:       1,
 		Latitude:    13.7563,
 		Longtitude:  100.5018,
-		AppTargetID: target1.ID,
+		TargetID:    "1",
 	}
 
 	db.FirstOrCreate(&location1, &entity.AppLocation{
@@ -310,7 +257,7 @@ func SeedDatabase() {
 		Floor:       location1.Floor,
 		Latitude:    location1.Latitude,
 		Longtitude:  location1.Longtitude,
-		AppTargetID: target1.ID,
+		TargetID:    "1",
 	})
 
 	location2 := entity.AppLocation{
@@ -319,7 +266,7 @@ func SeedDatabase() {
 		Floor:       2,
 		Latitude:    13.7367,
 		Longtitude:  100.5231,
-		AppTargetID: target2.ID,
+		TargetID:    "2",
 	}
 
 	db.FirstOrCreate(&location2, &entity.AppLocation{
@@ -328,7 +275,7 @@ func SeedDatabase() {
 		Floor:       location2.Floor,
 		Latitude:    location2.Latitude,
 		Longtitude:  location2.Longtitude,
-		AppTargetID: target2.ID,
+		TargetID:    "2",
 	})
 
 	location3 := entity.AppLocation{
@@ -337,7 +284,7 @@ func SeedDatabase() {
 		Floor:       3,
 		Latitude:    13.7649,
 		Longtitude:  100.5383,
-		AppTargetID: target3.ID,
+		TargetID:    "3",
 	}
 
 	db.FirstOrCreate(&location3, &entity.AppLocation{
@@ -346,14 +293,8 @@ func SeedDatabase() {
 		Floor:       location3.Floor,
 		Latitude:    location3.Latitude,
 		Longtitude:  location3.Longtitude,
-		AppTargetID: target3.ID,
+		TargetID:    "3",
 	})
-
-	// group1 = Core Network
-	db.Model(&group1).Association("AppLocations").Append(&location1,&location2)
-
-	// group2 = Data Center
-	db.Model(&group2).Association("AppLocations").Append(&location3)
 
 	// =========================
 	// Seed Admin User

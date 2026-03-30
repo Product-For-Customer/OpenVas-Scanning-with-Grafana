@@ -15,4 +15,6 @@ type AppUser struct {
 
 	AppRoleID uint     `valid:"required~AppRoleID is required"`
 	AppRole   *AppRole `gorm:"foreignKey:AppRoleID" valid:"-"`
+
+	Owns []Own `gorm:"foreignKey:AppUserID"`
 }

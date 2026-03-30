@@ -11,6 +11,7 @@ import {
   FiEdit2,
   FiTrash2,
   FiX,
+  FiLink2,
 } from "react-icons/fi";
 import {
   ListUser,
@@ -19,6 +20,7 @@ import {
 } from "../../services";
 import { useAuth } from "../../contexts/AuthContext";
 import ModalCreateUser from "../../Model/ModalCreateUser";
+import OwnManageModal from "./OwnManageModal";
 
 type SortKey = "Newest" | "Role: Admin First" | "Role: User First" | "Name A-Z";
 
@@ -78,6 +80,9 @@ const Index: React.FC = () => {
 
   const [openEditModal, setOpenEditModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UiUser | null>(null);
+
+  const [openOwnModal, setOpenOwnModal] = useState(false);
+  const [selectedOwnUser, setSelectedOwnUser] = useState<UiUser | null>(null);
 
   const currentUserId = useMemo(() => {
     return (
@@ -175,6 +180,11 @@ const Index: React.FC = () => {
   const handleEdit = (user: UiUser) => {
     setSelectedUser(user);
     setOpenEditModal(true);
+  };
+
+  const handleOpenOwn = (user: UiUser) => {
+    setSelectedOwnUser(user);
+    setOpenOwnModal(true);
   };
 
   const openDeleteModal = (user: UiUser) => {
@@ -299,7 +309,7 @@ const Index: React.FC = () => {
               </h2>
 
               <p className="mt-1 text-[11px] sm:text-[12px] text-slate-500 dark:text-white/55">
-                Monitor administrator access, analyst accounts, and operators.
+                Monitor administrator access, analyst accounts, operators, and own assignments.
               </p>
             </div>
           </div>
@@ -392,7 +402,7 @@ const Index: React.FC = () => {
           </div>
 
           <div className="mt-3.5 overflow-x-auto rounded-[22px] border border-gray-200/80 bg-white/80 dark:border-white/10 dark:bg-white/3">
-            <table className="min-w-275 w-full border-separate border-spacing-0">
+            <table className="min-w-330 w-full border-separate border-spacing-0">
               <thead>
                 <tr className="text-left">
                   <th className="px-3.5 py-3 text-[11px] font-semibold text-slate-600 dark:text-white/60 border-b border-gray-200/80 dark:border-white/10">
@@ -409,6 +419,9 @@ const Index: React.FC = () => {
                   </th>
                   <th className="px-3.5 py-3 text-[11px] font-semibold text-slate-600 dark:text-white/60 border-b border-gray-200/80 dark:border-white/10">
                     Position
+                  </th>
+                  <th className="px-3.5 py-3 text-[11px] font-semibold text-slate-600 dark:text-white/60 border-b border-gray-200/80 dark:border-white/10 text-center">
+                    Own
                   </th>
                   <th className="px-3.5 py-3 text-[11px] font-semibold text-slate-600 dark:text-white/60 border-b border-gray-200/80 dark:border-white/10 text-right">
                     Action
@@ -536,6 +549,27 @@ const Index: React.FC = () => {
                         </td>
 
                         <td
+                          className={`px-3.5 py-3 text-center ${
+                            idx !== users.length - 1
+                              ? "border-b border-gray-100 dark:border-white/10"
+                              : ""
+                          }`}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => handleOpenOwn(user)}
+                            className={[
+                              "inline-flex items-center gap-2 rounded-xl px-3 py-2 text-[11px] font-semibold transition",
+                              "bg-violet-50 text-violet-700 hover:bg-violet-100",
+                              "dark:bg-violet-500/10 dark:text-violet-200 dark:hover:bg-violet-500/15",
+                            ].join(" ")}
+                          >
+                            <FiLink2 className="text-[12px]" />
+                            Own
+                          </button>
+                        </td>
+
+                        <td
                           className={`px-3.5 py-3 text-right ${
                             idx !== users.length - 1
                               ? "border-b border-gray-100 dark:border-white/10"
@@ -581,7 +615,7 @@ const Index: React.FC = () => {
                 {!loading && users.length === 0 && (
                   <tr>
                     <td
-                      colSpan={6}
+                      colSpan={7}
                       className="px-4 py-8 text-center text-[12px] text-slate-500 dark:text-white/50"
                     >
                       No user data found
@@ -592,7 +626,7 @@ const Index: React.FC = () => {
                 {loading && (
                   <tr>
                     <td
-                      colSpan={6}
+                      colSpan={7}
                       className="px-4 py-8 text-center text-[12px] text-slate-500 dark:text-white/50"
                     >
                       Loading...
@@ -673,7 +707,7 @@ const Index: React.FC = () => {
                 onClick={confirmDelete}
                 disabled={deleting}
                 className={[
-                  "min-w-27.5 rounded-[10px] px-3.5 py-2 text-[12px] font-medium transition",
+                  "min-w-27.5 rounded-xl px-3.5 py-2 text-[12px] font-medium transition",
                   "bg-[#f8dedd] text-[#ff5a3c] hover:bg-[#f4d2d1]",
                   "disabled:cursor-not-allowed disabled:opacity-60",
                 ].join(" ")}
@@ -686,7 +720,7 @@ const Index: React.FC = () => {
                 onClick={closeDeleteModal}
                 disabled={deleting}
                 className={[
-                  "min-w-27.5 rounded-[10px] px-3.5 py-2 text-[12px] font-medium transition",
+                  "min-w-27.5 rounded-xl px-3.5 py-2 text-[12px] font-medium transition",
                   "bg-[#6d5efc] text-white hover:bg-[#5f51eb]",
                   "disabled:cursor-not-allowed disabled:opacity-60",
                 ].join(" ")}
@@ -709,6 +743,20 @@ const Index: React.FC = () => {
           setOpenEditModal(false);
           setSelectedUser(null);
           await fetchUsers();
+        }}
+      />
+
+      <OwnManageModal
+        open={openOwnModal}
+        userId={selectedOwnUser?.id ?? null}
+        userName={
+          selectedOwnUser
+            ? `${selectedOwnUser.first_name} ${selectedOwnUser.last_name}`
+            : ""
+        }
+        onClose={() => {
+          setOpenOwnModal(false);
+          setSelectedOwnUser(null);
         }}
       />
     </>
