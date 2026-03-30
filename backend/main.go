@@ -58,12 +58,16 @@ func main() {
 	r.GET("/api/report", report.GetReportCSVSourceHandler)
 	r.POST("/line/webhook/notification", line.CreateAppNotificationByLine)
 
-	// ===== Location =====
-	r.GET("/locations", location.ListLocation)
-	r.GET("/locations/:id", location.ListLocationByID)
-	r.POST("/create-locations", location.CreateLocation)
-	r.PATCH("/update-locations/:id", location.UpdateLocationByID)
-	r.DELETE("/delete-locations/:id", location.DeleteLocationByID)
+	// ===== Protected Routes for Vulnerability Management Authorization =====
+	//authorized.GET("/tasks/status", vulnerability.ListStatus)                                      // complete
+	//authorized.GET("/tasks/summary-vulnerability", vulnerability.ListTaskVulnSummary)              // complete
+	//authorized.GET("/vulnerabilities/list", vulnerability.ListVulnerability)                       // complete
+	//authorized.GET("/assets/risk", vulnerability.ListAssetRisk)                                    // complete
+	//authorized.GET("/devices/risk", vulnerability.ListDeviceRisk)                                  // complete
+	//authorized.GET("/vulnerabilities/detail/by-name", vulnerability.ListVulnerabilityDetailByName) // complete
+	//authorized.GET("/vulnerabilities/:task_id", vulnerability.ListVulnerabilityByTaskID)           // complete
+	//authorized.GET("/target-differ", vulnerability.ListTargetDiffer)
+	//authorized.GET("/vulnerabilities/level/:level", vulnerability.ListVulnerabilityByLevel)
 
 	// ===== Protected Routes =====
 	authorized := r.Group("")
@@ -81,6 +85,14 @@ func main() {
 		authorized.GET("/vulnerabilities/:task_id", vulnerability.ListVulnerabilityByTaskID)           // complete
 		authorized.GET("/target-differ", vulnerability.ListTargetDiffer)
 		authorized.GET("/vulnerabilities/level/:level", vulnerability.ListVulnerabilityByLevel)
+		authorized.GET("/critical-report", report.ListCriticalForReport) //report
+
+		// ===== Location =====
+		authorized.GET("/locations", location.ListLocation)
+		authorized.GET("/locations/:id", location.ListLocationByID)
+		authorized.POST("/create-locations", location.CreateLocation)
+		authorized.PATCH("/update-locations/:id", location.UpdateLocationByID)
+		authorized.DELETE("/delete-locations/:id", location.DeleteLocationByID)
 
 		// ===== Protected Routes for Line Notify History Authorization =====
 		authorized.GET("/history-notifies", line.ListHistoryNotify)

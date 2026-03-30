@@ -1,5 +1,4 @@
-import React, { useMemo } from "react";
-import type { SeverityItem } from "../../../interface/type";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ResponsiveContainer,
   PieChart,
@@ -12,40 +11,113 @@ import {
   YAxis,
   CartesianGrid,
 } from "recharts";
+import {
+  ListTaskVulnSummary,
+  type TaskVulnSummaryDTO,
+} from "../../../services";
 
 type SeveritySnapshotProps = {
   title?: string;
-  items: SeverityItem[];
   totalLabel?: string;
+};
+
+type SeverityKey = "Critical" | "High" | "Medium" | "Low" | "Info";
+
+type SeverityChartRow = {
+  name: SeverityKey;
+  value: number;
+  color: string;
+  share: number;
+};
+
+const COLORS: Record<SeverityKey, string> = {
+  Critical: "#ef4444",
+  High: "#f97316",
+  Medium: "#eab308",
+  Low: "#22c55e",
+  Info: "#3b82f6",
 };
 
 const SeveritySnapshot: React.FC<SeveritySnapshotProps> = ({
   title = "Severity Snapshot",
-  items,
   totalLabel = "Total Findings",
 }) => {
-  const total = items.reduce((sum, item) => sum + Number(item.value || 0), 0);
+  const [rows, setRows] = useState<TaskVulnSummaryDTO[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
-  const chartData = useMemo(
-    () =>
-      items.map((item) => ({
-        name: item.name,
-        value: Number(item.value || 0),
-        color: item.color,
-        share:
-          total > 0
-            ? Number(((Number(item.value) / total) * 100).toFixed(1))
-            : 0,
-      })),
-    [items, total]
-  );
+  useEffect(() => {
+    let alive = true;
+
+    const loadData = async () => {
+      try {
+        setLoading(true);
+
+        const response = await ListTaskVulnSummary();
+
+        if (!alive) return;
+        setRows(Array.isArray(response) ? response : []);
+      } catch (error) {
+        console.error("Failed to load ListTaskVulnSummary:", error);
+        if (!alive) return;
+        setRows([]);
+      } finally {
+        if (!alive) return;
+        setLoading(false);
+      }
+    };
+
+    loadData();
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const chartData = useMemo<SeverityChartRow[]>(() => {
+    let critical = 0;
+    let high = 0;
+    let medium = 0;
+    let low = 0;
+    let info = 0;
+
+    for (const row of rows) {
+      critical += Number(row.critical || 0);
+      high += Number(row.high || 0);
+      medium += Number(row.medium || 0);
+      low += Number(row.low || 0);
+      info += Number(row.info || 0);
+    }
+
+    const raw: Omit<SeverityChartRow, "share">[] = [
+      { name: "Critical", value: critical, color: COLORS.Critical },
+      { name: "High", value: high, color: COLORS.High },
+      { name: "Medium", value: medium, color: COLORS.Medium },
+      { name: "Low", value: low, color: COLORS.Low },
+      { name: "Info", value: info, color: COLORS.Info },
+    ];
+
+    const total = raw.reduce((sum, item) => sum + item.value, 0);
+
+    return raw.map((item) => ({
+      ...item,
+      share: total > 0 ? Number(((item.value / total) * 100).toFixed(1)) : 0,
+    }));
+  }, [rows]);
+
+  const total = useMemo(() => {
+    return chartData.reduce((sum, item) => sum + Number(item.value || 0), 0);
+  }, [chartData]);
+
+  const hasData = useMemo(() => {
+    return chartData.some((item) => item.value > 0);
+  }, [chartData]);
 
   const tooltipFormatter = (
-  value: number | string | undefined,
-  name: string | undefined
-): [string, string] => {
-  return [Number(value ?? 0).toLocaleString(), name ?? ""];
-};
+    value: number | string | undefined,
+    name: string | undefined
+  ): [string, string] => {
+    return [Number(value ?? 0).toLocaleString(), name ?? ""];
+  };
 
   return (
     <section className="rounded-md border border-slate-300 bg-white">
@@ -58,6 +130,10 @@ const SeveritySnapshot: React.FC<SeveritySnapshotProps> = ({
             <h3 className="mt-1 text-[22px] font-semibold text-slate-900">
               {title}
             </h3>
+            <p className="mt-2 text-[13px] leading-6 text-slate-600">
+              Summary of findings by severity level based on the latest
+              consolidated task assessment.
+            </p>
           </div>
 
           <div className="rounded-sm border border-slate-300 bg-slate-50 px-4 py-3">
@@ -65,29 +141,46 @@ const SeveritySnapshot: React.FC<SeveritySnapshotProps> = ({
               {totalLabel}
             </p>
             <p className="mt-1 text-[24px] font-bold leading-none text-slate-950">
-              {total.toLocaleString()}
+              {loading ? "..." : total.toLocaleString()}
             </p>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 p-5 md:p-6 xl:grid-cols-12">
+        {/* Left: Donut */}
         <div className="xl:col-span-5">
-          <div className="rounded-md border border-slate-200 bg-white p-4">
+          <div className="h-full rounded-md border border-slate-200 bg-white p-4">
             <h4 className="text-[14px] font-semibold text-slate-900">
               Proportion by Severity
             </h4>
+            <p className="mt-1 text-[12px] leading-5 text-slate-600">
+              Donut chart showing the proportional distribution of findings
+              across each severity level.
+            </p>
 
-            <div className="mt-4 h-70">
+            <div className="relative mt-4 h-80">
+              <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-500">
+                  Total
+                </p>
+                <p className="mt-1 text-[28px] font-bold leading-none text-slate-950">
+                  {loading ? "..." : total.toLocaleString()}
+                </p>
+                <p className="mt-1 text-[11px] text-slate-500">Findings</p>
+              </div>
+
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={chartData}
                     dataKey="value"
                     nameKey="name"
-                    innerRadius={65}
-                    outerRadius={100}
+                    innerRadius={72}
+                    outerRadius={112}
                     paddingAngle={2}
+                    stroke="#ffffff"
+                    strokeWidth={2}
                   >
                     {chartData.map((entry) => (
                       <Cell key={entry.name} fill={entry.color} />
@@ -96,44 +189,41 @@ const SeveritySnapshot: React.FC<SeveritySnapshotProps> = ({
                   <Tooltip formatter={tooltipFormatter} />
                 </PieChart>
               </ResponsiveContainer>
-            </div>
 
-            <div className="mt-3 space-y-2">
-              {chartData.map((item) => (
-                <div
-                  key={item.name}
-                  className="flex items-center justify-between text-[13px]"
-                >
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="h-3 w-3 rounded-full"
-                      style={{ backgroundColor: item.color }}
-                    />
-                    <span className="text-slate-700">{item.name}</span>
+              {!loading && !hasData && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="rounded-md border border-slate-200 bg-white px-4 py-3 text-[13px] text-slate-500">
+                    No Data
                   </div>
-                  <span className="font-medium text-slate-900">
-                    {item.share}%
-                  </span>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>
 
+        {/* Right: Bar */}
         <div className="xl:col-span-7">
-          <div className="rounded-md border border-slate-200 bg-white p-4">
+          <div className="h-full rounded-md border border-slate-200 bg-white p-4">
             <h4 className="text-[14px] font-semibold text-slate-900">
               Findings Count by Severity
             </h4>
+            <p className="mt-1 text-[12px] leading-5 text-slate-600">
+              Bar chart presenting the total number of findings recorded in each
+              severity category.
+            </p>
 
-            <div className="mt-4 h-70">
+            <div className="mt-4 h-80">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} barSize={38}>
+                <BarChart
+                  data={chartData}
+                  barSize={44}
+                  margin={{ top: 8, right: 12, left: 0, bottom: 24 }}
+                >
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
                   <XAxis dataKey="name" tick={{ fontSize: 12 }} />
                   <YAxis tick={{ fontSize: 12 }} />
                   <Tooltip formatter={tooltipFormatter} />
-                  <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                  <Bar dataKey="value" name="Findings" radius={[4, 4, 0, 0]}>
                     {chartData.map((entry) => (
                       <Cell key={entry.name} fill={entry.color} />
                     ))}
@@ -141,18 +231,41 @@ const SeveritySnapshot: React.FC<SeveritySnapshotProps> = ({
                 </BarChart>
               </ResponsiveContainer>
             </div>
+          </div>
+        </div>
 
-            <div className="mt-5 overflow-hidden rounded-md border border-slate-200">
-              <div className="grid grid-cols-[1.1fr_0.8fr_0.6fr] bg-slate-100 px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-600">
-                <div>Severity</div>
-                <div className="text-right">Count</div>
-                <div className="text-right">Share</div>
+        {/* Full width table */}
+        <div className="xl:col-span-12">
+          <div className="overflow-hidden rounded-md border border-slate-200 bg-white">
+            <div className="border-b border-slate-200 px-4 py-4">
+              <h4 className="text-[14px] font-semibold text-slate-900">
+                Severity Breakdown Table
+              </h4>
+              <p className="mt-1 text-[12px] leading-5 text-slate-600">
+                Detailed breakdown of severity counts and their percentage share
+                in the overall findings set.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-[1.4fr_1fr_1fr] bg-slate-100 px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-600">
+              <div>Severity</div>
+              <div className="text-right">Count</div>
+              <div className="text-right">Share</div>
+            </div>
+
+            {loading ? (
+              <div className="px-4 py-6 text-[14px] text-slate-500">
+                Loading...
               </div>
-
-              {chartData.map((item, index) => (
+            ) : chartData.length === 0 ? (
+              <div className="px-4 py-6 text-[14px] text-slate-500">
+                No Data
+              </div>
+            ) : (
+              chartData.map((item, index) => (
                 <div
                   key={item.name}
-                  className={`grid grid-cols-[1.1fr_0.8fr_0.6fr] items-center px-4 py-3 ${
+                  className={`grid grid-cols-[1.4fr_1fr_1fr] items-center px-4 py-4 ${
                     index % 2 === 0 ? "bg-white" : "bg-slate-50/50"
                   }`}
                 >
@@ -174,8 +287,22 @@ const SeveritySnapshot: React.FC<SeveritySnapshotProps> = ({
                     {item.share}%
                   </div>
                 </div>
-              ))}
-            </div>
+              ))
+            )}
+
+            {!loading && chartData.length > 0 && (
+              <div className="grid grid-cols-[1.4fr_1fr_1fr] border-t border-slate-200 bg-slate-100 px-4 py-4">
+                <div className="text-[13px] font-semibold uppercase tracking-[0.08em] text-slate-700">
+                  Total
+                </div>
+                <div className="text-right text-[14px] font-bold text-slate-950">
+                  {total.toLocaleString()}
+                </div>
+                <div className="text-right text-[13px] font-semibold text-slate-700">
+                  100%
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

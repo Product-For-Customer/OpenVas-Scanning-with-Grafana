@@ -322,7 +322,7 @@ const TopVulnerability: React.FC = () => {
               </div>
 
               <h3 className="text-[17px] sm:text-[18px] font-semibold text-[#1f2240] dark:text-white/90">
-                Top Vulnerabilities
+                Total Vulnerabilities
               </h3>
               <p className="mt-1 text-[11px] text-gray-500 dark:text-white/55">
                 {statusText}

@@ -53,11 +53,11 @@ const AdminRoutes = (): RouteObject[] => [
       { path: "user", element: <User /> },
       { path: "vulnerability-detail", element: <VulnerabilityDetail /> },
       { path: "service", element: <Service /> },
-      { path: "capture-test", element: <CaptureTest /> },
       { path: "p.thor", element: <THOR /> },
     ],
   },
   { path: "*", element: <Navigate to="/admin" replace /> },
+  { path: "capture", element: <CaptureTest /> },
 ];
 
 // User เห็นเฉพาะบางหน้า

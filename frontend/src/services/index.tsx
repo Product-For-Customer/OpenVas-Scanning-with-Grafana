@@ -372,3 +372,44 @@ export const ListVulnerabilityByLevel = async (
 };
 
 export default vulnerabilityApi;
+
+// =======================
+// API: GET /critical-report
+// =======================
+export type CriticalForReportDTO = {
+  task_name: string;
+  ip: string;
+  vulnerability_name: string;
+  vulnerability_family: string;
+  level: string;
+  summary: string;
+  insight: string;
+  cve_list: string;
+  severity: number;
+};
+
+export type ListCriticalForReportResponse = {
+  data: CriticalForReportDTO[];
+  count: number;
+};
+
+export const ListCriticalForReport = async (): Promise<
+  CriticalForReportDTO[] | null
+> => {
+  try {
+    const response = await vulnerabilityApi.get("/critical-report");
+
+    console.log("ListCriticalForReport raw response:", response.data);
+
+    if (response.status === 200) {
+      const data = response.data?.data ?? response.data;
+      return Array.isArray(data) ? (data as CriticalForReportDTO[]) : [];
+    }
+
+    console.error("Unexpected status:", response.status);
+    return null;
+  } catch (error) {
+    console.error("Error fetching critical report:", error);
+    return null;
+  }
+};
