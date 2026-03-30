@@ -25,6 +25,10 @@ type ChartRow = {
   previousTime: number | null;
 };
 
+type ComparisonReportProps = {
+  onReady?: (ready: boolean) => void;
+};
+
 const clamp = (num: number, min: number, max: number) =>
   Math.max(min, Math.min(num, max));
 
@@ -60,7 +64,7 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload }) => {
   return (
     <div className="min-w-55 rounded-lg border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
       <p className="text-[12px] font-semibold text-slate-900">{row.taskName}</p>
-      <p className="mt-0.5 text-[10.5px] text-slate-500 break-all">
+      <p className="mt-0.5 break-all text-[10.5px] text-slate-500">
         Host: {row.host || "-"}
       </p>
 
@@ -109,12 +113,14 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload }) => {
   );
 };
 
-const index: React.FC = () => {
+const ComparisonReport: React.FC<ComparisonReportProps> = ({ onReady }) => {
   const [rawData, setRawData] = useState<TargetDifferForReportDTO[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     let isMounted = true;
+
+    onReady?.(false);
 
     const fetchData = async () => {
       setLoading(true);
@@ -133,7 +139,10 @@ const index: React.FC = () => {
         console.error("ListTargetDifferForReport error:", error);
         if (isMounted) setRawData([]);
       } finally {
-        if (isMounted) setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+          onReady?.(true);
+        }
       }
     };
 
@@ -142,7 +151,7 @@ const index: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [onReady]);
 
   const chartData = useMemo<ChartRow[]>(() => {
     return [...rawData]
@@ -164,7 +173,8 @@ const index: React.FC = () => {
           previousTime: item.previous_creation_time ?? null,
         };
       })
-      .sort((a, b) => (b.latestTime || 0) - (a.latestTime || 0));
+      .sort((a, b) => (b.latestTime || 0) - (a.latestTime || 0))
+      .slice(0, 8);
   }, [rawData]);
 
   const highestLatestRisk = useMemo(() => {
@@ -180,19 +190,19 @@ const index: React.FC = () => {
 
   if (loading) {
     return (
-      <section className="rounded-[14px] border border-slate-200 bg-white">
-        <div className="px-5 py-5 md:px-6">
-          <div className="border-b border-slate-200 pb-4">
-            <div className="h-5 w-48 animate-pulse rounded bg-slate-200" />
-            <div className="mt-2 h-4 w-80 animate-pulse rounded bg-slate-100" />
+      <section
+        style={{
+          breakInside: "avoid-page",
+          pageBreakInside: "avoid",
+        }}
+      >
+        <div className="py-2">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="h-14 animate-pulse rounded-md border border-slate-200 bg-slate-50" />
+            <div className="h-14 animate-pulse rounded-md border border-slate-200 bg-slate-50" />
           </div>
 
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <div className="h-16 animate-pulse rounded-md border border-slate-200 bg-slate-50" />
-            <div className="h-16 animate-pulse rounded-md border border-slate-200 bg-slate-50" />
-          </div>
-
-          <div className="mt-5 h-65 animate-pulse rounded-md border border-slate-200 bg-slate-50" />
+          <div className="mt-3 h-52 animate-pulse rounded-md border border-slate-200 bg-slate-50" />
         </div>
       </section>
     );
@@ -200,12 +210,14 @@ const index: React.FC = () => {
 
   if (chartData.length === 0) {
     return (
-      <section className="rounded-[14px] border border-slate-200 bg-white">
-        <div className="px-5 py-6 md:px-6">
-          <h3 className="text-[17px] font-semibold text-slate-900">
-            Risk Score Trend
-          </h3>
-          <p className="mt-2 text-[13px] leading-6 text-slate-600">
+      <section
+        style={{
+          breakInside: "avoid-page",
+          pageBreakInside: "avoid",
+        }}
+      >
+        <div className="py-2">
+          <p className="text-[12px] leading-6 text-slate-600">
             ไม่พบข้อมูลสำหรับแสดงกราฟในรายงานรอบนี้
           </p>
         </div>
@@ -214,39 +226,34 @@ const index: React.FC = () => {
   }
 
   return (
-    <section className="rounded-[14px] border border-slate-200 bg-white">
-      <div className="px-5 py-5 md:px-6">
-        <div className="border-b border-slate-200 pb-4">
-          <h3 className="text-[18px] font-semibold text-slate-900">
-            Risk Score Trend
-          </h3>
-          <p className="mt-2 max-w-4xl text-[13px] leading-6 text-slate-600">
-            กราฟนี้เปรียบเทียบค่า Latest Risk และ Previous Risk ของแต่ละเป้าหมาย
-            โดยแสดงผลในรูปแบบเรียบง่ายเพื่อให้เหมาะกับรายงาน PDF
-          </p>
-        </div>
-
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          <div className="rounded-md border border-slate-200 bg-slate-50 px-4 py-3">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+    <section
+      style={{
+        breakInside: "avoid-page",
+        pageBreakInside: "avoid",
+      }}
+    >
+      <div className="py-1">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5">
+            <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-slate-500">
               Highest Latest Risk
             </p>
-            <p className="mt-1 text-[16px] font-semibold text-slate-900">
+            <p className="mt-1 text-[15px] font-semibold text-slate-900">
               {highestLatestRisk.toFixed(2)}
             </p>
           </div>
 
-          <div className="rounded-md border border-slate-200 bg-slate-50 px-4 py-3">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+          <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5">
+            <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-slate-500">
               Average Latest Risk
             </p>
-            <p className="mt-1 text-[16px] font-semibold text-slate-900">
+            <p className="mt-1 text-[15px] font-semibold text-slate-900">
               {averageLatestRisk.toFixed(2)}
             </p>
           </div>
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-[11px] text-slate-600">
+        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-[10.5px] text-slate-600">
           <div className="flex items-center gap-2">
             <span className="h-2.5 w-4 rounded-full bg-violet-500" />
             <span>Latest Risk</span>
@@ -263,12 +270,12 @@ const index: React.FC = () => {
           </div>
         </div>
 
-        <div className="mt-5 rounded-md border border-slate-200 bg-white p-3">
-          <div className="h-65 w-full">
+        <div className="mt-2">
+          <div className="h-52 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
                 data={chartData}
-                margin={{ top: 10, right: 10, left: -18, bottom: 0 }}
+                margin={{ top: 8, right: 14, left: 18, bottom: 12 }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis
@@ -277,13 +284,15 @@ const index: React.FC = () => {
                   tickLine={false}
                   axisLine={{ stroke: "#cbd5e1" }}
                   interval={0}
+                  height={34}
                 />
                 <YAxis
                   domain={[0, 10]}
                   tick={{ fontSize: 10, fill: "#64748b" }}
                   tickLine={false}
                   axisLine={{ stroke: "#cbd5e1" }}
-                  width={30}
+                  width={42}
+                  tickMargin={10}
                 />
                 <Tooltip content={<CustomTooltip />} />
 
@@ -300,8 +309,8 @@ const index: React.FC = () => {
                   type="monotone"
                   dataKey="latestRisk"
                   stroke="#8b5cf6"
-                  strokeWidth={2.2}
-                  dot={{ r: 2.6 }}
+                  strokeWidth={2.1}
+                  dot={{ r: 2.2 }}
                   activeDot={{ r: 4 }}
                 />
 
@@ -309,8 +318,8 @@ const index: React.FC = () => {
                   type="monotone"
                   dataKey="previousRisk"
                   stroke="#38bdf8"
-                  strokeWidth={2}
-                  dot={{ r: 2.4 }}
+                  strokeWidth={1.9}
+                  dot={{ r: 2.1 }}
                   activeDot={{ r: 4 }}
                 />
               </AreaChart>
@@ -318,12 +327,13 @@ const index: React.FC = () => {
           </div>
         </div>
 
-        <p className="mt-3 text-[11px] leading-5 text-slate-500">
-          หมายเหตุ: ข้อมูลถูกเรียงตามเวลาสแกนล่าสุดจากใหม่ไปเก่า และแกน Y จำกัดช่วงคะแนน 0 ถึง 10
+        <p className="mt-2 text-[10.5px] leading-5 text-slate-500">
+          หมายเหตุ: ข้อมูลถูกเรียงตามเวลาสแกนล่าสุดจากใหม่ไปเก่า และจำกัดการแสดงผลเฉพาะ 8
+          เป้าหมายแรกเพื่อให้พอดีกับหน้า PDF
         </p>
       </div>
     </section>
   );
 };
 
-export default index;
+export default ComparisonReport;

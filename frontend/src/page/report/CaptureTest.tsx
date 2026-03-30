@@ -1,103 +1,211 @@
-import React from "react";
+import React, { useMemo, useState } from "react";
 import ReportHeader from "./ReportHeader";
 import ReportKPI from "./ReportKPI";
-import ExecutiveHighlights from "./ExecutiveHighlights";
 import SeveritySnapshot from "./SeveritySnapshot";
+import ExecutiveHighlights from "./ExecutiveHighlights";
+import TopDeviceRiskReport from "./TopDeviceRiskReport";
+import ComparisonReport from "./comparision";
 import ReportFooter from "./ReportFooter";
-import TopDeviceRiskReport from "./Top";
-import RiskScoreTrendReport from "./comparision";
-
 import { reportInfo } from "../../interface/mock";
 
-const sectionTitleClass =
-  "text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500";
+const sectionLabelClass =
+  "text-[8.5px] font-semibold uppercase tracking-normal text-slate-500";
 const sectionHeadingClass =
-  "mt-2 text-[28px] font-semibold leading-tight text-slate-900";
+  "mt-1 text-[16px] font-bold leading-[1.2] text-slate-900";
 const sectionDescClass =
-  "mt-3 max-w-4xl text-[14px] leading-7 text-slate-600";
+  "mt-1.5 max-w-full text-[10.5px] leading-[1.6] text-slate-600";
+
+// เพิ่มความสูงของ page ให้ footer ลงได้ใกล้ขอบล่างกว่าเดิม
+const pageShellClass = "flex h-[1550px] flex-col bg-white";
 
 const CaptureTest: React.FC = () => {
+  const [kpiReady, setKpiReady] = useState(false);
+  const [severityReady, setSeverityReady] = useState(false);
+  const [executiveReady, setExecutiveReady] = useState(false);
+  const [topDeviceReady, setTopDeviceReady] = useState(false);
+  const [comparisonReady, setComparisonReady] = useState(false);
+
+  const reportReady = useMemo(() => {
+    return (
+      kpiReady &&
+      severityReady &&
+      executiveReady &&
+      topDeviceReady &&
+      comparisonReady
+    );
+  }, [
+    kpiReady,
+    severityReady,
+    executiveReady,
+    topDeviceReady,
+    comparisonReady,
+  ]);
+
   return (
     <div
       id="capture-root"
-      className="min-h-screen w-full bg-[#eef2f7] px-3 py-4 md:px-6 md:py-8"
+      className="w-full bg-white text-slate-900"
+      data-report-ready={reportReady ? "true" : "false"}
+      data-kpi-ready={kpiReady ? "true" : "false"}
+      data-severity-ready={severityReady ? "true" : "false"}
+      data-executive-ready={executiveReady ? "true" : "false"}
+      data-top-device-ready={topDeviceReady ? "true" : "false"}
+      data-comparison-ready={comparisonReady ? "true" : "false"}
+      style={{
+        width: "1120px",
+        margin: "0 auto",
+        position: "relative",
+      }}
     >
-      <div className="mx-auto w-full max-w-310">
-        <div className="overflow-hidden rounded-[18px] border border-slate-300 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.10)]">
-          <ReportHeader info={reportInfo} />
+      {!reportReady && (
+        <div
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "rgba(255,255,255,0.01)",
+            zIndex: 50,
+            pointerEvents: "none",
+          }}
+        />
+      )}
 
-          <main className="px-5 py-6 md:px-8 md:py-8 xl:px-12 xl:py-10">
-            <section className="mt-10">
-              <div className="mb-5 border-b border-slate-200 pb-4">
-                <p className={sectionTitleClass}>Section 1</p>
-                <h2 className={sectionHeadingClass}>Assessment Snapshot</h2>
-                <p className={sectionDescClass}>
-                  สรุปภาพรวมของรอบการสแกนล่าสุดในเชิงผู้บริหาร โดยแสดงตัวชี้วัดหลัก
-                  ของการประเมิน, จำนวน findings, ความเสี่ยงเฉลี่ย
-                  และประเด็นที่ควรให้ความสำคัญก่อนลงรายละเอียดเชิงเทคนิค
-                </p>
-              </div>
+      {/* PAGE 1 */}
+      <div className={pageShellClass}>
+        <div className="w-full bg-white">
+          <ReportHeader
+            info={{
+              ...reportInfo,
+              companyName: "Get on Technology",
+            }}
+          />
+        </div>
 
-              <ReportKPI />
-            </section>
+        <main className="flex-1 px-7 pt-5 pb-2">
+          <section className="mt-0">
+            <div className="mb-3 border-b border-slate-200 pb-2.5">
+              <p className={sectionLabelClass}>Section 1</p>
 
-            <section className="mt-12">
-              <div className="mb-5 border-b border-slate-200 pb-4">
-                <p className={sectionTitleClass}>Section 2</p>
-                <h2 className={sectionHeadingClass}>
-                  Severity Distribution Overview
-                </h2>
-                <p className={sectionDescClass}>
-                  แสดงสัดส่วนการกระจายของ vulnerability ตามระดับความรุนแรง
-                  พร้อมตารางสรุปและกราฟเพื่อให้เห็นน้ำหนักของความเสี่ยงในรอบล่าสุด
-                </p>
-              </div>
+              <h2 className={sectionHeadingClass}>Assessment Snapshot</h2>
 
-              <SeveritySnapshot />
-            </section>
+              <p className={sectionDescClass}>
+                สรุปภาพรวมของรอบการสแกนล่าสุดในเชิงผู้บริหาร โดยแสดงตัวชี้วัดหลักของการประเมิน
+                จำนวน findings ความเสี่ยงเฉลี่ย และประเด็นที่ควรให้ความสำคัญก่อนลงรายละเอียดเชิงเทคนิค
+              </p>
+            </div>
 
-            <section className="mt-12">
-              <div className="mb-5 border-b border-slate-200 pb-4">
-                <p className={sectionTitleClass}>Section 3</p>
-                <h2 className={sectionHeadingClass}>Executive Highlights</h2>
-                <p className={sectionDescClass}>
-                  สรุปเหตุการณ์หรือประเด็นสำคัญจากผลสแกนล่าสุด
-                  เพื่อให้เห็นภาพแนวโน้มความเสี่ยงและจุดที่ต้องเร่งดำเนินการ
-                </p>
-              </div>
+            <ReportKPI onReady={setKpiReady} />
+          </section>
 
-              <ExecutiveHighlights />
-            </section>
+          <section className="mt-4">
+            <div className="mb-3 border-b border-slate-200 pb-2.5">
+              <p className={sectionLabelClass}>Section 2</p>
 
-            <section className="mt-12">
-              <div className="mb-5 border-b border-slate-200 pb-4">
-                <p className={sectionTitleClass}>Section 4</p>
-                <h2 className={sectionHeadingClass}>Device Risk Summary</h2>
-                <p className={sectionDescClass}>
-                  แสดงรายการอุปกรณ์จากผลการประเมินล่าสุด โดยเรียงตามค่า Risk
-                  Score เพื่อให้เห็นอุปกรณ์ที่ควรได้รับความสนใจก่อนในมุมมองของรายงาน
-                </p>
-              </div>
+              <h2 className={sectionHeadingClass}>
+                Severity Distribution Overview
+              </h2>
 
-              <TopDeviceRiskReport />
-            </section>
+              <p className={sectionDescClass}>
+                แสดงภาพรวมการกระจายของช่องโหว่ตามระดับความรุนแรงในรูปแบบย่อ
+                เพื่อให้เหมาะกับการจัดวางในรายงาน PDF แบบหน้าเดียว
+              </p>
+            </div>
 
-            <section className="mt-12">
-              <div className="mb-5 border-b border-slate-200 pb-4">
-                <p className={sectionTitleClass}>Section 5</p>
-                <h2 className={sectionHeadingClass}>Risk Score Trend</h2>
-                <p className={sectionDescClass}>
-                  เปรียบเทียบค่า Latest Risk และ Previous Risk ของแต่ละเป้าหมาย
-                  เพื่อให้เห็นแนวโน้มการเปลี่ยนแปลงของความเสี่ยงจากรอบก่อนหน้าไปยังรอบล่าสุด
-                  ในรูปแบบกราฟที่เหมาะกับการแสดงผลในรายงาน PDF
-                </p>
-              </div>
+            <SeveritySnapshot onReady={setSeverityReady} />
+          </section>
+        </main>
 
-              <RiskScoreTrendReport />
-            </section>
+        <div className="mt-auto px-7 pb-0">
+          <ReportFooter page="Page 1 of 3" />
+        </div>
+      </div>
 
-            <ReportFooter page="Page 1 of 1" />
-          </main>
+      {/* PAGE 2 */}
+      <div
+        className={pageShellClass}
+        style={{
+          pageBreakBefore: "always",
+          breakBefore: "page",
+        }}
+      >
+        <main className="flex-1 px-7 pt-6 pb-2">
+          <section className="mt-0">
+            <div className="mb-3 border-b border-slate-200 pb-2.5">
+              <p className={sectionLabelClass}>Section 3</p>
+
+              <h2 className={sectionHeadingClass}>Executive Highlights</h2>
+
+              <p className={sectionDescClass}>
+                สรุปประเด็นสำคัญของช่องโหว่ระดับวิกฤตที่ควรได้รับการติดตามก่อน
+                โดยแสดงชื่อช่องโหว่ เป้าหมายที่ได้รับผลกระทบ รายละเอียด
+                และข้อมูลเชิงลึกเพื่อใช้ประกอบการตัดสินใจ
+              </p>
+            </div>
+
+            <ExecutiveHighlights onReady={setExecutiveReady} />
+          </section>
+
+          <section
+            className="mt-4"
+            style={{
+              breakInside: "avoid-page",
+              pageBreakInside: "avoid",
+            }}
+          >
+            <div className="mb-3 border-b border-slate-200 pb-2.5">
+              <p className={sectionLabelClass}>Section 4</p>
+
+              <h2 className={sectionHeadingClass}>Top Device Risk Report</h2>
+
+              <p className={sectionDescClass}>
+                แสดงรายการอุปกรณ์ที่มีความเสี่ยงสูงจากผลการประเมินล่าสุด
+                โดยเรียงลำดับตามค่า Risk Score เพื่อช่วยให้ติดตามอุปกรณ์ที่ควรได้รับการจัดการก่อน
+                ในรูปแบบที่เหมาะกับการอ่านบนรายงาน PDF
+              </p>
+            </div>
+
+            <TopDeviceRiskReport onReady={setTopDeviceReady} />
+          </section>
+        </main>
+
+        <div className="mt-auto px-7 pb-0">
+          <ReportFooter page="Page 2 of 3" />
+        </div>
+      </div>
+
+      {/* PAGE 3 */}
+      <div
+        className={pageShellClass}
+        style={{
+          pageBreakBefore: "always",
+          breakBefore: "page",
+        }}
+      >
+        <main className="flex-1 px-7 pt-6 pb-2">
+          <section
+            className="mt-0"
+            style={{
+              breakInside: "avoid-page",
+              pageBreakInside: "avoid",
+            }}
+          >
+            <div className="mb-3 border-b border-slate-200 pb-2.5">
+              <p className={sectionLabelClass}>Section 5</p>
+
+              <h2 className={sectionHeadingClass}>Risk Score Comparison</h2>
+
+              <p className={sectionDescClass}>
+                เปรียบเทียบค่า Latest Risk และ Previous Risk ของแต่ละเป้าหมาย
+                เพื่อให้เห็นแนวโน้มความเสี่ยงล่าสุดในรูปแบบย่อที่เหมาะกับรายงาน PDF
+              </p>
+            </div>
+
+            <ComparisonReport onReady={setComparisonReady} />
+          </section>
+        </main>
+
+        <div className="mt-auto px-7 pb-0">
+          <ReportFooter page="Page 3 of 3" />
         </div>
       </div>
     </div>

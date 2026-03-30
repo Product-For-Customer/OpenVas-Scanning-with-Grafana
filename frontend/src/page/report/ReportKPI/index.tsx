@@ -1,5 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
+  MdOutlineReportProblem,
+  MdWarningAmber,
+  MdInfoOutline,
+} from "react-icons/md";
+import { FiAlertTriangle } from "react-icons/fi";
+import { GoDotFill } from "react-icons/go";
+import {
   ListTaskVulnSummaryForReport,
   type TaskVulnSummaryForReportResponse,
 } from "../../../services/report";
@@ -9,14 +16,22 @@ type MetricItem = {
   label: string;
   value: string | number;
   hint: string;
+  icon: React.ReactNode;
+  iconWrapClass: string;
 };
 
-const ReportKPI: React.FC = () => {
+type ReportKPIProps = {
+  onReady?: (ready: boolean) => void;
+};
+
+const ReportKPI: React.FC<ReportKPIProps> = ({ onReady }) => {
   const [rows, setRows] = useState<TaskVulnSummaryForReportResponse[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     let alive = true;
+
+    onReady?.(false);
 
     const loadData = async () => {
       try {
@@ -25,7 +40,6 @@ const ReportKPI: React.FC = () => {
         const response = await ListTaskVulnSummaryForReport();
 
         if (!alive) return;
-
         setRows(Array.isArray(response) ? response : []);
       } catch (error) {
         console.error("Failed to load task vulnerability summary:", error);
@@ -35,6 +49,7 @@ const ReportKPI: React.FC = () => {
       } finally {
         if (!alive) return;
         setLoading(false);
+        onReady?.(true);
       }
     };
 
@@ -43,7 +58,7 @@ const ReportKPI: React.FC = () => {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [onReady]);
 
   const summary = useMemo(() => {
     let critical = 0;
@@ -78,91 +93,107 @@ const ReportKPI: React.FC = () => {
         id: 1,
         label: "Total Findings",
         value: loading ? "..." : summary.total.toLocaleString(),
-        hint: "Total number of findings from all scanned tasks",
+        hint: "Total findings from all scanned tasks",
+        icon: <MdOutlineReportProblem className="text-[13px]" />,
+        iconWrapClass: "bg-slate-100 text-slate-700",
       },
       {
         id: 2,
-        label: "Critical Findings",
+        label: "Critical",
         value: loading ? "..." : summary.critical.toLocaleString(),
-        hint: "Findings classified as severity level Critical",
+        hint: "Severity level Critical",
+        icon: <FiAlertTriangle className="text-[12px]" />,
+        iconWrapClass: "bg-rose-50 text-rose-700",
       },
       {
         id: 3,
-        label: "High Findings",
+        label: "High",
         value: loading ? "..." : summary.high.toLocaleString(),
-        hint: "Findings classified as severity level High",
+        hint: "Severity level High",
+        icon: <MdWarningAmber className="text-[13px]" />,
+        iconWrapClass: "bg-orange-50 text-orange-700",
       },
       {
         id: 4,
-        label: "Medium Findings",
+        label: "Medium",
         value: loading ? "..." : summary.medium.toLocaleString(),
-        hint: "Findings classified as severity level Medium",
+        hint: "Severity level Medium",
+        icon: <GoDotFill className="text-[13px]" />,
+        iconWrapClass: "bg-amber-50 text-amber-700",
       },
       {
         id: 5,
-        label: "Low Findings",
+        label: "Low",
         value: loading ? "..." : summary.low.toLocaleString(),
-        hint: "Findings classified as severity level Low",
+        hint: "Severity level Low",
+        icon: <GoDotFill className="text-[13px]" />,
+        iconWrapClass: "bg-emerald-50 text-emerald-700",
       },
       {
         id: 6,
-        label: "Info Findings",
+        label: "Info",
         value: loading ? "..." : summary.info.toLocaleString(),
-        hint: "Informational findings reported by the assessment",
+        hint: "Informational findings",
+        icon: <MdInfoOutline className="text-[13px]" />,
+        iconWrapClass: "bg-sky-50 text-sky-700",
       },
     ],
     [loading, summary]
   );
 
   return (
-    <section className="overflow-hidden rounded-md border border-slate-300 bg-white">
-      <div className="border-b border-slate-300 px-6 py-5">
-        <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+    <section className="border border-slate-300 bg-white">
+      <div className="border-b border-slate-300 px-5 py-3.5">
+        <div className="flex items-end justify-between gap-4">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
+            <p className="text-[9px] font-semibold uppercase tracking-normal text-slate-500">
               Vulnerability Summary
             </p>
-            <h3 className="mt-1 text-[24px] font-semibold text-slate-900">
+            <h3 className="mt-1 text-[15px] font-bold leading-tight text-slate-900">
               Security Findings Overview
             </h3>
           </div>
 
-          <div className="text-[11px] text-slate-500">
+          <div className="text-right text-[9.5px] leading-[1.45] text-slate-500">
             Consolidated assessment results
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-3">
         {items.map((item, index) => {
-          const isLastColumnDesktop = index % 3 === 2;
-          const isTopRowDesktop = index < 3;
-          const isLeftColumnTablet = index % 2 === 0;
-          const isTopRowTablet = index < 4;
+          const isLastColumn = index % 3 === 2;
+          const isLastRow = index >= items.length - 3;
 
           return (
             <div
               key={item.id}
               className={[
-                "px-6 py-6",
-                "bg-white",
-                "border-slate-300",
-                !isLastColumnDesktop ? "xl:border-r" : "",
-                isTopRowDesktop ? "xl:border-b" : "",
-                isLeftColumnTablet ? "md:border-r xl:border-r" : "",
-                isTopRowTablet ? "md:border-b xl:border-b" : "",
-                index !== items.length - 1 ? "border-b md:border-b xl:border-b-0" : "",
+                "min-h-23 bg-white px-4 py-3",
+                !isLastColumn ? "border-r border-slate-300" : "",
+                !isLastRow ? "border-b border-slate-300" : "",
               ].join(" ")}
             >
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                {item.label}
-              </p>
+              <div className="flex items-center gap-2">
+                <span
+                  className={[
+                    "inline-flex h-5 w-5 items-center justify-center rounded-full",
+                    item.iconWrapClass,
+                  ].join(" ")}
+                >
+                  {item.icon}
+                </span>
 
-              <p className="mt-4 text-[36px] font-bold leading-none text-slate-950">
+                <p className="text-[8.5px] font-semibold uppercase tracking-normal text-slate-500">
+                  {item.label}
+                </p>
+              </div>
+
+              <p className="mt-2 text-[14px] font-bold leading-none text-slate-900">
                 {item.value}
               </p>
 
-              <p className="mt-4 text-[13px] leading-6 text-slate-600">
+              <p className="mt-2 text-[9.5px] leading-[1.4] text-slate-600">
                 {item.hint}
               </p>
             </div>

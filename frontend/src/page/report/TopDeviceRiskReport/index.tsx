@@ -2,6 +2,10 @@ import React, { useEffect, useMemo, useState } from "react";
 import type { DeviceRiskForReportDTO } from "../../../services/report";
 import { ListDeviceRiskForReport } from "../../../services/report";
 
+type TopDeviceRiskReportProps = {
+  onReady?: (ready: boolean) => void;
+};
+
 const formatRiskScore = (score?: number) => {
   if (typeof score !== "number" || Number.isNaN(score)) return "-";
   return score.toFixed(1);
@@ -18,12 +22,16 @@ const truncateText = (value?: string, maxLength = 90) => {
   return `${value.slice(0, maxLength).trim()}...`;
 };
 
-const TopDeviceRiskReport: React.FC = () => {
+const TopDeviceRiskReport: React.FC<TopDeviceRiskReportProps> = ({
+  onReady,
+}) => {
   const [devices, setDevices] = useState<DeviceRiskForReportDTO[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     let isMounted = true;
+
+    onReady?.(false);
 
     const fetchData = async () => {
       setLoading(true);
@@ -46,6 +54,7 @@ const TopDeviceRiskReport: React.FC = () => {
       } finally {
         if (isMounted) {
           setLoading(false);
+          onReady?.(true);
         }
       }
     };
@@ -55,7 +64,7 @@ const TopDeviceRiskReport: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [onReady]);
 
   const sortedDevices = useMemo(() => {
     return [...devices].sort((a, b) => {
@@ -158,15 +167,25 @@ const TopDeviceRiskReport: React.FC = () => {
           </div>
         </div>
 
-        <div className="mt-5 overflow-hidden rounded-md border border-slate-200">
+        <div
+          className="mt-5 overflow-hidden rounded-md border border-slate-200"
+          style={{
+            breakInside: "avoid-page",
+            pageBreakInside: "avoid",
+          }}
+        >
           <ul className="divide-y divide-slate-200">
             {sortedDevices.map((device, index) => (
               <li
                 key={`${device.task_id}-${index}`}
                 className="px-4 py-3 sm:px-5"
+                style={{
+                  breakInside: "avoid-page",
+                  pageBreakInside: "avoid",
+                }}
               >
                 <div className="flex items-start gap-3">
-                  <span className="mt-1.75 h-2 w-2 shrink-0 rounded-full bg-slate-900" />
+                  <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-slate-900" />
 
                   <div className="min-w-0 flex-1">
                     <p className="text-[12px] font-medium leading-5 text-slate-900">

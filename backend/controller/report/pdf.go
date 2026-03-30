@@ -22,16 +22,20 @@ const (
 	fixedReportsDir  = "./tmp/reports"
 	defaultPDFPrefix = "report_capture"
 
-	defaultPaperW     = 8.27  // A4 width in inches
-	defaultPaperH     = 11.69 // A4 height in inches
-	defaultMargin     = 0.2
-	defaultWindowW    = int64(1440)
-	defaultWindowH    = int64(2200)
-	defaultWaitBefore = 2500 * time.Millisecond
+	defaultPaperW  = 8.27  // A4 width in inches
+	defaultPaperH  = 11.69 // A4 height in inches
+	defaultMargin  = 0.2
+	defaultWindowW = int64(1440)
+	defaultWindowH = int64(2600)
+
+	// ใช้เป็น fallback เฉย ๆ ไม่ใช่ตัวหลัก
+	defaultWaitBefore = 1200 * time.Millisecond
+
+	// รอให้ frontend โหลดข้อมูลเสร็จจริง
+	defaultReadyTimeout = 45 * time.Second
 
 	// =========================================================
 	// FIX VALUE IN CODE
-	// ใส่ค่าจริงของคุณลงใน 2 ตัวนี้บนเครื่องคุณเอง
 	// =========================================================
 	fixedLineChannelAccessToken = "G4crCc/2gMnvX+hZErxIhg7WcI0ML+MRLlAj086lTtrdL7VYURieWPRXKd6/9Zl8RxcaME5vQ3I1BW82d1/ZYezvWklVMUk+EGGfXRmI4jwtA28iaHU8MkneAGQSibyr/yp0eetvASPPtplCXWrb7gdB04t89/1O/w1cDnyilFU="
 	fixedLineUserID             = "U3af93a2f92b1048757172584d47571c8"
@@ -73,6 +77,60 @@ func buildPublicPDFURL(filePath string) string {
 	return fmt.Sprintf("%s/public/reports/%s", base, fileName)
 }
 
+func waitForFrontendReady() chromedp.Action {
+	return chromedp.ActionFunc(func(ctx context.Context) error {
+		deadline := time.Now().Add(defaultReadyTimeout)
+
+		for {
+			var ready string
+			err := chromedp.Evaluate(`
+				(() => {
+					const el = document.querySelector('#capture-root');
+					if (!el) return '';
+					return el.getAttribute('data-report-ready') || '';
+				})()
+			`, &ready).Do(ctx)
+			if err != nil {
+				return fmt.Errorf("evaluate capture readiness failed: %w", err)
+			}
+
+			if ready == "true" {
+				return nil
+			}
+
+			if time.Now().After(deadline) {
+				var execReady string
+				var topReady string
+
+				_ = chromedp.Evaluate(`
+					(() => {
+						const el = document.querySelector('#capture-root');
+						if (!el) return '';
+						return el.getAttribute('data-executive-ready') || '';
+					})()
+				`, &execReady).Do(ctx)
+
+				_ = chromedp.Evaluate(`
+					(() => {
+						const el = document.querySelector('#capture-root');
+						if (!el) return '';
+						return el.getAttribute('data-top-device-ready') || '';
+					})()
+				`, &topReady).Do(ctx)
+
+				return fmt.Errorf(
+					"frontend report not ready before timeout (data-report-ready=%q, data-executive-ready=%q, data-top-device-ready=%q)",
+					ready,
+					execReady,
+					topReady,
+				)
+			}
+
+			time.Sleep(300 * time.Millisecond)
+		}
+	})
+}
+
 func generatePDFFromCapturePage(captureURL string) (string, error) {
 	if err := ensureReportsDir(); err != nil {
 		return "", fmt.Errorf("create reports dir failed: %w", err)
@@ -92,9 +150,16 @@ func generatePDFFromCapturePage(captureURL string) (string, error) {
 	err := chromedp.Run(timeoutCtx,
 		chromedp.EmulateViewport(defaultWindowW, defaultWindowH),
 		chromedp.Navigate(captureURL),
+
 		chromedp.WaitReady("body", chromedp.ByQuery),
 		chromedp.WaitVisible("#capture-root", chromedp.ByQuery),
+
+		// รอให้ React โหลด section async เสร็จจริง
+		waitForFrontendReady(),
+
+		// เผื่อ layout settle อีกนิด
 		chromedp.Sleep(defaultWaitBefore),
+
 		chromedp.ActionFunc(func(ctx context.Context) error {
 			buf, _, err := page.PrintToPDF().
 				WithPrintBackground(true).
@@ -212,16 +277,6 @@ func pushLineTextMessage(text string) error {
 
 // ========================================================
 // GET /report/send-pdf-to-line
-//
-// ใช้งานได้ 2 แบบ:
-// 1) /report/send-pdf-to-line
-//    -> capture http://localhost:5173/capture แล้วสร้าง PDF ใหม่ก่อนส่ง LINE
-//
-// 2) /report/send-pdf-to-line?pdf=report_capture_20260330_121212.pdf
-//    -> ใช้ไฟล์ PDF ที่มีอยู่แล้วใน ./tmp/reports แล้วส่ง LINE
-//
-// 3) /report/send-pdf-to-line?pdf=./tmp/reports/test.pdf
-//    -> ใช้ path ตรง ๆ ได้
 // ========================================================
 func SendPDFToLine(c *gin.Context) {
 	pdfQuery := strings.TrimSpace(c.Query("pdf"))

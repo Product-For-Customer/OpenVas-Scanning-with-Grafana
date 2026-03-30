@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import logo from "../../../assets/getonlogo.jpg";
 
 type ReportInfo = {
@@ -15,62 +15,76 @@ type ReportHeaderProps = {
   info: ReportInfo;
 };
 
+const metaLabelClass =
+  "text-[9px] font-semibold uppercase tracking-normal text-slate-500";
+const metaValueClass =
+  "mt-1 text-[11.5px] font-medium leading-[1.55] text-slate-800";
+
+const formatEnglishDate = (date: Date): string => {
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(date);
+};
+
 const ReportHeader: React.FC<ReportHeaderProps> = ({ info }) => {
+  const generatedDate = useMemo(() => formatEnglishDate(new Date()), []);
+
   return (
-    <header className="border-b-[6px] border-slate-800 bg-white">
-      <div className="px-5 py-6 md:px-8 md:py-8 xl:px-12">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+    <header className="w-full border-b-[3px] border-slate-900 bg-white">
+      <div className="px-8 py-6">
+        <div className="flex items-start justify-between gap-6">
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="inline-flex items-center rounded-sm border border-slate-800 bg-slate-900 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-white">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center border border-slate-900 bg-slate-900 px-2.5 py-1 text-[8.5px] font-bold uppercase tracking-normal text-white">
                 Network Security Report
               </span>
 
               {info.classification ? (
-                <span className="inline-flex items-center rounded-sm border border-slate-300 bg-white px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-700">
+                <span className="inline-flex items-center border border-slate-300 bg-white px-2.5 py-1 text-[8.5px] font-semibold uppercase tracking-normal text-slate-700">
                   {info.classification}
                 </span>
               ) : null}
 
               {info.version ? (
-                <span className="inline-flex items-center rounded-sm border border-slate-300 bg-white px-3 py-1 text-[10px] font-medium text-slate-600">
+                <span className="inline-flex items-center border border-slate-300 bg-white px-2.5 py-1 text-[9px] font-medium text-slate-600">
                   {info.version}
                 </span>
               ) : null}
             </div>
 
-            <h1 className="mt-5 text-[28px] font-bold leading-tight text-slate-950 md:text-[34px]">
+            <h1 className="mt-3 text-[22px] font-bold leading-[1.2] text-slate-950">
               {info.title}
             </h1>
 
             {info.subtitle ? (
-              <p className="mt-3 max-w-4xl text-[14px] leading-7 text-slate-600">
+              <p className="mt-2 max-w-190 text-[11.5px] leading-[1.7] text-slate-600">
                 {info.subtitle}
               </p>
             ) : null}
           </div>
 
-          <div className="flex shrink-0 items-start justify-start lg:justify-end">
-            <div className="flex items-center justify-center">
-              <img
-                src={logo}
-                alt="Security Report Logo"
-                className="h-20 w-auto object-contain md:h-24"
-              />
-            </div>
+          <div className="flex shrink-0 items-start justify-end pt-1">
+            <img
+              src={logo}
+              alt="Security Report Logo"
+              className="h-13 w-auto object-contain"
+            />
           </div>
         </div>
 
-        {info.companyName ? (
-          <div className="mt-6 border-t border-slate-200 pt-3">
-            <p className="text-right text-[12px] text-slate-500">
-              Prepared by{" "}
-              <span className="font-medium text-slate-700">
-                {info.companyName}
-              </span>
-            </p>
+        <div className="mt-5 grid grid-cols-2 gap-4 border-t border-slate-200 pt-3">
+          <div>
+            <p className={metaLabelClass}>Generated At</p>
+            <p className={metaValueClass}>{generatedDate}</p>
           </div>
-        ) : null}
+
+          <div className="text-right">
+            <p className={metaLabelClass}>Prepared By</p>
+            <p className={metaValueClass}>Get on Technology</p>
+          </div>
+        </div>
       </div>
     </header>
   );
