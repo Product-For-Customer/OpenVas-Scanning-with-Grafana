@@ -58,16 +58,9 @@ func main() {
 	r.GET("/api/report", report.GetReportCSVSourceHandler)
 	r.POST("/line/webhook/notification", line.CreateAppNotificationByLine)
 
-	// ===== Protected Routes for Vulnerability Management Authorization =====
-	//authorized.GET("/tasks/status", vulnerability.ListStatus)                                      // complete
-	//authorized.GET("/tasks/summary-vulnerability", vulnerability.ListTaskVulnSummary)              // complete
-	//authorized.GET("/vulnerabilities/list", vulnerability.ListVulnerability)                       // complete
-	//authorized.GET("/assets/risk", vulnerability.ListAssetRisk)                                    // complete
-	//authorized.GET("/devices/risk", vulnerability.ListDeviceRisk)                                  // complete
-	//authorized.GET("/vulnerabilities/detail/by-name", vulnerability.ListVulnerabilityDetailByName) // complete
-	//authorized.GET("/vulnerabilities/:task_id", vulnerability.ListVulnerabilityByTaskID)           // complete
-	//authorized.GET("/target-differ", vulnerability.ListTargetDiffer)
-	//authorized.GET("/vulnerabilities/level/:level", vulnerability.ListVulnerabilityByLevel)
+	//==== Report Data for Frontend =====
+	r.GET("/summary-vulnerability-report", vulnerability.ListTaskVulnSummary)
+	r.GET("/critical-report", report.ListCriticalForReport)
 
 	// ===== Protected Routes =====
 	authorized := r.Group("")
@@ -77,7 +70,6 @@ func main() {
 
 		// ===== Protected Routes for Vulnerability Management Authorization =====
 		authorized.GET("/tasks/status", vulnerability.ListStatus)                                      // complete
-		authorized.GET("/tasks/summary-vulnerability", vulnerability.ListTaskVulnSummary)              // complete
 		authorized.GET("/vulnerabilities/list", vulnerability.ListVulnerability)                       // complete
 		authorized.GET("/assets/risk", vulnerability.ListAssetRisk)                                    // complete
 		authorized.GET("/devices/risk", vulnerability.ListDeviceRisk)                                  // complete
@@ -85,7 +77,7 @@ func main() {
 		authorized.GET("/vulnerabilities/:task_id", vulnerability.ListVulnerabilityByTaskID)           // complete
 		authorized.GET("/target-differ", vulnerability.ListTargetDiffer)
 		authorized.GET("/vulnerabilities/level/:level", vulnerability.ListVulnerabilityByLevel)
-		authorized.GET("/critical-report", report.ListCriticalForReport) //report
+		authorized.GET("/tasks/summary-vulnerability", vulnerability.ListTaskVulnSummary)
 
 		// ===== Location =====
 		authorized.GET("/locations", location.ListLocation)

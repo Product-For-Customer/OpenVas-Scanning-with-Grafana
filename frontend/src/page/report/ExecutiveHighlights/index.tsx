@@ -5,7 +5,7 @@ import {
   FiFileText,
   FiShield,
 } from "react-icons/fi";
-import { ListCriticalForReport } from "../../../services";
+import { ListCriticalForReport } from "../../../services/report";
 
 type HighlightTone = "good" | "warning" | "critical" | "neutral";
 

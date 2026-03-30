@@ -12,9 +12,9 @@ import {
   CartesianGrid,
 } from "recharts";
 import {
-  ListTaskVulnSummary,
-  type TaskVulnSummaryDTO,
-} from "../../../services";
+  ListTaskVulnSummaryForReport,
+  type TaskVulnSummaryForReportResponse,
+} from "../../../services/report";
 
 type SeveritySnapshotProps = {
   title?: string;
@@ -42,7 +42,7 @@ const SeveritySnapshot: React.FC<SeveritySnapshotProps> = ({
   title = "Severity Snapshot",
   totalLabel = "Total Findings",
 }) => {
-  const [rows, setRows] = useState<TaskVulnSummaryDTO[]>([]);
+  const [rows, setRows] = useState<TaskVulnSummaryForReportResponse[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -52,7 +52,7 @@ const SeveritySnapshot: React.FC<SeveritySnapshotProps> = ({
       try {
         setLoading(true);
 
-        const response = await ListTaskVulnSummary();
+        const response = await ListTaskVulnSummaryForReport();
 
         if (!alive) return;
         setRows(Array.isArray(response) ? response : []);

@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  ListTaskVulnSummary,
-  type TaskVulnSummaryDTO,
-} from "../../../services";
+  ListTaskVulnSummaryForReport,
+  type TaskVulnSummaryForReportResponse,
+} from "../../../services/report";
 
 type MetricItem = {
   id: number;
@@ -12,7 +12,7 @@ type MetricItem = {
 };
 
 const ReportKPI: React.FC = () => {
-  const [rows, setRows] = useState<TaskVulnSummaryDTO[]>([]);
+  const [rows, setRows] = useState<TaskVulnSummaryForReportResponse[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -22,7 +22,7 @@ const ReportKPI: React.FC = () => {
       try {
         setLoading(true);
 
-        const response = await ListTaskVulnSummary();
+        const response = await ListTaskVulnSummaryForReport();
 
         if (!alive) return;
 
