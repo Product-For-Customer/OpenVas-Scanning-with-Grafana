@@ -15,7 +15,6 @@ import (
 	"github.com/Tawunchai/openvas/controller/user"
 	"github.com/Tawunchai/openvas/controller/vulnerability"
 	middlewares "github.com/Tawunchai/openvas/middleware"
-	"github.com/Tawunchai/openvas/services"
 	"github.com/gin-gonic/gin"
 )
 
@@ -25,8 +24,6 @@ func main() {
 	config.ConnectDB()
 	config.SetupDatabase()
 	config.SeedDatabase()
-
-	services.StartCaptureReportScheduler()
 
 	go line.StartLineStatusListener()
 
@@ -61,6 +58,9 @@ func main() {
 	//==== Report Data for Frontend =====
 	r.GET("/summary-vulnerability-report", vulnerability.ListTaskVulnSummary)
 	r.GET("/critical-report", report.ListCriticalForReport)
+	r.GET("/devices/risk-report", vulnerability.ListDeviceRisk)
+	r.GET("/target-differ-report", vulnerability.ListTargetDiffer)
+	r.GET("/send-pdf-to-line", report.SendPDFToLine)
 
 	// ===== Protected Routes =====
 	authorized := r.Group("")

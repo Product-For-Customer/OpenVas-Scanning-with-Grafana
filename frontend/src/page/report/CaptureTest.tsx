@@ -4,10 +4,10 @@ import ReportKPI from "./ReportKPI";
 import ExecutiveHighlights from "./ExecutiveHighlights";
 import SeveritySnapshot from "./SeveritySnapshot";
 import ReportFooter from "./ReportFooter";
+import TopDeviceRiskReport from "./Top";
+import RiskScoreTrendReport from "./comparision";
 
-import {
-  reportInfo,
-} from "../../interface/mock";
+import { reportInfo } from "../../interface/mock";
 
 const sectionTitleClass =
   "text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500";
@@ -27,7 +27,6 @@ const CaptureTest: React.FC = () => {
           <ReportHeader info={reportInfo} />
 
           <main className="px-5 py-6 md:px-8 md:py-8 xl:px-12 xl:py-10">
-
             <section className="mt-10">
               <div className="mb-5 border-b border-slate-200 pb-4">
                 <p className={sectionTitleClass}>Section 1</p>
@@ -41,7 +40,6 @@ const CaptureTest: React.FC = () => {
 
               <ReportKPI />
             </section>
-
 
             <section className="mt-12">
               <div className="mb-5 border-b border-slate-200 pb-4">
@@ -69,6 +67,33 @@ const CaptureTest: React.FC = () => {
               </div>
 
               <ExecutiveHighlights />
+            </section>
+
+            <section className="mt-12">
+              <div className="mb-5 border-b border-slate-200 pb-4">
+                <p className={sectionTitleClass}>Section 4</p>
+                <h2 className={sectionHeadingClass}>Device Risk Summary</h2>
+                <p className={sectionDescClass}>
+                  แสดงรายการอุปกรณ์จากผลการประเมินล่าสุด โดยเรียงตามค่า Risk
+                  Score เพื่อให้เห็นอุปกรณ์ที่ควรได้รับความสนใจก่อนในมุมมองของรายงาน
+                </p>
+              </div>
+
+              <TopDeviceRiskReport />
+            </section>
+
+            <section className="mt-12">
+              <div className="mb-5 border-b border-slate-200 pb-4">
+                <p className={sectionTitleClass}>Section 5</p>
+                <h2 className={sectionHeadingClass}>Risk Score Trend</h2>
+                <p className={sectionDescClass}>
+                  เปรียบเทียบค่า Latest Risk และ Previous Risk ของแต่ละเป้าหมาย
+                  เพื่อให้เห็นแนวโน้มการเปลี่ยนแปลงของความเสี่ยงจากรอบก่อนหน้าไปยังรอบล่าสุด
+                  ในรูปแบบกราฟที่เหมาะกับการแสดงผลในรายงาน PDF
+                </p>
+              </div>
+
+              <RiskScoreTrendReport />
             </section>
 
             <ReportFooter page="Page 1 of 1" />

@@ -15,9 +15,6 @@ type ReportHeaderProps = {
   info: ReportInfo;
 };
 
-const metaCardClass =
-  "rounded-md border border-slate-300 bg-slate-50 px-4 py-3";
-
 const ReportHeader: React.FC<ReportHeaderProps> = ({ info }) => {
   return (
     <header className="border-b-[6px] border-slate-800 bg-white">
@@ -51,67 +48,29 @@ const ReportHeader: React.FC<ReportHeaderProps> = ({ info }) => {
                 {info.subtitle}
               </p>
             ) : null}
-
-            <div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-              <div className={metaCardClass}>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                  Report Period
-                </p>
-                <p className="mt-1 text-[14px] font-medium text-slate-900">
-                  {info.dateRange}
-                </p>
-              </div>
-
-              <div className={metaCardClass}>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                  Generated At
-                </p>
-                <p className="mt-1 text-[14px] font-medium text-slate-900">
-                  {info.generatedAt}
-                </p>
-              </div>
-
-              <div className={metaCardClass}>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                  Assessment Scope
-                </p>
-                <p className="mt-1 text-[14px] font-medium text-slate-900">
-                  Vulnerability, Risk, Exposure
-                </p>
-              </div>
-
-              <div className={metaCardClass}>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                  Intended Audience
-                </p>
-                <p className="mt-1 text-[14px] font-medium text-slate-900">
-                  Management / Security Team
-                </p>
-              </div>
-            </div>
           </div>
 
           <div className="flex shrink-0 items-start justify-start lg:justify-end">
-            <div className="w-full max-w-60 rounded-md border border-slate-300 bg-white p-4">
-              <div className="flex items-center justify-center border-b border-slate-200 pb-3">
-                <img
-                  src={logo}
-                  alt="Security Report Logo"
-                  className="h-16 w-auto object-contain"
-                />
-              </div>
-
-              <div className="pt-3 text-right">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                  Prepared By
-                </p>
-                <p className="mt-1 text-[13px] font-medium text-slate-900">
-                  {info.companyName || "Enterprise Security"}
-                </p>
-              </div>
+            <div className="flex items-center justify-center">
+              <img
+                src={logo}
+                alt="Security Report Logo"
+                className="h-20 w-auto object-contain md:h-24"
+              />
             </div>
           </div>
         </div>
+
+        {info.companyName ? (
+          <div className="mt-6 border-t border-slate-200 pt-3">
+            <p className="text-right text-[12px] text-slate-500">
+              Prepared by{" "}
+              <span className="font-medium text-slate-700">
+                {info.companyName}
+              </span>
+            </p>
+          </div>
+        ) : null}
       </div>
     </header>
   );

@@ -1,0 +1,273 @@
+package report
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+
+	"github.com/chromedp/cdproto/page"
+	"github.com/chromedp/chromedp"
+	"github.com/gin-gonic/gin"
+)
+
+const (
+	fixedCaptureURL  = "http://localhost:5173/capture"
+	fixedPublicBase  = "https://postdiphtherial-unperishable-carolyn.ngrok-free.dev"
+	fixedReportsDir  = "./tmp/reports"
+	defaultPDFPrefix = "report_capture"
+
+	defaultPaperW     = 8.27  // A4 width in inches
+	defaultPaperH     = 11.69 // A4 height in inches
+	defaultMargin     = 0.2
+	defaultWindowW    = int64(1440)
+	defaultWindowH    = int64(2200)
+	defaultWaitBefore = 2500 * time.Millisecond
+
+	// =========================================================
+	// FIX VALUE IN CODE
+	// ใส่ค่าจริงของคุณลงใน 2 ตัวนี้บนเครื่องคุณเอง
+	// =========================================================
+	fixedLineChannelAccessToken = "G4crCc/2gMnvX+hZErxIhg7WcI0ML+MRLlAj086lTtrdL7VYURieWPRXKd6/9Zl8RxcaME5vQ3I1BW82d1/ZYezvWklVMUk+EGGfXRmI4jwtA28iaHU8MkneAGQSibyr/yp0eetvASPPtplCXWrb7gdB04t89/1O/w1cDnyilFU="
+	fixedLineUserID             = "U3af93a2f92b1048757172584d47571c8"
+)
+
+type linePushRequest struct {
+	To       string        `json:"to"`
+	Messages []lineMessage `json:"messages"`
+}
+
+type lineMessage struct {
+	Type string `json:"type"`
+	Text string `json:"text,omitempty"`
+}
+
+type sendPDFToLineResponse struct {
+	Message   string `json:"message"`
+	FilePath  string `json:"file_path,omitempty"`
+	PublicURL string `json:"public_url,omitempty"`
+}
+
+func ensureReportsDir() error {
+	return os.MkdirAll(fixedReportsDir, 0755)
+}
+
+func sanitizeBaseName(name string) string {
+	name = filepath.Base(strings.TrimSpace(name))
+	name = strings.ReplaceAll(name, "\\", "")
+	name = strings.ReplaceAll(name, "/", "")
+	if name == "" || name == "." {
+		return ""
+	}
+	return name
+}
+
+func buildPublicPDFURL(filePath string) string {
+	base := strings.TrimRight(fixedPublicBase, "/")
+	fileName := filepath.Base(filePath)
+	return fmt.Sprintf("%s/public/reports/%s", base, fileName)
+}
+
+func generatePDFFromCapturePage(captureURL string) (string, error) {
+	if err := ensureReportsDir(); err != nil {
+		return "", fmt.Errorf("create reports dir failed: %w", err)
+	}
+
+	fileName := fmt.Sprintf("%s_%s.pdf", defaultPDFPrefix, time.Now().Format("20060102_150405"))
+	filePath := filepath.Join(fixedReportsDir, fileName)
+
+	ctx, cancel := chromedp.NewContext(context.Background())
+	defer cancel()
+
+	timeoutCtx, timeoutCancel := context.WithTimeout(ctx, 90*time.Second)
+	defer timeoutCancel()
+
+	var pdfBuf []byte
+
+	err := chromedp.Run(timeoutCtx,
+		chromedp.EmulateViewport(defaultWindowW, defaultWindowH),
+		chromedp.Navigate(captureURL),
+		chromedp.WaitReady("body", chromedp.ByQuery),
+		chromedp.WaitVisible("#capture-root", chromedp.ByQuery),
+		chromedp.Sleep(defaultWaitBefore),
+		chromedp.ActionFunc(func(ctx context.Context) error {
+			buf, _, err := page.PrintToPDF().
+				WithPrintBackground(true).
+				WithPaperWidth(defaultPaperW).
+				WithPaperHeight(defaultPaperH).
+				WithMarginTop(defaultMargin).
+				WithMarginBottom(defaultMargin).
+				WithMarginLeft(defaultMargin).
+				WithMarginRight(defaultMargin).
+				WithPreferCSSPageSize(true).
+				Do(ctx)
+			if err != nil {
+				return err
+			}
+			pdfBuf = buf
+			return nil
+		}),
+	)
+	if err != nil {
+		return "", fmt.Errorf("capture PDF failed (url=%s): %w", captureURL, err)
+	}
+
+	if len(pdfBuf) == 0 {
+		return "", fmt.Errorf("generated PDF is empty")
+	}
+
+	if err := os.WriteFile(filePath, pdfBuf, 0644); err != nil {
+		return "", fmt.Errorf("save PDF failed: %w", err)
+	}
+
+	return filePath, nil
+}
+
+func fileExists(path string) bool {
+	info, err := os.Stat(path)
+	return err == nil && !info.IsDir()
+}
+
+func resolvePDFPathFromQuery(pdfQuery string) (string, error) {
+	pdfQuery = strings.TrimSpace(pdfQuery)
+	if pdfQuery == "" {
+		return "", fmt.Errorf("empty pdf path")
+	}
+
+	if fileExists(pdfQuery) {
+		return pdfQuery, nil
+	}
+
+	baseName := sanitizeBaseName(pdfQuery)
+	if baseName == "" {
+		return "", fmt.Errorf("invalid pdf path")
+	}
+
+	candidate := filepath.Join(fixedReportsDir, baseName)
+	if fileExists(candidate) {
+		return candidate, nil
+	}
+
+	return "", fmt.Errorf("pdf file not found")
+}
+
+func pushLineTextMessage(text string) error {
+	if strings.TrimSpace(fixedLineChannelAccessToken) == "" ||
+		fixedLineChannelAccessToken == "PUT_YOUR_LINE_CHANNEL_ACCESS_TOKEN_HERE" {
+		return fmt.Errorf("fixedLineChannelAccessToken is empty")
+	}
+
+	if strings.TrimSpace(fixedLineUserID) == "" ||
+		fixedLineUserID == "PUT_YOUR_LINE_USER_ID_HERE" {
+		return fmt.Errorf("fixedLineUserID is empty")
+	}
+
+	if strings.TrimSpace(text) == "" {
+		return fmt.Errorf("text message is empty")
+	}
+
+	payload := linePushRequest{
+		To: fixedLineUserID,
+		Messages: []lineMessage{
+			{
+				Type: "text",
+				Text: text,
+			},
+		},
+	}
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("marshal line payload failed: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", "https://api.line.me/v2/bot/message/push", bytes.NewBuffer(body))
+	if err != nil {
+		return fmt.Errorf("create line request failed: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+fixedLineChannelAccessToken)
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("send line push failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		var respBody bytes.Buffer
+		_, _ = respBody.ReadFrom(resp.Body)
+		return fmt.Errorf("line push failed: status=%d body=%s", resp.StatusCode, respBody.String())
+	}
+
+	return nil
+}
+
+// ========================================================
+// GET /report/send-pdf-to-line
+//
+// ใช้งานได้ 2 แบบ:
+// 1) /report/send-pdf-to-line
+//    -> capture http://localhost:5173/capture แล้วสร้าง PDF ใหม่ก่อนส่ง LINE
+//
+// 2) /report/send-pdf-to-line?pdf=report_capture_20260330_121212.pdf
+//    -> ใช้ไฟล์ PDF ที่มีอยู่แล้วใน ./tmp/reports แล้วส่ง LINE
+//
+// 3) /report/send-pdf-to-line?pdf=./tmp/reports/test.pdf
+//    -> ใช้ path ตรง ๆ ได้
+// ========================================================
+func SendPDFToLine(c *gin.Context) {
+	pdfQuery := strings.TrimSpace(c.Query("pdf"))
+
+	var (
+		filePath  string
+		publicURL string
+		err       error
+	)
+
+	if pdfQuery != "" {
+		filePath, err = resolvePDFPathFromQuery(pdfQuery)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": fmt.Sprintf("resolve pdf path failed: %v", err),
+			})
+			return
+		}
+		publicURL = buildPublicPDFURL(filePath)
+	} else {
+		filePath, err = generatePDFFromCapturePage(fixedCaptureURL)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": fmt.Sprintf("generate pdf failed: %v", err),
+			})
+			return
+		}
+		publicURL = buildPublicPDFURL(filePath)
+	}
+
+	msg := fmt.Sprintf(
+		"รายงาน PDF พร้อมแล้ว\n\nไฟล์: %s\nลิงก์: %s",
+		filepath.Base(filePath),
+		publicURL,
+	)
+
+	if err := pushLineTextMessage(msg); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": fmt.Sprintf("send line message failed: %v", err),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, sendPDFToLineResponse{
+		Message:   "PDF generated/sent to LINE successfully",
+		FilePath:  filePath,
+		PublicURL: publicURL,
+	})
+}
