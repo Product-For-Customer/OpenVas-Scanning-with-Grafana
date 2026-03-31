@@ -66,7 +66,7 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload }) => {
     <div className="min-w-55 rounded-lg border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
       <p className="text-[12px] font-semibold text-slate-900">{row.taskName}</p>
       <p className="mt-0.5 break-all text-[10.5px] text-slate-500">
-        Host: {row.host || "-"}
+        Device: {row.host || "-"}
       </p>
 
       <div className="my-2 h-px bg-slate-200" />
@@ -175,7 +175,7 @@ const ComparisonReport: React.FC<ComparisonReportProps> = ({ onReady }) => {
         };
       })
       .sort((a, b) => (b.latestTime || 0) - (a.latestTime || 0))
-      .slice(0, 8);
+      .slice(0, 10);
   }, [rawData]);
 
   const highestLatestRisk = useMemo(() => {
@@ -183,7 +183,7 @@ const ComparisonReport: React.FC<ComparisonReportProps> = ({ onReady }) => {
     return Math.max(...chartData.map((item) => item.latestRisk));
   }, [chartData]);
 
-  const totalTargets = useMemo(() => {
+  const totalDevices = useMemo(() => {
     return chartData.length;
   }, [chartData]);
 
@@ -241,10 +241,10 @@ const ComparisonReport: React.FC<ComparisonReportProps> = ({ onReady }) => {
 
               <div className="min-w-0">
                 <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-                  Total Targets
+                  Total Devices
                 </p>
                 <p className="mt-1 text-[15px] font-semibold text-slate-900">
-                  {totalTargets}
+                  {totalDevices}
                 </p>
               </div>
             </div>
@@ -343,8 +343,8 @@ const ComparisonReport: React.FC<ComparisonReportProps> = ({ onReady }) => {
         </div>
 
         <p className="mt-2 text-[10.5px] leading-5 text-slate-500">
-          หมายเหตุ: ข้อมูลถูกเรียงตามเวลาสแกนล่าสุดจากใหม่ไปเก่า และจำกัดการแสดงผลเฉพาะ 8
-          เป้าหมายแรกเพื่อให้พอดีกับหน้า PDF
+          หมายเหตุ: ข้อมูลถูกเรียงตามเวลาสแกนล่าสุดจากใหม่ไปเก่า และแสดงเฉพาะ 10
+          อุปกรณ์แรกเพื่อให้การนำเสนอข้อมูลในรายงานมีความกระชับและอ่านง่าย
         </p>
       </div>
     </section>

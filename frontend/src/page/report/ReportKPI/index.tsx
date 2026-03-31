@@ -12,6 +12,14 @@ import {
   type TaskVulnSummaryForReportResponse,
 } from "../../../services/report";
 
+type SeverityLevel =
+  | "total"
+  | "critical"
+  | "high"
+  | "medium"
+  | "low"
+  | "info";
+
 type MetricItem = {
   id: number;
   label: string;
@@ -20,10 +28,29 @@ type MetricItem = {
   icon: React.ReactNode;
   iconWrapClass: string;
   labelClass: string;
+  level: SeverityLevel;
 };
 
 type ReportKPIProps = {
   onReady?: (ready: boolean) => void;
+};
+
+const levelBadgeClassMap: Record<SeverityLevel, string> = {
+  total: "border-slate-700 bg-slate-700 text-white",
+  critical: "border-rose-700 bg-rose-700 text-white",
+  high: "border-orange-600 bg-orange-600 text-white",
+  medium: "border-amber-500 bg-amber-500 text-white",
+  low: "border-emerald-600 bg-emerald-600 text-white",
+  info: "border-sky-600 bg-sky-600 text-white",
+};
+
+const levelTextMap: Record<SeverityLevel, string> = {
+  total: "TOTAL FINDINGS",
+  critical: "CRITICAL",
+  high: "HIGH",
+  medium: "MEDIUM",
+  low: "LOW",
+  info: "INFO",
 };
 
 const ReportKPI: React.FC<ReportKPIProps> = ({ onReady }) => {
@@ -98,7 +125,8 @@ const ReportKPI: React.FC<ReportKPIProps> = ({ onReady }) => {
         hint: "Total findings identified across all scanned targets",
         icon: <MdOutlineReportProblem className="text-[13px]" />,
         iconWrapClass: "bg-slate-100 text-slate-700",
-        labelClass: "text-slate-600",
+        labelClass: "text-slate-700",
+        level: "total",
       },
       {
         id: 2,
@@ -108,6 +136,7 @@ const ReportKPI: React.FC<ReportKPIProps> = ({ onReady }) => {
         icon: <FiAlertOctagon className="text-[12px]" />,
         iconWrapClass: "bg-rose-50 text-rose-700",
         labelClass: "text-rose-700",
+        level: "critical",
       },
       {
         id: 3,
@@ -117,6 +146,7 @@ const ReportKPI: React.FC<ReportKPIProps> = ({ onReady }) => {
         icon: <FiAlertTriangle className="text-[12px]" />,
         iconWrapClass: "bg-orange-50 text-orange-700",
         labelClass: "text-orange-700",
+        level: "high",
       },
       {
         id: 4,
@@ -124,8 +154,9 @@ const ReportKPI: React.FC<ReportKPIProps> = ({ onReady }) => {
         value: loading ? "..." : summary.medium.toLocaleString(),
         hint: "Medium-severity findings that should be addressed in due course",
         icon: <FiInfo className="text-[12px]" />,
-        iconWrapClass: "bg-yellow-50 text-yellow-700",
-        labelClass: "text-yellow-700",
+        iconWrapClass: "bg-amber-50 text-amber-700",
+        labelClass: "text-amber-700",
+        level: "medium",
       },
       {
         id: 5,
@@ -135,6 +166,7 @@ const ReportKPI: React.FC<ReportKPIProps> = ({ onReady }) => {
         icon: <FiMinusCircle className="text-[12px]" />,
         iconWrapClass: "bg-emerald-50 text-emerald-700",
         labelClass: "text-emerald-700",
+        level: "low",
       },
       {
         id: 6,
@@ -144,6 +176,7 @@ const ReportKPI: React.FC<ReportKPIProps> = ({ onReady }) => {
         icon: <FiShield className="text-[12px]" />,
         iconWrapClass: "bg-sky-50 text-sky-700",
         labelClass: "text-sky-700",
+        level: "info",
       },
     ],
     [loading, summary]
@@ -177,36 +210,38 @@ const ReportKPI: React.FC<ReportKPIProps> = ({ onReady }) => {
             <div
               key={item.id}
               className={[
-                "min-h-23 bg-white px-4 py-3",
+                "min-h-28 bg-white px-4 py-3",
                 !isLastColumn ? "border-r border-slate-300" : "",
                 !isLastRow ? "border-b border-slate-300" : "",
               ].join(" ")}
             >
-              <div className="flex items-center gap-2">
-                <span
-                  className={[
-                    "inline-flex h-5 w-5 items-center justify-center rounded-full",
-                    item.iconWrapClass,
-                  ].join(" ")}
-                >
-                  {item.icon}
-                </span>
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span
+                    className={[
+                      "inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full",
+                      item.iconWrapClass,
+                    ].join(" ")}
+                  >
+                    {item.icon}
+                  </span>
 
-                <p
-                  className={[
-                    "text-[8.5px] font-semibold uppercase tracking-normal",
-                    item.labelClass,
-                  ].join(" ")}
-                >
-                  {item.label}
-                </p>
+                  <span
+                    className={[
+                      "inline-flex shrink-0 items-center border px-2 py-0.75 text-[8px] font-bold uppercase tracking-[0.12em] leading-none",
+                      levelBadgeClassMap[item.level],
+                    ].join(" ")}
+                  >
+                    {levelTextMap[item.level]}
+                  </span>
+                </div>
               </div>
 
-              <p className="mt-2 text-[14px] font-bold leading-none text-slate-900">
+              <p className="mt-3 text-[18px] font-bold leading-none text-slate-900">
                 {item.value}
               </p>
 
-              <p className="mt-2 text-[9.5px] leading-[1.4] text-slate-600">
+              <p className="mt-2 text-[9.5px] leading-[1.45] text-slate-600">
                 {item.hint}
               </p>
             </div>

@@ -12,6 +12,7 @@ import {
   Line,
   PieChart,
   Pie,
+  LabelList,
 } from "recharts";
 import {
   FiActivity,
@@ -184,6 +185,25 @@ const getMonthlyBarColor = (score: number) => {
   if (score >= 4) return "#22c55e";
   if (score >= 3) return "#14b8a6";
   return "#0ea5e9";
+};
+
+const RiskScoreLabel: React.FC<any> = (props) => {
+  const { x, y, width, value } = props;
+
+  if (typeof value !== "number" || Number.isNaN(value)) return null;
+
+  return (
+    <text
+      x={x + width / 2}
+      y={Math.max(y - 6, 12)}
+      fill="#0f172a"
+      textAnchor="middle"
+      fontSize={9}
+      fontWeight={600}
+    >
+      {value.toFixed(2)}
+    </text>
+  );
 };
 
 const sortDevicesByRiskDesc = (rows: DeviceRiskForReportDTO[]) => {
@@ -436,13 +456,13 @@ const Conclusion: React.FC<ConclusionProps> = ({ onReady }) => {
             </span>
             <div>
               <p className="text-[7.5px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-                Total Targets
+                Total Devices
               </p>
               <p className="mt-1 text-[16px] font-bold leading-none text-slate-900">
                 {formatNumber(totalTargets)}
               </p>
               <p className="mt-1 text-[8.5px] leading-[1.35] text-slate-600">
-                จำนวน target ทั้งหมด
+                จำนวน device ทั้งหมด
               </p>
             </div>
           </div>
@@ -564,7 +584,7 @@ const Conclusion: React.FC<ConclusionProps> = ({ onReady }) => {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={monthlyMockData}
-                  margin={{ top: 4, right: 6, left: -10, bottom: 0 }}
+                  margin={{ top: 14, right: 6, left: -10, bottom: 0 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
                   <XAxis
@@ -600,6 +620,7 @@ const Conclusion: React.FC<ConclusionProps> = ({ onReady }) => {
                     }}
                   />
                   <Bar dataKey="riskScore" radius={[5, 5, 0, 0]} maxBarSize={18}>
+                    <LabelList dataKey="riskScore" content={<RiskScoreLabel />} />
                     {monthlyMockData.map((entry, index) => (
                       <Cell
                         key={`monthly-${index}`}
@@ -628,7 +649,7 @@ const Conclusion: React.FC<ConclusionProps> = ({ onReady }) => {
                 </span>
                 <div>
                   <h4 className="text-[11px] font-semibold text-slate-900">
-                    Severity Mix
+                    Total Severity
                   </h4>
                   <p className="text-[8.5px] leading-[1.35] text-slate-600">
                     สัดส่วนผลการค้นพบตามระดับความรุนแรง
@@ -705,7 +726,7 @@ const Conclusion: React.FC<ConclusionProps> = ({ onReady }) => {
                 </span>
                 <div>
                   <h4 className="text-[11px] font-semibold text-slate-900">
-                    Top 3 Target Risk Curve
+                    Top 3 Device Risk Curve
                   </h4>
                   <p className="text-[8.5px] leading-[1.35] text-slate-600">
                     แสดงเฉพาะ Top 3 เป้าหมายที่มี risk score สูงสุดจริง
@@ -718,7 +739,7 @@ const Conclusion: React.FC<ConclusionProps> = ({ onReady }) => {
               <div className="grid grid-cols-3 gap-1.5">
                 <div className="rounded-md border border-slate-200 bg-slate-50 px-2.5 py-2">
                   <p className="text-[7px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-                    Top 1 Target
+                    Top 1 Device
                   </p>
                   <p className="mt-1 truncate text-[10px] font-semibold text-slate-900">
                     {topTargetName}
@@ -735,6 +756,9 @@ const Conclusion: React.FC<ConclusionProps> = ({ onReady }) => {
                   <p className="mt-1 text-[10px] font-semibold text-slate-900">
                     {formatRiskScore(highestRiskScore)}
                   </p>
+                  <p className="mt-0.5 text-[7.5px] text-slate-500">
+                    Highest score
+                  </p>
                 </div>
 
                 <div className="rounded-md border border-slate-200 bg-slate-50 px-2.5 py-2">
@@ -744,16 +768,19 @@ const Conclusion: React.FC<ConclusionProps> = ({ onReady }) => {
                   <p className="mt-1 text-[10px] font-semibold text-slate-900">
                     {formatNumber(topTargetVulnTotal)}
                   </p>
+                  <p className="mt-0.5 text-[7.5px] text-slate-500">
+                    Findings count
+                  </p>
                 </div>
               </div>
 
-              <div className="mt-2 h-35 rounded-md border border-slate-200 bg-white px-2 py-1.5">
+              <div className="mt-2 h-38 rounded-md border border-slate-200 bg-slate-50 px-2.5 py-2">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart
                     data={topThreeLineData}
-                    margin={{ top: 10, right: 10, left: -8, bottom: 0 }}
+                    margin={{ top: 8, right: 8, left: -18, bottom: 0 }}
                   >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
                     <XAxis
                       dataKey="rank"
                       tick={{ fontSize: 8, fill: "#64748b" }}
@@ -761,7 +788,6 @@ const Conclusion: React.FC<ConclusionProps> = ({ onReady }) => {
                       axisLine={{ stroke: "#cbd5e1" }}
                     />
                     <YAxis
-                      domain={[0, 10]}
                       tick={{ fontSize: 8, fill: "#64748b" }}
                       tickLine={false}
                       axisLine={{ stroke: "#cbd5e1" }}
@@ -849,7 +875,7 @@ const Conclusion: React.FC<ConclusionProps> = ({ onReady }) => {
                     ))
                   ) : (
                     <div className="rounded-md border border-dashed border-slate-300 bg-white px-3 py-3 text-[8px] text-slate-500">
-                      No additional targets available.
+                      No additional devices available.
                     </div>
                   )}
                 </div>
@@ -896,7 +922,7 @@ const Conclusion: React.FC<ConclusionProps> = ({ onReady }) => {
                   </p>
 
                   <p>
-                    ขณะเดียวกัน Top 2 และ Top 3 ที่แสดงใน Target List
+                    ขณะเดียวกัน Top 2 และ Top 3 ที่แสดงใน Device List
                     ยังควรถูกติดตามควบคู่กันไป เพราะเป็นกลุ่มที่มีความเสี่ยงรองลงมาโดยตรงจาก Top 1
                     และหากได้รับการแก้ไขพร้อมกัน จะช่วยลดแรงกดดันของความเสี่ยงรวมในระบบได้ดีกว่าการแก้เฉพาะรายการเดียว
                   </p>
@@ -922,7 +948,7 @@ const Conclusion: React.FC<ConclusionProps> = ({ onReady }) => {
                         {normalizeText(latestCritical.vulnerability_name) || "-"}
                       </p>
                       <p className="mt-1 text-[7.5px] leading-[1.4] text-slate-700">
-                        Target:{" "}
+                        Device:{" "}
                         <span className="font-medium text-slate-900">
                           {normalizeText(latestCritical.task_name) || "-"}
                         </span>
@@ -968,9 +994,6 @@ const Conclusion: React.FC<ConclusionProps> = ({ onReady }) => {
                 No critical observation available for this section.
               </div>
             )}
-
-            
-
             <div className="mt-2 rounded-md border border-slate-200 bg-slate-50 px-2.5 py-2">
               <div className="flex items-start gap-2">
                 <FiCpu className="mt-0.5 text-[11px] text-slate-600" />

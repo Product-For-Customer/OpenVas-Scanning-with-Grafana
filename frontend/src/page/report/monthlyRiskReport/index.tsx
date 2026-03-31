@@ -8,6 +8,7 @@ import {
   CartesianGrid,
   Cell,
   Tooltip,
+  LabelList,
 } from "recharts";
 import { FiBarChart2, FiCpu, FiShield } from "react-icons/fi";
 
@@ -22,7 +23,7 @@ type Section6MonthlyRiskReportProps = {
 };
 
 const currentYear = 2026;
-const totalTarget = 5;
+const totalDevice = 5;
 
 const mockData: MonthlyRiskRow[] = [
   { month: "Jan", vulnerabilityCount: 186, riskScore: 9.8 },
@@ -99,6 +100,25 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload }) => {
   );
 };
 
+const RiskScoreLabel: React.FC<any> = (props) => {
+  const { x, y, width, value } = props;
+
+  if (typeof value !== "number" || Number.isNaN(value)) return null;
+
+  return (
+    <text
+      x={x + width / 2}
+      y={y - 6}
+      fill="#0f172a"
+      textAnchor="middle"
+      fontSize={9}
+      fontWeight={600}
+    >
+      {value.toFixed(2)}
+    </text>
+  );
+};
+
 const Section6MonthlyRiskReport: React.FC<Section6MonthlyRiskReportProps> = ({
   onReady,
 }) => {
@@ -137,10 +157,10 @@ const Section6MonthlyRiskReport: React.FC<Section6MonthlyRiskReportProps> = ({
 
                 <div>
                   <p className="text-[8.5px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-                    Total Target
+                    Total Device
                   </p>
                   <p className="mt-0.5 text-[14px] font-semibold text-slate-900">
-                    {totalTarget}
+                    {totalDevice}
                   </p>
                 </div>
               </div>
@@ -202,7 +222,7 @@ const Section6MonthlyRiskReport: React.FC<Section6MonthlyRiskReportProps> = ({
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={mockData}
-                margin={{ top: 6, right: 8, left: 2, bottom: 0 }}
+                margin={{ top: 18, right: 8, left: 2, bottom: 0 }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis
@@ -221,6 +241,7 @@ const Section6MonthlyRiskReport: React.FC<Section6MonthlyRiskReportProps> = ({
                 />
                 <Tooltip content={<CustomTooltip />} />
                 <Bar dataKey="riskScore" radius={[4, 4, 0, 0]} maxBarSize={24}>
+                  <LabelList dataKey="riskScore" content={<RiskScoreLabel />} />
                   {mockData.map((entry, index) => (
                     <Cell
                       key={`cell-${index}`}
@@ -278,9 +299,9 @@ const Section6MonthlyRiskReport: React.FC<Section6MonthlyRiskReportProps> = ({
           </div>
 
           <p className="mt-2 text-[10px] leading-4.5 text-slate-500">
-            Note: This section uses mock monthly data for the current year,
-            showing the highest risk score in January and a gradual decline
-            toward December.
+            Note: This section presents the monthly risk score distribution for
+            the current year, together with the corresponding vulnerability
+            counts observed in each month.
           </p>
         </div>
       </div>

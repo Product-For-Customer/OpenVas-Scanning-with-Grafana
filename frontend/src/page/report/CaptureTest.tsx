@@ -95,7 +95,7 @@ const CaptureTest: React.FC = () => {
             <div className="mb-3 border-b border-slate-200 pb-2.5">
               <p className={sectionLabelClass}>Section 1</p>
 
-              <h2 className={sectionHeadingClass}>Assessment Snapshot</h2>
+              <h2 className={sectionHeadingClass}>Total Severity</h2>
 
               <p className={sectionDescClass}>
                 สรุปภาพรวมผลการสแกนล่าสุด โดยแสดงตัวชี้วัดสำคัญของการประเมิน
@@ -146,8 +146,8 @@ const CaptureTest: React.FC = () => {
 
               <p className={sectionDescClass}>
                 สรุปประเด็นสำคัญของช่องโหว่ระดับวิกฤตที่ควรได้รับการติดตามก่อน
-                โดยแสดงชื่อช่องโหว่ เป้าหมายที่ได้รับผลกระทบ รายละเอียด
-                และข้อมูลเชิงลึกเพื่อใช้ประกอบการตัดสินใจ
+                โดยแสดงชื่อช่องโหว่ , ผลกระทบ , รายละเอียด
+                และข้อมูลเชิงลึกรวมถึงวิธีการแก้ไขเพื่อใช้ประกอบการตัดสินใจ
               </p>
             </div>
 
@@ -206,7 +206,7 @@ const CaptureTest: React.FC = () => {
 
               <p className={sectionDescClass}>
                 เปรียบเทียบค่า Latest Risk และ Previous Risk ของแต่ละเป้าหมาย
-                เพื่อให้เห็นแนวโน้มความเสี่ยงล่าสุดในรูปแบบย่อที่เหมาะกับรายงาน PDF
+                เพื่อให้เห็นแนวโน้มความเสี่ยงล่าสุด
               </p>
             </div>
 

@@ -50,6 +50,16 @@ type ExecutiveHighlightsProps = {
   onReady?: (ready: boolean) => void;
 };
 
+type SectionBlock = {
+  key: "summary" | "insight" | "impact" | "affected" | "solution";
+  title: string;
+  content: string;
+  icon: React.ReactNode;
+  containerClassName: string;
+  titleClassName: string;
+  extra?: React.ReactNode;
+};
+
 const toneStyle: Record<HighlightTone, string> = {
   good: "bg-emerald-700 text-white border-emerald-700",
   warning: "bg-amber-600 text-white border-amber-600",
@@ -218,8 +228,10 @@ const ExecutiveHighlights: React.FC<ExecutiveHighlightsProps> = ({
               </p>
             </div>
 
-            <div className="text-right text-[9.5px] leading-[1.45] text-slate-500">
-              Should be remediated within 48 hours
+            <div className="text-right">
+              <span className="inline-flex items-center rounded-sm border-l-[3px] border-orange-600 bg-rose-50 px-3 py-1.5 text-[9px] font-semibold leading-none text-orange-700">
+                Remediate within 48 hours
+              </span>
             </div>
           </div>
         </div>
@@ -254,8 +266,10 @@ const ExecutiveHighlights: React.FC<ExecutiveHighlightsProps> = ({
               </p>
             </div>
 
-            <div className="text-right text-[9.5px] leading-[1.45] text-slate-500">
-              Should be remediated within 48 hours
+            <div className="text-right">
+              <span className="inline-flex items-center rounded-sm border-l-[3px] border-orange-600 bg-rose-50 px-3 py-1.5 text-[9px] font-semibold leading-none text-orange-700">
+                Remediate within 48 hours
+              </span>
             </div>
           </div>
         </div>
@@ -285,8 +299,10 @@ const ExecutiveHighlights: React.FC<ExecutiveHighlightsProps> = ({
             </p>
           </div>
 
-          <div className="text-right text-[9.5px] leading-[1.45] text-slate-500">
-            Should be remediated within 48 hours
+          <div className="text-right">
+            <span className="inline-flex items-center rounded-sm border-l-[3px] border-orange-600 bg-rose-50 px-3 py-1.5 text-[9px] font-semibold leading-none text-orange-700">
+              Remediate within 48 hours
+            </span>
           </div>
         </div>
       </div>
@@ -294,6 +310,71 @@ const ExecutiveHighlights: React.FC<ExecutiveHighlightsProps> = ({
       <div className="divide-y divide-slate-200">
         {items.map((item) => {
           const tone = item.tone || "critical";
+
+          const sectionBlocks: SectionBlock[] = [];
+
+          if (item.summary) {
+            sectionBlocks.push({
+              key: "summary",
+              title: "Summary",
+              content: item.summary,
+              icon: <FiFileText className="text-[13px] text-slate-500" />,
+              containerClassName: "border border-slate-200 bg-white px-4 py-3.5",
+              titleClassName: "text-[10.5px] font-semibold text-slate-900",
+            });
+          }
+
+          if (item.insight) {
+            sectionBlocks.push({
+              key: "insight",
+              title: "Insight",
+              content: item.insight,
+              icon: <FiShield className="text-[13px] text-slate-500" />,
+              containerClassName:
+                "border border-slate-200 bg-slate-50 px-4 py-3.5",
+              titleClassName: "text-[10.5px] font-semibold text-slate-900",
+            });
+          }
+
+          if (item.impact) {
+            sectionBlocks.push({
+              key: "impact",
+              title: "Impact",
+              content: item.impact,
+              icon: <FiAlertTriangle className="text-[13px] text-slate-500" />,
+              containerClassName:
+                "border border-slate-200 bg-slate-50 px-4 py-3.5",
+              titleClassName: "text-[10.5px] font-semibold text-slate-900",
+            });
+          }
+
+          if (item.affected) {
+            sectionBlocks.push({
+              key: "affected",
+              title: "Affected Scope",
+              content: item.affected,
+              icon: <FiInfo className="text-[13px] text-slate-500" />,
+              containerClassName: "border border-slate-200 bg-white px-4 py-3.5",
+              titleClassName: "text-[10.5px] font-semibold text-slate-900",
+            });
+          }
+
+          if (item.solution) {
+            sectionBlocks.push({
+              key: "solution",
+              title: "Recommended Solution",
+              content: item.solution,
+              icon: <FiTool className="text-[13px] text-emerald-700" />,
+              containerClassName:
+                "border border-emerald-200 bg-emerald-50 px-4 py-3.5",
+              titleClassName: "text-[10.5px] font-semibold text-slate-900",
+              extra: item.solutionType ? (
+                <span className="inline-flex items-center rounded-full border border-emerald-300 bg-emerald-100 px-2 py-0.5 text-[8.5px] font-semibold uppercase tracking-[0.08em] text-emerald-800">
+                  {item.solutionType}
+                </span>
+              ) : undefined,
+            });
+          }
 
           return (
             <div
@@ -374,9 +455,7 @@ const ExecutiveHighlights: React.FC<ExecutiveHighlightsProps> = ({
                       <div className="inline-flex items-center gap-2 border border-rose-200 bg-rose-50 px-3 py-2 text-[10.5px] text-rose-700">
                         <FiClock className="text-[12px]" />
                         <span>
-                          <span className="font-semibold">
-                            Exposed for:
-                          </span>{" "}
+                          <span className="font-semibold">Exposed for:</span>{" "}
                           {item.detectedDays} day
                           {item.detectedDays !== 1 ? "s" : ""}
                         </span>
@@ -397,88 +476,26 @@ const ExecutiveHighlights: React.FC<ExecutiveHighlightsProps> = ({
                   </div>
                 )}
 
-                {(item.summary ||
-                  item.impact ||
-                  item.affected ||
-                  item.insight ||
-                  item.solution) && (
+                {sectionBlocks.length > 0 && (
                   <div className="grid grid-cols-1 gap-3">
-                    {item.summary && (
-                      <div className="border border-slate-200 bg-white px-4 py-3.5">
-                        <div className="flex items-center gap-2">
-                          <FiFileText className="text-[13px] text-slate-500" />
-                          <p className="text-[10.5px] font-semibold text-slate-900">
-                            Summary
-                          </p>
-                        </div>
-                        <p className="mt-2 text-[11px] leading-[1.75] text-slate-700">
-                          {item.summary}
-                        </p>
-                      </div>
-                    )}
-
-                    {item.impact && (
-                      <div className="border border-slate-200 bg-slate-50 px-4 py-3.5">
-                        <div className="flex items-center gap-2">
-                          <FiAlertTriangle className="text-[13px] text-slate-500" />
-                          <p className="text-[10.5px] font-semibold text-slate-900">
-                            Impact
-                          </p>
-                        </div>
-                        <p className="mt-2 text-[11px] leading-[1.75] text-slate-700">
-                          {item.impact}
-                        </p>
-                      </div>
-                    )}
-
-                    {item.affected && (
-                      <div className="border border-slate-200 bg-white px-4 py-3.5">
-                        <div className="flex items-center gap-2">
-                          <FiInfo className="text-[13px] text-slate-500" />
-                          <p className="text-[10.5px] font-semibold text-slate-900">
-                            Affected Scope
-                          </p>
-                        </div>
-                        <p className="mt-2 text-[11px] leading-[1.75] text-slate-700">
-                          {item.affected}
-                        </p>
-                      </div>
-                    )}
-
-                    {item.insight && (
-                      <div className="border border-slate-200 bg-slate-50 px-4 py-3.5">
-                        <div className="flex items-center gap-2">
-                          <FiShield className="text-[13px] text-slate-500" />
-                          <p className="text-[10.5px] font-semibold text-slate-900">
-                            Insight
-                          </p>
-                        </div>
-                        <p className="mt-2 text-[11px] leading-[1.75] text-slate-700">
-                          {item.insight}
-                        </p>
-                      </div>
-                    )}
-
-                    {item.solution && (
-                      <div className="border border-emerald-200 bg-emerald-50 px-4 py-3.5">
+                    {sectionBlocks.map((section, sectionIndex) => (
+                      <div
+                        key={section.key}
+                        className={section.containerClassName}
+                      >
                         <div className="flex flex-wrap items-center gap-2">
-                          <FiTool className="text-[13px] text-emerald-700" />
-                          <p className="text-[10.5px] font-semibold text-slate-900">
-                            Recommended Solution
+                          {section.icon}
+                          <p className={section.titleClassName}>
+                            {sectionIndex + 1}. {section.title}
                           </p>
-
-                          {item.solutionType && (
-                            <span className="inline-flex items-center rounded-full border border-emerald-300 bg-emerald-100 px-2 py-0.5 text-[8.5px] font-semibold uppercase tracking-[0.08em] text-emerald-800">
-                              {item.solutionType}
-                            </span>
-                          )}
+                          {section.extra}
                         </div>
 
                         <p className="mt-2 text-[11px] leading-[1.75] text-slate-700">
-                          {item.solution}
+                          {section.content}
                         </p>
                       </div>
-                    )}
+                    ))}
                   </div>
                 )}
               </div>
