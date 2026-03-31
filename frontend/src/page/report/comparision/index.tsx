@@ -9,6 +9,7 @@ import {
   CartesianGrid,
   Tooltip,
 } from "recharts";
+import { FiCpu, FiTrendingUp } from "react-icons/fi";
 import type { TargetDifferForReportDTO } from "../../../services/report";
 import { ListTargetDifferForReport } from "../../../services/report";
 
@@ -182,10 +183,8 @@ const ComparisonReport: React.FC<ComparisonReportProps> = ({ onReady }) => {
     return Math.max(...chartData.map((item) => item.latestRisk));
   }, [chartData]);
 
-  const averageLatestRisk = useMemo(() => {
-    if (chartData.length === 0) return 0;
-    const total = chartData.reduce((sum, item) => sum + item.latestRisk, 0);
-    return total / chartData.length;
+  const totalTargets = useMemo(() => {
+    return chartData.length;
   }, [chartData]);
 
   if (loading) {
@@ -198,8 +197,8 @@ const ComparisonReport: React.FC<ComparisonReportProps> = ({ onReady }) => {
       >
         <div className="py-2">
           <div className="grid grid-cols-2 gap-3">
-            <div className="h-14 animate-pulse rounded-md border border-slate-200 bg-slate-50" />
-            <div className="h-14 animate-pulse rounded-md border border-slate-200 bg-slate-50" />
+            <div className="h-16 animate-pulse rounded-md border border-slate-200 bg-slate-50" />
+            <div className="h-16 animate-pulse rounded-md border border-slate-200 bg-slate-50" />
           </div>
 
           <div className="mt-3 h-52 animate-pulse rounded-md border border-slate-200 bg-slate-50" />
@@ -234,22 +233,38 @@ const ComparisonReport: React.FC<ComparisonReportProps> = ({ onReady }) => {
     >
       <div className="py-1">
         <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5">
-            <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-              Highest Latest Risk
-            </p>
-            <p className="mt-1 text-[15px] font-semibold text-slate-900">
-              {highestLatestRisk.toFixed(2)}
-            </p>
+          <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3">
+            <div className="flex items-start gap-3">
+              <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700">
+                <FiCpu className="text-[15px]" />
+              </span>
+
+              <div className="min-w-0">
+                <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                  Total Targets
+                </p>
+                <p className="mt-1 text-[15px] font-semibold text-slate-900">
+                  {totalTargets}
+                </p>
+              </div>
+            </div>
           </div>
 
-          <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5">
-            <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-              Average Latest Risk
-            </p>
-            <p className="mt-1 text-[15px] font-semibold text-slate-900">
-              {averageLatestRisk.toFixed(2)}
-            </p>
+          <div className="rounded-md border border-violet-200 bg-violet-50 px-3 py-3">
+            <div className="flex items-start gap-3">
+              <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-violet-200 bg-white text-violet-700">
+                <FiTrendingUp className="text-[15px]" />
+              </span>
+
+              <div className="min-w-0">
+                <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-violet-700">
+                  Highest Latest Risk
+                </p>
+                <p className="mt-1 text-[15px] font-semibold text-slate-900">
+                  {highestLatestRisk.toFixed(2)}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 

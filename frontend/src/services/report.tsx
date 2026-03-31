@@ -68,24 +68,44 @@ export const ListTaskVulnSummaryForReport = async (): Promise<
 export type CriticalForReportResponse = {
   task_name: string;
   ip: string;
+  vulnerability_id: string;
   vulnerability_name: string;
-  vulnerability_family: string;
-  level: string;
-  summary: string;
-  insight: string;
-  cve_list: string;
+  detected_date: string;
   severity: number;
+  cve_list: string;
+  summary: string;
+  impact: string;
+  affected: string;
+  insight: string;
+  solution: string;
+  solution_type: string;
 };
 
 // =======================
 // API: GET /critical-report
 // Public route: no login required
+// Optional query:
+//   - task_id
+//   - limit
 // =======================
-export const ListCriticalForReport = async (): Promise<
-  CriticalForReportResponse[] | null
-> => {
+export const ListCriticalForReport = async (
+  taskID?: string | number,
+  limit?: string | number
+): Promise<CriticalForReportResponse[] | null> => {
   try {
-    const response = await publicReportApi.get("/critical-report");
+    const params: Record<string, string | number> = {};
+
+    if (taskID !== undefined && taskID !== null && `${taskID}`.trim() !== "") {
+      params.task_id = taskID;
+    }
+
+    if (limit !== undefined && limit !== null && `${limit}`.trim() !== "") {
+      params.limit = limit;
+    }
+
+    const response = await publicReportApi.get("/critical-report", {
+      params,
+    });
 
     console.log("ListCriticalForReport raw response:", response.data);
 
@@ -99,7 +119,10 @@ export const ListCriticalForReport = async (): Promise<
       return data as CriticalForReportResponse[];
     }
 
-    console.error("Expected array but got in ListCriticalForReport:", response.data);
+    console.error(
+      "Expected array but got in ListCriticalForReport:",
+      response.data
+    );
     return null;
   } catch (error) {
     console.error("ListCriticalForReport error:", error);

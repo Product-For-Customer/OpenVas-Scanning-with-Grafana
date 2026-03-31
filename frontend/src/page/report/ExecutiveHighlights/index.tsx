@@ -1,9 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   FiAlertTriangle,
+  FiClock,
   FiCpu,
   FiFileText,
   FiShield,
+  FiTool,
+  FiInfo,
 } from "react-icons/fi";
 import { ListCriticalForReport } from "../../../services/report";
 
@@ -12,24 +15,33 @@ type HighlightTone = "good" | "warning" | "critical" | "neutral";
 type CriticalForReportDTO = {
   task_name: string;
   ip: string;
+  vulnerability_id: string;
   vulnerability_name: string;
-  vulnerability_family: string;
-  level: string;
-  summary: string;
-  insight: string;
-  cve_list: string;
+  detected_date: string;
   severity: number;
+  cve_list: string;
+  summary: string;
+  impact: string;
+  affected: string;
+  insight: string;
+  solution: string;
+  solution_type: string;
 };
 
 type HighlightItem = {
   id: number;
   title: string;
-  family?: string;
   target?: string;
   ip?: string;
+  detectedDate?: string;
+  detectedDays?: number;
   cveList?: string;
   summary?: string;
+  impact?: string;
+  affected?: string;
   insight?: string;
+  solution?: string;
+  solutionType?: string;
   tone?: HighlightTone;
   severity?: number;
 };
@@ -61,6 +73,13 @@ const normalizeText = (value?: string | null) => {
   return text;
 };
 
+const truncateText = (value?: string | null, maxLength = 400) => {
+  const text = normalizeText(value);
+  if (!text) return "";
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, maxLength).trim()}....`;
+};
+
 const getToneFromSeverity = (severity?: number): HighlightTone => {
   if (typeof severity !== "number" || Number.isNaN(severity)) return "critical";
   if (severity >= 9) return "critical";
@@ -81,6 +100,32 @@ const sortBySeverityDesc = (
     undefined,
     { sensitivity: "base" }
   );
+};
+
+const getDetectedDays = (detectedDate?: string): number | undefined => {
+  if (!detectedDate) return undefined;
+
+  const detected = new Date(detectedDate);
+  if (Number.isNaN(detected.getTime())) return undefined;
+
+  const now = new Date();
+  const diffMs = now.getTime() - detected.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  return diffDays < 0 ? 0 : diffDays;
+};
+
+const formatDetectedDate = (detectedDate?: string): string => {
+  if (!detectedDate) return "";
+
+  const date = new Date(detectedDate);
+  if (Number.isNaN(date.getTime())) return "";
+
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(date);
 };
 
 const ExecutiveHighlights: React.FC<ExecutiveHighlightsProps> = ({
@@ -104,7 +149,7 @@ const ExecutiveHighlights: React.FC<ExecutiveHighlightsProps> = ({
         if (!alive) return;
 
         if (Array.isArray(response)) {
-          setRows(response);
+          setRows(response as CriticalForReportDTO[]);
         } else {
           setRows([]);
         }
@@ -137,12 +182,17 @@ const ExecutiveHighlights: React.FC<ExecutiveHighlightsProps> = ({
           id: index + 1,
           title:
             normalizeText(item.vulnerability_name) || "Unknown Vulnerability",
-          family: normalizeText(item.vulnerability_family),
           target: normalizeText(item.task_name),
           ip: normalizeText(item.ip),
+          detectedDate: normalizeText(item.detected_date),
+          detectedDays: getDetectedDays(item.detected_date),
           cveList: normalizeText(item.cve_list),
-          summary: normalizeText(item.summary),
-          insight: normalizeText(item.insight),
+          summary: truncateText(item.summary, 400),
+          impact: truncateText(item.impact, 400),
+          affected: truncateText(item.affected, 400),
+          insight: truncateText(item.insight, 400),
+          solution: truncateText(item.solution, 400),
+          solutionType: normalizeText(item.solution_type),
           severity,
           tone: getToneFromSeverity(severity),
         };
@@ -162,13 +212,14 @@ const ExecutiveHighlights: React.FC<ExecutiveHighlightsProps> = ({
                 Key Critical Findings at a Glance
               </h3>
               <p className="mt-1 text-[10px] leading-[1.6] text-slate-600">
-                สรุปช่องโหว่ระดับวิกฤตที่ตรวจพบจากรายงานล่าสุด พร้อมข้อมูลเป้าหมาย
-                รายละเอียด และข้อมูลเชิงลึกที่เกี่ยวข้อง
+                Highlighting the most critical vulnerabilities detected in the
+                latest scan, including business impact, affected scope, and
+                recommended remediation actions.
               </p>
             </div>
 
             <div className="text-right text-[9.5px] leading-[1.45] text-slate-500">
-              Executive-level critical observations
+              Should be remediated within 48 hours
             </div>
           </div>
         </div>
@@ -197,13 +248,14 @@ const ExecutiveHighlights: React.FC<ExecutiveHighlightsProps> = ({
                 Key Critical Findings at a Glance
               </h3>
               <p className="mt-1 text-[10px] leading-[1.6] text-slate-600">
-                สรุปช่องโหว่ระดับวิกฤตที่ตรวจพบจากรายงานล่าสุด พร้อมข้อมูลเป้าหมาย
-                รายละเอียด และข้อมูลเชิงลึกที่เกี่ยวข้อง
+                Highlighting the most critical vulnerabilities detected in the
+                latest scan, including business impact, affected scope, and
+                recommended remediation actions.
               </p>
             </div>
 
             <div className="text-right text-[9.5px] leading-[1.45] text-slate-500">
-              Executive-level critical observations
+              Should be remediated within 48 hours
             </div>
           </div>
         </div>
@@ -227,13 +279,14 @@ const ExecutiveHighlights: React.FC<ExecutiveHighlightsProps> = ({
               Key Critical Findings at a Glance
             </h3>
             <p className="mt-1 text-[10px] leading-[1.6] text-slate-600">
-              สรุปช่องโหว่ระดับวิกฤตที่ตรวจพบจากรายงานล่าสุด พร้อมข้อมูลเป้าหมาย
-              รายละเอียด และข้อมูลเชิงลึกที่เกี่ยวข้อง
+              Highlighting the most critical vulnerabilities detected in the
+              latest scan, including business impact, affected scope, and
+              recommended remediation actions.
             </p>
           </div>
 
           <div className="text-right text-[9.5px] leading-[1.45] text-slate-500">
-            Executive-level critical observations
+            Should be remediated within 48 hours
           </div>
         </div>
       </div>
@@ -262,13 +315,6 @@ const ExecutiveHighlights: React.FC<ExecutiveHighlightsProps> = ({
                       <h4 className="text-[13.5px] font-semibold leading-[1.45] text-slate-900">
                         {item.title}
                       </h4>
-
-                      {item.family && (
-                        <span className="inline-flex items-center gap-1.5 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[9.5px] font-semibold text-violet-700">
-                          <FiShield className="text-[11px]" />
-                          {item.family}
-                        </span>
-                      )}
                     </div>
                   </div>
 
@@ -282,7 +328,11 @@ const ExecutiveHighlights: React.FC<ExecutiveHighlightsProps> = ({
                   </div>
                 </div>
 
-                {(item.target || item.ip || item.cveList) && (
+                {(item.target ||
+                  item.ip ||
+                  item.cveList ||
+                  item.detectedDate ||
+                  typeof item.detectedDays === "number") && (
                   <div className="flex flex-wrap gap-2.5">
                     {item.target && (
                       <div className="inline-flex items-center gap-2 border border-slate-200 bg-slate-50 px-3 py-2 text-[10.5px] text-slate-700">
@@ -298,11 +348,37 @@ const ExecutiveHighlights: React.FC<ExecutiveHighlightsProps> = ({
 
                     {item.ip && (
                       <div className="inline-flex items-center gap-2 border border-slate-200 bg-slate-50 px-3 py-2 text-[10.5px] text-slate-700">
+                        <FiShield className="text-[12px] text-slate-500" />
                         <span>
                           <span className="font-semibold text-slate-900">
                             IP:
                           </span>{" "}
                           {item.ip}
+                        </span>
+                      </div>
+                    )}
+
+                    {item.detectedDate && (
+                      <div className="inline-flex items-center gap-2 border border-slate-200 bg-slate-50 px-3 py-2 text-[10.5px] text-slate-700">
+                        <FiClock className="text-[12px] text-slate-500" />
+                        <span>
+                          <span className="font-semibold text-slate-900">
+                            Detected:
+                          </span>{" "}
+                          {formatDetectedDate(item.detectedDate)}
+                        </span>
+                      </div>
+                    )}
+
+                    {typeof item.detectedDays === "number" && (
+                      <div className="inline-flex items-center gap-2 border border-rose-200 bg-rose-50 px-3 py-2 text-[10.5px] text-rose-700">
+                        <FiClock className="text-[12px]" />
+                        <span>
+                          <span className="font-semibold">
+                            Exposed for:
+                          </span>{" "}
+                          {item.detectedDays} day
+                          {item.detectedDays !== 1 ? "s" : ""}
                         </span>
                       </div>
                     )}
@@ -321,18 +397,50 @@ const ExecutiveHighlights: React.FC<ExecutiveHighlightsProps> = ({
                   </div>
                 )}
 
-                {(item.summary || item.insight) && (
+                {(item.summary ||
+                  item.impact ||
+                  item.affected ||
+                  item.insight ||
+                  item.solution) && (
                   <div className="grid grid-cols-1 gap-3">
                     {item.summary && (
                       <div className="border border-slate-200 bg-white px-4 py-3.5">
                         <div className="flex items-center gap-2">
                           <FiFileText className="text-[13px] text-slate-500" />
                           <p className="text-[10.5px] font-semibold text-slate-900">
-                            รายละเอียด
+                            Summary
                           </p>
                         </div>
                         <p className="mt-2 text-[11px] leading-[1.75] text-slate-700">
                           {item.summary}
+                        </p>
+                      </div>
+                    )}
+
+                    {item.impact && (
+                      <div className="border border-slate-200 bg-slate-50 px-4 py-3.5">
+                        <div className="flex items-center gap-2">
+                          <FiAlertTriangle className="text-[13px] text-slate-500" />
+                          <p className="text-[10.5px] font-semibold text-slate-900">
+                            Impact
+                          </p>
+                        </div>
+                        <p className="mt-2 text-[11px] leading-[1.75] text-slate-700">
+                          {item.impact}
+                        </p>
+                      </div>
+                    )}
+
+                    {item.affected && (
+                      <div className="border border-slate-200 bg-white px-4 py-3.5">
+                        <div className="flex items-center gap-2">
+                          <FiInfo className="text-[13px] text-slate-500" />
+                          <p className="text-[10.5px] font-semibold text-slate-900">
+                            Affected Scope
+                          </p>
+                        </div>
+                        <p className="mt-2 text-[11px] leading-[1.75] text-slate-700">
+                          {item.affected}
                         </p>
                       </div>
                     )}
@@ -342,11 +450,32 @@ const ExecutiveHighlights: React.FC<ExecutiveHighlightsProps> = ({
                         <div className="flex items-center gap-2">
                           <FiShield className="text-[13px] text-slate-500" />
                           <p className="text-[10.5px] font-semibold text-slate-900">
-                            รายละเอียดเชิงลึก
+                            Insight
                           </p>
                         </div>
                         <p className="mt-2 text-[11px] leading-[1.75] text-slate-700">
                           {item.insight}
+                        </p>
+                      </div>
+                    )}
+
+                    {item.solution && (
+                      <div className="border border-emerald-200 bg-emerald-50 px-4 py-3.5">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <FiTool className="text-[13px] text-emerald-700" />
+                          <p className="text-[10.5px] font-semibold text-slate-900">
+                            Recommended Solution
+                          </p>
+
+                          {item.solutionType && (
+                            <span className="inline-flex items-center rounded-full border border-emerald-300 bg-emerald-100 px-2 py-0.5 text-[8.5px] font-semibold uppercase tracking-[0.08em] text-emerald-800">
+                              {item.solutionType}
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="mt-2 text-[11px] leading-[1.75] text-slate-700">
+                          {item.solution}
                         </p>
                       </div>
                     )}

@@ -3,24 +3,29 @@ package report
 import (
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/Tawunchai/openvas/config"
 	"github.com/gin-gonic/gin"
 )
 
 type CriticalForReportDTO struct {
-	TaskName            string  `json:"task_name"`
-	IP                  string  `json:"ip"`
-	VulnerabilityName   string  `json:"vulnerability_name"`
-	VulnerabilityFamily string  `json:"vulnerability_family"`
-	Level               string  `json:"level"`
-	Summary             string  `json:"summary"`
-	Insight             string  `json:"insight"`
-	CVEList             string  `json:"cve_list"`
-	Severity            float64 `json:"severity"`
+	TaskName          string    `json:"task_name"`
+	IP                string    `json:"ip"`
+	VulnerabilityID   string    `json:"vulnerability_id"`
+	VulnerabilityName string    `json:"vulnerability_name"`
+	DetectedDate      time.Time `json:"detected_date"`
+	Severity          float64   `json:"severity"`
+	CVEList           string    `json:"cve_list"`
+	Summary           string    `json:"summary"`
+	Impact            string    `json:"impact"`
+	Affected          string    `json:"affected"`
+	Insight           string    `json:"insight"`
+	Solution          string    `json:"solution"`
+	SolutionType      string    `json:"solution_type"`
 }
 
-// GET /reports/critical
+// GET /critical-report
 // Optional query:
 //   - task_id=3
 //   - limit=50
@@ -52,16 +57,24 @@ LatestReportPerTask AS (
 
 Fact AS (
     SELECT
+        ft.task_id,
         ft.task_name,
         COALESCE(NULLIF(BTRIM(r.host), ''), 'N/A') AS ip,
         r.nvt AS nvt_oid,
+        lr.creation_time AS report_creation_time,
+
         ROUND(COALESCE(r.severity, 0)::numeric, 2)::float8 AS severity,
 
         COALESCE(NULLIF(BTRIM(n.name), ''), r.nvt::text, 'N/A') AS vulnerability_name,
-        COALESCE(NULLIF(BTRIM(n.family), ''), 'N/A') AS vulnerability_family,
 
         NULLIF(BTRIM(n.summary), '') AS summary,
+        NULLIF(BTRIM(n.impact), '') AS impact,
+        NULLIF(BTRIM(n.affected), '') AS affected,
         NULLIF(BTRIM(n.insight), '') AS insight,
+
+        NULLIF(BTRIM(n.solution), '') AS solution,
+        NULLIF(BTRIM(n.solution_type), '') AS solution_type,
+
         NULLIF(BTRIM(n.tag), '') AS tag_text
 
     FROM public.results r
@@ -75,12 +88,40 @@ Fact AS (
       AND COALESCE(r.severity, 0) >= 9.0
 ),
 
+Agg AS (
+    SELECT
+        f.task_id,
+        f.task_name,
+        MAX(f.ip) AS ip,
+        f.nvt_oid,
+
+        MAX(f.vulnerability_name) AS vulnerability_name,
+        ROUND(MAX(f.severity)::numeric, 2)::float8 AS severity,
+
+        MAX(f.summary) AS summary,
+        MAX(f.impact) AS impact,
+        MAX(f.affected) AS affected,
+        MAX(f.insight) AS insight,
+
+        MAX(f.solution) AS solution,
+        MAX(f.solution_type) AS solution_type,
+
+        MAX(f.tag_text) AS tag_text,
+        MAX(f.report_creation_time) AS report_creation_time
+    FROM Fact f
+    GROUP BY f.task_id, f.task_name, f.nvt_oid
+),
+
 TagParsed AS (
     SELECT
-        f.*,
-        NULLIF((regexp_match(COALESCE(f.tag_text, ''), '(^|[|;])summary=([^|;]+)'))[2], '') AS tag_summary,
-        NULLIF((regexp_match(COALESCE(f.tag_text, ''), '(^|[|;])insight=([^|;]+)'))[2], '') AS tag_insight
-    FROM Fact f
+        a.*,
+        NULLIF((regexp_match(COALESCE(a.tag_text, ''), '(^|[|;])summary=([^|;]+)'))[2], '') AS tag_summary,
+        NULLIF((regexp_match(COALESCE(a.tag_text, ''), '(^|[|;])impact=([^|;]+)'))[2], '') AS tag_impact,
+        NULLIF((regexp_match(COALESCE(a.tag_text, ''), '(^|[|;])affected=([^|;]+)'))[2], '') AS tag_affected,
+        NULLIF((regexp_match(COALESCE(a.tag_text, ''), '(^|[|;])insight=([^|;]+)'))[2], '') AS tag_insight,
+        NULLIF((regexp_match(COALESCE(a.tag_text, ''), '(^|[|;])solution=([^|;]+)'))[2], '') AS tag_solution,
+        NULLIF((regexp_match(COALESCE(a.tag_text, ''), '(^|[|;])solution_type=([^|;]+)'))[2], '') AS tag_solution_type
+    FROM Agg a
 ),
 
 DistinctCVERefs AS (
@@ -110,27 +151,38 @@ CVEListPerNVT AS (
         r.nvt_oid,
         STRING_AGG(r.cve_id, ', ' ORDER BY r.cve_id) AS cve_list
     FROM RankedCVERefs r
-    WHERE r.rn <= 3
+    WHERE r.rn <= 10
     GROUP BY r.nvt_oid
 )
 
 SELECT
     tp.task_name,
     tp.ip,
+    tp.nvt_oid::text AS vulnerability_id,
     tp.vulnerability_name,
-    tp.vulnerability_family,
-    'Critical' AS level,
-    COALESCE(tp.summary, tp.tag_summary, 'N/A') AS summary,
-    COALESCE(tp.insight, tp.tag_insight, 'N/A') AS insight,
+
+    (
+        to_timestamp(tp.report_creation_time)
+        AT TIME ZONE 'UTC'
+        AT TIME ZONE 'Asia/Bangkok'
+    ) AS detected_date,
+
+    tp.severity,
     COALESCE(ca.cve_list, 'N/A') AS cve_list,
-    tp.severity
+
+    COALESCE(tp.summary, tp.tag_summary, 'N/A') AS summary,
+    COALESCE(tp.impact, tp.tag_impact, 'N/A') AS impact,
+    COALESCE(tp.affected, tp.tag_affected, 'N/A') AS affected,
+    COALESCE(tp.insight, tp.tag_insight, 'N/A') AS insight,
+    COALESCE(tp.solution, tp.tag_solution, 'N/A') AS solution,
+    COALESCE(tp.solution_type, tp.tag_solution_type, 'N/A') AS solution_type
+
 FROM TagParsed tp
 LEFT JOIN CVEListPerNVT ca
   ON ca.nvt_oid = tp.nvt_oid
 ORDER BY
     tp.severity DESC,
     tp.task_name ASC,
-    tp.ip ASC,
     tp.vulnerability_name ASC
 LIMIT COALESCE(NULLIF($2, '')::int, 50);
 `
@@ -138,7 +190,7 @@ LIMIT COALESCE(NULLIF($2, '')::int, 50);
 	var out []CriticalForReportDTO
 	if err := db.Raw(query, taskID, limit).Scan(&out).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "failed to load critical findings for report",
+			"error":   "failed to load critical findings for report",
 			"details": err.Error(),
 		})
 		return

@@ -375,6 +375,7 @@ const Index: React.FC = () => {
 
       const data = await ListAppNotification();
 
+
       if (!data) {
         setRows([]);
         setError("โหลดข้อมูล App Notification ไม่สำเร็จ");

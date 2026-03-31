@@ -65,11 +65,11 @@ const ReportHeader: React.FC<ReportHeaderProps> = ({ info }) => {
             ) : null}
           </div>
 
-          <div className="flex shrink-0 items-start justify-end pt-1">
+          <div className="flex w-45 shrink-0 items-start justify-end pt-1">
             <img
               src={logo}
               alt="Security Report Logo"
-              className="h-13 w-auto object-contain"
+              className="h-26 w-auto object-contain"
             />
           </div>
         </div>

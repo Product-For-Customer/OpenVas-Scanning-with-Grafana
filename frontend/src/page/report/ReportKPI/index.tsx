@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { MdOutlineReportProblem } from "react-icons/md";
 import {
-  MdOutlineReportProblem,
-  MdWarningAmber,
-  MdInfoOutline,
-} from "react-icons/md";
-import { FiAlertTriangle } from "react-icons/fi";
-import { GoDotFill } from "react-icons/go";
+  FiAlertOctagon,
+  FiAlertTriangle,
+  FiMinusCircle,
+  FiShield,
+  FiInfo,
+} from "react-icons/fi";
 import {
   ListTaskVulnSummaryForReport,
   type TaskVulnSummaryForReportResponse,
@@ -18,6 +19,7 @@ type MetricItem = {
   hint: string;
   icon: React.ReactNode;
   iconWrapClass: string;
+  labelClass: string;
 };
 
 type ReportKPIProps = {
@@ -93,49 +95,55 @@ const ReportKPI: React.FC<ReportKPIProps> = ({ onReady }) => {
         id: 1,
         label: "Total Findings",
         value: loading ? "..." : summary.total.toLocaleString(),
-        hint: "Total findings from all scanned tasks",
+        hint: "Total findings identified across all scanned targets",
         icon: <MdOutlineReportProblem className="text-[13px]" />,
         iconWrapClass: "bg-slate-100 text-slate-700",
+        labelClass: "text-slate-600",
       },
       {
         id: 2,
         label: "Critical",
         value: loading ? "..." : summary.critical.toLocaleString(),
-        hint: "Severity level Critical",
-        icon: <FiAlertTriangle className="text-[12px]" />,
+        hint: "Critical vulnerabilities requiring immediate remediation",
+        icon: <FiAlertOctagon className="text-[12px]" />,
         iconWrapClass: "bg-rose-50 text-rose-700",
+        labelClass: "text-rose-700",
       },
       {
         id: 3,
         label: "High",
         value: loading ? "..." : summary.high.toLocaleString(),
-        hint: "Severity level High",
-        icon: <MdWarningAmber className="text-[13px]" />,
+        hint: "High-risk vulnerabilities with significant impact potential",
+        icon: <FiAlertTriangle className="text-[12px]" />,
         iconWrapClass: "bg-orange-50 text-orange-700",
+        labelClass: "text-orange-700",
       },
       {
         id: 4,
         label: "Medium",
         value: loading ? "..." : summary.medium.toLocaleString(),
-        hint: "Severity level Medium",
-        icon: <GoDotFill className="text-[13px]" />,
-        iconWrapClass: "bg-amber-50 text-amber-700",
+        hint: "Medium-severity findings that should be addressed in due course",
+        icon: <FiInfo className="text-[12px]" />,
+        iconWrapClass: "bg-yellow-50 text-yellow-700",
+        labelClass: "text-yellow-700",
       },
       {
         id: 5,
         label: "Low",
         value: loading ? "..." : summary.low.toLocaleString(),
-        hint: "Severity level Low",
-        icon: <GoDotFill className="text-[13px]" />,
+        hint: "Low-severity findings with limited immediate impact",
+        icon: <FiMinusCircle className="text-[12px]" />,
         iconWrapClass: "bg-emerald-50 text-emerald-700",
+        labelClass: "text-emerald-700",
       },
       {
         id: 6,
         label: "Info",
         value: loading ? "..." : summary.info.toLocaleString(),
-        hint: "Informational findings",
-        icon: <MdInfoOutline className="text-[13px]" />,
+        hint: "Informational observations and security-related notices",
+        icon: <FiShield className="text-[12px]" />,
         iconWrapClass: "bg-sky-50 text-sky-700",
+        labelClass: "text-sky-700",
       },
     ],
     [loading, summary]
@@ -147,15 +155,15 @@ const ReportKPI: React.FC<ReportKPIProps> = ({ onReady }) => {
         <div className="flex items-end justify-between gap-4">
           <div>
             <p className="text-[9px] font-semibold uppercase tracking-normal text-slate-500">
-              Vulnerability Summary
+              Security Risk Summary
             </p>
             <h3 className="mt-1 text-[15px] font-bold leading-tight text-slate-900">
-              Security Findings Overview
+              Vulnerability Severity Overview
             </h3>
           </div>
 
           <div className="text-right text-[9.5px] leading-[1.45] text-slate-500">
-            Consolidated assessment results
+            Consolidated findings by severity level
           </div>
         </div>
       </div>
@@ -184,7 +192,12 @@ const ReportKPI: React.FC<ReportKPIProps> = ({ onReady }) => {
                   {item.icon}
                 </span>
 
-                <p className="text-[8.5px] font-semibold uppercase tracking-normal text-slate-500">
+                <p
+                  className={[
+                    "text-[8.5px] font-semibold uppercase tracking-normal",
+                    item.labelClass,
+                  ].join(" ")}
+                >
                   {item.label}
                 </p>
               </div>

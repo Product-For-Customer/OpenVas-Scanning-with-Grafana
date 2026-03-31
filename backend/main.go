@@ -116,13 +116,6 @@ func main() {
 		authorized.PATCH("/update-app-notifications/:id", line.UpdateAppNotificationByID)
 		authorized.DELETE("/delete-app-notifications/:id", line.DeleteAppNotificationByID)
 
-		// ===== Location =====
-		/*authorized.GET("/locations", location.ListLocation)
-		authorized.GET("/locations/:id", location.ListLocationByID)
-		authorized.POST("/create-locations", location.CreateLocation)
-		authorized.PATCH("/update-locations/:id", location.UpdateLocationByID)
-		authorized.DELETE("/delete-locations/:id", location.DeleteLocationByID)*/
-
 		// ===== Own =====
 		authorized.GET("/owns/user/:id", own.ListOwnByUserID)
 		authorized.GET("/owns/tasks", own.ListTaskIDForOwn)
