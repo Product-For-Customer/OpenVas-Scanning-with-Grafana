@@ -22,7 +22,7 @@ export const publicReportApi = axios.create({
 export const protectedReportApi = axios.create({
   baseURL: apiUrl,
   withCredentials: true,
-  timeout: 15000,
+  timeout: 120000,
   headers: {
     "Content-Type": "application/json",
     "ngrok-skip-browser-warning": "true",

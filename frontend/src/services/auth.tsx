@@ -7,7 +7,7 @@ import { apiUrl } from "./api";
 const authApi = axios.create({
   baseURL: apiUrl,
   withCredentials: true, // ✅ สำคัญมากสำหรับ cookie auth
-  timeout: 15000,
+  timeout: 30000,
   headers: {
     "Content-Type": "application/json",
     "ngrok-skip-browser-warning": "true",
