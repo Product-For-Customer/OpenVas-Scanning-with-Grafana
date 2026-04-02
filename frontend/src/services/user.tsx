@@ -7,7 +7,7 @@ import { apiUrl } from "./api";
 const userApi = axios.create({
   baseURL: apiUrl,
   withCredentials: true, // ✅ สำคัญมาก
-  timeout: 60000,
+  timeout: 15000,
   headers: {
     "Content-Type": "application/json",
     "ngrok-skip-browser-warning": "true",
