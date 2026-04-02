@@ -10,6 +10,6 @@ export const defaultHeaders = {
 export const baseApi = axios.create({
   baseURL: apiUrl,
   withCredentials: true,
-  timeout: 240000,
+  timeout: 60000,
   headers: defaultHeaders,
 });

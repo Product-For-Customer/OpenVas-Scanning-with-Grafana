@@ -30,7 +30,6 @@ const Loader = Loadable(lazy(() => import("../component/third-patry/Loader")));
 
 //====== Test Captuer ======
 const CaptureTest = Loadable(lazy(() => import("../page/report/CaptureTest")));
-const Save = Loadable(lazy(() => import("../page/report/save")));
 // ======================= ROUTES =======================
 
 // Admin เห็นทุกหน้า
@@ -59,7 +58,6 @@ const AdminRoutes = (): RouteObject[] => [
     ],
   },
   { path: "*", element: <Navigate to="/admin" replace /> },
-  { path: "capture", element: <Save /> },
 ];
 
 // User เห็นเฉพาะบางหน้า
