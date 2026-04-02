@@ -7,7 +7,7 @@ import { apiUrl } from "./api";
 const historyNotifyApi = axios.create({
   baseURL: apiUrl,
   withCredentials: true, // ✅ สำคัญมาก
-  timeout: 60000,
+  timeout: 30000,
   headers: {
     "Content-Type": "application/json",
     "ngrok-skip-browser-warning": "true",
