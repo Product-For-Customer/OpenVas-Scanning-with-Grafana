@@ -29,6 +29,7 @@ const Loader = Loadable(lazy(() => import("../component/third-patry/Loader")));
 
 
 //====== Test Captuer ======
+const Test = Loadable(lazy(() => import("../page/report/test")));
 const CaptureTest = Loadable(lazy(() => import("../page/report/CaptureTest")));
 // ======================= ROUTES =======================
 
@@ -99,6 +100,7 @@ const MainRoutes = (): RouteObject[] => [
       { path: "forgot-password", element: <Forget /> },
       { path: "reset-password", element: <Reset /> },
       { path: "capture", element: <CaptureTest /> },
+      { path: "test", element: <Test /> },
       { path: "*", element: <SignIn /> },
     ],
   },

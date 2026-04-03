@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	fixedCaptureURL = "https://openvaswebv1.vercel.app/capture" // เปลี่ยนด้วยใน docker-compose.yml ถ้าจำเป็น
+	fixedCaptureURL = "https://openvaswebv1.vercel.app/test" // เปลี่ยนด้วยใน docker-compose.yml ถ้าจำเป็น
 	fixedPublicBase  = "https://postdiphtherial-unperishable-carolyn.ngrok-free.dev"
 	fixedReportsDir  = "./tmp/reports"
 	defaultPDFPrefix = "report_capture"
