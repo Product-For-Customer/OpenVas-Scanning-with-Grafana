@@ -192,3 +192,354 @@ UPDATED=false
 RESULT_TYPE=no_update
 [2026-04-02T09:46:23+07:00] FEED CHECK DONE (NO UPDATE)
 ==================================================
+==================================================
+[2026-04-03T15:31:26+07:00] START feed update automation
+Using compose dir: /workspace
+Using log file: /app/logs/feed-update.log
+Force update: false
+Resolved compose file: /workspace/docker-compose.yml
+Feed services: vulnerability-tests notus-data scap-data cert-bund-data dfn-cert-data report-formats data-objects
+Checking feed images one by one...
+--------------------------------------------------
+Service: vulnerability-tests
+Image:   registry.community.greenbone.net/community/vulnerability-tests
+Before:  sha256:6ea12699376e4dc2c57d72bbfbfb7c3f3e4645ca1fb9c388cfb0b6e6449918f6
+Pull attempt 1/3 for registry.community.greenbone.net/community/vulnerability-tests
+Using default tag: latest
+latest: Pulling from community/vulnerability-tests
+97b5af32bc81: Pulling fs layer
+ccf0d1d29e49: Pulling fs layer
+2325602e86c5: Pulling fs layer
+97b5af32bc81: Download complete
+2325602e86c5: Download complete
+ccf0d1d29e49: Download complete
+ccf0d1d29e49: Pull complete
+97b5af32bc81: Pull complete
+2325602e86c5: Pull complete
+Digest: sha256:768a04b022b3e7fe1e6ac842341d9b3f35792441b9185503e57240ba54636826
+Status: Downloaded newer image for registry.community.greenbone.net/community/vulnerability-tests:latest
+registry.community.greenbone.net/community/vulnerability-tests:latest
+After:   sha256:768a04b022b3e7fe1e6ac842341d9b3f35792441b9185503e57240ba54636826
+Detected update for service 'vulnerability-tests'
+--------------------------------------------------
+Service: notus-data
+Image:   registry.community.greenbone.net/community/notus-data
+Before:  sha256:68fb5a5286fcb3cfcaa0c0956d4821f3af3b6d57763ae1c8300505e55c3ec401
+Pull attempt 1/3 for registry.community.greenbone.net/community/notus-data
+Using default tag: latest
+latest: Pulling from community/notus-data
+13a1bb0907bb: Pulling fs layer
+2484d3d2fa16: Pulling fs layer
+f695d378c751: Pulling fs layer
+d5634d08e703: Pulling fs layer
+06e99e8ffffc: Pulling fs layer
+06e99e8ffffc: Download complete
+13a1bb0907bb: Download complete
+f695d378c751: Download complete
+d5634d08e703: Download complete
+2484d3d2fa16: Download complete
+2484d3d2fa16: Pull complete
+f695d378c751: Pull complete
+d5634d08e703: Pull complete
+06e99e8ffffc: Pull complete
+13a1bb0907bb: Pull complete
+Digest: sha256:79c35773d977037743f30c0ca3a1c84dc66caa5a98deca2ab51538374611b7e0
+Status: Downloaded newer image for registry.community.greenbone.net/community/notus-data:latest
+registry.community.greenbone.net/community/notus-data:latest
+After:   sha256:79c35773d977037743f30c0ca3a1c84dc66caa5a98deca2ab51538374611b7e0
+Detected update for service 'notus-data'
+--------------------------------------------------
+Service: scap-data
+Image:   registry.community.greenbone.net/community/scap-data
+Before:  sha256:98e67b608ba156494f35c47dc0bda8e5a6e6fc854fdc1d2508141cd5d9356cd0
+Pull attempt 1/3 for registry.community.greenbone.net/community/scap-data
+Using default tag: latest
+latest: Pulling from community/scap-data
+af7d3fe0f186: Pulling fs layer
+2ef2c6119b39: Pulling fs layer
+af7d3fe0f186: Download complete
+2ef2c6119b39: Download complete
+2ef2c6119b39: Pull complete
+af7d3fe0f186: Pull complete
+Digest: sha256:365777525368d6938ebc76e59b20a607275e86a0f8c79da2ee4139e3aaeef35a
+Status: Downloaded newer image for registry.community.greenbone.net/community/scap-data:latest
+registry.community.greenbone.net/community/scap-data:latest
+After:   sha256:365777525368d6938ebc76e59b20a607275e86a0f8c79da2ee4139e3aaeef35a
+Detected update for service 'scap-data'
+--------------------------------------------------
+Service: cert-bund-data
+Image:   registry.community.greenbone.net/community/cert-bund-data
+Before:  sha256:b1681146fbb88afbb0c37cc82cb5165e15c87700314d6df16e5b07fc0fdd48d1
+Pull attempt 1/3 for registry.community.greenbone.net/community/cert-bund-data
+Using default tag: latest
+latest: Pulling from community/cert-bund-data
+76f6f8ef5097: Pulling fs layer
+0cf203739541: Pulling fs layer
+9a07a9a36fbe: Pulling fs layer
+76f6f8ef5097: Download complete
+9a07a9a36fbe: Download complete
+0cf203739541: Download complete
+9a07a9a36fbe: Pull complete
+0cf203739541: Pull complete
+76f6f8ef5097: Pull complete
+Digest: sha256:61526495621bd60d1be6f1d1cda43bbc4ff92323e45955da04d1764ecf206a11
+Status: Downloaded newer image for registry.community.greenbone.net/community/cert-bund-data:latest
+registry.community.greenbone.net/community/cert-bund-data:latest
+After:   sha256:61526495621bd60d1be6f1d1cda43bbc4ff92323e45955da04d1764ecf206a11
+Detected update for service 'cert-bund-data'
+--------------------------------------------------
+Service: dfn-cert-data
+Image:   registry.community.greenbone.net/community/dfn-cert-data
+Before:  sha256:d655b45a1dace89e4979336be7e66b3bbee6e29f2680f1cecaf62588dd271d0f
+Pull attempt 1/3 for registry.community.greenbone.net/community/dfn-cert-data
+Using default tag: latest
+latest: Pulling from community/dfn-cert-data
+3c823b0a90b0: Pulling fs layer
+b8f3a83e36bd: Pulling fs layer
+3c823b0a90b0: Download complete
+b8f3a83e36bd: Download complete
+3c823b0a90b0: Pull complete
+b8f3a83e36bd: Pull complete
+Digest: sha256:07907bd19adc1e249b29b04b125693081ba4fe98487de7cdd1d9e3a0faca93be
+Status: Downloaded newer image for registry.community.greenbone.net/community/dfn-cert-data:latest
+registry.community.greenbone.net/community/dfn-cert-data:latest
+After:   sha256:07907bd19adc1e249b29b04b125693081ba4fe98487de7cdd1d9e3a0faca93be
+Detected update for service 'dfn-cert-data'
+--------------------------------------------------
+Service: report-formats
+Image:   registry.community.greenbone.net/community/report-formats
+Before:  sha256:dd30c642915f2c6706609ba5a39275fad92753215f7f39463d78365153a04235
+Pull attempt 1/3 for registry.community.greenbone.net/community/report-formats
+Using default tag: latest
+latest: Pulling from community/report-formats
+b99cdef5ec8a: Pulling fs layer
+3cabf41a687e: Pulling fs layer
+831e7cdefbef: Pulling fs layer
+b99cdef5ec8a: Download complete
+831e7cdefbef: Download complete
+3cabf41a687e: Download complete
+3cabf41a687e: Pull complete
+b99cdef5ec8a: Pull complete
+831e7cdefbef: Pull complete
+Digest: sha256:d574f12360e37b3c03c57dfd3ce719362cc1dd87c602e6699b915aabd3023ca3
+Status: Downloaded newer image for registry.community.greenbone.net/community/report-formats:latest
+registry.community.greenbone.net/community/report-formats:latest
+After:   sha256:d574f12360e37b3c03c57dfd3ce719362cc1dd87c602e6699b915aabd3023ca3
+Detected update for service 'report-formats'
+--------------------------------------------------
+Service: data-objects
+Image:   registry.community.greenbone.net/community/data-objects
+Before:  sha256:74e2b9373bab3138108d2a197c0d236656f069d3714e499728b178938724b05e
+Pull attempt 1/3 for registry.community.greenbone.net/community/data-objects
+Using default tag: latest
+latest: Pulling from community/data-objects
+ed67229e2a0f: Pulling fs layer
+b3854ce4b4ed: Pulling fs layer
+4a710f71f2f8: Pulling fs layer
+4a710f71f2f8: Download complete
+b3854ce4b4ed: Download complete
+b3854ce4b4ed: Pull complete
+ed67229e2a0f: Download complete
+4a710f71f2f8: Pull complete
+ed67229e2a0f: Pull complete
+Digest: sha256:9b99274f3531286e03fed292707c735e28f2a1d2ec0edf3e065a85c3db45fcdf
+Status: Downloaded newer image for registry.community.greenbone.net/community/data-objects:latest
+registry.community.greenbone.net/community/data-objects:latest
+After:   sha256:9b99274f3531286e03fed292707c735e28f2a1d2ec0edf3e065a85c3db45fcdf
+Detected update for service 'data-objects'
+Refreshing feed/data services...
+Changed services: vulnerability-tests notus-data scap-data cert-bund-data dfn-cert-data report-formats data-objects
+Running: docker compose -f /workspace/docker-compose.yml up -d vulnerability-tests notus-data scap-data cert-bund-data dfn-cert-data report-formats data-objects
+----- BEGIN docker compose up output -----
+ Container greenbone-community-edition-notus-data-1  Recreate
+ Container greenbone-community-edition-cert-bund-data-1  Recreate
+ Container greenbone-community-edition-data-objects-1  Recreate
+ Container greenbone-community-edition-scap-data-1  Recreate
+ Container greenbone-community-edition-vulnerability-tests-1  Recreate
+ Container greenbone-community-edition-data-objects-1  Recreated
+ Container greenbone-community-edition-report-formats-1  Recreate
+ Container greenbone-community-edition-scap-data-1  Recreated
+ Container greenbone-community-edition-notus-data-1  Recreated
+ Container greenbone-community-edition-cert-bund-data-1  Recreated
+ Container greenbone-community-edition-dfn-cert-data-1  Recreate
+ Container greenbone-community-edition-vulnerability-tests-1  Recreated
+ Container greenbone-community-edition-report-formats-1  Recreated
+ Container greenbone-community-edition-dfn-cert-data-1  Recreated
+ Container greenbone-community-edition-scap-data-1  Starting
+ Container greenbone-community-edition-notus-data-1  Starting
+ Container greenbone-community-edition-data-objects-1  Starting
+ Container greenbone-community-edition-cert-bund-data-1  Starting
+ Container greenbone-community-edition-vulnerability-tests-1  Starting
+ Container greenbone-community-edition-data-objects-1  Started
+ Container greenbone-community-edition-data-objects-1  Waiting
+ Container greenbone-community-edition-notus-data-1  Started
+ Container greenbone-community-edition-scap-data-1  Started
+ Container greenbone-community-edition-vulnerability-tests-1  Started
+ Container greenbone-community-edition-cert-bund-data-1  Started
+ Container greenbone-community-edition-cert-bund-data-1  Waiting
+ Container greenbone-community-edition-data-objects-1  Healthy
+ Container greenbone-community-edition-report-formats-1  Starting
+ Container greenbone-community-edition-cert-bund-data-1  Healthy
+ Container greenbone-community-edition-dfn-cert-data-1  Starting
+ Container greenbone-community-edition-report-formats-1  Started
+ Container greenbone-community-edition-dfn-cert-data-1  Started
+----- END docker compose up output -----
+Restarting dependent services to load refreshed feed...
+ Container greenbone-community-edition-openvas-1  Restarting
+ Container greenbone-community-edition-gvmd-1  Restarting
+ Container greenbone-community-edition-ospd-openvas-1  Restarting
+ Container greenbone-community-edition-openvasd-1  Restarting
+ Container greenbone-community-edition-openvasd-1  Started
+ Container greenbone-community-edition-ospd-openvas-1  Started
+ Container greenbone-community-edition-openvas-1  Started
+ Container greenbone-community-edition-gvmd-1  Started
+UPDATED=true
+RESULT_TYPE=updated
+[2026-04-03T15:36:03+07:00] FEED UPDATE AUTOMATION DONE
+==================================================
+==================================================
+[2026-04-03T17:14:57+07:00] START feed update automation
+Using compose dir: /workspace
+Using log file: /app/logs/feed-update.log
+Force update: false
+Resolved compose file: /workspace/docker-compose.yml
+Feed services: vulnerability-tests notus-data scap-data cert-bund-data dfn-cert-data report-formats data-objects
+Checking feed images one by one...
+--------------------------------------------------
+Service: vulnerability-tests
+Image:   registry.community.greenbone.net/community/vulnerability-tests
+Before:  sha256:768a04b022b3e7fe1e6ac842341d9b3f35792441b9185503e57240ba54636826
+Pull attempt 1/3 for registry.community.greenbone.net/community/vulnerability-tests
+Using default tag: latest
+latest: Pulling from community/vulnerability-tests
+Digest: sha256:768a04b022b3e7fe1e6ac842341d9b3f35792441b9185503e57240ba54636826
+Status: Image is up to date for registry.community.greenbone.net/community/vulnerability-tests:latest
+registry.community.greenbone.net/community/vulnerability-tests:latest
+After:   sha256:768a04b022b3e7fe1e6ac842341d9b3f35792441b9185503e57240ba54636826
+No image change for service 'vulnerability-tests'
+--------------------------------------------------
+Service: notus-data
+Image:   registry.community.greenbone.net/community/notus-data
+Before:  sha256:79c35773d977037743f30c0ca3a1c84dc66caa5a98deca2ab51538374611b7e0
+Pull attempt 1/3 for registry.community.greenbone.net/community/notus-data
+Using default tag: latest
+latest: Pulling from community/notus-data
+Digest: sha256:79c35773d977037743f30c0ca3a1c84dc66caa5a98deca2ab51538374611b7e0
+Status: Image is up to date for registry.community.greenbone.net/community/notus-data:latest
+registry.community.greenbone.net/community/notus-data:latest
+After:   sha256:79c35773d977037743f30c0ca3a1c84dc66caa5a98deca2ab51538374611b7e0
+No image change for service 'notus-data'
+--------------------------------------------------
+Service: scap-data
+Image:   registry.community.greenbone.net/community/scap-data
+Before:  sha256:365777525368d6938ebc76e59b20a607275e86a0f8c79da2ee4139e3aaeef35a
+Pull attempt 1/3 for registry.community.greenbone.net/community/scap-data
+Using default tag: latest
+latest: Pulling from community/scap-data
+b6e31965e77d: Pulling fs layer
+6e8325ef8f96: Pulling fs layer
+b6e31965e77d: Download complete
+short read: expected 1261169833 bytes but got 641880064: unexpected EOF
+WARN: pull failed for registry.community.greenbone.net/community/scap-data, retrying in 15s...
+Pull attempt 2/3 for registry.community.greenbone.net/community/scap-data
+Using default tag: latest
+latest: Pulling from community/scap-data
+b6e31965e77d: Pulling fs layer
+6e8325ef8f96: Pulling fs layer
+b6e31965e77d: Download complete==================================================
+[2026-04-03T19:23:51+07:00] START feed update automation
+Using compose dir: /workspace
+Using log file: /app/logs/feed-update.log
+Force update: false
+Resolved compose file: /workspace/docker-compose.yml
+Feed services: vulnerability-tests notus-data scap-data cert-bund-data dfn-cert-data report-formats data-objects
+Checking feed images one by one...
+--------------------------------------------------
+Service: vulnerability-tests
+Image:   registry.community.greenbone.net/community/vulnerability-tests
+Before:  sha256:768a04b022b3e7fe1e6ac842341d9b3f35792441b9185503e57240ba54636826
+Pull attempt 1/3 for registry.community.greenbone.net/community/vulnerability-tests
+Using default tag: latest
+latest: Pulling from community/vulnerability-tests
+Digest: sha256:768a04b022b3e7fe1e6ac842341d9b3f35792441b9185503e57240ba54636826
+Status: Image is up to date for registry.community.greenbone.net/community/vulnerability-tests:latest
+registry.community.greenbone.net/community/vulnerability-tests:latest
+After:   sha256:768a04b022b3e7fe1e6ac842341d9b3f35792441b9185503e57240ba54636826
+No image change for service 'vulnerability-tests'
+--------------------------------------------------
+Service: notus-data
+Image:   registry.community.greenbone.net/community/notus-data
+Before:  sha256:79c35773d977037743f30c0ca3a1c84dc66caa5a98deca2ab51538374611b7e0
+Pull attempt 1/3 for registry.community.greenbone.net/community/notus-data
+Using default tag: latest
+latest: Pulling from community/notus-data
+Digest: sha256:79c35773d977037743f30c0ca3a1c84dc66caa5a98deca2ab51538374611b7e0
+Status: Image is up to date for registry.community.greenbone.net/community/notus-data:latest
+registry.community.greenbone.net/community/notus-data:latest
+After:   sha256:79c35773d977037743f30c0ca3a1c84dc66caa5a98deca2ab51538374611b7e0
+No image change for service 'notus-data'
+--------------------------------------------------
+Service: scap-data
+Image:   registry.community.greenbone.net/community/scap-data
+Before:  sha256:7ba78275c48c54ff549957de43ccbc869d8ed78b5aad312585e29c224ff610fc
+Pull attempt 1/3 for registry.community.greenbone.net/community/scap-data
+Using default tag: latest
+latest: Pulling from community/scap-data
+Digest: sha256:7ba78275c48c54ff549957de43ccbc869d8ed78b5aad312585e29c224ff610fc
+Status: Image is up to date for registry.community.greenbone.net/community/scap-data:latest
+registry.community.greenbone.net/community/scap-data:latest
+After:   sha256:7ba78275c48c54ff549957de43ccbc869d8ed78b5aad312585e29c224ff610fc
+No image change for service 'scap-data'
+--------------------------------------------------
+Service: cert-bund-data
+Image:   registry.community.greenbone.net/community/cert-bund-data
+Before:  sha256:61526495621bd60d1be6f1d1cda43bbc4ff92323e45955da04d1764ecf206a11
+Pull attempt 1/3 for registry.community.greenbone.net/community/cert-bund-data
+Using default tag: latest
+latest: Pulling from community/cert-bund-data
+Digest: sha256:61526495621bd60d1be6f1d1cda43bbc4ff92323e45955da04d1764ecf206a11
+Status: Image is up to date for registry.community.greenbone.net/community/cert-bund-data:latest
+registry.community.greenbone.net/community/cert-bund-data:latest
+After:   sha256:61526495621bd60d1be6f1d1cda43bbc4ff92323e45955da04d1764ecf206a11
+No image change for service 'cert-bund-data'
+--------------------------------------------------
+Service: dfn-cert-data
+Image:   registry.community.greenbone.net/community/dfn-cert-data
+Before:  sha256:07907bd19adc1e249b29b04b125693081ba4fe98487de7cdd1d9e3a0faca93be
+Pull attempt 1/3 for registry.community.greenbone.net/community/dfn-cert-data
+Using default tag: latest
+latest: Pulling from community/dfn-cert-data
+Digest: sha256:07907bd19adc1e249b29b04b125693081ba4fe98487de7cdd1d9e3a0faca93be
+Status: Image is up to date for registry.community.greenbone.net/community/dfn-cert-data:latest
+registry.community.greenbone.net/community/dfn-cert-data:latest
+After:   sha256:07907bd19adc1e249b29b04b125693081ba4fe98487de7cdd1d9e3a0faca93be
+No image change for service 'dfn-cert-data'
+--------------------------------------------------
+Service: report-formats
+Image:   registry.community.greenbone.net/community/report-formats
+Before:  sha256:d574f12360e37b3c03c57dfd3ce719362cc1dd87c602e6699b915aabd3023ca3
+Pull attempt 1/3 for registry.community.greenbone.net/community/report-formats
+Using default tag: latest
+latest: Pulling from community/report-formats
+Digest: sha256:d574f12360e37b3c03c57dfd3ce719362cc1dd87c602e6699b915aabd3023ca3
+Status: Image is up to date for registry.community.greenbone.net/community/report-formats:latest
+registry.community.greenbone.net/community/report-formats:latest
+After:   sha256:d574f12360e37b3c03c57dfd3ce719362cc1dd87c602e6699b915aabd3023ca3
+No image change for service 'report-formats'
+--------------------------------------------------
+Service: data-objects
+Image:   registry.community.greenbone.net/community/data-objects
+Before:  sha256:9b99274f3531286e03fed292707c735e28f2a1d2ec0edf3e065a85c3db45fcdf
+Pull attempt 1/3 for registry.community.greenbone.net/community/data-objects
+Using default tag: latest
+latest: Pulling from community/data-objects
+Digest: sha256:9b99274f3531286e03fed292707c735e28f2a1d2ec0edf3e065a85c3db45fcdf
+Status: Image is up to date for registry.community.greenbone.net/community/data-objects:latest
+registry.community.greenbone.net/community/data-objects:latest
+After:   sha256:9b99274f3531286e03fed292707c735e28f2a1d2ec0edf3e065a85c3db45fcdf
+No image change for service 'data-objects'
+No new feed updates found.
+UPDATED=false
+RESULT_TYPE=no_update
+[2026-04-03T19:24:00+07:00] FEED CHECK DONE (NO UPDATE)
+==================================================
