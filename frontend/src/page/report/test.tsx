@@ -2,7 +2,7 @@
 
 const test = () => {
     return (
-        <div>
+        <div id="capture-root">
             test
         </div>
     )
