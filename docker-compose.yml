@@ -292,7 +292,7 @@ services:
 
       - FRONTEND_CAPTURE_URL=http://frontend/capture
       - REPORT_OUTPUT_DIR=/app/tmp/reports
-      - REPORT_PUBLIC_BASE_URL=https://postdiphtherial-unperishable-carolyn.ngrok-free.dev/public/reports
+      - REPORT_PUBLIC_BASE_URL=https://88d2-58-8-174-156.ngrok-free.app/public/reports
 
       - REPORT_EMAIL_TO=tawunchaien@gmail.com
       - REPORT_EMAIL_SUBJECT=OpenVAS Test Capture Report

@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	fixedPublicBase  = "https://postdiphtherial-unperishable-carolyn.ngrok-free.dev"
+	fixedPublicBase  = "https://88d2-58-8-174-156.ngrok-free.app"
 	fixedReportsDir  = "./tmp/reports"
 	defaultPDFPrefix = "report_capture"
 
