@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import Chart from "react-apexcharts";
 import type { ApexOptions } from "apexcharts";
 import {
@@ -13,10 +13,7 @@ import {
   FiLock,
   FiServer,
 } from "react-icons/fi";
-import {
-  ListHistoryNotify,
-  type HistoryNotifyResponse,
-} from "../../../services";
+import { type HistoryNotifyResponse } from "../../../services";
 
 type StatusKey =
   | "Update Completed"
@@ -115,44 +112,21 @@ const STATUS_META = {
   },
 };
 
-const Index: React.FC = () => {
-  const [items, setItems] = useState<HistoryNotifyResponse[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [refreshing, setRefreshing] = useState<boolean>(false);
-  const [error, setError] = useState<string>("");
+type GraphProps = {
+  items: HistoryNotifyResponse[];
+  loading: boolean;
+  refreshing: boolean;
+  error: string;
+  onRefresh: (showRefresh?: boolean) => Promise<void> | void;
+};
 
-  const loadHistoryNotify = async (showRefresh = false) => {
-    try {
-      setError("");
-
-      if (showRefresh) {
-        setRefreshing(true);
-      } else {
-        setLoading(true);
-      }
-
-      const res = await ListHistoryNotify();
-
-      if (Array.isArray(res)) {
-        setItems(res);
-      } else {
-        setItems([]);
-        setError("Unable to load notification history.");
-      }
-    } catch (err) {
-      console.error("loadHistoryNotify error:", err);
-      setItems([]);
-      setError("Unable to load notification history.");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    loadHistoryNotify();
-  }, []);
-
+const Index: React.FC<GraphProps> = ({
+  items,
+  loading,
+  refreshing,
+  error,
+  onRefresh,
+}) => {
   const summaryCount = useMemo(() => {
     const completed = items.filter(
       (item) => normalizeStatus(item.status) === "Update Completed"
@@ -386,86 +360,112 @@ const Index: React.FC = () => {
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => loadHistoryNotify(true)}
-            disabled={refreshing}
-            className={[
-              "inline-flex h-8 w-8 items-center justify-center rounded-xl transition",
-              "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50",
-              "disabled:cursor-not-allowed disabled:opacity-60",
-              "dark:bg-white/5 dark:border-white/10 dark:text-white/70 dark:hover:bg-white/8",
-            ].join(" ")}
-            title="Refresh"
-          >
-            <FiRefreshCw
-              className={`text-[12px] ${refreshing ? "animate-spin" : ""}`}
-            />
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onRefresh(true)}
+              disabled={refreshing}
+              className={[
+                "inline-flex h-8.5 w-8.5 items-center justify-center rounded-xl transition",
+                "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50",
+                "disabled:cursor-not-allowed disabled:opacity-60",
+                "dark:bg-white/5 dark:border-white/10 dark:text-white/70 dark:hover:bg-white/8",
+              ].join(" ")}
+              title="Refresh"
+            >
+              <FiRefreshCw
+                className={`text-[12px] ${refreshing ? "animate-spin" : ""}`}
+              />
+            </button>
+          </div>
         </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-1.5">
           <div
-            className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[9.5px] font-medium ${STATUS_META.completed.badge}`}
+            className={[
+              "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[9.5px] font-medium",
+              STATUS_META.completed.badge,
+            ].join(" ")}
           >
             {STATUS_META.completed.icon}
-            {STATUS_META.completed.label}:
+            {STATUS_META.completed.label}:{" "}
             <span className="font-semibold">{summaryCount.completed}</span>
           </div>
 
           <div
-            className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[9.5px] font-medium ${STATUS_META.noUpdate.badge}`}
+            className={[
+              "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[9.5px] font-medium",
+              STATUS_META.noUpdate.badge,
+            ].join(" ")}
           >
             {STATUS_META.noUpdate.icon}
-            {STATUS_META.noUpdate.label}:
+            {STATUS_META.noUpdate.label}:{" "}
             <span className="font-semibold">{summaryCount.noUpdate}</span>
           </div>
 
           <div
-            className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[9.5px] font-medium ${STATUS_META.running.badge}`}
+            className={[
+              "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[9.5px] font-medium",
+              STATUS_META.running.badge,
+            ].join(" ")}
           >
             {STATUS_META.running.icon}
-            {STATUS_META.running.label}:
+            {STATUS_META.running.label}:{" "}
             <span className="font-semibold">{summaryCount.running}</span>
           </div>
 
           <div
-            className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[9.5px] font-medium ${STATUS_META.failed.badge}`}
+            className={[
+              "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[9.5px] font-medium",
+              STATUS_META.failed.badge,
+            ].join(" ")}
           >
             {STATUS_META.failed.icon}
-            {STATUS_META.failed.label}:
+            {STATUS_META.failed.label}:{" "}
             <span className="font-semibold">{summaryCount.failed}</span>
           </div>
 
           <div
-            className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[9.5px] font-medium ${STATUS_META.notification.badge}`}
+            className={[
+              "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[9.5px] font-medium",
+              STATUS_META.notification.badge,
+            ].join(" ")}
           >
             {STATUS_META.notification.icon}
-            {STATUS_META.notification.label}:
+            {STATUS_META.notification.label}:{" "}
             <span className="font-semibold">{summaryCount.notification}</span>
           </div>
 
           <div
-            className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[9.5px] font-medium ${STATUS_META.unauthorized.badge}`}
+            className={[
+              "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[9.5px] font-medium",
+              STATUS_META.unauthorized.badge,
+            ].join(" ")}
           >
             {STATUS_META.unauthorized.icon}
-            {STATUS_META.unauthorized.label}:
+            {STATUS_META.unauthorized.label}:{" "}
             <span className="font-semibold">{summaryCount.unauthorized}</span>
           </div>
 
           <div
-            className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[9.5px] font-medium ${STATUS_META.serverError.badge}`}
+            className={[
+              "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[9.5px] font-medium",
+              STATUS_META.serverError.badge,
+            ].join(" ")}
           >
             {STATUS_META.serverError.icon}
-            {STATUS_META.serverError.label}:
+            {STATUS_META.serverError.label}:{" "}
             <span className="font-semibold">{summaryCount.serverError}</span>
           </div>
 
           <div
-            className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[9.5px] font-medium ${STATUS_META.timeout.badge}`}
+            className={[
+              "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[9.5px] font-medium",
+              STATUS_META.timeout.badge,
+            ].join(" ")}
           >
             {STATUS_META.timeout.icon}
-            {STATUS_META.timeout.label}:
+            {STATUS_META.timeout.label}:{" "}
             <span className="font-semibold">{summaryCount.timeout}</span>
           </div>
         </div>
@@ -476,7 +476,7 @@ const Index: React.FC = () => {
           </div>
         )}
 
-        <div className={`mt-3 ${panelClass}`}>
+        <div className={`mt-3.5 ${panelClass}`}>
           {loading ? (
             <div className="flex h-full items-center justify-center px-5 py-8 text-center">
               <div>
@@ -507,8 +507,9 @@ const Index: React.FC = () => {
               </div>
 
               <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/60">
-                กราฟนี้นับจำนวนจากข้อมูลทั้งหมดที่ได้จาก ListHistoryNotify
-                แล้วกระจายตามแต่ละสถานะ เพื่อให้เห็นภาพรวมได้ง่ายขึ้น
+                This graph counts the total number of data points obtained from
+                ListHistoryNotify and distributes them across each status to
+                provide a clearer overview.
               </div>
             </div>
           )}

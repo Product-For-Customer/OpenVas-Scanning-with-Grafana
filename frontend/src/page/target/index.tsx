@@ -1,11 +1,43 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import StatusTarget from "./Status/index";
 import RiskScoreGraph from "./RiskScoreGraph";
 import RiskScoreTable from "./RiskScoreTable";
 import TableTarget from "./TableTarget";
 import DeviceMap from "./Map";
+import { ListDeviceRisk, type DeviceRiskDTO } from "../../services";
 
 const Target: React.FC = () => {
+  const [deviceRisks, setDeviceRisks] = useState<DeviceRiskDTO[]>([]);
+  const [loadingDeviceRisks, setLoadingDeviceRisks] = useState<boolean>(true);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchDeviceRisks = async () => {
+      try {
+        setLoadingDeviceRisks(true);
+        const res = await ListDeviceRisk();
+
+        if (!mounted) return;
+
+        setDeviceRisks(Array.isArray(res) ? res : []);
+      } catch (error) {
+        console.error("ListDeviceRisk error in Target:", error);
+        if (!mounted) return;
+        setDeviceRisks([]);
+      } finally {
+        if (!mounted) return;
+        setLoadingDeviceRisks(false);
+      }
+    };
+
+    fetchDeviceRisks();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   return (
     <div className="w-full">
       {/* Section: Status */}
@@ -25,13 +57,19 @@ const Target: React.FC = () => {
         </div>
 
         <div className="xl:col-span-5 h-full">
-          <RiskScoreTable />
+          <RiskScoreTable
+            data={deviceRisks}
+            loading={loadingDeviceRisks}
+          />
         </div>
       </div>
 
       {/* Bottom: TableTarget */}
       <div className="mb-2">
-        <TableTarget />
+        <TableTarget
+          data={deviceRisks}
+          loading={loadingDeviceRisks}
+        />
       </div>
     </div>
   );

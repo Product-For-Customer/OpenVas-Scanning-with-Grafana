@@ -63,7 +63,6 @@ const NavButton: React.FC<NavBtnProps> = ({
 
 const Navbar: React.FC = () => {
   const {
-    //@ts-ignore
     activeMenu,
     setActiveMenu,
     handleClick,
@@ -74,7 +73,6 @@ const Navbar: React.FC = () => {
     toggleMode,
   } = useStateContext();
 
-  const [firstnameUser] = useState<string>("Alex");
   const [profileError, setProfileError] = useState(false);
   const [search, setSearch] = useState("");
 
@@ -228,10 +226,10 @@ const Navbar: React.FC = () => {
                   ].join(" ")}
                   aria-label="Open profile"
                 >
-                  <div className="relative">
+                  <div className="relative shrink-0">
                     <img
                       src={avatarSrc}
-                      alt="user"
+                      alt="profile"
                       className="h-9 w-9 rounded-full bg-white object-cover ring-1 ring-gray-200 dark:bg-white/10 dark:ring-white/15"
                       onError={() => setProfileError(true)}
                     />
@@ -239,15 +237,15 @@ const Navbar: React.FC = () => {
                   </div>
 
                   <div className="hidden text-left leading-tight sm:block">
-                    <span className="block text-[12px] text-gray-500 dark:text-white/45">
-                      Analyst
+                    <span className="block text-[11px] font-medium uppercase tracking-[0.14em] text-gray-400 dark:text-white/35">
+                      Profile
                     </span>
-                    <span className="block max-w-22 truncate text-[13px] font-semibold text-gray-700 dark:text-white/80 md:max-w-30">
-                      {firstnameUser}.
+                    <span className="block max-w-24 truncate text-[13px] font-semibold text-gray-700 dark:text-white/85 md:max-w-30">
+                      My Account
                     </span>
                   </div>
 
-                  <MdKeyboardArrowDown className="hidden text-[18px] text-gray-400 group-hover:text-gray-600 dark:text-white/45 dark:group-hover:text-white/70 sm:block" />
+                  <MdKeyboardArrowDown className="hidden text-[18px] text-gray-400 transition-colors group-hover:text-gray-600 dark:text-white/45 dark:group-hover:text-white/70 sm:block" />
                 </button>
               </TooltipComponent>
             </div>

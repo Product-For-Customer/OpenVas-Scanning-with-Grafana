@@ -10,20 +10,19 @@ import {
   FiCheckCircle,
   FiAlertCircle,
   FiSend,
-  FiHash,
   FiLayers,
-  FiMessageSquare,
   FiUsers,
   FiUser,
   FiRefreshCw,
   FiLink2,
-  FiSettings,
   FiCpu,
   FiSlack,
   FiMail,
   FiEye,
   FiEyeOff,
   FiCopy,
+  FiChevronLeft,
+  FiChevronRight,
 } from "react-icons/fi";
 import {
   FaTiktok,
@@ -84,6 +83,8 @@ type UiApp = {
   chipClass: string;
   iconWrapClass: string;
 };
+
+const PAGE_SIZE = 3;
 
 const normalizeText = (value?: string | null) => (value || "").trim();
 
@@ -208,8 +209,8 @@ const getMetaByName = (name: string) => {
     icon: <FiCpu />,
     chipClass:
       "border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-400/10 dark:text-cyan-300",
-    iconWrapClass:
-      "border-cyan-200 bg-cyan-50 text-cyan-600 dark:border-cyan-400/20 dark:bg-cyan-400/10 dark:text-cyan-300",
+      iconWrapClass:
+        "border-cyan-200 bg-cyan-50 text-cyan-600 dark:border-cyan-400/20 dark:bg-cyan-400/10 dark:text-cyan-300",
   };
 };
 
@@ -230,54 +231,57 @@ const mapToUiApp = (item: AppLineMasterResponse): UiApp => {
 
 const alertBadgeClass = (alert: boolean) => {
   if (alert) {
-    return "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-200 dark:border-emerald-400/20";
+    return "border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-500/10 dark:text-emerald-200";
   }
-  return "bg-red-50 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-200 dark:border-red-400/20";
+  return "border border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-400/20 dark:bg-rose-500/10 dark:text-rose-200";
 };
 
 const typeBadgeClass = (isGroup: boolean) => {
   if (isGroup) {
-    return "bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-500/10 dark:text-cyan-200 dark:border-cyan-400/20";
+    return "border border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-200";
   }
-  return "bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-500/10 dark:text-violet-200 dark:border-violet-400/20";
+  return "border border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-400/20 dark:bg-violet-500/10 dark:text-violet-200";
 };
 
 const cardGlowClass = [
-  "relative h-full overflow-hidden rounded-[20px] p-3 sm:p-3.5",
-  "bg-white border border-gray-200/80 shadow-[0_10px_28px_-22px_rgba(15,23,42,0.22)]",
-  "dark:bg-[#08111f]/90 dark:border-white/10 dark:ring-1 dark:ring-cyan-400/10 dark:shadow-none",
+  "relative h-full overflow-hidden rounded-2xl p-4 sm:p-5",
+  "border border-slate-200/80 bg-white shadow-sm",
+  "dark:border-white/10 dark:bg-[#08111f]/95 dark:shadow-none",
   "flex flex-col",
 ].join(" ");
 
 const inputClass = [
-  "w-full h-9 rounded-2xl px-3 text-[11.5px] outline-none transition",
-  "border border-gray-200 bg-white text-slate-800 placeholder:text-slate-400 focus:ring-2 focus:ring-violet-200",
-  "dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:placeholder:text-white/35 dark:focus:ring-violet-400/10",
+  "h-10 w-full rounded-xl px-3 text-[12px] outline-none transition",
+  "border border-slate-200 bg-white text-slate-800 placeholder:text-slate-400 focus:border-violet-300 focus:ring-2 focus:ring-violet-100",
+  "dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:placeholder:text-white/35 dark:focus:border-violet-400/30 dark:focus:ring-violet-400/10",
 ].join(" ");
 
 const textareaClass = [
-  "w-full min-h-24 rounded-2xl px-3 py-2.5 text-[11.5px] outline-none transition resize-none",
-  "border border-gray-200 bg-white text-slate-800 placeholder:text-slate-400 focus:ring-2 focus:ring-violet-200",
-  "dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:placeholder:text-white/35 dark:focus:ring-violet-400/10",
+  "w-full min-h-24 rounded-xl px-3 py-2.5 text-[12px] outline-none transition resize-none",
+  "border border-slate-200 bg-white text-slate-800 placeholder:text-slate-400 focus:border-violet-300 focus:ring-2 focus:ring-violet-100",
+  "dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:placeholder:text-white/35 dark:focus:border-violet-400/30 dark:focus:ring-violet-400/10",
 ].join(" ");
 
 const labelClass =
-  "mb-1.5 block text-[10.5px] font-medium text-slate-700 dark:text-white/75";
+  "mb-1.5 block text-[11px] font-medium text-slate-700 dark:text-white/75";
 
 const selectClass = [
-  "w-full h-9 rounded-2xl px-3 text-[11.5px] outline-none transition appearance-none",
-  "border border-gray-200 bg-white text-slate-800 focus:ring-2 focus:ring-violet-200",
-  "dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:focus:ring-violet-400/10",
+  "h-10 w-full appearance-none rounded-xl px-3 pr-10 text-[12px] outline-none transition",
+  "border border-slate-200 bg-white text-slate-800 focus:border-violet-300 focus:ring-2 focus:ring-violet-100",
+  "dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:focus:border-violet-400/30 dark:focus:ring-violet-400/10",
 ].join(" ");
 
 const modalBackdropClass =
   "fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/45 px-4 py-6 backdrop-blur-[2px]";
 
 const modalCardClass =
-  "relative w-full overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_24px_80px_-32px_rgba(15,23,42,0.38)] dark:border-white/10 dark:bg-[#08111f] dark:ring-1 dark:ring-white/10";
+  "relative w-full overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_24px_80px_-32px_rgba(15,23,42,0.38)] dark:border-white/10 dark:bg-[#08111f]";
 
 const sectionChipClass =
-  "inline-flex items-center gap-1.5 rounded-full border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-[10px] font-semibold text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-300";
+  "inline-flex items-center gap-1.5 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[10px] font-semibold text-violet-700 dark:border-violet-400/20 dark:bg-violet-500/10 dark:text-violet-300";
+
+const panelClass =
+  "rounded-2xl border border-slate-200 bg-slate-50/70 p-4 dark:border-white/10 dark:bg-white/[0.03]";
 
 const ActionButton: React.FC<{
   onClick?: () => void;
@@ -292,7 +296,7 @@ const ActionButton: React.FC<{
       onClick={onClick}
       disabled={disabled}
       className={[
-        "inline-flex items-center justify-center gap-1.5 rounded-2xl px-3 py-2 text-[11.5px] font-semibold transition",
+        "inline-flex items-center justify-center gap-1.5 rounded-xl px-3.5 py-2 text-[12px] font-medium transition",
         "disabled:cursor-not-allowed disabled:opacity-60",
         className,
       ].join(" ")}
@@ -312,98 +316,72 @@ const AlertToggle: React.FC<{
         type="button"
         onClick={() => onChange(true)}
         className={[
-          "group relative flex min-h-18 flex-col justify-center rounded-2xl border px-3 py-2 text-left transition-all",
+          "rounded-xl border px-3 py-3 text-left transition",
           value
-            ? "border-emerald-300 bg-emerald-50 shadow-[0_8px_20px_-16px_rgba(16,185,129,0.7)] dark:border-emerald-400/30 dark:bg-emerald-500/10"
-            : "border-gray-200 bg-white hover:border-emerald-200 hover:bg-emerald-50/50 dark:border-white/10 dark:bg-white/5 dark:hover:border-emerald-400/20 dark:hover:bg-emerald-500/5",
+            ? "border-emerald-300 bg-emerald-50 dark:border-emerald-400/30 dark:bg-emerald-500/10"
+            : "border-slate-200 bg-white hover:bg-slate-50 dark:border-white/10 dark:bg-white/5",
         ].join(" ")}
       >
-        <div className="flex items-center justify-between">
-          <div
+        <div className="mb-2 flex items-center justify-between">
+          <span
             className={[
-              "grid h-8 w-8 place-items-center rounded-xl border transition",
+              "grid h-8 w-8 place-items-center rounded-lg border",
               value
                 ? "border-emerald-300 bg-emerald-100 text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-500/15 dark:text-emerald-300"
-                : "border-gray-200 bg-gray-50 text-gray-500 dark:border-white/10 dark:bg-white/5 dark:text-white/45",
+                : "border-slate-200 bg-slate-50 text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-white/45",
             ].join(" ")}
           >
             <FiCheckCircle className="text-[14px]" />
-          </div>
-
-          <div
+          </span>
+          <span
             className={[
-              "h-3 w-3 rounded-full border transition",
-              value
-                ? "border-emerald-500 bg-emerald-500"
-                : "border-gray-300 bg-transparent dark:border-white/20",
+              "h-2.5 w-2.5 rounded-full",
+              value ? "bg-emerald-500" : "bg-slate-300 dark:bg-white/20",
             ].join(" ")}
           />
         </div>
-
-        <div className="mt-2">
-          <p
-            className={[
-              "text-[11.5px] font-semibold",
-              value
-                ? "text-emerald-700 dark:text-emerald-300"
-                : "text-slate-700 dark:text-white/75",
-            ].join(" ")}
-          >
-            Alert On
-          </p>
-          <p className="mt-0.5 text-[10px] text-slate-500 dark:text-white/45">
-            Enable alerts for this receiver.
-          </p>
-        </div>
+        <p className="text-[12px] font-semibold text-slate-800 dark:text-white/85">
+          Alert On
+        </p>
+        <p className="mt-0.5 text-[10.5px] text-slate-500 dark:text-white/45">
+          Enable alerts
+        </p>
       </button>
 
       <button
         type="button"
         onClick={() => onChange(false)}
         className={[
-          "group relative flex min-h-18 flex-col justify-center rounded-2xl border px-3 py-2 text-left transition-all",
+          "rounded-xl border px-3 py-3 text-left transition",
           !value
-            ? "border-rose-300 bg-rose-50 shadow-[0_8px_20px_-16px_rgba(244,63,94,0.7)] dark:border-rose-400/30 dark:bg-rose-500/10"
-            : "border-gray-200 bg-white hover:border-rose-200 hover:bg-rose-50/50 dark:border-white/10 dark:bg-white/5 dark:hover:border-rose-400/20 dark:hover:bg-rose-500/5",
+            ? "border-rose-300 bg-rose-50 dark:border-rose-400/30 dark:bg-rose-500/10"
+            : "border-slate-200 bg-white hover:bg-slate-50 dark:border-white/10 dark:bg-white/5",
         ].join(" ")}
       >
-        <div className="flex items-center justify-between">
-          <div
+        <div className="mb-2 flex items-center justify-between">
+          <span
             className={[
-              "grid h-8 w-8 place-items-center rounded-xl border transition",
+              "grid h-8 w-8 place-items-center rounded-lg border",
               !value
                 ? "border-rose-300 bg-rose-100 text-rose-700 dark:border-rose-400/30 dark:bg-rose-500/15 dark:text-rose-300"
-                : "border-gray-200 bg-gray-50 text-gray-500 dark:border-white/10 dark:bg-white/5 dark:text-white/45",
+                : "border-slate-200 bg-slate-50 text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-white/45",
             ].join(" ")}
           >
             <FiAlertCircle className="text-[14px]" />
-          </div>
-
-          <div
+          </span>
+          <span
             className={[
-              "h-3 w-3 rounded-full border transition",
-              !value
-                ? "border-rose-500 bg-rose-500"
-                : "border-gray-300 bg-transparent dark:border-white/20",
+              "h-2.5 w-2.5 rounded-full",
+              !value ? "bg-rose-500" : "bg-slate-300 dark:bg-white/20",
             ].join(" ")}
           />
         </div>
-
-        <div className="mt-2">
-          <p
-            className={[
-              "text-[11.5px] font-semibold",
-              !value
-                ? "text-rose-700 dark:text-rose-300"
-                : "text-slate-700 dark:text-white/75",
-            ].join(" ")}
-          >
-            Alert Off
-          </p>
-          <p className="mt-0.5 text-[10px] text-slate-500 dark:text-white/45">
-            Disable alerts for this receiver.
-          </p>
-        </div>
+        <p className="text-[12px] font-semibold text-slate-800 dark:text-white/85">
+          Alert Off
+        </p>
+        <p className="mt-0.5 text-[10.5px] text-slate-500 dark:text-white/45">
+          Disable alerts
+        </p>
       </button>
     </div>
   );
@@ -419,98 +397,72 @@ const ReceiverTypeToggle: React.FC<{
         type="button"
         onClick={() => onChange(true)}
         className={[
-          "group relative flex min-h-18 flex-col justify-center rounded-2xl border px-3 py-2 text-left transition-all",
+          "rounded-xl border px-3 py-3 text-left transition",
           value
-            ? "border-cyan-300 bg-cyan-50 shadow-[0_8px_20px_-16px_rgba(6,182,212,0.7)] dark:border-cyan-400/30 dark:bg-cyan-500/10"
-            : "border-gray-200 bg-white hover:border-cyan-200 hover:bg-cyan-50/50 dark:border-white/10 dark:bg-white/5 dark:hover:border-cyan-400/20 dark:hover:bg-cyan-500/5",
+            ? "border-cyan-300 bg-cyan-50 dark:border-cyan-400/30 dark:bg-cyan-500/10"
+            : "border-slate-200 bg-white hover:bg-slate-50 dark:border-white/10 dark:bg-white/5",
         ].join(" ")}
       >
-        <div className="flex items-center justify-between">
-          <div
+        <div className="mb-2 flex items-center justify-between">
+          <span
             className={[
-              "grid h-8 w-8 place-items-center rounded-xl border transition",
+              "grid h-8 w-8 place-items-center rounded-lg border",
               value
                 ? "border-cyan-300 bg-cyan-100 text-cyan-700 dark:border-cyan-400/30 dark:bg-cyan-500/15 dark:text-cyan-300"
-                : "border-gray-200 bg-gray-50 text-gray-500 dark:border-white/10 dark:bg-white/5 dark:text-white/45",
+                : "border-slate-200 bg-slate-50 text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-white/45",
             ].join(" ")}
           >
             <FiUsers className="text-[14px]" />
-          </div>
-
-          <div
+          </span>
+          <span
             className={[
-              "h-3 w-3 rounded-full border transition",
-              value
-                ? "border-cyan-500 bg-cyan-500"
-                : "border-gray-300 bg-transparent dark:border-white/20",
+              "h-2.5 w-2.5 rounded-full",
+              value ? "bg-cyan-500" : "bg-slate-300 dark:bg-white/20",
             ].join(" ")}
           />
         </div>
-
-        <div className="mt-2">
-          <p
-            className={[
-              "text-[11.5px] font-semibold",
-              value
-                ? "text-cyan-700 dark:text-cyan-300"
-                : "text-slate-700 dark:text-white/75",
-            ].join(" ")}
-          >
-            Group
-          </p>
-          <p className="mt-0.5 text-[10px] text-slate-500 dark:text-white/45">
-            For LINE groups and shared channels.
-          </p>
-        </div>
+        <p className="text-[12px] font-semibold text-slate-800 dark:text-white/85">
+          Group
+        </p>
+        <p className="mt-0.5 text-[10.5px] text-slate-500 dark:text-white/45">
+          Shared channel
+        </p>
       </button>
 
       <button
         type="button"
         onClick={() => onChange(false)}
         className={[
-          "group relative flex min-h-18 flex-col justify-center rounded-2xl border px-3 py-2 text-left transition-all",
+          "rounded-xl border px-3 py-3 text-left transition",
           !value
-            ? "border-violet-300 bg-violet-50 shadow-[0_8px_20px_-16px_rgba(139,92,246,0.7)] dark:border-violet-400/30 dark:bg-violet-500/10"
-            : "border-gray-200 bg-white hover:border-violet-200 hover:bg-violet-50/50 dark:border-white/10 dark:bg-white/5 dark:hover:border-violet-400/20 dark:hover:bg-violet-500/5",
+            ? "border-violet-300 bg-violet-50 dark:border-violet-400/30 dark:bg-violet-500/10"
+            : "border-slate-200 bg-white hover:bg-slate-50 dark:border-white/10 dark:bg-white/5",
         ].join(" ")}
       >
-        <div className="flex items-center justify-between">
-          <div
+        <div className="mb-2 flex items-center justify-between">
+          <span
             className={[
-              "grid h-8 w-8 place-items-center rounded-xl border transition",
+              "grid h-8 w-8 place-items-center rounded-lg border",
               !value
                 ? "border-violet-300 bg-violet-100 text-violet-700 dark:border-violet-400/30 dark:bg-violet-500/15 dark:text-violet-300"
-                : "border-gray-200 bg-gray-50 text-gray-500 dark:border-white/10 dark:bg-white/5 dark:text-white/45",
+                : "border-slate-200 bg-slate-50 text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-white/45",
             ].join(" ")}
           >
             <FiUser className="text-[14px]" />
-          </div>
-
-          <div
+          </span>
+          <span
             className={[
-              "h-3 w-3 rounded-full border transition",
-              !value
-                ? "border-violet-500 bg-violet-500"
-                : "border-gray-300 bg-transparent dark:border-white/20",
+              "h-2.5 w-2.5 rounded-full",
+              !value ? "bg-violet-500" : "bg-slate-300 dark:bg-white/20",
             ].join(" ")}
           />
         </div>
-
-        <div className="mt-2">
-          <p
-            className={[
-              "text-[11.5px] font-semibold",
-              !value
-                ? "text-violet-700 dark:text-violet-300"
-                : "text-slate-700 dark:text-white/75",
-            ].join(" ")}
-          >
-            Personal
-          </p>
-          <p className="mt-0.5 text-[10px] text-slate-500 dark:text-white/45">
-            For individual users and personal accounts.
-          </p>
-        </div>
+        <p className="text-[12px] font-semibold text-slate-800 dark:text-white/85">
+          Personal
+        </p>
+        <p className="mt-0.5 text-[10.5px] text-slate-500 dark:text-white/45">
+          Single user
+        </p>
       </button>
     </div>
   );
@@ -568,7 +520,6 @@ const Notify: React.FC = () => {
     app_line_master_id: "",
   });
 
-  // Line Master modal states
   const [masterFormOpen, setMasterFormOpen] = useState(false);
   const [masterFormMode, setMasterFormMode] = useState<FormMode>("create");
   const [masterSubmitting, setMasterSubmitting] = useState(false);
@@ -587,9 +538,11 @@ const Notify: React.FC = () => {
   const [masterDeleteError, setMasterDeleteError] = useState("");
   const [masterDeleting, setMasterDeleting] = useState(false);
 
+  const [notifyPage, setNotifyPage] = useState(1);
+
   const lineMasterMap = useMemo(() => {
     return new Map<number, string>(
-      lineMasters.map((item) => [item.id, item.name ?? `Line Master #${item.id}`])
+      lineMasters.map((item) => [item.id, item.name ?? `Line Master #${item.id}`]),
     );
   }, [lineMasters]);
 
@@ -601,12 +554,16 @@ const Notify: React.FC = () => {
     const q = lineMasterSearch.trim().toLowerCase();
 
     return uiLineMasters.filter((item) => {
-      const blob = [item.name, item.category, item.description]
-        .join(" ")
-        .toLowerCase();
+      const blob = [item.name, item.category, item.description].join(" ").toLowerCase();
       return blob.includes(q);
     });
   }, [uiLineMasters, lineMasterSearch]);
+
+  const shouldLineMasterScroll = filteredLineMasters.length >= 3;
+
+  const lineMasterListClass = shouldLineMasterScroll
+    ? "overflow-y-auto pr-1 max-h-[228px]"
+    : "overflow-visible";
 
   const fetchNotifications = async () => {
     try {
@@ -621,16 +578,14 @@ const Notify: React.FC = () => {
         return;
       }
 
-      const mapped: UiNotification[] = (data as AppNotificationResponse[]).map(
-        (item) => ({
-          id: item.id,
-          name: item.name ?? "",
-          send_id: item.send_id ?? "",
-          alert: Boolean(item.alert),
-          is_group: Boolean(item.is_group),
-          app_line_master_id: Number(item.app_line_master_id ?? 0),
-        })
-      );
+      const mapped: UiNotification[] = (data as AppNotificationResponse[]).map((item) => ({
+        id: item.id,
+        name: item.name ?? "",
+        send_id: item.send_id ?? "",
+        alert: Boolean(item.alert),
+        is_group: Boolean(item.is_group),
+        app_line_master_id: Number(item.app_line_master_id ?? 0),
+      }));
 
       setRows(mapped);
     } catch (err) {
@@ -681,14 +636,12 @@ const Notify: React.FC = () => {
       const typeText = item.is_group ? "group" : "personal";
 
       const blob = [
-        item.id,
         item.name,
         item.send_id,
         item.alert ? "on" : "off",
         item.alert ? "true" : "false",
         item.is_group ? "group" : "personal",
         item.is_group ? "true" : "false",
-        item.app_line_master_id,
         lineMasterName,
         typeText,
       ]
@@ -716,6 +669,18 @@ const Notify: React.FC = () => {
 
     return filtered;
   }, [rows, search, sortBy, lineMasterMap]);
+
+  useEffect(() => {
+    setNotifyPage(1);
+  }, [search, sortBy, rows.length]);
+
+  const totalNotifyPages = Math.max(1, Math.ceil(notifications.length / PAGE_SIZE));
+
+  const pagedNotifications = useMemo(() => {
+    const safePage = Math.min(notifyPage, totalNotifyPages);
+    const start = (safePage - 1) * PAGE_SIZE;
+    return notifications.slice(start, start + PAGE_SIZE);
+  }, [notifications, notifyPage, totalNotifyPages]);
 
   const resetCreateForm = () => {
     setCreateForm({
@@ -865,7 +830,7 @@ const Notify: React.FC = () => {
       setCreateError(
         err?.response?.data?.error ||
           err?.message ||
-          "Something went wrong while creating app notification."
+          "Something went wrong while creating app notification.",
       );
     } finally {
       setCreating(false);
@@ -908,7 +873,7 @@ const Notify: React.FC = () => {
       setEditError(
         err?.response?.data?.error ||
           err?.message ||
-          "Something went wrong while updating app notification."
+          "Something went wrong while updating app notification.",
       );
     } finally {
       setEditing(false);
@@ -954,7 +919,7 @@ const Notify: React.FC = () => {
         err?.response?.data?.error ||
           err?.response?.data?.message ||
           err?.message ||
-          "Something went wrong while sending test LINE notification."
+          "Something went wrong while sending test LINE notification.",
       );
     } finally {
       setTestingLine(false);
@@ -981,14 +946,13 @@ const Notify: React.FC = () => {
       setDeleteError(
         err?.response?.data?.error ||
           err?.message ||
-          "Something went wrong while deleting app notification."
+          "Something went wrong while deleting app notification.",
       );
     } finally {
       setDeleting(false);
     }
   };
 
-  // ===== Line Master handlers =====
   const openCreateMasterModal = () => {
     setMasterFormMode("create");
     setEditingMaster(null);
@@ -1028,21 +992,10 @@ const Notify: React.FC = () => {
     const name = normalizeText(masterFormData.name);
     const token = normalizeText(masterFormData.token);
 
-    if (!name) {
-      return "Please enter integration name.";
-    }
-
-    if (name.length < 2) {
-      return "Integration name must be at least 2 characters.";
-    }
-
-    if (!token) {
-      return "Please enter token.";
-    }
-
-    if (token.length < 6) {
-      return "Token must be at least 6 characters.";
-    }
+    if (!name) return "Please enter integration name.";
+    if (name.length < 2) return "Integration name must be at least 2 characters.";
+    if (!token) return "Please enter token.";
+    if (token.length < 6) return "Token must be at least 6 characters.";
 
     return "";
   };
@@ -1094,8 +1047,7 @@ const Notify: React.FC = () => {
 
         setEditForm((prev) => ({
           ...prev,
-          app_line_master_id:
-            prev.app_line_master_id || String(res.data.id),
+          app_line_master_id: prev.app_line_master_id || String(res.data.id),
         }));
 
         return;
@@ -1114,15 +1066,16 @@ const Notify: React.FC = () => {
       }
 
       setLineMasters((prev) =>
-        prev.map((item) => (item.id === editingMaster.id ? res.data : item))
+        prev.map((item) => (item.id === editingMaster.id ? res.data : item)),
       );
       setMasterFormOpen(false);
-    } catch (err) {
-      console.error("handleSubmitMaster error:", err);
+    } catch (err: any) {
       setMasterFormError(
-        masterFormMode === "create"
-          ? "Failed to create integration."
-          : "Failed to update integration."
+        err?.response?.data?.error ||
+          err?.message ||
+          (masterFormMode === "create"
+            ? "Failed to create integration."
+            : "Failed to update integration."),
       );
     } finally {
       setMasterSubmitting(false);
@@ -1159,9 +1112,7 @@ const Notify: React.FC = () => {
         return;
       }
 
-      setLineMasters((prev) =>
-        prev.filter((item) => item.id !== masterDeleteTarget.id)
-      );
+      setLineMasters((prev) => prev.filter((item) => item.id !== masterDeleteTarget.id));
 
       if (createForm.app_line_master_id === String(masterDeleteTarget.id)) {
         setCreateForm((prev) => ({
@@ -1187,6 +1138,193 @@ const Notify: React.FC = () => {
     }
   };
 
+  const renderNotificationTable = () => {
+    if (loading) {
+      return (
+        <div className="flex min-h-75 items-center justify-center text-[12px] text-slate-500 dark:text-white/50">
+          Loading notifications...
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-[12px] text-rose-700 dark:border-rose-400/20 dark:bg-rose-500/10 dark:text-rose-200">
+          {error}
+        </div>
+      );
+    }
+
+    if (notifications.length === 0) {
+      return (
+        <div className="flex min-h-75 items-center justify-center rounded-2xl border border-dashed border-slate-200 text-[12px] text-slate-500 dark:border-white/10 dark:text-white/45">
+          No notification data
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex min-h-75 flex-col">
+        <div className="overflow-x-auto">
+          <table className="min-w-full border-separate border-spacing-y-2.5">
+            <thead>
+              <tr>
+                <th className="px-3 py-2 text-left text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-white/45">
+                  Name
+                </th>
+                <th className="px-3 py-2 text-left text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-white/45">
+                  Send ID
+                </th>
+                <th className="px-3 py-2 text-left text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-white/45">
+                  App
+                </th>
+                <th className="px-3 py-2 text-left text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-white/45">
+                  Alert
+                </th>
+                <th className="px-3 py-2 text-left text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-white/45">
+                  Type
+                </th>
+                <th className="px-3 py-2 text-right text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-white/45">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {pagedNotifications.map((item) => {
+                const lineMasterName =
+                  lineMasterMap.get(item.app_line_master_id) ||
+                  `Line Master #${item.app_line_master_id}`;
+
+                return (
+                  <tr key={item.id}>
+                    <td className="rounded-l-2xl border-y border-l border-slate-200 bg-white px-3 py-3 align-middle dark:border-white/10 dark:bg-white/3">
+                      <div className="min-w-37.5">
+                        <p className="truncate text-[12px] font-medium text-slate-800 dark:text-white/85">
+                          {item.name}
+                        </p>
+                      </div>
+                    </td>
+
+                    <td className="border-y border-slate-200 bg-white px-3 py-3 align-middle dark:border-white/10 dark:bg-white/3">
+                      <div className="min-w-37.5">
+                        <p className="truncate font-mono text-[11px] text-slate-600 dark:text-white/60">
+                          {item.send_id}
+                        </p>
+                      </div>
+                    </td>
+
+                    <td className="border-y border-slate-200 bg-white px-3 py-3 align-middle dark:border-white/10 dark:bg-white/3">
+                      <div className="min-w-35">
+                        <span className="truncate text-[11.5px] text-slate-700 dark:text-white/70">
+                          {lineMasterName}
+                        </span>
+                      </div>
+                    </td>
+
+                    <td className="border-y border-slate-200 bg-white px-3 py-3 align-middle dark:border-white/10 dark:bg-white/3">
+                      <span
+                        className={[
+                          "inline-flex rounded-full px-2.5 py-1 text-[10.5px] font-semibold",
+                          alertBadgeClass(item.alert),
+                        ].join(" ")}
+                      >
+                        {item.alert ? "On" : "Off"}
+                      </span>
+                    </td>
+
+                    <td className="border-y border-slate-200 bg-white px-3 py-3 align-middle dark:border-white/10 dark:bg-white/3">
+                      <span
+                        className={[
+                          "inline-flex rounded-full px-2.5 py-1 text-[10.5px] font-semibold",
+                          typeBadgeClass(item.is_group),
+                        ].join(" ")}
+                      >
+                        {item.is_group ? "Group" : "Personal"}
+                      </span>
+                    </td>
+
+                    <td className="rounded-r-2xl border-y border-r border-slate-200 bg-white px-3 py-3 align-middle dark:border-white/10 dark:bg-white/3">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => openTestLineModal(item)}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-cyan-200 text-cyan-600 transition hover:bg-cyan-50 dark:border-cyan-400/20 dark:text-cyan-300 dark:hover:bg-cyan-500/10"
+                          title="Test"
+                        >
+                          <FiSend className="text-[13px]" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openEdit(item)}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-violet-200 text-violet-600 transition hover:bg-violet-50 dark:border-violet-400/20 dark:text-violet-300 dark:hover:bg-violet-500/10"
+                          title="Edit"
+                        >
+                          <FiEdit2 className="text-[13px]" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openDeleteModal(item)}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rose-200 text-rose-600 transition hover:bg-rose-50 dark:border-rose-400/20 dark:text-rose-300 dark:hover:bg-rose-500/10"
+                          title="Delete"
+                        >
+                          <FiTrash2 className="text-[13px]" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="mt-4 flex flex-col gap-2 border-t border-slate-200/70 pt-3 sm:flex-row sm:items-center sm:justify-between dark:border-white/10">
+          <p className="text-[11px] text-slate-500 dark:text-white/45">
+            Showing{" "}
+            <span className="font-medium text-slate-700 dark:text-white/75">
+              {notifications.length === 0 ? 0 : (notifyPage - 1) * PAGE_SIZE + 1}
+            </span>{" "}
+            -{" "}
+            <span className="font-medium text-slate-700 dark:text-white/75">
+              {Math.min(notifyPage * PAGE_SIZE, notifications.length)}
+            </span>{" "}
+            of{" "}
+            <span className="font-medium text-slate-700 dark:text-white/75">
+              {notifications.length}
+            </span>
+          </p>
+
+          <div className="flex items-center gap-2 self-end sm:self-auto">
+            <button
+              type="button"
+              onClick={() => setNotifyPage((prev) => Math.max(1, prev - 1))}
+              disabled={notifyPage <= 1}
+              className="inline-flex items-center gap-1 rounded-xl border border-violet-200 px-3 py-2 text-[11.5px] font-medium text-violet-700 transition hover:bg-violet-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-violet-400/20 dark:text-violet-300 dark:hover:bg-violet-500/10"
+            >
+              <FiChevronLeft className="text-[13px]" />
+              Previous
+            </button>
+
+            <div className="rounded-xl border border-slate-200 px-3 py-2 text-[11.5px] font-medium text-slate-700 dark:border-white/10 dark:text-white/70">
+              {notifyPage} / {totalNotifyPages}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setNotifyPage((prev) => Math.min(totalNotifyPages, prev + 1))}
+              disabled={notifyPage >= totalNotifyPages}
+              className="inline-flex items-center gap-1 rounded-xl border border-violet-200 px-3 py-2 text-[11.5px] font-medium text-violet-700 transition hover:bg-violet-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-violet-400/20 dark:text-violet-300 dark:hover:bg-violet-500/10"
+            >
+              Next
+              <FiChevronRight className="text-[13px]" />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <>
       <section className={cardGlowClass}>
@@ -1208,7 +1346,6 @@ const Notify: React.FC = () => {
         </div>
 
         <div className="relative z-10 flex h-full flex-col">
-          {/* Header */}
           <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
             <div className="min-w-0">
               <div className={sectionChipClass}>
@@ -1216,103 +1353,93 @@ const Notify: React.FC = () => {
                 Notification Center
               </div>
 
-              <h2 className="mt-2 text-[16px] font-semibold tracking-tight text-slate-900 sm:text-[18px] dark:text-white">
+              <h2 className="mt-2 text-[18px] font-semibold tracking-tight text-slate-900 dark:text-white">
                 Line Notification & Integration
               </h2>
 
-              <p className="mt-1 text-[10.5px] sm:text-[11px] text-slate-500 dark:text-white/55">
-                Manage notification receivers and connected line master integrations in one place.
+              <p className="mt-1 text-[11px] text-slate-500 dark:text-white/55">
+                Manage receivers and connected integrations in one place.
               </p>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
               <ActionButton
-                onClick={fetchLineMasters}
-                className="border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:hover:bg-white/10"
+                onClick={fetchNotifications}
+                className="border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white/80 dark:hover:bg-white/10"
               >
-                <FiRefreshCw className="text-[12px]" />
-                Refresh Master
+                <FiRefreshCw className="text-[13px]" />
+                Refresh
               </ActionButton>
 
               <ActionButton
                 onClick={openCreateMasterModal}
                 className="border border-cyan-200 bg-cyan-50 text-cyan-700 hover:bg-cyan-100 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-300 dark:hover:bg-cyan-500/15"
               >
-                <FiLink2 className="text-[12px]" />
-                Add Line Master
+                <FiLink2 className="text-[13px]" />
+                Add Integration
               </ActionButton>
 
               <ActionButton
                 onClick={openCreate}
                 className="bg-[#6d5efc] text-white hover:bg-[#5f51eb]"
               >
-                <FiPlus className="text-[12px]" />
-                Add Notification
+                <FiPlus className="text-[13px]" />
+                Add Notify
               </ActionButton>
             </div>
           </div>
 
-          {/* Top area: Notification + Line Master */}
-          <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-12">
-            {/* Line Master panel */}
+          <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-12 xl:items-start">
             <div className="xl:col-span-4">
-              <div className="h-full rounded-[20px] border border-slate-200 bg-[#f9fcff] p-3 shadow-[0_10px_28px_-22px_rgba(15,23,42,0.18)] dark:border-white/10 dark:bg-white/5 dark:ring-1 dark:ring-white/10 dark:shadow-none">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="inline-flex items-center gap-1.5 rounded-full border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-[10px] font-semibold text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-300">
-                      <FiSettings className="text-[10px]" />
-                      App Line Master
-                    </div>
-
-                    <h3 className="mt-2 text-[14px] font-semibold text-slate-900 dark:text-white">
+              <div className={`${panelClass} flex flex-col`}>
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-[13px] font-semibold text-slate-800 dark:text-white/85">
                       Integration List
                     </h3>
-
-                    <p className="mt-1 text-[10.5px] leading-5 text-slate-500 dark:text-white/50">
-                      Create, update, and manage integration tokens used by notifications.
+                    <p className="mt-0.5 text-[10.5px] text-slate-500 dark:text-white/45">
+                      Connected channels and apps
                     </p>
+                  </div>
+                  <div className="rounded-full border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-[10px] font-medium text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-300">
+                    {filteredLineMasters.length}
                   </div>
                 </div>
 
-                <div className="mt-3 relative">
-                  <FiSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[12px] text-slate-400 dark:text-white/35" />
+                <div className="relative mb-3">
+                  <FiSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-slate-400 dark:text-white/35" />
                   <input
                     value={lineMasterSearch}
                     onChange={(e) => setLineMasterSearch(e.target.value)}
                     placeholder="Search integration..."
-                    className="h-9 w-full rounded-2xl border border-slate-200 bg-white pl-9 pr-3 text-[11.5px] text-slate-800 outline-none transition focus:border-cyan-300 focus:ring-2 focus:ring-cyan-100 dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:placeholder:text-white/35 dark:focus:border-cyan-400/30 dark:focus:ring-cyan-400/10"
+                    className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-[12px] outline-none transition focus:border-cyan-300 focus:ring-2 focus:ring-cyan-100 dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:placeholder:text-white/35 dark:focus:border-cyan-400/30 dark:focus:ring-cyan-400/10"
                   />
                 </div>
 
-                {lineMasterError && (
-                  <div className="mt-3 rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-[11px] text-red-700 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300">
+                {loadingLineMasters ? (
+                  <div className="flex min-h-55 items-center justify-center text-[12px] text-slate-500 dark:text-white/50">
+                    Loading integrations...
+                  </div>
+                ) : lineMasterError ? (
+                  <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-[12px] text-rose-700 dark:border-rose-400/20 dark:bg-rose-500/10 dark:text-rose-200">
                     {lineMasterError}
                   </div>
-                )}
-
-                <div className="mt-3 space-y-2 max-h-130 overflow-y-auto pr-1">
-                  {loadingLineMasters ? (
-                    <div className="rounded-2xl border border-dashed border-slate-200 bg-white/80 px-4 py-8 text-center text-[11.5px] text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-white/50">
-                      Loading integrations...
-                    </div>
-                  ) : filteredLineMasters.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-slate-200 bg-white/80 px-4 py-8 text-center text-[11.5px] text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-white/50">
-                      No integration found.
-                    </div>
-                  ) : (
-                    filteredLineMasters.map((item) => {
-                      const rawMaster =
-                        lineMasters.find((m) => m.id === item.id) || null;
-
-                      return (
+                ) : filteredLineMasters.length === 0 ? (
+                  <div className="flex min-h-55 items-center justify-center rounded-xl border border-dashed border-slate-200 text-[12px] text-slate-500 dark:border-white/10 dark:text-white/45">
+                    No integration found
+                  </div>
+                ) : (
+                  <div className={lineMasterListClass}>
+                    <div className="space-y-2.5">
+                      {filteredLineMasters.map((item) => (
                         <div
                           key={item.id}
-                          className="rounded-[18px] border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-[#0b1628]/80"
+                          className="group rounded-xl border border-slate-200 bg-white p-3 transition hover:border-cyan-200 hover:bg-slate-50/70 dark:border-white/10 dark:bg-white/3 dark:hover:border-cyan-400/15 dark:hover:bg-white/5"
                         >
                           <div className="flex items-start gap-3">
                             <div
                               className={[
-                                "grid h-10 w-10 shrink-0 place-items-center rounded-2xl border text-[16px]",
+                                "grid h-10 w-10 shrink-0 place-items-center rounded-xl border text-[15px]",
                                 item.iconWrapClass,
                               ].join(" ")}
                             >
@@ -1320,346 +1447,221 @@ const Notify: React.FC = () => {
                             </div>
 
                             <div className="min-w-0 flex-1">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <h4 className="truncate text-[12.5px] font-semibold text-slate-900 dark:text-white">
-                                  {item.name}
-                                </h4>
-                                <span
-                                  className={[
-                                    "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold",
-                                    item.chipClass,
-                                  ].join(" ")}
-                                >
-                                  {item.category}
-                                </span>
-                              </div>
-
-                              <p className="mt-1 text-[10.5px] leading-5 text-slate-500 dark:text-white/50">
-                                {item.description}
-                              </p>
-
-                              <div className="mt-2 flex items-center justify-between gap-2">
-                                <span className="truncate text-[10px] text-slate-400 dark:text-white/35">
-                                  ID: {item.id}
-                                </span>
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0">
+                                  <p className="truncate text-[12px] font-semibold text-slate-800 dark:text-white/85">
+                                    {item.name}
+                                  </p>
+                                  <p className="mt-0.5 text-[10.5px] text-slate-500 dark:text-white/45">
+                                    {item.category}
+                                  </p>
+                                </div>
 
                                 <div className="flex items-center gap-1">
                                   <button
                                     type="button"
                                     onClick={() =>
-                                      rawMaster && openEditMasterModal(rawMaster)
+                                      openEditMasterModal(
+                                        lineMasters.find((m) => m.id === item.id)!,
+                                      )
                                     }
-                                    className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:text-white/45 dark:hover:bg-white/10 dark:hover:text-white/80"
-                                    title="Edit"
+                                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-violet-200 text-violet-600 transition hover:bg-violet-50 dark:border-violet-400/20 dark:text-violet-300 dark:hover:bg-violet-500/10"
+                                    title="Edit Integration"
                                   >
-                                    <FiEdit2 className="text-[12px]" />
+                                    <FiEdit2 className="text-[13px]" />
                                   </button>
 
                                   <button
                                     type="button"
                                     onClick={() =>
-                                      rawMaster && openDeleteMasterModal(rawMaster)
+                                      openDeleteMasterModal(
+                                        lineMasters.find((m) => m.id === item.id)!,
+                                      )
                                     }
-                                    className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-rose-500 transition hover:bg-rose-50 hover:text-rose-600 dark:text-rose-300 dark:hover:bg-rose-500/10"
-                                    title="Delete"
+                                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rose-200 text-rose-600 transition hover:bg-rose-50 dark:border-rose-400/20 dark:text-rose-300 dark:hover:bg-rose-500/10"
+                                    title="Delete Integration"
                                   >
-                                    <FiTrash2 className="text-[12px]" />
+                                    <FiTrash2 className="text-[13px]" />
                                   </button>
                                 </div>
+                              </div>
+
+                              <p className="mt-2 line-clamp-2 text-[11px] leading-5 text-slate-600 dark:text-white/55">
+                                {item.description}
+                              </p>
+
+                              <div className="mt-2 flex items-center justify-between gap-2">
+                                <span
+                                  className={[
+                                    "inline-flex rounded-full border px-2 py-1 text-[10px] font-medium",
+                                    item.chipClass,
+                                  ].join(" ")}
+                                >
+                                  Connected
+                                </span>
+
+                                <span className="text-[10px] text-slate-400 dark:text-white/30">
+                                  Token ready
+                                </span>
                               </div>
                             </div>
                           </div>
                         </div>
-                      );
-                    })
-                  )}
-                </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Notification panel */}
             <div className="xl:col-span-8">
-              <div className="h-full rounded-[20px] border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-[#0b1628]/80">
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                  <div className="flex-1">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                      <div className="relative flex-1">
-                        <FiSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[12px] text-slate-400 dark:text-white/35" />
-                        <input
-                          value={search}
-                          onChange={(e) => setSearch(e.target.value)}
-                          placeholder="Search name, send ID, group, personal, line master..."
-                          className="h-9 w-full rounded-2xl border border-gray-200 bg-white pl-9 pr-3 text-[11.5px] text-slate-800 outline-none transition focus:border-violet-300 focus:ring-2 focus:ring-violet-100 dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:placeholder:text-white/35 dark:focus:border-violet-400/30 dark:focus:ring-violet-400/10"
-                        />
-                      </div>
+              <div className={`${panelClass} flex flex-col`}>
+                <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <h3 className="text-[13px] font-semibold text-slate-800 dark:text-white/85">
+                      Notify List
+                    </h3>
+                    <p className="mt-0.5 text-[10.5px] text-slate-500 dark:text-white/45">
+                      Notification receivers overview
+                    </p>
+                  </div>
 
-                      <div className="relative shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => setOpenSort((prev) => !prev)}
-                          className="inline-flex h-9 items-center gap-2 rounded-2xl border border-gray-200 bg-white px-3 text-[11.5px] font-medium text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:hover:bg-white/10"
-                        >
-                          <span>{sortBy}</span>
-                          <FiChevronDown
-                            className={`text-[12px] transition-transform ${
-                              openSort ? "rotate-180" : ""
-                            }`}
-                          />
-                        </button>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                    <div className="relative min-w-55">
+                      <FiSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-slate-400 dark:text-white/35" />
+                      <input
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        placeholder="Search notify..."
+                        className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-[12px] outline-none transition focus:border-violet-300 focus:ring-2 focus:ring-violet-100 dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:placeholder:text-white/35 dark:focus:border-violet-400/30 dark:focus:ring-violet-400/10"
+                      />
+                    </div>
 
-                        {openSort && (
-                          <div className="absolute right-0 top-11 z-20 min-w-47.5 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-lg dark:border-white/10 dark:bg-[#0b1628]">
-                            {(["Newest", "Alert: On First", "Alert: Off First"] as SortKey[]).map(
-                              (option) => (
-                                <button
-                                  key={option}
-                                  type="button"
-                                  onClick={() => {
-                                    setSortBy(option);
-                                    setOpenSort(false);
-                                  }}
-                                  className={`flex w-full items-center rounded-xl px-3 py-2 text-left text-[11.5px] transition ${
-                                    sortBy === option
-                                      ? "bg-violet-50 text-violet-700 dark:bg-violet-500/10 dark:text-violet-300"
-                                      : "text-slate-700 hover:bg-slate-50 dark:text-white/80 dark:hover:bg-white/5"
-                                  }`}
-                                >
-                                  {option}
-                                </button>
-                              )
-                            )}
-                          </div>
-                        )}
-                      </div>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setOpenSort((prev) => !prev)}
+                        className="inline-flex h-10 items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 text-[12px] text-violet-700 transition hover:bg-violet-100 dark:border-violet-400/20 dark:bg-violet-500/10 dark:text-violet-300 dark:hover:bg-violet-500/15"
+                      >
+                        <FiLayers className="text-[13px]" />
+                        {sortBy}
+                        <FiChevronDown className="text-[13px]" />
+                      </button>
+
+                      {openSort && (
+                        <div className="absolute right-0 z-20 mt-2 min-w-45 overflow-hidden rounded-xl border border-violet-100 bg-white shadow-lg dark:border-white/10 dark:bg-[#0b1525]">
+                          {(["Newest", "Alert: On First", "Alert: Off First"] as SortKey[]).map(
+                            (option) => (
+                              <button
+                                key={option}
+                                type="button"
+                                onClick={() => {
+                                  setSortBy(option);
+                                  setOpenSort(false);
+                                }}
+                                className={[
+                                  "flex w-full items-center justify-between px-3 py-2.5 text-left text-[12px] transition",
+                                  sortBy === option
+                                    ? "bg-violet-50 text-violet-700 dark:bg-violet-500/10 dark:text-violet-300"
+                                    : "text-slate-700 hover:bg-slate-50 dark:text-white/75 dark:hover:bg-white/5",
+                                ].join(" ")}
+                              >
+                                <span>{option}</span>
+                                {sortBy === option ? (
+                                  <FiCheckCircle className="text-[13px]" />
+                                ) : null}
+                              </button>
+                            ),
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
 
-                {error && (
-                  <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[11px] text-red-700 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300">
-                    {error}
-                  </div>
-                )}
-
-                <div className="mt-3 overflow-hidden rounded-[18px] border border-slate-200 dark:border-white/10">
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full border-collapse">
-                      <thead className="bg-slate-50 dark:bg-white/5">
-                        <tr>
-                          <th className="px-3 py-3 text-left text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-white/45">
-                            Name
-                          </th>
-                          <th className="px-3 py-3 text-left text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-white/45">
-                            Send ID
-                          </th>
-                          <th className="px-3 py-3 text-left text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-white/45">
-                            Alert
-                          </th>
-                          <th className="px-3 py-3 text-left text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-white/45">
-                            Type
-                          </th>
-                          <th className="px-3 py-3 text-left text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-white/45">
-                            Line Master
-                          </th>
-                          <th className="px-3 py-3 text-right text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-white/45">
-                            Actions
-                          </th>
-                        </tr>
-                      </thead>
-
-                      <tbody>
-                        {loading ? (
-                          <tr>
-                            <td
-                              colSpan={6}
-                              className="px-3 py-10 text-center text-[11.5px] text-slate-500 dark:text-white/50"
-                            >
-                              Loading notifications...
-                            </td>
-                          </tr>
-                        ) : notifications.length === 0 ? (
-                          <tr>
-                            <td
-                              colSpan={6}
-                              className="px-3 py-10 text-center text-[11.5px] text-slate-500 dark:text-white/50"
-                            >
-                              No notification found.
-                            </td>
-                          </tr>
-                        ) : (
-                          notifications.map((row) => {
-                            const lineMasterName =
-                              lineMasterMap.get(row.app_line_master_id) ||
-                              `Line Master #${row.app_line_master_id}`;
-
-                            return (
-                              <tr
-                                key={row.id}
-                                className="border-t border-slate-200 bg-white transition hover:bg-slate-50/70 dark:border-white/10 dark:bg-transparent dark:hover:bg-white/5"
-                              >
-                                <td className="px-3 py-3 align-top">
-                                  <div className="min-w-42.5">
-                                    <div className="text-[11.5px] font-semibold text-slate-800 dark:text-white/90">
-                                      {row.name}
-                                    </div>
-                                    <div className="mt-1 text-[10px] text-slate-400 dark:text-white/35">
-                                      ID: {row.id}
-                                    </div>
-                                  </div>
-                                </td>
-
-                                <td className="px-3 py-3 align-top">
-                                  <div className="min-w-45 text-[11px] text-slate-600 dark:text-white/65 break-all">
-                                    {row.send_id || "-"}
-                                  </div>
-                                </td>
-
-                                <td className="px-3 py-3 align-top">
-                                  <span
-                                    className={[
-                                      "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold",
-                                      alertBadgeClass(row.alert),
-                                    ].join(" ")}
-                                  >
-                                    {row.alert ? "On" : "Off"}
-                                  </span>
-                                </td>
-
-                                <td className="px-3 py-3 align-top">
-                                  <span
-                                    className={[
-                                      "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold",
-                                      typeBadgeClass(row.is_group),
-                                    ].join(" ")}
-                                  >
-                                    {row.is_group ? (
-                                      <>
-                                        <FiUsers className="mr-1 text-[10px]" />
-                                        Group
-                                      </>
-                                    ) : (
-                                      <>
-                                        <FiUser className="mr-1 text-[10px]" />
-                                        Personal
-                                      </>
-                                    )}
-                                  </span>
-                                </td>
-
-                                <td className="px-3 py-3 align-top">
-                                  <div className="min-w-37.5 text-[11px] text-slate-600 dark:text-white/65">
-                                    {lineMasterName}
-                                  </div>
-                                </td>
-
-                                <td className="px-3 py-3 align-top">
-                                  <div className="flex items-center justify-end gap-1">
-                                    <button
-                                      type="button"
-                                      onClick={() => openTestLineModal(row)}
-                                      className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-cyan-600 transition hover:bg-cyan-50 dark:text-cyan-300 dark:hover:bg-cyan-500/10"
-                                      title="Test LINE"
-                                    >
-                                      <FiSend className="text-[12px]" />
-                                    </button>
-
-                                    <button
-                                      type="button"
-                                      onClick={() => openEdit(row)}
-                                      className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:text-white/45 dark:hover:bg-white/10 dark:hover:text-white/80"
-                                      title="Edit"
-                                    >
-                                      <FiEdit2 className="text-[12px]" />
-                                    </button>
-
-                                    <button
-                                      type="button"
-                                      onClick={() => openDeleteModal(row)}
-                                      className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-rose-500 transition hover:bg-rose-50 hover:text-rose-600 dark:text-rose-300 dark:hover:bg-rose-500/10"
-                                      title="Delete"
-                                    >
-                                      <FiTrash2 className="text-[12px]" />
-                                    </button>
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          })
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
+                {renderNotificationTable()}
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Create Notification Modal */}
       {openCreateModal && (
         <div className={modalBackdropClass}>
           <div className={`${modalCardClass} max-w-2xl`}>
             <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-white/10">
               <div>
                 <h3 className="text-[16px] font-semibold text-slate-900 dark:text-white">
-                  Create Notification
+                  Create Notify
                 </h3>
-                <p className="mt-1 text-[11px] text-slate-500 dark:text-white/50">
-                  Add a new notification receiver and link it to a line master.
+                <p className="mt-0.5 text-[11px] text-slate-500 dark:text-white/45">
+                  Add a new notification receiver
                 </p>
               </div>
-
               <button
                 type="button"
                 onClick={closeCreate}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:text-white/45 dark:hover:bg-white/10 dark:hover:text-white/80"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-white/10 dark:text-white/70 dark:hover:bg-white/5"
               >
-                <FiX className="text-[14px]" />
+                <FiX />
               </button>
             </div>
 
             <div className="space-y-4 px-5 py-5">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              {createError ? (
+                <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-[12px] text-rose-700 dark:border-rose-400/20 dark:bg-rose-500/10 dark:text-rose-200">
+                  {createError}
+                </div>
+              ) : null}
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className={labelClass}>Name</label>
-                  <div className="relative">
-                    <FiBell className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[12px] text-slate-400 dark:text-white/35" />
-                    <input
-                      value={createForm.name}
-                      onChange={(e) =>
-                        setCreateForm((prev) => ({ ...prev, name: e.target.value }))
-                      }
-                      placeholder="Enter receiver name"
-                      className={`${inputClass} pl-9`}
-                    />
-                  </div>
+                  <input
+                    className={inputClass}
+                    value={createForm.name}
+                    onChange={(e) =>
+                      setCreateForm((prev) => ({ ...prev, name: e.target.value }))
+                    }
+                    placeholder="Receiver name"
+                  />
                 </div>
 
                 <div>
                   <label className={labelClass}>Send ID</label>
-                  <div className="relative">
-                    <FiHash className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[12px] text-slate-400 dark:text-white/35" />
-                    <input
-                      value={createForm.send_id}
-                      onChange={(e) =>
-                        setCreateForm((prev) => ({ ...prev, send_id: e.target.value }))
-                      }
-                      placeholder="Enter send ID"
-                      className={`${inputClass} pl-9`}
-                    />
-                  </div>
+                  <input
+                    className={inputClass}
+                    value={createForm.send_id}
+                    onChange={(e) =>
+                      setCreateForm((prev) => ({ ...prev, send_id: e.target.value }))
+                    }
+                    placeholder="User ID / Group ID"
+                  />
                 </div>
               </div>
 
               <div>
-                <label className={labelClass}>Receiver Type</label>
-                <ReceiverTypeToggle
-                  value={createForm.is_group}
-                  onChange={(next) =>
-                    setCreateForm((prev) => ({ ...prev, is_group: next }))
-                  }
-                />
+                <label className={labelClass}>App Line Master</label>
+                <div className="relative">
+                  <select
+                    className={selectClass}
+                    value={createForm.app_line_master_id}
+                    onChange={(e) =>
+                      setCreateForm((prev) => ({
+                        ...prev,
+                        app_line_master_id: e.target.value,
+                      }))
+                    }
+                  >
+                    <option value="">Select integration</option>
+                    {lineMasters.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </select>
+                  <FiChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[14px] text-slate-400 dark:text-white/35" />
+                </div>
               </div>
 
               <div>
@@ -1673,120 +1675,111 @@ const Notify: React.FC = () => {
               </div>
 
               <div>
-                <label className={labelClass}>App Line Master</label>
-                <div className="relative">
-                  <FiLayers className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[12px] text-slate-400 dark:text-white/35" />
-                  <select
-                    value={createForm.app_line_master_id}
-                    onChange={(e) =>
-                      setCreateForm((prev) => ({
-                        ...prev,
-                        app_line_master_id: e.target.value,
-                      }))
-                    }
-                    className={`${selectClass} pl-9`}
-                  >
-                    <option value="">Select line master</option>
-                    {lineMasters.map((item) => (
-                      <option key={item.id} value={String(item.id)}>
-                        {item.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <label className={labelClass}>Receiver Type</label>
+                <ReceiverTypeToggle
+                  value={createForm.is_group}
+                  onChange={(next) =>
+                    setCreateForm((prev) => ({ ...prev, is_group: next }))
+                  }
+                />
               </div>
-
-              {createError && (
-                <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[11.5px] text-red-700 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300">
-                  {createError}
-                </div>
-              )}
             </div>
 
             <div className="flex items-center justify-end gap-2 border-t border-slate-200 px-5 py-4 dark:border-white/10">
               <ActionButton
                 onClick={closeCreate}
-                className="border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:hover:bg-white/10"
+                className="border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white/75 dark:hover:bg-white/10"
               >
                 Cancel
               </ActionButton>
-
               <ActionButton
                 onClick={submitCreate}
                 disabled={creating}
                 className="bg-[#6d5efc] text-white hover:bg-[#5f51eb]"
               >
-                {creating ? "Creating..." : "Create Notification"}
+                {creating ? "Creating..." : "Create"}
               </ActionButton>
             </div>
           </div>
         </div>
       )}
 
-      {/* Edit Notification Modal */}
       {openEditModal && (
         <div className={modalBackdropClass}>
           <div className={`${modalCardClass} max-w-2xl`}>
             <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-white/10">
               <div>
                 <h3 className="text-[16px] font-semibold text-slate-900 dark:text-white">
-                  Edit Notification
+                  Edit Notify
                 </h3>
-                <p className="mt-1 text-[11px] text-slate-500 dark:text-white/50">
-                  Update receiver information and alert settings.
+                <p className="mt-0.5 text-[11px] text-slate-500 dark:text-white/45">
+                  Update notification receiver
                 </p>
               </div>
-
               <button
                 type="button"
                 onClick={closeEdit}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:text-white/45 dark:hover:bg-white/10 dark:hover:text-white/80"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-white/10 dark:text-white/70 dark:hover:bg-white/5"
               >
-                <FiX className="text-[14px]" />
+                <FiX />
               </button>
             </div>
 
             <div className="space-y-4 px-5 py-5">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              {editError ? (
+                <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-[12px] text-rose-700 dark:border-rose-400/20 dark:bg-rose-500/10 dark:text-rose-200">
+                  {editError}
+                </div>
+              ) : null}
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className={labelClass}>Name</label>
-                  <div className="relative">
-                    <FiBell className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[12px] text-slate-400 dark:text-white/35" />
-                    <input
-                      value={editForm.name}
-                      onChange={(e) =>
-                        setEditForm((prev) => ({ ...prev, name: e.target.value }))
-                      }
-                      placeholder="Enter receiver name"
-                      className={`${inputClass} pl-9`}
-                    />
-                  </div>
+                  <input
+                    className={inputClass}
+                    value={editForm.name}
+                    onChange={(e) =>
+                      setEditForm((prev) => ({ ...prev, name: e.target.value }))
+                    }
+                    placeholder="Receiver name"
+                  />
                 </div>
 
                 <div>
                   <label className={labelClass}>Send ID</label>
-                  <div className="relative">
-                    <FiHash className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[12px] text-slate-400 dark:text-white/35" />
-                    <input
-                      value={editForm.send_id}
-                      onChange={(e) =>
-                        setEditForm((prev) => ({ ...prev, send_id: e.target.value }))
-                      }
-                      placeholder="Enter send ID"
-                      className={`${inputClass} pl-9`}
-                    />
-                  </div>
+                  <input
+                    className={inputClass}
+                    value={editForm.send_id}
+                    onChange={(e) =>
+                      setEditForm((prev) => ({ ...prev, send_id: e.target.value }))
+                    }
+                    placeholder="User ID / Group ID"
+                  />
                 </div>
               </div>
 
               <div>
-                <label className={labelClass}>Receiver Type</label>
-                <ReceiverTypeToggle
-                  value={editForm.is_group}
-                  onChange={(next) =>
-                    setEditForm((prev) => ({ ...prev, is_group: next }))
-                  }
-                />
+                <label className={labelClass}>App Line Master</label>
+                <div className="relative">
+                  <select
+                    className={selectClass}
+                    value={editForm.app_line_master_id}
+                    onChange={(e) =>
+                      setEditForm((prev) => ({
+                        ...prev,
+                        app_line_master_id: e.target.value,
+                      }))
+                    }
+                  >
+                    <option value="">Select integration</option>
+                    {lineMasters.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </select>
+                  <FiChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[14px] text-slate-400 dark:text-white/35" />
+                </div>
               </div>
 
               <div>
@@ -1800,137 +1793,142 @@ const Notify: React.FC = () => {
               </div>
 
               <div>
-                <label className={labelClass}>App Line Master</label>
-                <div className="relative">
-                  <FiLayers className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[12px] text-slate-400 dark:text-white/35" />
-                  <select
-                    value={editForm.app_line_master_id}
-                    onChange={(e) =>
-                      setEditForm((prev) => ({
-                        ...prev,
-                        app_line_master_id: e.target.value,
-                      }))
-                    }
-                    className={`${selectClass} pl-9`}
-                  >
-                    <option value="">Select line master</option>
-                    {lineMasters.map((item) => (
-                      <option key={item.id} value={String(item.id)}>
-                        {item.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <label className={labelClass}>Receiver Type</label>
+                <ReceiverTypeToggle
+                  value={editForm.is_group}
+                  onChange={(next) =>
+                    setEditForm((prev) => ({ ...prev, is_group: next }))
+                  }
+                />
               </div>
-
-              {editError && (
-                <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[11.5px] text-red-700 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300">
-                  {editError}
-                </div>
-              )}
             </div>
 
             <div className="flex items-center justify-end gap-2 border-t border-slate-200 px-5 py-4 dark:border-white/10">
               <ActionButton
                 onClick={closeEdit}
-                className="border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:hover:bg-white/10"
+                className="border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white/75 dark:hover:bg-white/10"
               >
                 Cancel
               </ActionButton>
-
               <ActionButton
                 onClick={submitEdit}
                 disabled={editing}
                 className="bg-[#6d5efc] text-white hover:bg-[#5f51eb]"
               >
-                {editing ? "Saving..." : "Save Changes"}
+                {editing ? "Saving..." : "Save"}
               </ActionButton>
             </div>
           </div>
         </div>
       )}
 
-      {/* Test LINE Modal */}
-      {openTestModal && (
+      {deleteTarget && (
+        <div className={modalBackdropClass}>
+          <div className={`${modalCardClass} max-w-md`}>
+            <div className="px-5 py-5">
+              <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-2xl border border-rose-200 bg-rose-50 text-rose-600 dark:border-rose-400/20 dark:bg-rose-500/10 dark:text-rose-300">
+                <FiTrash2 className="text-[18px]" />
+              </div>
+
+              <h3 className="text-center text-[16px] font-semibold text-slate-900 dark:text-white">
+                Delete Notify
+              </h3>
+              <p className="mt-2 text-center text-[12px] leading-6 text-slate-500 dark:text-white/50">
+                Are you sure you want to delete{" "}
+                <span className="font-semibold text-slate-700 dark:text-white/80">
+                  {deleteTarget.name}
+                </span>
+                ?
+              </p>
+
+              {deleteError ? (
+                <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-[12px] text-rose-700 dark:border-rose-400/20 dark:bg-rose-500/10 dark:text-rose-200">
+                  {deleteError}
+                </div>
+              ) : null}
+
+              <div className="mt-5 flex items-center justify-center gap-2">
+                <ActionButton
+                  onClick={closeDeleteModal}
+                  className="border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white/75 dark:hover:bg-white/10"
+                >
+                  Cancel
+                </ActionButton>
+                <ActionButton
+                  onClick={confirmDelete}
+                  disabled={deleting}
+                  className="bg-rose-600 text-white hover:bg-rose-700"
+                >
+                  {deleting ? "Deleting..." : "Delete"}
+                </ActionButton>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {openTestModal && testTarget && (
         <div className={modalBackdropClass}>
           <div className={`${modalCardClass} max-w-xl`}>
             <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-white/10">
               <div>
                 <h3 className="text-[16px] font-semibold text-slate-900 dark:text-white">
-                  Test LINE Notification
+                  Test LINE Notify
                 </h3>
-                <p className="mt-1 text-[11px] text-slate-500 dark:text-white/50">
-                  Send a test message to this receiver.
+                <p className="mt-0.5 text-[11px] text-slate-500 dark:text-white/45">
+                  Send a test message to {testTarget.name}
                 </p>
               </div>
-
               <button
                 type="button"
                 onClick={closeTestLineModal}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:text-white/45 dark:hover:bg-white/10 dark:hover:text-white/80"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-white/10 dark:text-white/70 dark:hover:bg-white/5"
               >
-                <FiX className="text-[14px]" />
+                <FiX />
               </button>
             </div>
 
-            <div className="space-y-4 px-5 py-5">
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 dark:border-white/10 dark:bg-white/5">
-                <div className="text-[11px] text-slate-500 dark:text-white/45">
-                  Receiver
+            <div className="px-5 py-5">
+              {testLineError ? (
+                <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-[12px] text-rose-700 dark:border-rose-400/20 dark:bg-rose-500/10 dark:text-rose-200">
+                  {testLineError}
                 </div>
-                <div className="mt-1 text-[12px] font-semibold text-slate-800 dark:text-white">
-                  {testTarget?.name || "-"}
+              ) : null}
+
+              {testLineSuccess ? (
+                <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-[12px] text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-500/10 dark:text-emerald-200">
+                  {testLineSuccess}
                 </div>
-                <div className="mt-1 text-[10.5px] text-slate-500 dark:text-white/45 break-all">
-                  Send ID: {testTarget?.send_id || "-"}
-                </div>
-              </div>
+              ) : null}
 
               <div>
                 <label className={labelClass}>Message</label>
-                <div className="relative">
-                  <FiMessageSquare className="pointer-events-none absolute left-3 top-3 text-[12px] text-slate-400 dark:text-white/35" />
-                  <textarea
-                    value={testLineForm.message}
-                    onChange={(e) =>
-                      setTestLineForm((prev) => ({
-                        ...prev,
-                        message: e.target.value,
-                      }))
-                    }
-                    placeholder="Enter test message..."
-                    className={`${textareaClass} pl-9`}
-                  />
-                </div>
+                <textarea
+                  className={textareaClass}
+                  value={testLineForm.message}
+                  onChange={(e) =>
+                    setTestLineForm((prev) => ({
+                      ...prev,
+                      message: e.target.value,
+                    }))
+                  }
+                  placeholder="Enter test message..."
+                />
               </div>
-
-              {testLineError && (
-                <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[11.5px] text-red-700 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300">
-                  {testLineError}
-                </div>
-              )}
-
-              {testLineSuccess && (
-                <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11.5px] text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-500/10 dark:text-emerald-300">
-                  {testLineSuccess}
-                </div>
-              )}
             </div>
 
             <div className="flex items-center justify-end gap-2 border-t border-slate-200 px-5 py-4 dark:border-white/10">
               <ActionButton
                 onClick={closeTestLineModal}
-                className="border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:hover:bg-white/10"
+                className="border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white/75 dark:hover:bg-white/10"
               >
                 Cancel
               </ActionButton>
-
               <ActionButton
                 onClick={submitTestLine}
                 disabled={testingLine}
                 className="bg-cyan-600 text-white hover:bg-cyan-700"
               >
-                <FiSend className="text-[12px]" />
                 {testingLine ? "Sending..." : "Send Test"}
               </ActionButton>
             </div>
@@ -1938,197 +1936,90 @@ const Notify: React.FC = () => {
         </div>
       )}
 
-      {/* Delete Notification Modal */}
-      {deleteTarget && (
-        <div className={modalBackdropClass}>
-          <div className={`${modalCardClass} max-w-md p-5`}>
-            <div className="mx-auto flex h-13 w-13 items-center justify-center rounded-full bg-[#ffe4dd]">
-              <FiTrash2 className="text-[18px] text-[#ff5a3c]" />
-            </div>
-
-            <h3 className="mt-3.5 text-center text-[16px] font-semibold text-slate-800 dark:text-white">
-              Delete Notification
-            </h3>
-
-            <p className="mx-auto mt-1.5 max-w-95 text-center text-[11px] leading-5 text-slate-500 dark:text-white/55">
-              Are you sure you want to delete{" "}
-              <span className="font-semibold text-slate-700 dark:text-white/80">
-                {deleteTarget.name}
-              </span>
-              ? This action cannot be undone.
-            </p>
-
-            <div className="mt-2.5 flex flex-wrap items-center justify-center gap-2">
-              <span className="text-center text-[10.5px] text-slate-400 dark:text-white/40">
-                Send ID: {deleteTarget.send_id || "-"}
-              </span>
-
-              <span
-                className={[
-                  "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold",
-                  typeBadgeClass(deleteTarget.is_group),
-                ].join(" ")}
-              >
-                {deleteTarget.is_group ? (
-                  <>
-                    <FiUsers className="mr-1 text-[10px]" />
-                    Group
-                  </>
-                ) : (
-                  <>
-                    <FiUser className="mr-1 text-[10px]" />
-                    Personal
-                  </>
-                )}
-              </span>
-            </div>
-
-            {deleteError && (
-              <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-center text-[11.5px] text-red-700 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300">
-                {deleteError}
-              </div>
-            )}
-
-            <div className="mt-4 flex items-center justify-center gap-2">
-              <button
-                type="button"
-                onClick={confirmDelete}
-                disabled={deleting}
-                className={[
-                  "min-w-27.5 rounded-[10px] px-3 py-2 text-[11.5px] font-medium transition",
-                  "bg-[#f8dedd] text-[#ff5a3c] hover:bg-[#f4d2d1]",
-                  "disabled:cursor-not-allowed disabled:opacity-60",
-                ].join(" ")}
-              >
-                {deleting ? "Deleting..." : "Yes, Delete!"}
-              </button>
-
-              <button
-                type="button"
-                onClick={closeDeleteModal}
-                disabled={deleting}
-                className={[
-                  "min-w-27.5 rounded-[10px] px-3 py-2 text-[11.5px] font-medium transition",
-                  "bg-[#6d5efc] text-white hover:bg-[#5f51eb]",
-                  "disabled:cursor-not-allowed disabled:opacity-60",
-                ].join(" ")}
-              >
-                No, Keep It.
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Create / Edit Line Master Modal */}
       {masterFormOpen && (
         <div className={modalBackdropClass}>
-          <div className={`${modalCardClass} max-w-2xl`}>
+          <div className={`${modalCardClass} max-w-xl`}>
             <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-white/10">
               <div>
                 <h3 className="text-[16px] font-semibold text-slate-900 dark:text-white">
-                  {masterFormMode === "create" ? "Create Line Master" : "Edit Line Master"}
+                  {masterFormMode === "create" ? "Create Integration" : "Edit Integration"}
                 </h3>
-                <p className="mt-1 text-[11px] text-slate-500 dark:text-white/50">
-                  Manage integration name and token used by the notification system.
+                <p className="mt-0.5 text-[11px] text-slate-500 dark:text-white/45">
+                  Manage line master connection
                 </p>
               </div>
-
               <button
                 type="button"
                 onClick={closeMasterFormModal}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:text-white/45 dark:hover:bg-white/10 dark:hover:text-white/80"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-white/10 dark:text-white/70 dark:hover:bg-white/5"
               >
-                <FiX className="text-[14px]" />
+                <FiX />
               </button>
             </div>
 
             <div className="space-y-4 px-5 py-5">
-              <div>
-                <label className="mb-1.5 block text-[11.5px] font-medium text-slate-700 dark:text-white/75">
-                  Integration Name
-                </label>
-
-                <div className="relative">
-                  <FiSettings className="absolute left-3 top-1/2 -translate-y-1/2 text-[12px] text-slate-400 dark:text-white/35" />
-
-                  <input
-                    type="text"
-                    value={masterFormData.name}
-                    onChange={(e) =>
-                      setMasterFormData((prev) => ({ ...prev, name: e.target.value }))
-                    }
-                    placeholder="LINE Notify, Slack, Google Meet..."
-                    className="h-9 w-full rounded-2xl border border-slate-200 bg-white pl-9 pr-3 text-[11.5px] text-slate-800 outline-none transition focus:border-cyan-300 focus:ring-2 focus:ring-cyan-100 dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:placeholder:text-white/30 dark:focus:border-cyan-400/30 dark:focus:ring-cyan-400/10"
-                  />
+              {masterFormError ? (
+                <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-[12px] text-rose-700 dark:border-rose-400/20 dark:bg-rose-500/10 dark:text-rose-200">
+                  {masterFormError}
                 </div>
+              ) : null}
+
+              <div>
+                <label className={labelClass}>Integration Name</label>
+                <input
+                  className={inputClass}
+                  value={masterFormData.name}
+                  onChange={(e) =>
+                    setMasterFormData((prev) => ({ ...prev, name: e.target.value }))
+                  }
+                  placeholder="LINE Notify / Slack / Google..."
+                />
               </div>
 
               <div>
-                <label className="mb-1.5 block text-[11.5px] font-medium text-slate-700 dark:text-white/75">
-                  Token
-                </label>
-
+                <label className={labelClass}>Token</label>
                 <div className="relative">
-                  <FiBell className="absolute left-3 top-1/2 -translate-y-1/2 text-[12px] text-slate-400 dark:text-white/35" />
-
                   <input
+                    className={`${inputClass} pr-24`}
                     type={showToken ? "text" : "password"}
                     value={masterFormData.token}
                     onChange={(e) =>
                       setMasterFormData((prev) => ({ ...prev, token: e.target.value }))
                     }
                     placeholder="Enter token"
-                    className="h-9 w-full rounded-2xl border border-slate-200 bg-white pl-9 pr-18 text-[11.5px] text-slate-800 outline-none transition focus:border-cyan-300 focus:ring-2 focus:ring-cyan-100 dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:placeholder:text-white/30 dark:focus:border-cyan-400/30 dark:focus:ring-cyan-400/10"
                   />
-
-                  <div className="absolute right-1.5 top-1/2 flex -translate-y-1/2 items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={handleCopyToken}
-                      className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:text-white/45 dark:hover:bg-white/10 dark:hover:text-white/80"
-                      title="Copy token"
-                    >
-                      <FiCopy className="text-[12px]" />
-                    </button>
-
+                  <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
                     <button
                       type="button"
                       onClick={() => setShowToken((prev) => !prev)}
-                      className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:text-white/45 dark:hover:bg-white/10 dark:hover:text-white/80"
-                      title={showToken ? "Hide token" : "Show token"}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-white/10 dark:text-white/70 dark:hover:bg-white/5"
                     >
-                      {showToken ? (
-                        <FiEyeOff className="text-[12px]" />
-                      ) : (
-                        <FiEye className="text-[12px]" />
-                      )}
+                      {showToken ? <FiEyeOff /> : <FiEye />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCopyToken}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-white/10 dark:text-white/70 dark:hover:bg-white/5"
+                    >
+                      <FiCopy />
                     </button>
                   </div>
                 </div>
-
-                {copiedToken && (
-                  <p className="mt-1.5 text-[10.5px] text-emerald-600 dark:text-emerald-300">
-                    Token copied to clipboard.
+                {copiedToken ? (
+                  <p className="mt-1 text-[10.5px] text-emerald-600 dark:text-emerald-300">
+                    Copied
                   </p>
-                )}
+                ) : null}
               </div>
-
-              {masterFormError && (
-                <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[11.5px] text-red-700 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300">
-                  {masterFormError}
-                </div>
-              )}
             </div>
 
             <div className="flex items-center justify-end gap-2 border-t border-slate-200 px-5 py-4 dark:border-white/10">
               <ActionButton
                 onClick={closeMasterFormModal}
-                className="border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:hover:bg-white/10"
+                className="border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white/75 dark:hover:bg-white/10"
               >
                 Cancel
               </ActionButton>
-
               <ActionButton
                 onClick={handleSubmitMaster}
                 disabled={masterSubmitting}
@@ -2139,66 +2030,54 @@ const Notify: React.FC = () => {
                     ? "Creating..."
                     : "Saving..."
                   : masterFormMode === "create"
-                  ? "Create Line Master"
-                  : "Save Changes"}
+                    ? "Create"
+                    : "Save"}
               </ActionButton>
             </div>
           </div>
         </div>
       )}
 
-      {/* Delete Line Master Modal */}
       {masterDeleteOpen && masterDeleteTarget && (
         <div className={modalBackdropClass}>
-          <div className={`${modalCardClass} max-w-md p-5`}>
-            <div className="mx-auto flex h-13 w-13 items-center justify-center rounded-full bg-[#ffe4dd]">
-              <FiTrash2 className="text-[18px] text-[#ff5a3c]" />
-            </div>
-
-            <h3 className="mt-3.5 text-center text-[16px] font-semibold text-slate-800 dark:text-white">
-              Delete Line Master
-            </h3>
-
-            <p className="mx-auto mt-1.5 max-w-95 text-center text-[11px] leading-5 text-slate-500 dark:text-white/55">
-              Are you sure you want to delete{" "}
-              <span className="font-semibold text-slate-700 dark:text-white/80">
-                {masterDeleteTarget.name}
-              </span>
-              ? This action cannot be undone.
-            </p>
-
-            {masterDeleteError && (
-              <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-center text-[11.5px] text-red-700 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300">
-                {masterDeleteError}
+          <div className={`${modalCardClass} max-w-md`}>
+            <div className="px-5 py-5">
+              <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-2xl border border-rose-200 bg-rose-50 text-rose-600 dark:border-rose-400/20 dark:bg-rose-500/10 dark:text-rose-300">
+                <FiTrash2 className="text-[18px]" />
               </div>
-            )}
 
-            <div className="mt-4 flex items-center justify-center gap-2">
-              <button
-                type="button"
-                onClick={handleDeleteMaster}
-                disabled={masterDeleting}
-                className={[
-                  "min-w-27.5 rounded-[10px] px-3 py-2 text-[11.5px] font-medium transition",
-                  "bg-[#f8dedd] text-[#ff5a3c] hover:bg-[#f4d2d1]",
-                  "disabled:cursor-not-allowed disabled:opacity-60",
-                ].join(" ")}
-              >
-                {masterDeleting ? "Deleting..." : "Yes, Delete!"}
-              </button>
+              <h3 className="text-center text-[16px] font-semibold text-slate-900 dark:text-white">
+                Delete Integration
+              </h3>
+              <p className="mt-2 text-center text-[12px] leading-6 text-slate-500 dark:text-white/50">
+                Are you sure you want to delete{" "}
+                <span className="font-semibold text-slate-700 dark:text-white/80">
+                  {masterDeleteTarget.name}
+                </span>
+                ?
+              </p>
 
-              <button
-                type="button"
-                onClick={closeDeleteMasterModal}
-                disabled={masterDeleting}
-                className={[
-                  "min-w-27.5 rounded-[10px] px-3 py-2 text-[11.5px] font-medium transition",
-                  "bg-[#6d5efc] text-white hover:bg-[#5f51eb]",
-                  "disabled:cursor-not-allowed disabled:opacity-60",
-                ].join(" ")}
-              >
-                No, Keep It.
-              </button>
+              {masterDeleteError ? (
+                <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-[12px] text-rose-700 dark:border-rose-400/20 dark:bg-rose-500/10 dark:text-rose-200">
+                  {masterDeleteError}
+                </div>
+              ) : null}
+
+              <div className="mt-5 flex items-center justify-center gap-2">
+                <ActionButton
+                  onClick={closeDeleteMasterModal}
+                  className="border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white/75 dark:hover:bg-white/10"
+                >
+                  Cancel
+                </ActionButton>
+                <ActionButton
+                  onClick={handleDeleteMaster}
+                  disabled={masterDeleting}
+                  className="bg-rose-600 text-white hover:bg-rose-700"
+                >
+                  {masterDeleting ? "Deleting..." : "Delete"}
+                </ActionButton>
+              </div>
             </div>
           </div>
         </div>

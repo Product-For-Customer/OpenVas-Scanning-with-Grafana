@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { FiActivity } from "react-icons/fi";
 import {
   MdRouter,
@@ -8,7 +8,7 @@ import {
   MdSecurity,
 } from "react-icons/md";
 import { useNavigate } from "react-router-dom";
-import { ListDeviceRisk, type DeviceRiskDTO } from "../../../services";
+import type { DeviceRiskDTO } from "../../../services";
 
 type Row = {
   id: string;
@@ -20,6 +20,11 @@ type Row = {
   risk: number;
   iconIndex: number;
 };
+
+interface RiskScoreTableProps {
+  data?: DeviceRiskDTO[];
+  loading?: boolean;
+}
 
 const DEVICE_ICONS = [
   {
@@ -170,38 +175,11 @@ const DangerDots: React.FC<{ value: number }> = ({ value }) => {
   );
 };
 
-const RiskScoreTable: React.FC = () => {
+const RiskScoreTable: React.FC<RiskScoreTableProps> = ({
+  data = [],
+  loading = false,
+}) => {
   const navigate = useNavigate();
-
-  const [data, setData] = useState<DeviceRiskDTO[] | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let mounted = true;
-
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const res = await ListDeviceRisk();
-
-        if (!mounted) return;
-        setData(Array.isArray(res) ? res : []);
-      } catch (error) {
-        console.error("ListDeviceRisk error:", error);
-        if (!mounted) return;
-        setData([]);
-      } finally {
-        if (!mounted) return;
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
 
   const rows = useMemo(() => {
     const list = Array.isArray(data) ? data : [];
@@ -400,7 +378,9 @@ const RiskScoreTable: React.FC = () => {
                                 riskMeta.chip,
                               ].join(" ")}
                             >
-                              <span className={`h-1.5 w-1.5 rounded-full ${riskMeta.dot}`} />
+                              <span
+                                className={`h-1.5 w-1.5 rounded-full ${riskMeta.dot}`}
+                              />
                               {riskMeta.label}
                             </span>
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   FiBarChart2,
   FiCalendar,
@@ -6,10 +6,7 @@ import {
   FiAlertCircle,
   FiChevronDown,
 } from "react-icons/fi";
-import {
-  ListHistoryNotify,
-  type HistoryNotifyResponse,
-} from "../../../services";
+import { type HistoryNotifyResponse } from "../../../services";
 
 type MonthRow = {
   key: number;
@@ -81,59 +78,24 @@ const getBarWidthPercent = (count: number, max: number) => {
   return Math.max((count / max) * 100, count > 0 ? 8 : 0);
 };
 
-const Index: React.FC = () => {
-  const [items, setItems] = useState<HistoryNotifyResponse[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState("");
+type CountProps = {
+  items: HistoryNotifyResponse[];
+  loading: boolean;
+  refreshing: boolean;
+  error: string;
+  onRefresh: (showRefresh?: boolean) => Promise<void> | void;
+};
 
+const Index: React.FC<CountProps> = ({
+  items,
+  loading,
+  refreshing,
+  error,
+  onRefresh,
+}) => {
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [openYearSelect, setOpenYearSelect] = useState(false);
-
-  const fetchHistoryNotify = async (showRefresh = false) => {
-    try {
-      setError("");
-
-      if (showRefresh) {
-        setRefreshing(true);
-      } else {
-        setLoading(true);
-      }
-
-      const res = await ListHistoryNotify();
-
-      if (!res || !Array.isArray(res)) {
-        setItems([]);
-        setError("โหลดข้อมูล History Notify ไม่สำเร็จ");
-        return;
-      }
-
-      setItems(res);
-
-      const years = res
-        .map((item) => parseDate(item.datetime || item.created_at))
-        .filter((d): d is Date => d instanceof Date)
-        .map((d) => d.getFullYear());
-
-      if (years.length > 0) {
-        setSelectedYear(Math.max(...years));
-      } else {
-        setSelectedYear(currentYear);
-      }
-    } catch (err) {
-      console.error("fetchHistoryNotify error:", err);
-      setItems([]);
-      setError("เกิดข้อผิดพลาดระหว่างโหลดข้อมูล");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchHistoryNotify();
-  }, []);
 
   const availableYears = useMemo(() => {
     const years = items
@@ -191,7 +153,7 @@ const Index: React.FC = () => {
             </h2>
 
             <p className="mt-1 text-[10.5px] text-slate-500 sm:text-[11px] dark:text-white/55">
-              จำนวนรายการแจ้งเตือนในแต่ละเดือนของปีที่เลือก
+              The number of notifications for each month of the selected year
             </p>
           </div>
 
@@ -241,7 +203,7 @@ const Index: React.FC = () => {
 
             <button
               type="button"
-              onClick={() => fetchHistoryNotify(true)}
+              onClick={() => onRefresh(true)}
               disabled={refreshing}
               className={[
                 "inline-flex h-8.5 w-8.5 items-center justify-center rounded-xl transition",
@@ -318,10 +280,7 @@ const Index: React.FC = () => {
 
                   <tbody>
                     {chartData.map((row, index) => (
-                      <tr
-                        key={row.key}
-                        className="transition-colors hover:bg-cyan-50/30 dark:hover:bg-white/3"
-                      >
+                      <tr key={row.key}>
                         <td
                           className={`px-3.5 py-3 ${
                             index !== chartData.length - 1
@@ -399,15 +358,6 @@ const Index: React.FC = () => {
           )}
         </div>
       </div>
-
-      {openYearSelect && (
-        <button
-          type="button"
-          onClick={() => setOpenYearSelect(false)}
-          className="fixed inset-0 z-5 cursor-default"
-          aria-label="Close year select overlay"
-        />
-      )}
     </section>
   );
 };

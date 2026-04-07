@@ -974,7 +974,7 @@ const MapDevice: React.FC = () => {
                     Device Location Map
                   </h2>
                   <p className="mt-1 text-[11px] sm:text-[12px] text-slate-500 dark:text-white/55">
-                    แสดงตำแหน่งอุปกรณ์จากข้อมูล Location และ Target จริง
+                    Display the device location from the Location and Target information.
                   </p>
                 </div>
               </div>

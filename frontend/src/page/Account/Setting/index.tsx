@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { FiCheckCircle } from "react-icons/fi";
+import { FiCheckCircle, FiSettings, FiShield } from "react-icons/fi";
 import { CameraOutlined } from "@ant-design/icons";
 import { message } from "antd";
 import {
@@ -22,6 +22,15 @@ type SettingForm = {
   position: string;
 };
 
+type TouchedField = {
+  firstName: boolean;
+  lastName: boolean;
+  email: boolean;
+  phone: boolean;
+  location: boolean;
+  position: boolean;
+};
+
 const Setting: React.FC<SettingProps> = ({ user, onUpdated }) => {
   const createInitialForm = (userData: UserResponse): SettingForm => ({
     firstName: userData.first_name || "",
@@ -33,17 +42,32 @@ const Setting: React.FC<SettingProps> = ({ user, onUpdated }) => {
   });
 
   const [form, setForm] = useState<SettingForm>(createInitialForm(user));
-  const [submitting, setSubmitting] = useState<boolean>(false);
-  //@ts-ignore
+  const [submitting, setSubmitting] = useState<boolean>(false);//@ts-ignore
   const [uploadFile, setUploadFile] = useState<File | undefined>(undefined);
   const [profileBase64, setProfileBase64] = useState<string | undefined>(
     undefined
   );
+  const [touched, setTouched] = useState<TouchedField>({
+    firstName: false,
+    lastName: false,
+    email: false,
+    phone: false,
+    location: false,
+    position: false,
+  });
 
   useEffect(() => {
     setForm(createInitialForm(user));
     setUploadFile(undefined);
     setProfileBase64(undefined);
+    setTouched({
+      firstName: false,
+      lastName: false,
+      email: false,
+      phone: false,
+      location: false,
+      position: false,
+    });
   }, [user]);
 
   const previewUrl = useMemo(() => {
@@ -52,16 +76,108 @@ const Setting: React.FC<SettingProps> = ({ user, onUpdated }) => {
     return "";
   }, [profileBase64, user.profile]);
 
+  const normalize = (value: string) => value.trim();
+
+  const validateFirstName = (value: string) => {
+    if (!value.trim()) return "Please enter first name";
+    return "";
+  };
+
+  const validateLastName = (value: string) => {
+    if (!value.trim()) return "Please enter last name";
+    return "";
+  };
+
+  const validateEmail = (value: string) => {
+    const email = value.trim();
+    if (!email) return "Please enter email";
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) return "Invalid email format";
+
+    return "";
+  };
+
+  const validatePhone = (value: string) => {
+    const phone = value.trim();
+
+    if (!phone) return "Please enter phone number";
+    if (!/^0\d+$/.test(phone)) {
+      return "Phone must start with 0 and use numbers only";
+    }
+    if (phone.length !== 10) return "Phone must be 10 digits";
+
+    return "";
+  };
+
+  const validateLocation = (value: string) => {
+    if (!value.trim()) return "Please enter location";
+    return "";
+  };
+
+  const validatePosition = (value: string) => {
+    if (!value.trim()) return "Please enter position";
+    return "";
+  };
+
+  const errors = useMemo(
+    () => ({
+      firstName: validateFirstName(form.firstName),
+      lastName: validateLastName(form.lastName),
+      email: validateEmail(form.email),
+      phone: validatePhone(form.phone),
+      location: validateLocation(form.location),
+      position: validatePosition(form.position),
+    }),
+    [form]
+  );
+
+  const isFormValid = useMemo(() => {
+    return Object.values(errors).every((error) => !error);
+  }, [errors]);
+
+  const hasFormChanged = useMemo(() => {
+    const initial = createInitialForm(user);
+
+    return (
+      normalize(form.firstName) !== normalize(initial.firstName) ||
+      normalize(form.lastName) !== normalize(initial.lastName) ||
+      normalize(form.email) !== normalize(initial.email) ||
+      normalize(form.phone) !== normalize(initial.phone) ||
+      normalize(form.location) !== normalize(initial.location) ||
+      normalize(form.position) !== normalize(initial.position) ||
+      !!profileBase64
+    );
+  }, [form, user, profileBase64]);
+
+  const canSave = useMemo(() => {
+    return !submitting && hasFormChanged && isFormValid;
+  }, [submitting, hasFormChanged, isFormValid]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
 
     if (name === "phone") {
       const numericOnly = value.replace(/\D/g, "").slice(0, 10);
       setForm((prev) => ({ ...prev, phone: numericOnly }));
+      setTouched((prev) => ({ ...prev, phone: true }));
       return;
     }
 
     setForm((prev) => ({ ...prev, [name]: value }));
+    if (name in touched) {
+      setTouched((prev) => ({
+        ...prev,
+        [name]: true,
+      }));
+    }
+  };
+
+  const handleBlur = (field: keyof TouchedField) => {
+    setTouched((prev) => ({
+      ...prev,
+      [field]: true,
+    }));
   };
 
   const handleFileChange = (file?: File) => {
@@ -72,7 +188,7 @@ const Setting: React.FC<SettingProps> = ({ user, onUpdated }) => {
     }
 
     if (!file.type.startsWith("image/")) {
-      message.error("กรุณาอัปโหลดไฟล์รูปภาพเท่านั้น");
+      message.error("Please upload image only");
       return;
     }
 
@@ -85,62 +201,30 @@ const Setting: React.FC<SettingProps> = ({ user, onUpdated }) => {
     reader.readAsDataURL(file);
   };
 
-  const validatePhone = (phone: string) => {
-    if (!phone.trim()) {
-      return "กรุณากรอกเบอร์โทรศัพท์";
-    }
-
-    if (!/^0\d*$/.test(phone)) {
-      return "เบอร์โทรต้องขึ้นต้นด้วย 0 และเป็นตัวเลขเท่านั้น";
-    }
-
-    if (phone.length > 10) {
-      return "เบอร์โทรต้องมีความยาวไม่เกิน 10 ตัว";
-    }
-
-    if (phone.length !== 10) {
-      return "เบอร์โทรต้องมี 10 หลัก";
-    }
-
-    return "";
-  };
-
   const onSave = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    setTouched({
+      firstName: true,
+      lastName: true,
+      email: true,
+      phone: true,
+      location: true,
+      position: true,
+    });
+
     if (!user?.id) {
-      message.error("ไม่พบรหัสผู้ใช้งาน");
+      message.error("User ID not found");
       return;
     }
 
-    if (!form.firstName.trim()) {
-      message.error("กรุณากรอกชื่อ");
+    if (!hasFormChanged) {
+      message.warning("No changes");
       return;
     }
 
-    if (!form.lastName.trim()) {
-      message.error("กรุณากรอกนามสกุล");
-      return;
-    }
-
-    if (!form.email.trim()) {
-      message.error("ไม่พบอีเมลผู้ใช้งาน");
-      return;
-    }
-
-    const phoneError = validatePhone(form.phone);
-    if (phoneError) {
-      message.error(phoneError);
-      return;
-    }
-
-    if (!form.location.trim()) {
-      message.error("กรุณากรอก Location");
-      return;
-    }
-
-    if (!form.position.trim()) {
-      message.error("กรุณากรอก Position");
+    if (!isFormValid) {
+      message.error("Please fix invalid fields");
       return;
     }
 
@@ -150,6 +234,7 @@ const Setting: React.FC<SettingProps> = ({ user, onUpdated }) => {
       const payload: UpdateUserInput = {
         first_name: form.firstName.trim(),
         last_name: form.lastName.trim(),
+        email: form.email.trim(),
         phone_number: form.phone.trim(),
         location: form.location.trim(),
         position: form.position.trim(),
@@ -159,41 +244,58 @@ const Setting: React.FC<SettingProps> = ({ user, onUpdated }) => {
       const updated = await UpdateUserByID(user.id, payload);
 
       if (!updated) {
-        message.error("อัปเดตข้อมูลไม่สำเร็จ");
+        message.error("Update failed");
         return;
       }
 
       setForm(createInitialForm(updated));
       setUploadFile(undefined);
       setProfileBase64(undefined);
+      setTouched({
+        firstName: false,
+        lastName: false,
+        email: false,
+        phone: false,
+        location: false,
+        position: false,
+      });
 
-      message.success("บันทึกข้อมูลสำเร็จ");
+      message.success("Save success");
       onUpdated();
     } catch (err: any) {
       console.error("Update profile error:", err);
       const msg =
-        err?.response?.data?.error ||
-        err?.message ||
-        "อัปเดตข้อมูลไม่สำเร็จ";
+        err?.response?.data?.error || err?.message || "Update failed";
       message.error(msg);
     } finally {
       setSubmitting(false);
     }
   };
 
-  const inputClass = [
-    "w-full h-10 rounded-[10px] border px-3.5 text-[13px] outline-none",
-    "border-gray-300 bg-white text-gray-700",
-    "focus:ring-2 focus:ring-[#7a67ea]/25 focus:border-[#7a67ea]",
-    "dark:border-white/10 dark:bg-white/5 dark:text-white/80",
+  const inputBaseClass = [
+    "w-full h-10 rounded-[10px] border px-3.5 text-[13px] outline-none transition-all",
+    "bg-white text-gray-700",
+    "dark:bg-white/5 dark:text-white/80",
     "dark:placeholder:text-white/35",
   ].join(" ");
 
-  const disabledInputClass = [
-    "w-full h-10 rounded-[10px] border px-3.5 text-[13px] outline-none cursor-not-allowed",
-    "border-gray-200 bg-gray-100 text-gray-500",
-    "dark:border-white/10 dark:bg-white/10 dark:text-white/45",
-  ].join(" ");
+  const getInputClass = (field: keyof TouchedField, error: string) =>
+    [
+      inputBaseClass,
+      touched[field] && error
+        ? "border-red-500 bg-red-50 text-red-700 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 dark:border-red-400 dark:bg-red-500/10 dark:text-white"
+        : "border-gray-300 focus:ring-2 focus:ring-[#7a67ea]/25 focus:border-[#7a67ea] dark:border-white/10",
+    ].join(" ");
+
+  const renderFieldError = (field: keyof TouchedField, error: string) => {
+    if (!touched[field] || !error) return null;
+
+    return (
+      <p className="mt-1 text-[11px] text-red-500 dark:text-red-400">
+        {error}
+      </p>
+    );
+  };
 
   return (
     <section
@@ -205,14 +307,51 @@ const Setting: React.FC<SettingProps> = ({ user, onUpdated }) => {
     >
       <div
         className={[
-          "px-4 sm:px-5 py-3.5 border-b",
-          "border-gray-200/80",
-          "dark:border-white/10",
+          "relative overflow-hidden px-4 sm:px-5 py-4 sm:py-5 border-b",
+          "border-gray-200/80 bg-linear-to-r from-white via-[#f8fbff] to-[#f5f7ff]",
+          "dark:border-white/10 dark:from-white/4 dark:via-white/3 dark:to-white/2",
         ].join(" ")}
       >
-        <h2 className="text-[16px] sm:text-[18px] font-semibold text-[#1f2240] dark:text-white/85">
-          Account Settings
-        </h2>
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -top-10 right-6 h-24 w-24 rounded-full bg-cyan-400/10 blur-2xl" />
+          <div className="absolute bottom-0 left-10 h-20 w-20 rounded-full bg-violet-400/10 blur-2xl" />
+        </div>
+
+        <div className="relative z-10 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <div className="flex items-center gap-3">
+              <div
+                className={[
+                  "flex h-11 w-11 items-center justify-center rounded-2xl",
+                  "bg-linear-to-br from-cyan-400 via-sky-400 to-violet-400",
+                  "text-white shadow-[0_10px_24px_-12px_rgba(59,130,246,0.65)]",
+                ].join(" ")}
+              >
+                <FiSettings className="text-[18px]" />
+              </div>
+
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-600 dark:text-cyan-300">
+                  Profile
+                </p>
+                <h2 className="truncate text-[18px] sm:text-[20px] font-semibold tracking-tight text-[#1f2240] dark:text-white/90">
+                  Account Settings
+                </h2>
+              </div>
+            </div>
+          </div>
+
+          <div
+            className={[
+              "inline-flex items-center gap-1.5 self-start rounded-2xl px-3 py-1.5",
+              "bg-linear-to-r from-cyan-400/90 via-sky-400/90 to-violet-400/90 text-white",
+              "shadow-[0_8px_20px_-12px_rgba(56,189,248,0.55)]",
+            ].join(" ")}
+          >
+            <FiShield className="text-[12px]" />
+            <span className="text-[11px] font-semibold">My Profile</span>
+          </div>
+        </div>
       </div>
 
       <form onSubmit={onSave} className="p-4 sm:p-5 flex-1 flex flex-col">
@@ -249,7 +388,7 @@ const Setting: React.FC<SettingProps> = ({ user, onUpdated }) => {
               />
 
               <p className="text-[11px] text-gray-500 dark:text-white/45">
-                คลิกเพื่ออัปโหลดรูปโปรไฟล์
+                Click to upload profile image
               </p>
             </div>
           </div>
@@ -263,9 +402,11 @@ const Setting: React.FC<SettingProps> = ({ user, onUpdated }) => {
                 name="firstName"
                 value={form.firstName}
                 onChange={handleChange}
+                onBlur={() => handleBlur("firstName")}
                 type="text"
-                className={inputClass}
+                className={getInputClass("firstName", errors.firstName)}
               />
+              {renderFieldError("firstName", errors.firstName)}
             </div>
 
             <div>
@@ -276,9 +417,11 @@ const Setting: React.FC<SettingProps> = ({ user, onUpdated }) => {
                 name="lastName"
                 value={form.lastName}
                 onChange={handleChange}
+                onBlur={() => handleBlur("lastName")}
                 type="text"
-                className={inputClass}
+                className={getInputClass("lastName", errors.lastName)}
               />
+              {renderFieldError("lastName", errors.lastName)}
             </div>
 
             <div>
@@ -288,11 +431,12 @@ const Setting: React.FC<SettingProps> = ({ user, onUpdated }) => {
               <input
                 name="email"
                 value={form.email}
+                onChange={handleChange}
+                onBlur={() => handleBlur("email")}
                 type="email"
-                disabled
-                readOnly
-                className={disabledInputClass}
+                className={getInputClass("email", errors.email)}
               />
+              {renderFieldError("email", errors.email)}
             </div>
 
             <div>
@@ -303,15 +447,19 @@ const Setting: React.FC<SettingProps> = ({ user, onUpdated }) => {
                 name="phone"
                 value={form.phone}
                 onChange={handleChange}
+                onBlur={() => handleBlur("phone")}
                 type="text"
                 inputMode="numeric"
                 maxLength={10}
                 placeholder="0XXXXXXXXX"
-                className={inputClass}
+                className={getInputClass("phone", errors.phone)}
               />
-              <p className="mt-1 text-[11px] text-gray-500 dark:text-white/40">
-                ต้องเป็นตัวเลข 10 หลัก และขึ้นต้นด้วย 0
-              </p>
+              {renderFieldError("phone", errors.phone)}
+              {!touched.phone && (
+                <p className="mt-1 text-[11px] text-gray-500 dark:text-white/40">
+                  Must be 10 digits and start with 0
+                </p>
+              )}
             </div>
 
             <div>
@@ -322,9 +470,11 @@ const Setting: React.FC<SettingProps> = ({ user, onUpdated }) => {
                 name="location"
                 value={form.location}
                 onChange={handleChange}
+                onBlur={() => handleBlur("location")}
                 type="text"
-                className={inputClass}
+                className={getInputClass("location", errors.location)}
               />
+              {renderFieldError("location", errors.location)}
             </div>
 
             <div>
@@ -335,10 +485,12 @@ const Setting: React.FC<SettingProps> = ({ user, onUpdated }) => {
                 name="position"
                 value={form.position}
                 onChange={handleChange}
+                onBlur={() => handleBlur("position")}
                 type="text"
-                className={inputClass}
+                className={getInputClass("position", errors.position)}
                 placeholder="Enter position"
               />
+              {renderFieldError("position", errors.position)}
             </div>
           </div>
         </div>
@@ -346,11 +498,13 @@ const Setting: React.FC<SettingProps> = ({ user, onUpdated }) => {
         <div className="mt-4 flex flex-wrap items-center gap-2.5">
           <button
             type="submit"
-            disabled={submitting}
+            disabled={!canSave}
             className={[
-              "inline-flex items-center gap-2 rounded-[10px] px-3.5 py-2 transition-colors",
-              "bg-[#6f5be8] hover:bg-[#624de0] text-white font-semibold text-[13px]",
-              submitting ? "opacity-70 cursor-not-allowed" : "",
+              "inline-flex items-center gap-2 rounded-[10px] px-3.5 py-2 transition-all",
+              "bg-linear-to-r from-cyan-400 via-sky-400 to-violet-400 text-white font-semibold text-[13px]",
+              "shadow-[0_8px_20px_-12px_rgba(56,189,248,0.65)]",
+              "hover:brightness-105",
+              !canSave ? "opacity-60 cursor-not-allowed hover:brightness-100" : "",
             ].join(" ")}
           >
             <FiCheckCircle className="text-[14px]" />

@@ -77,7 +77,7 @@ const Service: React.FC = () => {
       }
     } catch (error) {
       console.error("fetchSendEmail error:", error);
-      message.error("โหลดข้อมูล Send Email ไม่สำเร็จ");
+      message.error("Failed to load send email configuration.");
     } finally {
       if (mode === "initial") setLoading(false);
       if (mode === "refresh") setRefreshing(false);
@@ -105,32 +105,31 @@ const Service: React.FC = () => {
       pass_app: originalData.pass_app || "",
     });
 
-    message.info("คืนค่าข้อมูลเดิมแล้ว");
+    message.info("Changes have been reset.");
   };
 
   const handleRefresh = async () => {
     await fetchSendEmail("refresh");
-    message.success("รีเฟรชข้อมูลล่าสุดแล้ว");
   };
 
   const handleSubmit = async () => {
     if (recordId === null) {
-      message.error("ไม่พบข้อมูลสำหรับอัปเดต");
+      message.error("No configuration record found for update.");
       return;
     }
 
     if (!formData.email.trim()) {
-      message.warning("กรุณากรอก Email");
+      message.warning("Please enter an email address.");
       return;
     }
 
     if (!isValidEmail) {
-      message.warning("รูปแบบ Email ไม่ถูกต้อง");
+      message.warning("Invalid email format.");
       return;
     }
 
     if (!formData.pass_app.trim()) {
-      message.warning("กรุณากรอก App Password");
+      message.warning("Please enter the app password.");
       return;
     }
 
@@ -143,7 +142,7 @@ const Service: React.FC = () => {
       });
 
       if (!result) {
-        message.error("อัปเดตข้อมูลไม่สำเร็จ");
+        message.error("Failed to update the configuration.");
         return;
       }
 
@@ -153,10 +152,10 @@ const Service: React.FC = () => {
         pass_app: result.pass_app || "",
       });
 
-      message.success("บันทึกข้อมูลสำเร็จ");
+      message.success("saved success");
     } catch (error) {
       console.error("handleSubmit error:", error);
-      message.error("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+      message.error("An error occurred while saving the configuration.");
     } finally {
       setSaving(false);
     }
@@ -164,7 +163,7 @@ const Service: React.FC = () => {
 
   return (
     <div className="w-full bg-transparent">
-      <div className="relative w-full h-full p-2.5 sm:p-3 md:p-4 lg:p-4.5">
+      <div className="relative h-full w-full p-2.5 sm:p-3 md:p-4 lg:p-4.5">
         <div className="relative overflow-hidden rounded-[22px] border border-gray-200/80 bg-white/92 shadow-[0_14px_36px_-24px_rgba(15,23,42,0.32)] backdrop-blur dark:border-white/10 dark:bg-[#08111f]/88 dark:ring-1 dark:ring-cyan-400/10 dark:shadow-none">
           <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[22px]">
             <div className="absolute -top-16 right-0 h-36 w-36 rounded-full bg-cyan-400/10 blur-3xl" />
@@ -377,7 +376,7 @@ const Service: React.FC = () => {
                             No Send Email Configuration Found
                           </h3>
                           <p className="mt-2 text-[13px] text-rose-600 dark:text-rose-200/80">
-                            ระบบยังไม่มีข้อมูล Send Email สำหรับแก้ไข
+                            No send email configuration is available to edit.
                           </p>
 
                           <button
@@ -424,15 +423,15 @@ const Service: React.FC = () => {
                           <div className="mt-2.5">
                             {formData.email.trim().length === 0 ? (
                               <p className="text-[11px] text-gray-500 dark:text-white/40">
-                                กรุณากรอกอีเมลสำหรับใช้ส่งออกจากระบบ
+                                Please enter an email address for outgoing system messages.
                               </p>
                             ) : isValidEmail ? (
                               <p className="text-[11px] text-emerald-600 dark:text-emerald-300">
-                                รูปแบบอีเมลถูกต้อง
+                                Email format is valid.
                               </p>
                             ) : (
                               <p className="text-[11px] text-rose-600 dark:text-rose-300">
-                                รูปแบบอีเมลไม่ถูกต้อง
+                                Invalid email format.
                               </p>
                             )}
                           </div>
@@ -481,7 +480,7 @@ const Service: React.FC = () => {
                           </div>
 
                           <p className="mt-2.5 text-[11px] text-gray-500 dark:text-white/40">
-                            แนะนำให้ใช้ App Password เพื่อเพิ่มความปลอดภัยในการส่งอีเมล
+                            It is recommended to use an app password for better email security.
                           </p>
                         </div>
 
@@ -493,7 +492,7 @@ const Service: React.FC = () => {
                                 Save Changes
                               </h3>
                               <p className="mt-1 text-[12px] text-gray-500 dark:text-white/45">
-                                ตรวจสอบข้อมูลให้ถูกต้องก่อนบันทึกการเปลี่ยนแปลง
+                                Please review the information carefully before saving changes.
                               </p>
                             </div>
 

@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
+import { message } from "antd";
 import {
   FiSearch,
   FiMoreVertical,
@@ -21,7 +22,6 @@ import {
   FiAlertCircle,
 } from "react-icons/fi";
 import {
-  ListHistoryNotify,
   DeleteHistoryNotifyByIDs,
   type HistoryNotifyResponse,
 } from "../../../services";
@@ -301,53 +301,32 @@ const getDisplayDescription = (item: HistoryNotifyResponse) => {
   }
 };
 
-const Index: React.FC = () => {
+type HistoryNotifyProps = {
+  items: HistoryNotifyResponse[];
+  setItems: React.Dispatch<React.SetStateAction<HistoryNotifyResponse[]>>;
+  loading: boolean;
+  refreshing: boolean;
+  error: string;
+  onRefresh: (showRefresh?: boolean) => Promise<void> | void;
+};
+
+const Index: React.FC<HistoryNotifyProps> = ({
+  items,
+  setItems,
+  loading,
+  refreshing,
+  error,
+  onRefresh,
+}) => {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterKey>("All");
   const [openFilter, setOpenFilter] = useState(false);
 
-  const [items, setItems] = useState<HistoryNotifyResponse[]>([]);
   const [selected, setSelected] = useState<number[]>([]);
-
-  const [loading, setLoading] = useState<boolean>(true);
-  const [refreshing, setRefreshing] = useState<boolean>(false);
-  const [error, setError] = useState<string>("");
 
   const [deleteOpen, setDeleteOpen] = useState<boolean>(false);
   const [deleting, setDeleting] = useState<boolean>(false);
   const [deleteError, setDeleteError] = useState<string>("");
-
-  const loadHistoryNotify = async (showRefresh = false) => {
-    try {
-      setError("");
-
-      if (showRefresh) {
-        setRefreshing(true);
-      } else {
-        setLoading(true);
-      }
-
-      const res = await ListHistoryNotify();
-
-      if (Array.isArray(res)) {
-        setItems(res);
-      } else {
-        setItems([]);
-        setError("Unable to load notification history.");
-      }
-    } catch (err) {
-      console.error("loadHistoryNotify error:", err);
-      setItems([]);
-      setError("Unable to load notification history.");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    loadHistoryNotify();
-  }, []);
 
   const notifications = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -433,6 +412,7 @@ const Index: React.FC = () => {
       setItems((prev) => prev.filter((item) => !selectedSet.has(item.id)));
       setSelected([]);
       setDeleteOpen(false);
+      message.success("Delete success");
     } catch (err) {
       console.error("confirmDelete error:", err);
       setDeleteError("Failed to delete selected notifications.");
@@ -514,8 +494,8 @@ const Index: React.FC = () => {
                 Summary Notifications
               </h2>
 
-              <p className="mt-0.5 text-[10px] sm:text-[11px] text-slate-500 dark:text-white/55">
-                See your system updates and alert history here.
+              <p className="mt-0.5 text-[10.5px] text-slate-500 sm:text-[11px] dark:text-white/55">
+                Review, search, filter, and manage notification history records.
               </p>
             </div>
 
@@ -525,7 +505,7 @@ const Index: React.FC = () => {
                 <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search notifications..."
+                  placeholder="Search notifications."
                   className={[
                     "w-full h-8 rounded-[14px] pl-8.5 pr-3 text-[11px] outline-none transition",
                     "border border-gray-200 bg-white text-slate-800 focus:ring-2 focus:ring-cyan-200",
@@ -554,7 +534,7 @@ const Index: React.FC = () => {
 
               <button
                 type="button"
-                onClick={() => loadHistoryNotify(true)}
+                onClick={() => onRefresh(true)}
                 disabled={refreshing}
                 className={[
                   "inline-flex h-8 w-8 items-center justify-center rounded-[14px] transition",
@@ -778,84 +758,64 @@ const Index: React.FC = () => {
                           )}
                         </button>
 
-                        <div className="relative shrink-0">
-                          <div className="flex h-8.5 w-8.5 items-center justify-center rounded-[14px] border border-gray-200 bg-white text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/70">
-                            <FiMessageSquare className="text-[14px]" />
-                          </div>
-
-                          <span
-                            className={[
-                              "absolute -right-1 -bottom-1 inline-flex h-4 w-4 items-center justify-center rounded-full border text-[8px]",
-                              "bg-white dark:bg-[#08111f]",
-                              tone.iconWrap,
-                            ].join(" ")}
-                          >
-                            {tone.icon}
-                          </span>
+                        <div
+                          className={[
+                            "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl border",
+                            tone.iconWrap,
+                          ].join(" ")}
+                        >
+                          {tone.icon}
                         </div>
 
                         <div className="min-w-0 flex-1">
-                          <div className="flex flex-col gap-1.5 lg:flex-row lg:items-start lg:justify-between">
+                          <div className="flex flex-wrap items-start justify-between gap-2">
                             <div className="min-w-0">
-                              <p className="text-[12px] font-semibold leading-5 text-slate-900 dark:text-white">
-                                {displayTitle}
-                              </p>
-
-                              <p className="mt-0.5 text-[11px] leading-5 text-slate-600 dark:text-white/70 line-clamp-2">
-                                {displayDescription || "-"}
-                              </p>
-
-                              {parsed.metaLines.length > 0 && (
-                                <div className="mt-1.5 flex flex-wrap gap-1.5">
-                                  {parsed.metaLines.map((meta, index) => (
-                                    <span
-                                      key={`${item.id}-meta-${index}`}
-                                      className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[9px] font-medium text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/60"
-                                    >
-                                      {meta}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
-
-                              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
-                                <span className="inline-flex items-center gap-1.5 text-[10px] font-medium text-slate-800 dark:text-white/80">
-                                  <FiClock className="text-[10px]" />
-                                  {formatTime(item.datetime)}
-                                </span>
-
-                                <span className="inline-flex items-center gap-1.5 text-[10px] text-slate-500 dark:text-white/50">
-                                  <span className="text-cyan-500">●</span>
-                                  <span className="underline underline-offset-2">
-                                    {formatDate(item.datetime)}
-                                  </span>
-                                </span>
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <h3 className="truncate text-[12px] font-semibold text-slate-900 dark:text-white/90">
+                                  {displayTitle}
+                                </h3>
 
                                 <span
                                   className={[
-                                    "inline-flex items-center rounded-full border px-2 py-0.5 text-[9px] font-semibold",
+                                    "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-medium",
                                     tone.badge,
                                   ].join(" ")}
                                 >
                                   <span
-                                    className={`mr-1.5 inline-block h-1.5 w-1.5 rounded-full ${tone.dot}`}
+                                    className={`h-1.5 w-1.5 rounded-full ${tone.dot}`}
                                   />
                                   {tone.label}
                                 </span>
                               </div>
+
+                              <p className="mt-1 text-[10.5px] leading-5 text-slate-600 dark:text-white/60">
+                                {displayDescription}
+                              </p>
+
+                              {parsed.metaLines.length > 0 && (
+                                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                                  {parsed.metaLines.map((line, index) => (
+                                    <span
+                                      key={`${item.id}-meta-${index}`}
+                                      className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[9px] text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/55"
+                                    >
+                                      {line}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
                             </div>
 
-                            <button
-                              type="button"
-                              className={[
-                                "shrink-0 inline-flex h-7.5 w-7.5 items-center justify-center rounded-xl transition",
-                                "text-gray-500 hover:bg-gray-100 active:bg-gray-200",
-                                "dark:text-white/55 dark:hover:bg-white/10 dark:active:bg-white/15",
-                              ].join(" ")}
-                              title="More"
-                            >
-                              <FiMoreVertical className="text-[12px]" />
-                            </button>
+                            <div className="shrink-0 text-right">
+                              <div className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1 text-[9px] text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/55">
+                                <FiClock className="text-[9px]" />
+                                {formatDate(item.datetime || item.created_at)}
+                              </div>
+
+                              <p className="mt-1 text-[9.5px] text-slate-500 dark:text-white/45">
+                                {formatTime(item.datetime || item.created_at)}
+                              </p>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -869,57 +829,91 @@ const Index: React.FC = () => {
       </section>
 
       {deleteOpen && (
-        <div className="fixed inset-0 z-1000 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-[2px]">
-          <div className="w-full max-w-md overflow-hidden rounded-[18px] border border-red-200 bg-white shadow-2xl dark:border-red-400/20 dark:bg-[#0B1220]">
-            <div className="border-b border-red-100 px-4 py-3 dark:border-red-400/10">
+        <div className="fixed inset-0 z-200 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-[2px]">
+          <div className="w-full max-w-md overflow-hidden rounded-[22px] border border-gray-200 bg-white shadow-2xl dark:border-white/10 dark:bg-[#0B1220]">
+            <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-4 py-3 dark:border-white/10">
               <div className="flex items-start gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-[14px] bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-300">
-                  <FiTrash2 className="text-[16px]" />
+                <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-2xl border border-red-200 bg-red-50 text-red-600 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300">
+                  <FiTrash2 className="text-[15px]" />
                 </div>
 
-                <div className="min-w-0 flex-1">
-                  <h3 className="text-[14px] font-semibold text-slate-900 dark:text-white">
+                <div>
+                  <h3 className="text-[14px] font-semibold text-slate-900 dark:text-white/90">
                     Delete selected notifications
                   </h3>
-                  <p className="mt-0.5 text-[10px] text-slate-500 dark:text-white/55">
-                    This action will remove the selected history items.
+                  <p className="mt-1 text-[10.5px] text-slate-500 dark:text-white/55">
+                    This action will remove the selected notification history
+                    records.
                   </p>
                 </div>
-
-                <button
-                  type="button"
-                  onClick={closeDeleteModal}
-                  disabled={deleting}
-                  className="inline-flex h-7.5 w-7.5 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 dark:text-white/55 dark:hover:bg-white/10"
-                >
-                  <FiX className="text-[12px]" />
-                </button>
               </div>
+
+              <button
+                type="button"
+                onClick={closeDeleteModal}
+                disabled={deleting}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:bg-white/5 dark:text-white/55 dark:hover:bg-white/10"
+              >
+                <FiX className="text-[14px]" />
+              </button>
             </div>
 
-            <div className="px-4 py-3">
-              <div className="rounded-[14px] border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-white/10 dark:bg-white/5">
-                <p className="text-[11px] text-slate-600 dark:text-white/65">
-                  Selected items:
-                  <span className="ml-1 font-semibold text-slate-900 dark:text-white">
+            <div className="px-4 py-4">
+              <div className="rounded-[18px] border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-[11px] font-medium text-slate-700 dark:text-white/70">
+                    Selected items
+                  </span>
+                  <span className="inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-semibold text-red-700 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300">
                     {selectedItems.length}
                   </span>
-                </p>
+                </div>
 
-                <div className="mt-2 max-h-36 space-y-1.5 overflow-y-auto pr-1">
-                  {selectedItems.map((item) => (
-                    <div
-                      key={item.id}
-                      className="rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-[10px] text-slate-700 dark:border-white/10 dark:bg-white/4 dark:text-white/70"
-                    >
-                      <div className="font-medium text-slate-900 dark:text-white">
-                        {getDisplayTitle(item)}
+                <div className="max-h-52 space-y-2 overflow-y-auto pr-1">
+                  {selectedItems.map((item) => {
+                    const tone = getStatusMeta(item.status);
+                    return (
+                      <div
+                        key={`delete-${item.id}`}
+                        className="rounded-2xl border border-slate-200 bg-white px-3 py-2 dark:border-white/10 dark:bg-[#0f172a]/70"
+                      >
+                        <div className="flex items-start gap-2">
+                          <div
+                            className={[
+                              "mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-xl border",
+                              tone.iconWrap,
+                            ].join(" ")}
+                          >
+                            {tone.icon}
+                          </div>
+
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <p className="truncate text-[11px] font-semibold text-slate-900 dark:text-white/85">
+                                {getDisplayTitle(item)}
+                              </p>
+
+                              <span
+                                className={[
+                                  "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[8.5px] font-medium",
+                                  tone.badge,
+                                ].join(" ")}
+                              >
+                                <span
+                                  className={`h-1.5 w-1.5 rounded-full ${tone.dot}`}
+                                />
+                                {tone.label}
+                              </span>
+                            </div>
+
+                            <p className="mt-1 line-clamp-2 text-[10px] text-slate-500 dark:text-white/55">
+                              {getDisplayDescription(item)}
+                            </p>
+                          </div>
+                        </div>
                       </div>
-                      <div className="mt-0.5 text-slate-500 dark:text-white/45">
-                        {formatDate(item.datetime)} • {formatTime(item.datetime)}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 

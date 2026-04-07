@@ -13,7 +13,7 @@ import {
   MdMemory,
   MdSecurity,
 } from "react-icons/md";
-import { ListDeviceRisk, type DeviceRiskDTO } from "../../../services";
+import type { DeviceRiskDTO } from "../../../services";
 
 type SortOrder = "desc" | "asc";
 
@@ -29,6 +29,11 @@ type Row = {
   riskScore: number;
   iconIndex: number;
 };
+
+interface TableTargetProps {
+  data: DeviceRiskDTO[];
+  loading: boolean;
+}
 
 const clamp = (v: number, min: number, max: number) =>
   Math.max(min, Math.min(max, v));
@@ -133,39 +138,12 @@ const getRiskMeta = (risk: number) => {
   };
 };
 
-const TableTarget: React.FC = () => {
-  const [data, setData] = useState<DeviceRiskDTO[] | null>(null);
-  const [loading, setLoading] = useState(true);
-
+const TableTarget: React.FC<TableTargetProps> = ({ data, loading }) => {
   const [search, setSearch] = useState("");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
   const [openSort, setOpenSort] = useState(false);
 
   const sortRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    let mounted = true;
-
-    (async () => {
-      try {
-        setLoading(true);
-        const res = await ListDeviceRisk();
-        if (!mounted) return;
-        setData(Array.isArray(res) ? res : []);
-      } catch (error) {
-        console.error("ListDeviceRisk error:", error);
-        if (!mounted) return;
-        setData([]);
-      } finally {
-        if (!mounted) return;
-        setLoading(false);
-      }
-    })();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
 
   useEffect(() => {
     const onClickOutside = (e: MouseEvent) => {
@@ -234,7 +212,7 @@ const TableTarget: React.FC = () => {
   }, [baseRows, search, sortOrder]);
 
   const stats = useMemo(() => {
-    const list = data ?? [];
+    const list = Array.isArray(data) ? data : [];
     const totalTargets = list.length;
     const totalVulns = list.reduce(
       (sum, x) => sum + (Number(x?.vulnerability_total) || 0),
