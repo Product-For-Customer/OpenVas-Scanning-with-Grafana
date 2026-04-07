@@ -90,7 +90,7 @@ const getTypeBadgeClass = (isGroup: boolean) => {
 };
 
 const buildDeviceLabel = (item: AssetRiskDTO) =>
-  `${item.task_id} - ${item.task_name} - ${item.host_ip}`;
+  `${item.task_name} - ${item.host_ip}`;
 
 const dedupeAssetRisk = (items: AssetRiskDTO[]): AssetRiskDTO[] => {
   const map = new Map<string, AssetRiskDTO>();
@@ -690,7 +690,7 @@ const DevicePickerDropdown: React.FC<DevicePickerProps> = ({
                           Task ID: {item.task_id}
                         </span>
 
-                        <span className="inline-flex rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-700 dark:border-violet-400/20 dark:bg-violet-500/10 dark:text-violet-300">
+                        <span className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-500 dark:border-blue-400/20 dark:bg-blue-500/10 dark:text-blue-200">
                           IP: {item.host_ip}
                         </span>
                       </div>
@@ -785,15 +785,6 @@ const ReportPreviewIndex: React.FC = () => {
       alive = false;
     };
   }, []);
-
-  const selectedDeviceLabels = useMemo(() => {
-    if (selectedTaskIDs.length === 0) return [];
-
-    const selectedSet = new Set(selectedTaskIDs);
-    return assetRiskItems
-      .filter((item) => selectedSet.has(String(item.task_id).trim()))
-      .map((item) => buildDeviceLabel(item));
-  }, [assetRiskItems, selectedTaskIDs]);
 
   const handleToggleTask = (taskID: string) => {
     const normalized = String(taskID).trim();
@@ -892,20 +883,6 @@ const ReportPreviewIndex: React.FC = () => {
             <p className="text-sm text-slate-500 dark:text-white/50">
               Preview report, save as PDF, and send to LINE
             </p>
-
-            {selectedDeviceLabels.length > 0 ? (
-              <div className="mt-2 flex flex-wrap gap-2">
-                {selectedDeviceLabels.map((label, index) => (
-                  <span
-                    key={`${label}-${index}`}
-                    className="inline-flex max-w-full rounded-full border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-[11px] font-medium text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-300"
-                    title={label}
-                  >
-                    <span className="truncate">{label}</span>
-                  </span>
-                ))}
-              </div>
-            ) : null}
           </div>
 
           <div className="flex flex-wrap items-center gap-3">

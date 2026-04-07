@@ -13,13 +13,13 @@ import (
 func TestValidAppHistoryNotifyInput(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	h := entity.AppHistoryNotify{
-		Subject:     "Switch Alert",
+	history := entity.AppHistoryNotify{
+		Subject:     "High CPU Usage Alert",
 		DateTime:    time.Now(),
-		Description: "Switch CPU usage is high",
+		Description: "CPU usage exceeded the defined threshold.",
 	}
 
-	ok, err := govalidator.ValidateStruct(h)
+	ok, err := govalidator.ValidateStruct(history)
 	g.Expect(ok).To(BeTrue())
 	g.Expect(err).To(BeNil())
 }
@@ -27,13 +27,13 @@ func TestValidAppHistoryNotifyInput(t *testing.T) {
 func TestInvalidAppHistoryNotifySubjectRequired(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	h := entity.AppHistoryNotify{
+	history := entity.AppHistoryNotify{
 		Subject:     "",
 		DateTime:    time.Now(),
-		Description: "Switch CPU usage is high",
+		Description: "CPU usage exceeded the defined threshold.",
 	}
 
-	ok, err := govalidator.ValidateStruct(h)
+	ok, err := govalidator.ValidateStruct(history)
 	g.Expect(ok).To(BeFalse())
 	g.Expect(err).ToNot(BeNil())
 	g.Expect(err.Error()).To(Equal("Subject is required"))
@@ -42,13 +42,13 @@ func TestInvalidAppHistoryNotifySubjectRequired(t *testing.T) {
 func TestInvalidAppHistoryNotifyDateTimeRequired(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	h := entity.AppHistoryNotify{
-		Subject:     "Switch Alert",
+	history := entity.AppHistoryNotify{
+		Subject:     "High CPU Usage Alert",
 		DateTime:    time.Time{},
-		Description: "Switch CPU usage is high",
+		Description: "CPU usage exceeded the defined threshold.",
 	}
 
-	ok, err := govalidator.ValidateStruct(h)
+	ok, err := govalidator.ValidateStruct(history)
 	g.Expect(ok).To(BeFalse())
 	g.Expect(err).ToNot(BeNil())
 	g.Expect(err.Error()).To(Equal("DateTime is required"))
@@ -57,14 +57,28 @@ func TestInvalidAppHistoryNotifyDateTimeRequired(t *testing.T) {
 func TestInvalidAppHistoryNotifyDescriptionRequired(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	h := entity.AppHistoryNotify{
-		Subject:     "Switch Alert",
+	history := entity.AppHistoryNotify{
+		Subject:     "High CPU Usage Alert",
 		DateTime:    time.Now(),
 		Description: "",
 	}
 
-	ok, err := govalidator.ValidateStruct(h)
+	ok, err := govalidator.ValidateStruct(history)
 	g.Expect(ok).To(BeFalse())
 	g.Expect(err).ToNot(BeNil())
 	g.Expect(err.Error()).To(Equal("Description is required"))
+}
+
+func TestInvalidAppHistoryNotifyMultipleFieldsRequired(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	history := entity.AppHistoryNotify{
+		Subject:     "",
+		DateTime:    time.Time{},
+		Description: "",
+	}
+
+	ok, err := govalidator.ValidateStruct(history)
+	g.Expect(ok).To(BeFalse())
+	g.Expect(err).ToNot(BeNil())
 }

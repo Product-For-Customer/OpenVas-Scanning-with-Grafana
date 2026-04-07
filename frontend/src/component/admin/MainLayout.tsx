@@ -24,8 +24,18 @@ const MainLayout: React.FC = () => {
       : SIDEBAR_COLLAPSED_WIDTH
     : 0;
 
-  const closeNavbarPopups = () => {
+  const isInsideScrollablePopup = (target: EventTarget | null) => {
+    if (!(target instanceof HTMLElement)) return false;
+    return Boolean(target.closest('[data-allow-popup-scroll="true"]'));
+  };
+
+  const closeNavbarPopups = (event?: React.SyntheticEvent) => {
     if (scrollLockRef.current) return;
+
+    if (isInsideScrollablePopup(event?.target ?? null)) {
+      return;
+    }
+
     scrollLockRef.current = true;
 
     setIsClicked((prev) => {

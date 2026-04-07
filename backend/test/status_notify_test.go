@@ -12,11 +12,11 @@ import (
 func TestValidAppStatusNotifyInput(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	s := entity.AppStatusNotify{
+	statusNotify := entity.AppStatusNotify{
 		Status: "Success",
 	}
 
-	ok, err := govalidator.ValidateStruct(s)
+	ok, err := govalidator.ValidateStruct(statusNotify)
 	g.Expect(ok).To(BeTrue())
 	g.Expect(err).To(BeNil())
 }
@@ -24,11 +24,11 @@ func TestValidAppStatusNotifyInput(t *testing.T) {
 func TestInvalidAppStatusNotifyStatusRequired(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	s := entity.AppStatusNotify{
+	statusNotify := entity.AppStatusNotify{
 		Status: "",
 	}
 
-	ok, err := govalidator.ValidateStruct(s)
+	ok, err := govalidator.ValidateStruct(statusNotify)
 	g.Expect(ok).To(BeFalse())
 	g.Expect(err).ToNot(BeNil())
 	g.Expect(err.Error()).To(Equal("Status is required"))

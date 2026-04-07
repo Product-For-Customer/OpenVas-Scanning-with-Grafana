@@ -238,6 +238,7 @@ const Notification: React.FC = () => {
 
   return (
     <div
+      data-allow-popup-scroll="true"
       className={[
         "fixed right-5 top-16 z-120",
         "w-[calc(100vw-24px)] max-w-90",

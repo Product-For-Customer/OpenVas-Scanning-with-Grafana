@@ -1,6 +1,6 @@
 import React from "react";
-import { FiShoppingBag, FiEdit } from "react-icons/fi";
-import { AiOutlineShoppingCart, AiOutlineUser } from "react-icons/ai";
+import { FiEdit, FiGrid, FiSettings } from "react-icons/fi";
+import { AiOutlineUser } from "react-icons/ai";
 import { FaCarSide } from "react-icons/fa";
 import { RiCustomerService2Line } from "react-icons/ri";
 import type { JSX } from "react/jsx-dev-runtime";
@@ -25,7 +25,7 @@ export const getLinks = ({ isAdmin }: GetLinksParams): SidebarSection[] => {
     {
       title: "Dashboard",
       links: [
-        { name: "dashboard", icon: <FiShoppingBag /> },
+        { name: "dashboard", icon: <FiGrid /> },
         { name: "vulnerability", icon: <FiEdit /> },
         { name: "target", icon: <FiEdit /> },
         //{ name: "P.THOR", icon: <FiEdit /> },
@@ -37,7 +37,7 @@ export const getLinks = ({ isAdmin }: GetLinksParams): SidebarSection[] => {
     baseLinks.push({
       title: "Mangement",
       links: [
-        { name: "line notification", icon: <AiOutlineShoppingCart /> },
+        { name: "line notification", icon: <FiSettings  /> },
         { name: "report", icon: <FaCarSide /> },
         { name: "user", icon: <FaCarSide /> },
       ],

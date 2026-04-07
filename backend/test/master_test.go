@@ -12,12 +12,12 @@ import (
 func TestValidAppLineMasterInput(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	l := entity.AppLineMaster{
-		Name:  "Line Notify Main",
-		Token: "line_notify_token_123",
+	lineMaster := entity.AppLineMaster{
+		Name:  "Admin LINE",
+		Token: "line-token-123456",
 	}
 
-	ok, err := govalidator.ValidateStruct(l)
+	ok, err := govalidator.ValidateStruct(lineMaster)
 	g.Expect(ok).To(BeTrue())
 	g.Expect(err).To(BeNil())
 }
@@ -25,12 +25,12 @@ func TestValidAppLineMasterInput(t *testing.T) {
 func TestInvalidAppLineMasterNameRequired(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	l := entity.AppLineMaster{
+	lineMaster := entity.AppLineMaster{
 		Name:  "",
-		Token: "line_notify_token_123",
+		Token: "line-token-123456",
 	}
 
-	ok, err := govalidator.ValidateStruct(l)
+	ok, err := govalidator.ValidateStruct(lineMaster)
 	g.Expect(ok).To(BeFalse())
 	g.Expect(err).ToNot(BeNil())
 	g.Expect(err.Error()).To(Equal("Name is required"))
@@ -39,13 +39,26 @@ func TestInvalidAppLineMasterNameRequired(t *testing.T) {
 func TestInvalidAppLineMasterTokenRequired(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	l := entity.AppLineMaster{
-		Name:  "Line Notify Main",
+	lineMaster := entity.AppLineMaster{
+		Name:  "Admin LINE",
 		Token: "",
 	}
 
-	ok, err := govalidator.ValidateStruct(l)
+	ok, err := govalidator.ValidateStruct(lineMaster)
 	g.Expect(ok).To(BeFalse())
 	g.Expect(err).ToNot(BeNil())
 	g.Expect(err.Error()).To(Equal("Token is required"))
+}
+
+func TestInvalidAppLineMasterNameAndTokenRequired(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	lineMaster := entity.AppLineMaster{
+		Name:  "",
+		Token: "",
+	}
+
+	ok, err := govalidator.ValidateStruct(lineMaster)
+	g.Expect(ok).To(BeFalse())
+	g.Expect(err).ToNot(BeNil())
 }

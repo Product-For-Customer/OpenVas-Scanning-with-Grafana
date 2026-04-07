@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   FiSearch,
   FiBell,
@@ -85,6 +85,10 @@ type UiApp = {
 };
 
 const PAGE_SIZE = 3;
+
+let notificationListCache: UiNotification[] | null = null;
+let lineMasterListCache: AppLineMasterResponse[] | null = null;
+let initialNotifyPageLoadPromise: Promise<void> | null = null;
 
 const normalizeText = (value?: string | null) => (value || "").trim();
 
@@ -565,17 +569,23 @@ const Notify: React.FC = () => {
     ? "overflow-y-auto pr-1 max-h-[228px]"
     : "overflow-visible";
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async (force = false) => {
     try {
       setLoading(true);
       setError("");
 
+      if (!force && notificationListCache) {
+        setRows(notificationListCache);
+        return notificationListCache;
+      }
+
       const data = await ListAppNotification();
 
       if (!data) {
+        notificationListCache = [];
         setRows([]);
         setError("Unable to load app notifications.");
-        return;
+        return [];
       }
 
       const mapped: UiNotification[] = (data as AppNotificationResponse[]).map((item) => ({
@@ -587,43 +597,79 @@ const Notify: React.FC = () => {
         app_line_master_id: Number(item.app_line_master_id ?? 0),
       }));
 
+      notificationListCache = mapped;
       setRows(mapped);
+      return mapped;
     } catch (err) {
       console.error("fetchNotifications error:", err);
+      notificationListCache = null;
       setRows([]);
       setError("Something went wrong while loading app notifications.");
+      return [];
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchLineMasters = async () => {
+  const fetchLineMasters = useCallback(async (force = false) => {
     try {
       setLoadingLineMasters(true);
       setLineMasterError("");
 
+      if (!force && lineMasterListCache) {
+        setLineMasters(lineMasterListCache);
+        return lineMasterListCache;
+      }
+
       const data = await ListAppLineMaster();
 
       if (!data) {
+        lineMasterListCache = [];
         setLineMasters([]);
         setLineMasterError("Unable to load line master data.");
-        return;
+        return [];
       }
 
+      lineMasterListCache = data;
       setLineMasters(data);
+      return data;
     } catch (err) {
       console.error("fetchLineMasters error:", err);
+      lineMasterListCache = null;
       setLineMasters([]);
       setLineMasterError("Something went wrong while loading line master data.");
+      return [];
     } finally {
       setLoadingLineMasters(false);
     }
-  };
+  }, []);
+
+  const loadInitialData = useCallback(async () => {
+    if (notificationListCache && lineMasterListCache) {
+      setRows(notificationListCache);
+      setLineMasters(lineMasterListCache);
+      setLoading(false);
+      setLoadingLineMasters(false);
+      setError("");
+      setLineMasterError("");
+      return;
+    }
+
+    if (!initialNotifyPageLoadPromise) {
+      initialNotifyPageLoadPromise = Promise.all([
+        fetchNotifications(),
+        fetchLineMasters(),
+      ]).then(() => undefined).finally(() => {
+        initialNotifyPageLoadPromise = null;
+      });
+    }
+
+    await initialNotifyPageLoadPromise;
+  }, [fetchLineMasters, fetchNotifications]);
 
   useEffect(() => {
-    fetchNotifications();
-    fetchLineMasters();
-  }, []);
+    void loadInitialData();
+  }, [loadInitialData]);
 
   const notifications = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -825,7 +871,7 @@ const Notify: React.FC = () => {
 
       setOpenCreateModal(false);
       resetCreateForm();
-      await fetchNotifications();
+      await fetchNotifications(true);
     } catch (err: any) {
       setCreateError(
         err?.response?.data?.error ||
@@ -868,7 +914,7 @@ const Notify: React.FC = () => {
       setOpenEditModal(false);
       setSelectedRow(null);
       resetEditForm();
-      await fetchNotifications();
+      await fetchNotifications(true);
     } catch (err: any) {
       setEditError(
         err?.response?.data?.error ||
@@ -941,7 +987,7 @@ const Notify: React.FC = () => {
       }
 
       setDeleteTarget(null);
-      await fetchNotifications();
+      await fetchNotifications(true);
     } catch (err: any) {
       setDeleteError(
         err?.response?.data?.error ||
@@ -1037,7 +1083,11 @@ const Notify: React.FC = () => {
           return;
         }
 
-        setLineMasters((prev) => [res.data, ...prev]);
+        setLineMasters((prev) => {
+          const next = [res.data, ...prev];
+          lineMasterListCache = next;
+          return next;
+        });
         setMasterFormOpen(false);
 
         setCreateForm((prev) => ({
@@ -1065,9 +1115,13 @@ const Notify: React.FC = () => {
         return;
       }
 
-      setLineMasters((prev) =>
-        prev.map((item) => (item.id === editingMaster.id ? res.data : item)),
-      );
+      setLineMasters((prev) => {
+        const next = prev.map((item) =>
+          item.id === editingMaster.id ? res.data : item,
+        );
+        lineMasterListCache = next;
+        return next;
+      });
       setMasterFormOpen(false);
     } catch (err: any) {
       setMasterFormError(
@@ -1112,7 +1166,11 @@ const Notify: React.FC = () => {
         return;
       }
 
-      setLineMasters((prev) => prev.filter((item) => item.id !== masterDeleteTarget.id));
+      setLineMasters((prev) => {
+        const next = prev.filter((item) => item.id !== masterDeleteTarget.id);
+        lineMasterListCache = next;
+        return next;
+      });
 
       if (createForm.app_line_master_id === String(masterDeleteTarget.id)) {
         setCreateForm((prev) => ({
