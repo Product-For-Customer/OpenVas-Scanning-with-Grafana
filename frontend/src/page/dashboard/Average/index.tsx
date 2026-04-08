@@ -283,7 +283,6 @@ const AverageEnrollment: React.FC = () => {
       if (mode === "refresh") setRefreshing(true);
 
       const res = await ListTargetDiffer();
-      console.log(res);
       setRows(Array.isArray(res) ? res : []);
     } catch (error) {
       console.error("fetch target differ error:", error);
@@ -513,7 +512,7 @@ const AverageEnrollment: React.FC = () => {
                     Target Risk Comparison
                   </h2>
                   <p className="text-[11px] text-gray-500 dark:text-white/55 sm:text-[12px]">
-                    เปรียบเทียบ Previous Risk Score กับ Latest Risk Score ของแต่ละ target โดยใช้ Task Name เป็นแกนหลัก
+                    เปรียบเทียบ Previous Risk Score กับ Latest Risk Score ของแต่ละ Targets
                   </p>
                 </div>
               </div>

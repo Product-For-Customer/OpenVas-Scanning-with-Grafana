@@ -13,26 +13,30 @@ import (
 )
 
 type CreateAppLineMasterInput struct {
-	Name  string `json:"name" binding:"required"`
-	Token string `json:"token" binding:"required"`
+	Name        string `json:"name" binding:"required"`
+	Description string `json:"description" binding:"required"`
+	Token       string `json:"token" binding:"required"`
 }
 
 type UpdateAppLineMasterInput struct {
-	Name  *string `json:"name"`
-	Token *string `json:"token"`
+	Name        *string `json:"name"`
+	Description *string `json:"description"`
+	Token       *string `json:"token"`
 }
 
 type AppLineMasterResponse struct {
-	ID    uint   `json:"id"`
-	Name  string `json:"name"`
-	Token string `json:"token"`
+	ID          uint   `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Token       string `json:"token"`
 }
 
 func mapAppLineMasterResponse(lineMaster entity.AppLineMaster) AppLineMasterResponse {
 	return AppLineMasterResponse{
-		ID:    lineMaster.ID,
-		Name:  lineMaster.Name,
-		Token: lineMaster.Token,
+		ID:          lineMaster.ID,
+		Name:        lineMaster.Name,
+		Description: lineMaster.Description,
+		Token:       lineMaster.Token,
 	}
 }
 
@@ -46,10 +50,16 @@ func CreateAppLineMaster(c *gin.Context) {
 	db := config.DB()
 
 	name := strings.TrimSpace(input.Name)
+	description := strings.TrimSpace(input.Description)
 	token := strings.TrimSpace(input.Token)
 
 	if name == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "name is required"})
+		return
+	}
+
+	if description == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "description is required"})
 		return
 	}
 
@@ -81,8 +91,9 @@ func CreateAppLineMaster(c *gin.Context) {
 	}
 
 	lineMaster := entity.AppLineMaster{
-		Name:  name,
-		Token: token,
+		Name:        name,
+		Description: description,
+		Token:       token,
 	}
 
 	if err := db.Create(&lineMaster).Error; err != nil {
@@ -158,6 +169,16 @@ func UpdateAppLineMasterByID(c *gin.Context) {
 		}
 
 		updates["name"] = name
+	}
+
+	if input.Description != nil {
+		description := strings.TrimSpace(*input.Description)
+		if description == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "description cannot be empty"})
+			return
+		}
+
+		updates["description"] = description
 	}
 
 	if input.Token != nil {

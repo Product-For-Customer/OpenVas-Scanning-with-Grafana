@@ -30,13 +30,17 @@ const PAGE_META = [
   { page: 4, title: "Final Conclusion & Executive Summary" },
 ];
 
-const noop = () => {};
+const noop = () => { };
 
 type PdfProps = {
   refreshToken?: number;
+  selectedTaskIDs?: string[];
 };
 
-const Pdf: React.FC<PdfProps> = ({ refreshToken = 0 }) => {
+const Pdf: React.FC<PdfProps> = ({
+  refreshToken = 0,
+  selectedTaskIDs = [],
+}) => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [scale, setScale] = useState<number>(1);
   const previewFrameRef = useRef<HTMLDivElement | null>(null);
@@ -89,7 +93,7 @@ const Pdf: React.FC<PdfProps> = ({ refreshToken = 0 }) => {
     switch (pageNumber) {
       case 1:
         return (
-          <div className={pageShellClass} >
+          <div className={pageShellClass}>
             <div className="w-full bg-white">
               <ReportHeader refreshToken={refreshToken} />
             </div>
@@ -105,7 +109,10 @@ const Pdf: React.FC<PdfProps> = ({ refreshToken = 0 }) => {
                   </p>
                 </div>
 
-                <ReportKPI onReady={noop} />
+                <ReportKPI
+                  onReady={noop}
+                  selectedTaskIDs={selectedTaskIDs}
+                />
               </section>
 
               <section className="mt-5">
@@ -120,7 +127,10 @@ const Pdf: React.FC<PdfProps> = ({ refreshToken = 0 }) => {
                   </p>
                 </div>
 
-                <SeveritySnapshot onReady={noop} />
+                <SeveritySnapshot
+                  onReady={noop}
+                  selectedTaskIDs={selectedTaskIDs}
+                />
               </section>
             </main>
 
@@ -145,7 +155,10 @@ const Pdf: React.FC<PdfProps> = ({ refreshToken = 0 }) => {
                   </p>
                 </div>
 
-                <ExecutiveHighlights onReady={noop} />
+                <ExecutiveHighlights
+                  onReady={noop}
+                  selectedTaskIDs={selectedTaskIDs}
+                />
               </section>
 
               <section
@@ -166,7 +179,7 @@ const Pdf: React.FC<PdfProps> = ({ refreshToken = 0 }) => {
                   </p>
                 </div>
 
-                <TopDeviceRiskReport onReady={noop} />
+                <TopDeviceRiskReport onReady={noop} selectedTaskIDs={selectedTaskIDs} />
               </section>
             </main>
 
@@ -196,7 +209,7 @@ const Pdf: React.FC<PdfProps> = ({ refreshToken = 0 }) => {
                   </p>
                 </div>
 
-                <ComparisonReport onReady={noop} />
+                <ComparisonReport onReady={noop} selectedTaskIDs={selectedTaskIDs} />
               </section>
 
               <section
@@ -218,7 +231,7 @@ const Pdf: React.FC<PdfProps> = ({ refreshToken = 0 }) => {
                   </p>
                 </div>
 
-                <Section6MonthlyRiskReport onReady={noop} />
+                <Section6MonthlyRiskReport onReady={noop} selectedTaskIDs={selectedTaskIDs} />
               </section>
             </main>
 
@@ -251,7 +264,7 @@ const Pdf: React.FC<PdfProps> = ({ refreshToken = 0 }) => {
                   </p>
                 </div>
 
-                <Conclusion onReady={noop} />
+                <Conclusion onReady={noop} selectedTaskIDs={selectedTaskIDs} />
               </section>
             </main>
 

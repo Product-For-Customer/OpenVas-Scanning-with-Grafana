@@ -33,6 +33,7 @@ type MetricItem = {
 
 type ReportKPIProps = {
   onReady?: (ready: boolean) => void;
+  selectedTaskIDs?: string[];
 };
 
 const levelBadgeClassMap: Record<SeverityLevel, string> = {
@@ -82,11 +83,27 @@ const safeNumber = (value: unknown): number => {
   return Number.isFinite(num) ? num : 0;
 };
 
-const ReportKPI: React.FC<ReportKPIProps> = ({ onReady }) => {
+const normalizeTaskIDs = (ids?: string[]): string[] => {
+  if (!Array.isArray(ids)) return [];
+
+  return ids
+    .map((id) => String(id).trim())
+    .filter((id) => id !== "");
+};
+
+const ReportKPI: React.FC<ReportKPIProps> = ({
+  onReady,
+  selectedTaskIDs = [],
+}) => {
   const [rows, setRows] = useState<TaskVulnSummaryForReportResponse[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [queryTaskIDs, setQueryTaskIDs] = useState<string[]>([]);
   const [taskMode, setTaskMode] = useState<"all" | "filtered">("all");
+
+  const normalizedSelectedTaskIDs = useMemo(
+    () => normalizeTaskIDs(selectedTaskIDs),
+    [selectedTaskIDs]
+  );
 
   useEffect(() => {
     const parsed = readTaskIDsFromQuery();
@@ -126,19 +143,35 @@ const ReportKPI: React.FC<ReportKPIProps> = ({ onReady }) => {
     };
   }, [onReady]);
 
+  const effectiveTaskMode = useMemo<"all" | "filtered">(() => {
+    if (normalizedSelectedTaskIDs.length > 0) {
+      return "filtered";
+    }
+
+    return taskMode;
+  }, [normalizedSelectedTaskIDs, taskMode]);
+
+  const effectiveTaskIDs = useMemo<string[]>(() => {
+    if (normalizedSelectedTaskIDs.length > 0) {
+      return normalizedSelectedTaskIDs;
+    }
+
+    return queryTaskIDs;
+  }, [normalizedSelectedTaskIDs, queryTaskIDs]);
+
   const filteredRows = useMemo(() => {
-    if (taskMode === "all") {
+    if (effectiveTaskMode === "all") {
       return rows;
     }
 
-    if (queryTaskIDs.length === 0) {
+    if (effectiveTaskIDs.length === 0) {
       return rows;
     }
 
-    const selected = new Set(queryTaskIDs.map((id) => String(id).trim()));
+    const selected = new Set(effectiveTaskIDs.map((id) => String(id).trim()));
 
     return rows.filter((row) => selected.has(String(row.task_id).trim()));
-  }, [rows, queryTaskIDs, taskMode]);
+  }, [rows, effectiveTaskIDs, effectiveTaskMode]);
 
   const summary = useMemo(() => {
     let critical = 0;
@@ -175,7 +208,7 @@ const ReportKPI: React.FC<ReportKPIProps> = ({ onReady }) => {
         label: "Total Findings",
         value: loading ? "..." : summary.total.toLocaleString(),
         hint:
-          taskMode === "all"
+          effectiveTaskMode === "all"
             ? "Total findings identified across all scanned devices"
             : `Total findings identified across ${summary.taskCount.toLocaleString()} selected device task(s)`,
         icon: <MdOutlineReportProblem className="text-[13px]" />,
@@ -234,7 +267,7 @@ const ReportKPI: React.FC<ReportKPIProps> = ({ onReady }) => {
         level: "info",
       },
     ],
-    [loading, summary, taskMode]
+    [loading, summary, effectiveTaskMode]
   );
 
   return (
@@ -251,7 +284,7 @@ const ReportKPI: React.FC<ReportKPIProps> = ({ onReady }) => {
           </div>
 
           <div className="text-right text-[9.5px] leading-[1.45] text-slate-500">
-            {taskMode === "all"
+            {effectiveTaskMode === "all"
               ? "Consolidated findings by severity level"
               : `Filtered by ${summary.taskCount.toLocaleString()} selected task(s)`}
           </div>

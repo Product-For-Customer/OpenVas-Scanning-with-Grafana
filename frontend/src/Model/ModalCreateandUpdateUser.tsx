@@ -72,10 +72,10 @@ const toBase64 = (file: File) =>
 
 const getRoleBadgeClass = (role: string) => {
   if (role === "Admin") {
-    return "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-400/20 dark:bg-violet-500/10 dark:text-violet-200";
+    return "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-400/25 dark:bg-violet-500/12 dark:text-violet-200";
   }
 
-  return "border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-200";
+  return "border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-400/25 dark:bg-cyan-500/12 dark:text-cyan-200";
 };
 
 const isBase64DataImage = (v: string) => {
@@ -546,16 +546,22 @@ const ModalCreateandUpdateUser: React.FC<ModalCreateandUpdateUserProps> = ({
                     onClick={() => !loadingRoles && setRoleOpen((prev) => !prev)}
                     disabled={loadingRoles}
                     className={[
-                      "w-full min-h-11 rounded-3xl px-3 text-left transition",
-                      "border border-cyan-200/90 bg-linear-to-b from-white to-cyan-50/70",
-                      "hover:border-cyan-300 hover:bg-cyan-50/80",
+                      "group w-full min-h-11 rounded-[22px] px-3 text-left transition-all duration-200",
+                      "border border-slate-300 bg-white",
+                      "hover:border-cyan-300 hover:bg-cyan-50/40",
                       "focus:outline-none focus:ring-4 focus:ring-cyan-100/80",
                       "disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100",
-                      "dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:hover:border-cyan-400/35 dark:hover:bg-cyan-500/12 dark:focus:ring-cyan-400/10 dark:disabled:border-white/10 dark:disabled:bg-white/5",
+                      "dark:border-[#23314d] dark:bg-[#182338]",
+                      "dark:hover:border-cyan-400/35 dark:hover:bg-[#1d2b45]",
+                      "dark:focus:border-cyan-400/30 dark:focus:ring-cyan-400/10",
+                      "dark:disabled:border-white/10 dark:disabled:bg-white/5",
+                      roleOpen
+                        ? "border-cyan-300 bg-cyan-50/50 dark:border-cyan-400/35 dark:bg-[#1b2a44]"
+                        : "",
                     ].join(" ")}
                   >
                     <div className="flex items-center gap-2">
-                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-cyan-200 bg-white text-cyan-700 dark:border-cyan-400/20 dark:bg-white/10 dark:text-cyan-200">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-400/10 dark:text-cyan-200">
                         <FiShield className="text-[11px]" />
                       </span>
 
@@ -564,7 +570,7 @@ const ModalCreateandUpdateUser: React.FC<ModalCreateandUpdateUserProps> = ({
                           className={[
                             "block truncate text-[12px] font-semibold",
                             selectedRoleName
-                              ? "text-slate-800 dark:text-white"
+                              ? "text-slate-800 dark:text-slate-100"
                               : "text-slate-500 dark:text-white/45",
                           ].join(" ")}
                         >
@@ -574,9 +580,9 @@ const ModalCreateandUpdateUser: React.FC<ModalCreateandUpdateUserProps> = ({
                         </span>
                       </span>
 
-                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-cyan-200 bg-white/90 text-cyan-700 shadow-sm dark:border-cyan-400/20 dark:bg-white/10 dark:text-cyan-200">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-600 transition group-hover:border-cyan-200 group-hover:text-cyan-700 dark:border-white/10 dark:bg-white/5 dark:text-white/65 dark:group-hover:border-cyan-400/20 dark:group-hover:bg-cyan-400/10 dark:group-hover:text-cyan-200">
                         <FiChevronDown
-                          className={`text-[12px] transition-transform ${
+                          className={`text-[12px] transition-transform duration-200 ${
                             roleOpen ? "rotate-180" : ""
                           }`}
                         />
@@ -585,8 +591,8 @@ const ModalCreateandUpdateUser: React.FC<ModalCreateandUpdateUserProps> = ({
                   </button>
 
                   {roleOpen && !loadingRoles && (
-                    <div className="absolute bottom-[calc(100%+8px)] left-0 right-0 z-50 overflow-hidden rounded-[22px] border border-slate-200 bg-white shadow-[0_18px_44px_rgba(15,23,42,0.14)] dark:border-white/10 dark:bg-[#0B1220] dark:shadow-[0_18px_44px_rgba(0,0,0,0.28)]">
-                      <div className="border-b border-slate-100 px-3 py-2 dark:border-white/10">
+                    <div className="absolute bottom-[calc(100%+8px)] left-0 right-0 z-50 overflow-hidden rounded-[22px] border border-slate-200 bg-white shadow-[0_18px_44px_rgba(15,23,42,0.14)] dark:border-[#22304a] dark:bg-[#101a2c] dark:shadow-[0_22px_50px_rgba(0,0,0,0.45)]">
+                      <div className="border-b border-slate-100 px-3 py-2 dark:border-white/8">
                         <span className="text-[10px] font-medium text-slate-500 dark:text-white/45">
                           Select role
                         </span>
@@ -604,9 +610,9 @@ const ModalCreateandUpdateUser: React.FC<ModalCreateandUpdateUserProps> = ({
                                 type="button"
                                 onClick={() => handleRoleSelect(role.id)}
                                 className={[
-                                  "flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition",
+                                  "flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-all duration-150",
                                   checked
-                                    ? "border border-cyan-200 bg-cyan-50 dark:border-cyan-400/20 dark:bg-cyan-500/10"
+                                    ? "border border-cyan-200 bg-cyan-50 shadow-[0_4px_14px_rgba(34,211,238,0.08)] dark:border-cyan-400/20 dark:bg-cyan-400/10 dark:shadow-none"
                                     : "border border-transparent hover:bg-slate-50 dark:hover:bg-white/5",
                                 ].join(" ")}
                               >
@@ -615,7 +621,7 @@ const ModalCreateandUpdateUser: React.FC<ModalCreateandUpdateUserProps> = ({
                                     "flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition",
                                     checked
                                       ? "border-cyan-500 bg-cyan-500 text-white"
-                                      : "border-slate-300 bg-white text-transparent dark:border-white/20 dark:bg-white/5",
+                                      : "border-slate-300 bg-white text-transparent dark:border-white/15 dark:bg-[#162136]",
                                   ].join(" ")}
                                 >
                                   <FiCheck className="text-[10px]" />

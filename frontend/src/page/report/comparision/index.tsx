@@ -28,6 +28,7 @@ type ChartRow = {
 
 type ComparisonReportProps = {
   onReady?: (ready: boolean) => void;
+  selectedTaskIDs?: string[];
 };
 
 const clamp = (num: number, min: number, max: number) =>
@@ -138,17 +139,49 @@ const readTaskIDsFromQuery = (): { mode: "all" | "filtered"; ids: string[] } => 
   return { mode: "filtered", ids };
 };
 
-const ComparisonReport: React.FC<ComparisonReportProps> = ({ onReady }) => {
+const normalizeTaskIDs = (ids?: string[]): string[] => {
+  if (!Array.isArray(ids)) return [];
+
+  return ids
+    .map((id) => String(id).trim())
+    .filter((id) => id !== "");
+};
+
+const ComparisonReport: React.FC<ComparisonReportProps> = ({
+  onReady,
+  selectedTaskIDs = [],
+}) => {
   const [rawData, setRawData] = useState<TargetDifferForReportDTO[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [queryTaskIDs, setQueryTaskIDs] = useState<string[]>([]);
   const [taskMode, setTaskMode] = useState<"all" | "filtered">("all");
+
+  const normalizedSelectedTaskIDs = useMemo(
+    () => normalizeTaskIDs(selectedTaskIDs),
+    [selectedTaskIDs]
+  );
 
   useEffect(() => {
     const parsed = readTaskIDsFromQuery();
     setQueryTaskIDs(parsed.ids);
     setTaskMode(parsed.mode);
   }, []);
+
+  const effectiveTaskMode = useMemo<"all" | "filtered">(() => {
+    if (normalizedSelectedTaskIDs.length > 0) {
+      return "filtered";
+    }
+
+    return taskMode;
+  }, [normalizedSelectedTaskIDs, taskMode]);
+
+  const effectiveTaskIDs = useMemo<string[]>(() => {
+    if (normalizedSelectedTaskIDs.length > 0) {
+      return normalizedSelectedTaskIDs;
+    }
+
+    return queryTaskIDs;
+  }, [normalizedSelectedTaskIDs, queryTaskIDs]);
 
   useEffect(() => {
     let isMounted = true;
@@ -160,9 +193,9 @@ const ComparisonReport: React.FC<ComparisonReportProps> = ({ onReady }) => {
 
       try {
         const result =
-          taskMode === "all"
+          effectiveTaskMode === "all"
             ? await ListTargetDifferForReport()
-            : await ListTargetDifferForReport(queryTaskIDs);
+            : await ListTargetDifferForReport(effectiveTaskIDs);
 
         if (!isMounted) return;
 
@@ -187,7 +220,7 @@ const ComparisonReport: React.FC<ComparisonReportProps> = ({ onReady }) => {
     return () => {
       isMounted = false;
     };
-  }, [onReady, taskMode, queryTaskIDs]);
+  }, [onReady, effectiveTaskMode, effectiveTaskIDs]);
 
   const chartData = useMemo<ChartRow[]>(() => {
     return [...rawData]

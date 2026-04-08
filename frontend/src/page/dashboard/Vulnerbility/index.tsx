@@ -65,6 +65,14 @@ const rowGlowClasses: Record<VulnRow["severity"], string> = {
   INFO: "hover:border-blue-200 hover:bg-blue-50/60 dark:hover:border-blue-400/20 dark:hover:bg-blue-500/5",
 };
 
+const levelDotClasses: Record<VulnRow["severity"], string> = {
+  CRITICAL: "bg-[#ef4444]",
+  HIGH: "bg-[#f97316]",
+  MEDIUM: "bg-[#eab308]",
+  LOW: "bg-[#22c55e]",
+  INFO: "bg-[#3b82f6]",
+};
+
 const toSeverity = (
   level: VulnerabilityLevelDTO["level"]
 ): VulnRow["severity"] => {
@@ -376,23 +384,23 @@ const TopVulnerability: React.FC<TopVulnerabilityProps> = ({
               <div
                 className={[
                   "inline-flex items-center gap-1.5 rounded-full px-2 py-1",
-                  "bg-cyan-50 text-cyan-700 border border-cyan-200/80",
-                  "dark:bg-cyan-500/10 dark:text-cyan-300 dark:border-cyan-400/20",
+                  "bg-amber-50 text-amber-700 border border-amber-200/80",
+                  "dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-400/20",
                 ].join(" ")}
               >
-                <FiShield className="text-[10px]" />
+                <FiAlertTriangle className="text-[10px]" />
                 <span className="text-[9.5px] font-semibold tracking-wide">
-                  Top Vulnerability
+                  Vulnerability Queue
                 </span>
               </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <h3 className="text-[14px] sm:text-[15px] font-semibold text-[#1f2240] dark:text-white/90 whitespace-nowrap">
-                Latest Vulnerability Queue
+                Top Vulnerability
               </h3>
               <p className="text-[10px] sm:text-[10.5px] text-slate-500 dark:text-white/55 whitespace-nowrap">
-                Latest imported findings grouped by vulnerability title
+                Latest prioritized vulnerabilities from imported findings
               </p>
             </div>
           </div>
@@ -402,61 +410,78 @@ const TopVulnerability: React.FC<TopVulnerabilityProps> = ({
               <button
                 type="button"
                 onClick={() => setOpenLevelQuery((prev) => !prev)}
-                className="inline-flex h-9 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-[11px] font-medium text-slate-700 shadow-sm transition-all hover:border-cyan-300 hover:text-cyan-700 dark:border-white/10 dark:bg-white/5 dark:text-white/75 dark:hover:border-cyan-400/30 dark:hover:text-cyan-300"
+                className={[
+                  "h-9 rounded-xl px-3 flex items-center gap-2 border transition min-w-27.5 sm:min-w-32.5",
+                  "bg-white border-gray-200 text-slate-700 hover:border-cyan-200 hover:bg-cyan-50/60",
+                  "dark:bg-white/5 dark:border-white/10 dark:text-white/75 dark:hover:bg-white/10",
+                ].join(" ")}
               >
-                <FiAlertTriangle className="text-[12px]" />
-                <span className="max-w-35 truncate">{levelButtonLabel}</span>
+                <FiShield className="text-[12px]" />
+                <span className="text-[10.5px] font-medium whitespace-nowrap overflow-hidden text-ellipsis">
+                  {levelButtonLabel}
+                </span>
                 <FiChevronDown
-                  className={`text-[12px] transition-transform ${
+                  className={`ml-auto text-[12px] transition-transform ${
                     openLevelQuery ? "rotate-180" : ""
                   }`}
                 />
               </button>
 
               {openLevelQuery && (
-                <div className="absolute right-0 z-100 mt-2 w-62.5 rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl dark:border-white/10 dark:bg-[#0b1220]">
-                  <div className="relative mb-2">
-                    <FiSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[12px] text-slate-400" />
-                    <input
-                      type="text"
-                      value={levelQuerySearch}
-                      onChange={(e) => setLevelQuerySearch(e.target.value)}
-                      placeholder="Search level..."
-                      className="h-9 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-[11px] text-slate-700 outline-none focus:border-cyan-300 focus:bg-white dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:focus:border-cyan-400/30"
-                    />
-                  </div>
-
-                  <div className="mb-2 flex items-center justify-between gap-2">
-                    <button
-                      type="button"
-                      onClick={handleSelectAllVisibleLevels}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-[10px] font-medium text-slate-600 hover:border-cyan-300 hover:text-cyan-700 dark:border-white/10 dark:text-white/70 dark:hover:border-cyan-400/30 dark:hover:text-cyan-300"
+                <div
+                  className={[
+                    "absolute right-0 z-30 mt-2 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-2xl",
+                    "border border-gray-200 bg-white shadow-xl",
+                    "dark:border-white/10 dark:bg-[#0B1220] dark:shadow-none",
+                  ].join(" ")}
+                >
+                  <div className="border-b border-gray-100 p-2.5 dark:border-white/10">
+                    <div
+                      className={[
+                        "flex items-center gap-2 rounded-xl border px-2.5",
+                        "border-gray-200/80 bg-gray-50",
+                        "dark:border-white/10 dark:bg-white/5",
+                      ].join(" ")}
                     >
-                      <FiCheck className="text-[11px]" />
-                      {allVisibleLevelsSelected ? "Unselect All" : "Select All"}
-                    </button>
+                      <FiSearch className="shrink-0 text-[11px] text-gray-400 dark:text-white/40" />
+                      <input
+                        value={levelQuerySearch}
+                        onChange={(e) => setLevelQuerySearch(e.target.value)}
+                        placeholder="Search level"
+                        className="h-8 w-full bg-transparent text-[11px] text-gray-700 outline-none placeholder:text-gray-400 dark:text-white/80 dark:placeholder:text-white/35"
+                      />
+                    </div>
 
-                    {selectedLevels.length > 0 && (
+                    <div className="mt-2 flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={handleSelectAllVisibleLevels}
+                        className="text-[10.5px] font-medium text-cyan-600 hover:text-cyan-700 dark:text-cyan-300 dark:hover:text-cyan-200"
+                      >
+                        {allVisibleLevelsSelected
+                          ? "Unselect visible"
+                          : "Select visible"}
+                      </button>
+
                       <button
                         type="button"
                         onClick={clearAllLevels}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-[10px] font-medium text-slate-600 hover:border-red-300 hover:text-red-600 dark:border-white/10 dark:text-white/70 dark:hover:border-red-400/30 dark:hover:text-red-300"
+                        className="text-[10.5px] font-medium text-gray-500 hover:text-gray-700 dark:text-white/50 dark:hover:text-white/75"
                       >
-                        <FiX className="text-[11px]" />
-                        Clear
+                        Clear all
                       </button>
-                    )}
+                    </div>
                   </div>
 
-                  <div className="max-h-56 overflow-y-auto pr-1">
-                    <div className="space-y-1">
-                      {filteredLevelOptions.length === 0 ? (
-                        <div className="rounded-xl border border-dashed border-slate-200 px-3 py-4 text-center text-[10.5px] text-slate-500 dark:border-white/10 dark:text-white/45">
-                          No level found
-                        </div>
-                      ) : (
-                        filteredLevelOptions.map((opt) => {
-                          const active = selectedLevels.includes(opt.key);
+                  <div className="max-h-56 overflow-y-auto p-2">
+                    {filteredLevelOptions.length === 0 ? (
+                      <div className="px-3 py-6 text-center text-[11px] text-gray-500 dark:text-white/50">
+                        No matching level
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        {filteredLevelOptions.map((opt) => {
+                          const checked = selectedLevels.includes(opt.key);
 
                           return (
                             <button
@@ -464,25 +489,57 @@ const TopVulnerability: React.FC<TopVulnerabilityProps> = ({
                               type="button"
                               onClick={() => toggleLevel(opt.key)}
                               className={[
-                                "flex w-full items-center justify-between rounded-xl border px-3 py-2 text-left transition-all",
-                                active
-                                  ? "border-cyan-300 bg-cyan-50 text-cyan-700 dark:border-cyan-400/30 dark:bg-cyan-500/10 dark:text-cyan-300"
-                                  : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 dark:border-white/10 dark:bg-white/5 dark:text-white/75",
+                                "w-full flex items-start gap-2.5 rounded-xl px-2.5 py-2 text-left transition",
+                                checked
+                                  ? "bg-cyan-50 border border-cyan-200 dark:bg-cyan-500/10 dark:border-cyan-400/20"
+                                  : "border border-transparent hover:bg-gray-50 dark:hover:bg-white/5",
                               ].join(" ")}
                             >
-                              <span className="truncate text-[11px] font-medium">
-                                {opt.label}
+                              <span
+                                className={[
+                                  "mt-0.5 h-4 w-4 rounded-md border flex items-center justify-center shrink-0 transition",
+                                  checked
+                                    ? "bg-cyan-500 border-cyan-500 text-white"
+                                    : "bg-white border-gray-300 text-transparent dark:bg-white/5 dark:border-white/20",
+                                ].join(" ")}
+                              >
+                                <FiCheck className="text-[10px]" />
                               </span>
-                              {active && <FiCheck className="text-[12px]" />}
+
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span
+                                    className={`h-2 w-2 rounded-full ${levelDotClasses[opt.key]}`}
+                                  />
+                                  <span className="text-[11px] font-medium text-gray-700 dark:text-white/80 truncate">
+                                    {opt.label}
+                                  </span>
+                                </div>
+                              </div>
                             </button>
                           );
-                        })
-                      )}
-                    </div>
+                        })}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
             </div>
+
+            {selectedLevels.length > 0 && (
+              <button
+                type="button"
+                onClick={clearAllLevels}
+                className={[
+                  "h-9 w-9 rounded-xl border flex items-center justify-center transition",
+                  "bg-white border-gray-200 text-slate-500 hover:text-red-500 hover:border-red-200 hover:bg-red-50/60",
+                  "dark:bg-white/5 dark:border-white/10 dark:text-white/55 dark:hover:text-red-300 dark:hover:bg-red-500/10",
+                ].join(" ")}
+                aria-label="Clear filters"
+              >
+                <FiX className="text-[12px]" />
+              </button>
+            )}
           </div>
         </div>
 

@@ -334,6 +334,65 @@ export const ListTargetDifferForReport = async (
 };
 
 // =======================
+// Types: GET /report/vulnerability-month
+// =======================
+export type ReportVulnerabilityMonthResponse = {
+  task_id: string;
+  task_name: string;
+  ip: string;
+  month: string;
+  month_no: number;
+  vulnerability: number;
+  risk_score: number;
+};
+
+// =======================
+// API: GET /report/vulnerability-month
+// Public route: no login required
+// =======================
+export const ListDataForReportVulnerabilityMonth = async (
+  selectedTaskIDs?: string[]
+): Promise<ReportVulnerabilityMonthResponse[] | null> => {
+  try {
+    const normalizedTaskIDs = Array.isArray(selectedTaskIDs)
+      ? selectedTaskIDs
+          .map((id) => String(id).trim())
+          .filter((id) => id !== "")
+      : [];
+
+    const params =
+      normalizedTaskIDs.length > 0
+        ? {
+            task_ids: normalizedTaskIDs.join(","),
+          }
+        : undefined;
+
+    const response = await publicReportApi.get("/report/vulnerability-month", {
+      params,
+    });
+
+    if (Array.isArray(response.data)) {
+      return response.data as ReportVulnerabilityMonthResponse[];
+    }
+
+    const data = response.data?.data ?? response.data;
+
+    if (Array.isArray(data)) {
+      return data as ReportVulnerabilityMonthResponse[];
+    }
+
+    console.error(
+      "Expected array but got in ListDataForReportVulnerabilityMonth:",
+      response.data
+    );
+    return null;
+  } catch (error) {
+    console.error("ListDataForReportVulnerabilityMonth error:", error);
+    return null;
+  }
+};
+
+// =======================
 // Types: AppReport
 // =======================
 export type AppReportResponse = {

@@ -300,6 +300,7 @@ func SeedDatabase() {
 	} else {
 		lineMaster := entity.AppLineMaster{
 			Name:  "GOT Bot",
+			Description: "Testing Auto Bot send Line Alert about Vulnerability",
 			Token: "G4crCc/2gMnvX+hZErxIhg7WcI0ML+MRLlAj086lTtrdL7VYURieWPRXKd6/9Zl8RxcaME5vQ3I1BW82d1/ZYezvWklVMUk+EGGfXRmI4jwtA28iaHU8MkneAGQSibyr/yp0eetvASPPtplCXWrb7gdB04t89/1O/w1cDnyilFU=",
 		}
 

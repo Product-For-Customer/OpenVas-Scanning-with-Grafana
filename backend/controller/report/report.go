@@ -29,9 +29,10 @@ type ReportResponse struct {
 // GetReportCSVSourceHandler
 // ใช้สำหรับให้ n8n ดึงข้อมูลไปสร้าง CSV
 // ตัวอย่าง:
-//   GET /api/report
-//   GET /api/report?limit=10
-//   GET /api/report?onlyHigh=true
+//
+//	GET /api/report
+//	GET /api/report?limit=10
+//	GET /api/report?onlyHigh=true
 func GetReportCSVSourceHandler(c *gin.Context) {
 	// -----------------------------
 	// Query params (optional)

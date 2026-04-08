@@ -314,60 +314,77 @@ const DeliveryAnalysis: React.FC<DeliveryAnalysisProps> = ({
               <button
                 type="button"
                 onClick={() => setOpenTargetQuery((prev) => !prev)}
-                className="inline-flex h-9 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-[11px] font-medium text-slate-700 shadow-sm transition-all hover:border-cyan-300 hover:text-cyan-700 dark:border-white/10 dark:bg-white/5 dark:text-white/75 dark:hover:border-cyan-400/30 dark:hover:text-cyan-300"
+                className={[
+                  "h-9 rounded-xl px-3 flex items-center gap-2 border transition min-w-27.5 sm:min-w-32.5",
+                  "bg-white border-gray-200 text-slate-700 hover:border-cyan-200 hover:bg-cyan-50/60",
+                  "dark:bg-white/5 dark:border-white/10 dark:text-white/75 dark:hover:bg-white/10",
+                ].join(" ")}
               >
-                <span className="max-w-35 truncate">{targetButtonLabel}</span>
+                <FiShield className="text-[12px]" />
+                <span className="text-[10.5px] font-medium whitespace-nowrap overflow-hidden text-ellipsis">
+                  {targetButtonLabel}
+                </span>
                 <FiChevronDown
-                  className={`text-[12px] transition-transform ${
-                    openTargetQuery ? "rotate-180" : ""
-                  }`}
+                  className={`ml-auto text-[12px] transition-transform ${openTargetQuery ? "rotate-180" : ""
+                    }`}
                 />
               </button>
 
               {openTargetQuery && (
-                <div className="absolute right-0 z-100 mt-2 w-70 rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl dark:border-white/10 dark:bg-[#0b1220]">
-                  <div className="relative mb-2">
-                    <FiSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[12px] text-slate-400" />
-                    <input
-                      type="text"
-                      value={targetQuerySearch}
-                      onChange={(e) => setTargetQuerySearch(e.target.value)}
-                      placeholder="Search target..."
-                      className="h-9 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-[11px] text-slate-700 outline-none focus:border-cyan-300 focus:bg-white dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:focus:border-cyan-400/30"
-                    />
-                  </div>
-
-                  <div className="mb-2 flex items-center justify-between gap-2">
-                    <button
-                      type="button"
-                      onClick={handleSelectAllVisibleTargets}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-[10px] font-medium text-slate-600 hover:border-cyan-300 hover:text-cyan-700 dark:border-white/10 dark:text-white/70 dark:hover:border-cyan-400/30 dark:hover:text-cyan-300"
+                <div
+                  className={[
+                    "absolute right-0 z-30 mt-2 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-2xl",
+                    "border border-gray-200 bg-white shadow-xl",
+                    "dark:border-white/10 dark:bg-[#0B1220] dark:shadow-none",
+                  ].join(" ")}
+                >
+                  <div className="border-b border-gray-100 p-2.5 dark:border-white/10">
+                    <div
+                      className={[
+                        "flex items-center gap-2 rounded-xl border px-2.5",
+                        "border-gray-200/80 bg-gray-50",
+                        "dark:border-white/10 dark:bg-white/5",
+                      ].join(" ")}
                     >
-                      <FiCheck className="text-[11px]" />
-                      {allVisibleTargetsSelected ? "Unselect All" : "Select All"}
-                    </button>
+                      <FiSearch className="shrink-0 text-[11px] text-gray-400 dark:text-white/40" />
+                      <input
+                        value={targetQuerySearch}
+                        onChange={(e) => setTargetQuerySearch(e.target.value)}
+                        placeholder="Search target"
+                        className="h-8 w-full bg-transparent text-[11px] text-gray-700 outline-none placeholder:text-gray-400 dark:text-white/80 dark:placeholder:text-white/35"
+                      />
+                    </div>
 
-                    {selectedTargets.length > 0 && (
+                    <div className="mt-2 flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={handleSelectAllVisibleTargets}
+                        className="text-[10.5px] font-medium text-cyan-600 hover:text-cyan-700 dark:text-cyan-300 dark:hover:text-cyan-200"
+                      >
+                        {allVisibleTargetsSelected
+                          ? "Unselect visible"
+                          : "Select visible"}
+                      </button>
+
                       <button
                         type="button"
                         onClick={clearAllTargets}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-[10px] font-medium text-slate-600 hover:border-red-300 hover:text-red-600 dark:border-white/10 dark:text-white/70 dark:hover:border-red-400/30 dark:hover:text-red-300"
+                        className="text-[10.5px] font-medium text-gray-500 hover:text-gray-700 dark:text-white/50 dark:hover:text-white/75"
                       >
-                        <FiX className="text-[11px]" />
-                        Clear
+                        Clear all
                       </button>
-                    )}
+                    </div>
                   </div>
 
-                  <div className="max-h-60 overflow-y-auto pr-1">
-                    <div className="space-y-1">
-                      {filteredTargetOptions.length === 0 ? (
-                        <div className="rounded-xl border border-dashed border-slate-200 px-3 py-4 text-center text-[10.5px] text-slate-500 dark:border-white/10 dark:text-white/45">
-                          No target found
-                        </div>
-                      ) : (
-                        filteredTargetOptions.map((opt) => {
-                          const active = selectedTargets.includes(opt.key);
+                  <div className="max-h-56 overflow-y-auto p-2">
+                    {filteredTargetOptions.length === 0 ? (
+                      <div className="px-3 py-6 text-center text-[11px] text-gray-500 dark:text-white/50">
+                        No matching target
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        {filteredTargetOptions.map((opt) => {
+                          const checked = selectedTargets.includes(opt.key);
 
                           return (
                             <button
@@ -375,25 +392,55 @@ const DeliveryAnalysis: React.FC<DeliveryAnalysisProps> = ({
                               type="button"
                               onClick={() => toggleTarget(opt.key)}
                               className={[
-                                "flex w-full items-center justify-between rounded-xl border px-3 py-2 text-left transition-all",
-                                active
-                                  ? "border-cyan-300 bg-cyan-50 text-cyan-700 dark:border-cyan-400/30 dark:bg-cyan-500/10 dark:text-cyan-300"
-                                  : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 dark:border-white/10 dark:bg-white/5 dark:text-white/75",
+                                "w-full flex items-start gap-2.5 rounded-xl px-2.5 py-2 text-left transition",
+                                checked
+                                  ? "bg-cyan-50 border border-cyan-200 dark:bg-cyan-500/10 dark:border-cyan-400/20"
+                                  : "border border-transparent hover:bg-gray-50 dark:hover:bg-white/5",
                               ].join(" ")}
                             >
-                              <span className="truncate text-[11px] font-medium">
-                                {opt.label}
+                              <span
+                                className={[
+                                  "mt-0.5 h-4 w-4 rounded-md border flex items-center justify-center shrink-0 transition",
+                                  checked
+                                    ? "bg-cyan-500 border-cyan-500 text-white"
+                                    : "bg-white border-gray-300 text-transparent dark:bg-white/5 dark:border-white/20",
+                                ].join(" ")}
+                              >
+                                <FiCheck className="text-[10px]" />
                               </span>
-                              {active && <FiCheck className="text-[12px]" />}
+
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="h-2 w-2 rounded-full bg-cyan-500" />
+                                  <span className="text-[11px] font-medium text-gray-700 dark:text-white/80 truncate">
+                                    {opt.label}
+                                  </span>
+                                </div>
+                              </div>
                             </button>
                           );
-                        })
-                      )}
-                    </div>
+                        })}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
             </div>
+
+            {selectedTargets.length > 0 && (
+              <button
+                type="button"
+                onClick={clearAllTargets}
+                className={[
+                  "h-9 w-9 rounded-xl border flex items-center justify-center transition",
+                  "bg-white border-gray-200 text-slate-500 hover:text-red-500 hover:border-red-200 hover:bg-red-50/60",
+                  "dark:bg-white/5 dark:border-white/10 dark:text-white/55 dark:hover:text-red-300 dark:hover:bg-red-500/10",
+                ].join(" ")}
+                aria-label="Clear filters"
+              >
+                <FiX className="text-[12px]" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -419,9 +466,8 @@ const DeliveryAnalysis: React.FC<DeliveryAnalysisProps> = ({
           <div className="text-[10px] text-slate-500 dark:text-white/50">
             {selectedTargets.length === 0
               ? "Severity distribution across the latest imported scan results"
-              : `Severity distribution for ${selectedTargets.length} selected target${
-                  selectedTargets.length > 1 ? "s" : ""
-                }`}
+              : `Severity distribution for ${selectedTargets.length} selected target${selectedTargets.length > 1 ? "s" : ""
+              }`}
           </div>
         </div>
 
@@ -438,7 +484,7 @@ const DeliveryAnalysis: React.FC<DeliveryAnalysisProps> = ({
                 ].join(" ")}
               >
                 <div className="text-[18px] sm:text-[20px] font-semibold text-slate-900 dark:text-white/90 tabular-nums leading-none">
-                  {loading ? "." : total.toLocaleString()}
+                  {loading ? "..." : total.toLocaleString()}
                 </div>
                 <div className="mt-1 text-[9.5px] sm:text-[10px] text-slate-500 dark:text-white/55">
                   Total
@@ -448,28 +494,22 @@ const DeliveryAnalysis: React.FC<DeliveryAnalysisProps> = ({
 
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Tooltip
-                  content={(props: any) => (
-                    <CustomTooltip {...props} total={total} />
-                  )}
-                  cursor={false}
-                />
                 <Pie
                   data={data}
                   dataKey="value"
                   nameKey="name"
-                  innerRadius="56%"
-                  outerRadius="94%"
-                  paddingAngle={2}
+                  innerRadius="58%"
+                  outerRadius="84%"
+                  paddingAngle={3}
                   stroke="rgba(255,255,255,0.95)"
-                  strokeWidth={2.5}
-                  isAnimationActive
-                  animationDuration={800}
+                  strokeWidth={2}
                 >
                   {data.map((entry) => (
                     <Cell key={entry.name} fill={entry.color} />
                   ))}
                 </Pie>
+
+                <Tooltip content={<CustomTooltip total={total} />} />
               </PieChart>
             </ResponsiveContainer>
           </div>

@@ -260,7 +260,7 @@ const RiskScoreTable: React.FC<RiskScoreTableProps> = ({
         <div className="flex flex-col gap-2.5">
           <div className="min-w-0">
             <h2 className="text-[15px] sm:text-[16px] font-semibold text-[#1f2240] dark:text-white/90 tracking-tight">
-              Top 5 Devices Risk
+              Top 5 Targets Risk
             </h2>
             <p className="mt-0.5 text-[10px] sm:text-[11px] text-gray-500 dark:text-white/55">
               Ranked device exposure from the latest security scan snapshot

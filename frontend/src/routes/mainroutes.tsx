@@ -17,9 +17,6 @@ const Vulnerability = Loadable(lazy(() => import("../page/vulnerability/index"))
 const VulnerabilityDetail = Loadable(lazy(() => import("../page/vulnerability/List/Detail/index")));
 const Report = Loadable(lazy(() => import("../page/report/index")));
 
-//===== THOR =======
-const THOR = Loadable(lazy(() => import("../page/thor/index")));
-
 // ===== Login Pages =====
 const SignIn = Loadable(lazy(() => import("../page/Authentication/Signin/index")));
 const SignUp = Loadable(lazy(() => import("../page/Authentication/Signup/index")));
@@ -53,7 +50,6 @@ const AdminRoutes = (): RouteObject[] => [
       { path: "user", element: <User /> },
       { path: "vulnerability-detail", element: <VulnerabilityDetail /> },
       { path: "service", element: <Service /> },
-      { path: "p.thor", element: <THOR /> },
       { path: "report", element: <Report /> }
     ],
   },
@@ -79,7 +75,6 @@ const UserRoutes = (): RouteObject[] => [
       { path: "vulnerability-detail", element: <VulnerabilityDetail /> },
       { path: "vulnerability-by-level", element: <VulnerabilityByLevel /> },
       { path: "service", element: <Service /> },
-      { path: "p.thor", element: <THOR /> },
 
       // กัน user เข้าหน้าที่ไม่อนุญาต
       { path: "line notification", element: <Navigate to="/admin" replace /> },

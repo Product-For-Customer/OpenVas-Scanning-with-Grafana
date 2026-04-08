@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   FiSearch,
   FiBell,
@@ -23,6 +23,10 @@ import {
   FiCopy,
   FiChevronLeft,
   FiChevronRight,
+  FiCommand,
+  FiBox,
+  FiSmartphone,
+  FiCheck,
 } from "react-icons/fi";
 import {
   FaTiktok,
@@ -70,6 +74,7 @@ type TestLineFormData = {
 
 type LineMasterFormData = {
   name: string;
+  description: string;
   token: string;
 };
 
@@ -82,6 +87,7 @@ type UiApp = {
   icon: React.ReactNode;
   chipClass: string;
   iconWrapClass: string;
+  cardClass: string;
 };
 
 const PAGE_SIZE = 3;
@@ -134,102 +140,115 @@ const getDescriptionFromName = (name: string) => {
   return "Manage and connect this integration to expand your workflow.";
 };
 
-const FiMessageSquareIcon: React.FC = () => <FiBell />;
-
-const getMetaByName = (name: string) => {
-  const lower = normalizeText(name).toLowerCase();
-
-  if (lower.includes("slack")) {
-    return {
-      icon: <FiSlack />,
-      chipClass:
-        "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-400/20 dark:bg-sky-400/10 dark:text-sky-300",
-      iconWrapClass:
-        "border-sky-200 bg-sky-50 text-sky-600 dark:border-sky-400/20 dark:bg-sky-400/10 dark:text-sky-300",
-    };
-  }
-
-  if (lower.includes("google") || lower.includes("meet")) {
-    return {
-      icon: <FaGoogle />,
-      chipClass:
-        "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300",
-      iconWrapClass:
-        "border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300",
-    };
-  }
-
-  if (lower.includes("tiktok")) {
-    return {
-      icon: <FaTiktok />,
-      chipClass:
-        "border-fuchsia-200 bg-fuchsia-50 text-fuchsia-700 dark:border-fuchsia-400/20 dark:bg-fuchsia-400/10 dark:text-fuchsia-300",
-      iconWrapClass:
-        "border-fuchsia-200 bg-fuchsia-50 text-fuchsia-600 dark:border-fuchsia-400/20 dark:bg-fuchsia-400/10 dark:text-fuchsia-300",
-    };
-  }
-
-  if (lower.includes("excel") || lower.includes("microsoft")) {
-    return {
-      icon: <FaMicrosoft />,
-      chipClass:
-        "border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-400/20 dark:bg-teal-400/10 dark:text-teal-300",
-      iconWrapClass:
-        "border-teal-200 bg-teal-50 text-teal-600 dark:border-teal-400/20 dark:bg-teal-400/10 dark:text-teal-300",
-    };
-  }
-
-  if (lower.includes("mail")) {
-    return {
-      icon: <FiMail />,
-      chipClass:
-        "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-300",
-      iconWrapClass:
-        "border-amber-200 bg-amber-50 text-amber-600 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-300",
-    };
-  }
-
-  if (lower.includes("youtube")) {
-    return {
-      icon: <FaYoutube />,
-      chipClass:
-        "border-red-200 bg-red-50 text-red-700 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-300",
-      iconWrapClass:
-        "border-red-200 bg-red-50 text-red-600 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-300",
-    };
-  }
-
-  if (lower.includes("line")) {
-    return {
-      icon: <FiMessageSquareIcon />,
-      chipClass:
-        "border-lime-200 bg-lime-50 text-lime-700 dark:border-lime-400/20 dark:bg-lime-400/10 dark:text-lime-300",
-      iconWrapClass:
-        "border-lime-200 bg-lime-50 text-lime-600 dark:border-lime-400/20 dark:bg-lime-400/10 dark:text-lime-300",
-    };
-  }
-
-  return {
-    icon: <FiCpu />,
+const integrationPalettes = [
+  {
+    cardClass:
+      "border-cyan-200/70 bg-linear-to-br from-cyan-50 via-white to-sky-50/70 hover:border-cyan-300 hover:shadow-[0_12px_30px_rgba(34,211,238,0.12)] dark:border-cyan-400/15 dark:bg-linear-to-br dark:from-[#0d2130] dark:via-[#10192a] dark:to-[#0b2030] dark:hover:border-cyan-400/30 dark:hover:bg-linear-to-br dark:hover:from-[#11283a] dark:hover:via-[#132033] dark:hover:to-[#0d2738]",
     chipClass:
       "border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-400/10 dark:text-cyan-300",
-      iconWrapClass:
-        "border-cyan-200 bg-cyan-50 text-cyan-600 dark:border-cyan-400/20 dark:bg-cyan-400/10 dark:text-cyan-300",
-  };
+    iconWrapClass:
+      "border-cyan-200 bg-cyan-50 text-cyan-600 dark:border-cyan-400/20 dark:bg-cyan-400/10 dark:text-cyan-300",
+  },
+  {
+    cardClass:
+      "border-violet-200/70 bg-linear-to-br from-violet-50 via-white to-fuchsia-50/70 hover:border-violet-300 hover:shadow-[0_12px_30px_rgba(139,92,246,0.12)] dark:border-violet-400/15 dark:bg-linear-to-br dark:from-[#1a1632] dark:via-[#13182a] dark:to-[#221530] dark:hover:border-violet-400/30 dark:hover:bg-linear-to-br dark:hover:from-[#211b3d] dark:hover:via-[#171d31] dark:hover:to-[#2a1a39]",
+    chipClass:
+      "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-400/20 dark:bg-violet-400/10 dark:text-violet-300",
+    iconWrapClass:
+      "border-violet-200 bg-violet-50 text-violet-600 dark:border-violet-400/20 dark:bg-violet-400/10 dark:text-violet-300",
+  },
+  {
+    cardClass:
+      "border-emerald-200/70 bg-linear-to-br from-emerald-50 via-white to-lime-50/70 hover:border-emerald-300 hover:shadow-[0_12px_30px_rgba(16,185,129,0.12)] dark:border-emerald-400/15 dark:bg-linear-to-br dark:from-[#0f221d] dark:via-[#10192a] dark:to-[#13261f] dark:hover:border-emerald-400/30 dark:hover:bg-linear-to-br dark:hover:from-[#132b24] dark:hover:via-[#122033] dark:hover:to-[#183125]",
+    chipClass:
+      "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300",
+    iconWrapClass:
+      "border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300",
+  },
+  {
+    cardClass:
+      "border-amber-200/70 bg-linear-to-br from-amber-50 via-white to-orange-50/70 hover:border-amber-300 hover:shadow-[0_12px_30px_rgba(245,158,11,0.12)] dark:border-amber-400/15 dark:bg-linear-to-br dark:from-[#23190f] dark:via-[#11192a] dark:to-[#2b1b10] dark:hover:border-amber-400/30 dark:hover:bg-linear-to-br dark:hover:from-[#2a1f12] dark:hover:via-[#152033] dark:hover:to-[#332112]",
+    chipClass:
+      "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-300",
+    iconWrapClass:
+      "border-amber-200 bg-amber-50 text-amber-600 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-300",
+  },
+  {
+    cardClass:
+      "border-rose-200/70 bg-linear-to-br from-rose-50 via-white to-pink-50/70 hover:border-rose-300 hover:shadow-[0_12px_30px_rgba(244,63,94,0.12)] dark:border-rose-400/15 dark:bg-linear-to-br dark:from-[#25121a] dark:via-[#11192a] dark:to-[#2a1320] dark:hover:border-rose-400/30 dark:hover:bg-linear-to-br dark:hover:from-[#2d1520] dark:hover:via-[#152033] dark:hover:to-[#321726]",
+    chipClass:
+      "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-300",
+    iconWrapClass:
+      "border-rose-200 bg-rose-50 text-rose-600 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-300",
+  },
+  {
+    cardClass:
+      "border-sky-200/70 bg-linear-to-br from-sky-50 via-white to-indigo-50/70 hover:border-sky-300 hover:shadow-[0_12px_30px_rgba(59,130,246,0.12)] dark:border-sky-400/15 dark:bg-linear-to-br dark:from-[#102033] dark:via-[#10192a] dark:to-[#15213a] dark:hover:border-sky-400/30 dark:hover:bg-linear-to-br dark:hover:from-[#132741] dark:hover:via-[#122033] dark:hover:to-[#182946]",
+    chipClass:
+      "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-400/20 dark:bg-sky-400/10 dark:text-sky-300",
+    iconWrapClass:
+      "border-sky-200 bg-sky-50 text-sky-600 dark:border-sky-400/20 dark:bg-sky-400/10 dark:text-sky-300",
+  },
+];
+
+const hashText = (value: string) => {
+  let hash = 0;
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
+  }
+  return hash;
+};
+
+const getPaletteByName = (name: string) => {
+  const index = hashText(normalizeText(name).toLowerCase() || "integration") % integrationPalettes.length;
+  return integrationPalettes[index];
+};
+
+const getIconByName = (name: string) => {
+  const lower = normalizeText(name).toLowerCase();
+
+  if (lower.includes("line") || lower.includes("notify")) return <FiBell />;
+  if (lower.includes("bot")) return <FiCommand />;
+  if (lower.includes("device") || lower.includes("hardware") || lower.includes("sensor")) return <FiCpu />;
+  if (lower.includes("mail")) return <FiMail />;
+  if (lower.includes("send") || lower.includes("message")) return <FiSend />;
+  if (lower.includes("group") || lower.includes("team")) return <FiUsers />;
+  if (lower.includes("user") || lower.includes("personal")) return <FiUser />;
+  if (lower.includes("slack")) return <FiSlack />;
+  if (lower.includes("google") || lower.includes("meet")) return <FaGoogle />;
+  if (lower.includes("youtube")) return <FaYoutube />;
+  if (lower.includes("microsoft") || lower.includes("excel")) return <FaMicrosoft />;
+  if (lower.includes("tiktok")) return <FaTiktok />;
+  if (lower.includes("box") || lower.includes("package")) return <FiBox />;
+  if (lower.includes("mobile") || lower.includes("phone")) return <FiSmartphone />;
+
+  const fallbackIcons = [
+    <FiBell key="bell" />,
+    <FiCpu key="cpu" />,
+    <FiCommand key="command" />,
+    <FiSend key="send" />,
+    <FiLayers key="layers" />,
+    <FiLink2 key="link" />,
+    <FiBox key="box" />,
+    <FiSmartphone key="smartphone" />,
+  ];
+
+  return fallbackIcons[hashText(lower || "integration") % fallbackIcons.length];
 };
 
 const mapToUiApp = (item: AppLineMasterResponse): UiApp => {
-  const meta = getMetaByName(item.name);
+  const palette = getPaletteByName(item.name);
 
   return {
     id: item.id,
     name: item.name,
     token: item.token,
     category: getCategoryFromName(item.name),
-    description: getDescriptionFromName(item.name),
-    icon: meta.icon,
-    chipClass: meta.chipClass,
-    iconWrapClass: meta.iconWrapClass,
+    description: normalizeText(item.description) || getDescriptionFromName(item.name),
+    icon: getIconByName(item.name),
+    chipClass: palette.chipClass,
+    iconWrapClass: palette.iconWrapClass,
+    cardClass: palette.cardClass,
   };
 };
 
@@ -268,12 +287,6 @@ const textareaClass = [
 
 const labelClass =
   "mb-1.5 block text-[11px] font-medium text-slate-700 dark:text-white/75";
-
-const selectClass = [
-  "h-10 w-full appearance-none rounded-xl px-3 pr-10 text-[12px] outline-none transition",
-  "border border-slate-200 bg-white text-slate-800 focus:border-violet-300 focus:ring-2 focus:ring-violet-100",
-  "dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:focus:border-violet-400/30 dark:focus:ring-violet-400/10",
-].join(" ");
 
 const modalBackdropClass =
   "fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/45 px-4 py-6 backdrop-blur-[2px]";
@@ -323,7 +336,7 @@ const AlertToggle: React.FC<{
           "rounded-xl border px-3 py-3 text-left transition",
           value
             ? "border-emerald-300 bg-emerald-50 dark:border-emerald-400/30 dark:bg-emerald-500/10"
-            : "border-slate-200 bg-white hover:bg-slate-50 dark:border-white/10 dark:bg-white/5",
+            : "border-slate-200 bg-white dark:border-white/10 dark:bg-white/5",
         ].join(" ")}
       >
         <div className="mb-2 flex items-center justify-between">
@@ -359,7 +372,7 @@ const AlertToggle: React.FC<{
           "rounded-xl border px-3 py-3 text-left transition",
           !value
             ? "border-rose-300 bg-rose-50 dark:border-rose-400/30 dark:bg-rose-500/10"
-            : "border-slate-200 bg-white hover:bg-slate-50 dark:border-white/10 dark:bg-white/5",
+            : "border-slate-200 bg-white  dark:border-white/10 dark:bg-white/5",
         ].join(" ")}
       >
         <div className="mb-2 flex items-center justify-between">
@@ -404,7 +417,7 @@ const ReceiverTypeToggle: React.FC<{
           "rounded-xl border px-3 py-3 text-left transition",
           value
             ? "border-cyan-300 bg-cyan-50 dark:border-cyan-400/30 dark:bg-cyan-500/10"
-            : "border-slate-200 bg-white hover:bg-slate-50 dark:border-white/10 dark:bg-white/5",
+            : "border-slate-200 bg-white  dark:border-white/10 dark:bg-white/5",
         ].join(" ")}
       >
         <div className="mb-2 flex items-center justify-between">
@@ -440,7 +453,7 @@ const ReceiverTypeToggle: React.FC<{
           "rounded-xl border px-3 py-3 text-left transition",
           !value
             ? "border-violet-300 bg-violet-50 dark:border-violet-400/30 dark:bg-violet-500/10"
-            : "border-slate-200 bg-white hover:bg-slate-50 dark:border-white/10 dark:bg-white/5",
+            : "border-slate-200 bg-white  dark:border-white/10 dark:bg-white/5",
         ].join(" ")}
       >
         <div className="mb-2 flex items-center justify-between">
@@ -468,6 +481,195 @@ const ReceiverTypeToggle: React.FC<{
           Single user
         </p>
       </button>
+    </div>
+  );
+};
+
+const LineMasterSelector: React.FC<{
+  value: string;
+  onChange: (next: string) => void;
+  options: AppLineMasterResponse[];
+  disabled?: boolean;
+  placeholder?: string;
+}> = ({ value, onChange, options, disabled = false, placeholder = "Select integration" }) => {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+
+  const selected = useMemo(
+    () => options.find((item) => String(item.id) === String(value)),
+    [options, value],
+  );
+
+  const filteredOptions = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return options;
+
+    return options.filter((item) => {
+      const blob = [item.name, item.description, item.token].join(" ").toLowerCase();
+      return blob.includes(q);
+    });
+  }, [options, search]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [open]);
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={() => !disabled && setOpen((prev) => !prev)}
+        disabled={disabled}
+        className={[
+          "group w-full min-h-11 rounded-[22px] px-3 text-left transition-all duration-200",
+          "border border-slate-300 bg-white",
+          "hover:border-cyan-300 hover:bg-cyan-50/40",
+          "focus:outline-none focus:ring-4 focus:ring-cyan-100/80",
+          "disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100",
+          "dark:border-[#23314d] dark:bg-[#182338]",
+          "dark:hover:border-cyan-400/35 dark:hover:bg-[#1d2b45]",
+          "dark:focus:border-cyan-400/30 dark:focus:ring-cyan-400/10",
+          open ? "border-cyan-300 bg-cyan-50/50 dark:border-cyan-400/35 dark:bg-[#1b2a44]" : "",
+        ].join(" ")}
+      >
+        <div className="flex items-center gap-2">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-400/10 dark:text-cyan-200">
+            {selected ? getIconByName(selected.name) : <FiBell className="text-[11px]" />}
+          </span>
+
+          <span className="min-w-0 flex-1">
+            <span className={[
+              "block truncate text-[12px] font-semibold",
+              selected ? "text-slate-800 dark:text-slate-100" : "text-slate-500 dark:text-white/45",
+            ].join(" ")}>
+              {selected?.name || placeholder}
+            </span>
+          </span>
+
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-600 transition group-hover:border-cyan-200 group-hover:text-cyan-700 dark:border-white/10 dark:bg-white/5 dark:text-white/65 dark:group-hover:border-cyan-400/20 dark:group-hover:bg-cyan-400/10 dark:group-hover:text-cyan-200">
+            <FiChevronDown className={`text-[12px] transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+          </span>
+        </div>
+      </button>
+
+      {open && (
+        <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 overflow-hidden rounded-[22px] border border-slate-200 bg-white shadow-[0_18px_44px_rgba(15,23,42,0.14)] dark:border-[#22304a] dark:bg-[#101a2c] dark:shadow-[0_22px_50px_rgba(0,0,0,0.45)]">
+          <div className="border-b border-slate-100 px-3 py-2 dark:border-white/8">
+            <span className="text-[10px] font-medium text-slate-500 dark:text-white/45">
+              Select integration
+            </span>
+          </div>
+
+          <div className="border-b border-slate-100 p-2 dark:border-white/8">
+            <div className="relative">
+              <FiSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[12px] text-slate-400 dark:text-white/35" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search integration..."
+                className="h-10 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-[12px] outline-none transition focus:border-cyan-300 focus:ring-2 focus:ring-cyan-100 dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:placeholder:text-white/35 dark:focus:border-cyan-400/30 dark:focus:ring-cyan-400/10"
+              />
+            </div>
+          </div>
+
+          <div className="max-h-64 overflow-y-auto p-2">
+            <div className="space-y-1">
+              <button
+                type="button"
+                onClick={() => {
+                  onChange("");
+                  setOpen(false);
+                  setSearch("");
+                }}
+                className={[
+                  "flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-all duration-150",
+                  !value
+                    ? "border border-cyan-200 bg-cyan-50 shadow-[0_4px_14px_rgba(34,211,238,0.08)] dark:border-cyan-400/20 dark:bg-cyan-400/10 dark:shadow-none"
+                    : "border border-transparent hover:bg-slate-50 dark:hover:bg-white/5",
+                ].join(" ")}
+              >
+                <span className={[
+                  "flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition",
+                  !value
+                    ? "border-cyan-500 bg-cyan-500 text-white"
+                    : "border-slate-300 bg-white text-transparent dark:border-white/15 dark:bg-[#162136]",
+                ].join(" ")}>
+                  <FiCheck className="text-[10px]" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[12px] font-medium text-slate-700 dark:text-white/85">
+                    {placeholder}
+                  </span>
+                </span>
+              </button>
+
+              {filteredOptions.map((item) => {
+                const checked = String(value) === String(item.id);
+                const palette = getPaletteByName(item.name);
+
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      onChange(String(item.id));
+                      setOpen(false);
+                      setSearch("");
+                    }}
+                    className={[
+                      "flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-all duration-150",
+                      checked
+                        ? "border border-cyan-200 bg-cyan-50 shadow-[0_4px_14px_rgba(34,211,238,0.08)] dark:border-cyan-400/20 dark:bg-cyan-400/10 dark:shadow-none"
+                        : "border border-transparent hover:bg-slate-50 dark:hover:bg-white/5",
+                    ].join(" ")}
+                  >
+                    <span className={[
+                      "flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition",
+                      checked
+                        ? "border-cyan-500 bg-cyan-500 text-white"
+                        : "border-slate-300 bg-white text-transparent dark:border-white/15 dark:bg-[#162136]",
+                    ].join(" ")}>
+                      <FiCheck className="text-[10px]" />
+                    </span>
+
+                    <span className={[
+                      "grid h-8 w-8 shrink-0 place-items-center rounded-xl border text-[14px]",
+                      palette.iconWrapClass,
+                    ].join(" ")}>
+                      {getIconByName(item.name)}
+                    </span>
+
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[12px] font-medium text-slate-700 dark:text-white/85">
+                        {item.name}
+                      </span>
+                      <span className="mt-0.5 block truncate text-[10px] text-slate-500 dark:text-white/45">
+                        {normalizeText(item.description) || getDescriptionFromName(item.name)}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+
+              {filteredOptions.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-slate-200 px-3 py-6 text-center text-[11px] text-slate-500 dark:border-white/10 dark:text-white/45">
+                  No integration found
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -531,6 +733,7 @@ const Notify: React.FC = () => {
   const [editingMaster, setEditingMaster] = useState<AppLineMasterResponse | null>(null);
   const [masterFormData, setMasterFormData] = useState<LineMasterFormData>({
     name: "",
+    description: "",
     token: "",
   });
   const [showToken, setShowToken] = useState(false);
@@ -1004,6 +1207,7 @@ const Notify: React.FC = () => {
     setEditingMaster(null);
     setMasterFormData({
       name: "",
+      description: "",
       token: "",
     });
     setShowToken(false);
@@ -1017,6 +1221,7 @@ const Notify: React.FC = () => {
     setEditingMaster(item);
     setMasterFormData({
       name: item.name || "",
+      description: item.description || "",
       token: item.token || "",
     });
     setShowToken(false);
@@ -1036,10 +1241,13 @@ const Notify: React.FC = () => {
 
   const validateMasterForm = () => {
     const name = normalizeText(masterFormData.name);
+    const description = normalizeText(masterFormData.description);
     const token = normalizeText(masterFormData.token);
 
     if (!name) return "Please enter integration name.";
     if (name.length < 2) return "Integration name must be at least 2 characters.";
+    if (!description) return "Please enter description.";
+    if (description.length < 2) return "Description must be at least 2 characters.";
     if (!token) return "Please enter token.";
     if (token.length < 6) return "Token must be at least 6 characters.";
 
@@ -1072,6 +1280,7 @@ const Notify: React.FC = () => {
 
       const payload = {
         name: normalizeText(masterFormData.name),
+        description: normalizeText(masterFormData.description),
         token: normalizeText(masterFormData.token),
       };
 
@@ -1492,7 +1701,7 @@ const Notify: React.FC = () => {
                       {filteredLineMasters.map((item) => (
                         <div
                           key={item.id}
-                          className="group rounded-xl border border-slate-200 bg-white p-3 transition hover:border-cyan-200 hover:bg-slate-50/70 dark:border-white/10 dark:bg-white/3 dark:hover:border-cyan-400/15 dark:hover:bg-white/5"
+                          className={["group rounded-xl p-3 transition-all duration-200", item.cardClass].join(" ") }
                         >
                           <div className="flex items-start gap-3">
                             <div
@@ -1700,26 +1909,16 @@ const Notify: React.FC = () => {
 
               <div>
                 <label className={labelClass}>App Line Master</label>
-                <div className="relative">
-                  <select
-                    className={selectClass}
-                    value={createForm.app_line_master_id}
-                    onChange={(e) =>
-                      setCreateForm((prev) => ({
-                        ...prev,
-                        app_line_master_id: e.target.value,
-                      }))
-                    }
-                  >
-                    <option value="">Select integration</option>
-                    {lineMasters.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.name}
-                      </option>
-                    ))}
-                  </select>
-                  <FiChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[14px] text-slate-400 dark:text-white/35" />
-                </div>
+                <LineMasterSelector
+                  value={createForm.app_line_master_id}
+                  options={lineMasters}
+                  onChange={(next) =>
+                    setCreateForm((prev) => ({
+                      ...prev,
+                      app_line_master_id: next,
+                    }))
+                  }
+                />
               </div>
 
               <div>
@@ -1818,26 +2017,16 @@ const Notify: React.FC = () => {
 
               <div>
                 <label className={labelClass}>App Line Master</label>
-                <div className="relative">
-                  <select
-                    className={selectClass}
-                    value={editForm.app_line_master_id}
-                    onChange={(e) =>
-                      setEditForm((prev) => ({
-                        ...prev,
-                        app_line_master_id: e.target.value,
-                      }))
-                    }
-                  >
-                    <option value="">Select integration</option>
-                    {lineMasters.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.name}
-                      </option>
-                    ))}
-                  </select>
-                  <FiChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[14px] text-slate-400 dark:text-white/35" />
-                </div>
+                <LineMasterSelector
+                  value={editForm.app_line_master_id}
+                  options={lineMasters}
+                  onChange={(next) =>
+                    setEditForm((prev) => ({
+                      ...prev,
+                      app_line_master_id: next,
+                    }))
+                  }
+                />
               </div>
 
               <div>
@@ -2031,6 +2220,18 @@ const Notify: React.FC = () => {
                     setMasterFormData((prev) => ({ ...prev, name: e.target.value }))
                   }
                   placeholder="LINE Notify / Slack / Google..."
+                />
+              </div>
+
+              <div>
+                <label className={labelClass}>Description</label>
+                <textarea
+                  className={textareaClass}
+                  value={masterFormData.description}
+                  onChange={(e) =>
+                    setMasterFormData((prev) => ({ ...prev, description: e.target.value }))
+                  }
+                  placeholder="Describe this integration"
                 />
               </div>
 

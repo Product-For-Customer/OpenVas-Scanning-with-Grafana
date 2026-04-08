@@ -152,8 +152,8 @@ const EditReportModal: React.FC<EditReportModalProps> = ({
         console.error("ListAppReport error:", err);
         setError(
           err?.response?.data?.error ||
-          err?.message ||
-          "Something went wrong while loading latest report data"
+            err?.message ||
+            "Something went wrong while loading latest report data"
         );
       } finally {
         setLoadingInitialData(false);
@@ -237,8 +237,8 @@ const EditReportModal: React.FC<EditReportModalProps> = ({
       console.error("UpdateAppReportByID error:", err);
       setError(
         err?.response?.data?.error ||
-        err?.message ||
-        "Something went wrong while updating report"
+          err?.message ||
+          "Something went wrong while updating report"
       );
     } finally {
       setSubmitting(false);
@@ -428,8 +428,8 @@ const SendToLinePickerModal: React.FC<SendToLinePickerModalProps> = ({
         if (!alive) return;
         setError(
           err?.response?.data?.error ||
-          err?.message ||
-          "Something went wrong while loading line targets"
+            err?.message ||
+            "Something went wrong while loading line targets"
         );
         setItems([]);
       } finally {
@@ -519,10 +519,11 @@ const SendToLinePickerModal: React.FC<SendToLinePickerModalProps> = ({
                           key={itemID}
                           type="button"
                           onClick={() => toggleSelect(itemID)}
-                          className={`w-full rounded-xl border p-3 text-left transition ${checked
+                          className={`w-full rounded-xl border p-3 text-left transition ${
+                            checked
                               ? "border-cyan-300 bg-cyan-50 dark:border-cyan-400/30 dark:bg-cyan-500/10"
                               : "border-slate-200 bg-white hover:border-slate-300 dark:border-white/10 dark:bg-white/5 dark:hover:border-white/20"
-                            }`}
+                          }`}
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
@@ -558,10 +559,11 @@ const SendToLinePickerModal: React.FC<SendToLinePickerModalProps> = ({
                             </div>
 
                             <div
-                              className={`mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${checked
+                              className={`mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${
+                                checked
                                   ? "border-cyan-500 bg-cyan-500 text-white"
                                   : "border-slate-300 bg-white text-transparent dark:border-white/20 dark:bg-white/5"
-                                }`}
+                              }`}
                             >
                               <FiCheckCircle className="text-[12px]" />
                             </div>
@@ -674,10 +676,11 @@ const DevicePickerDropdown: React.FC<DevicePickerProps> = ({
                   key={taskID}
                   type="button"
                   onClick={() => onToggleTask(taskID)}
-                  className={`w-full rounded-xl border p-3 text-left transition ${checked
+                  className={`w-full rounded-xl border p-3 text-left transition ${
+                    checked
                       ? "border-cyan-300 bg-cyan-50 dark:border-cyan-400/30 dark:bg-cyan-500/10"
                       : "border-slate-200 bg-white hover:border-slate-300 dark:border-white/10 dark:bg-white/5 dark:hover:border-white/20"
-                    }`}
+                  }`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -697,10 +700,11 @@ const DevicePickerDropdown: React.FC<DevicePickerProps> = ({
                     </div>
 
                     <div
-                      className={`mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${checked
+                      className={`mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${
+                        checked
                           ? "border-cyan-500 bg-cyan-500 text-white"
                           : "border-slate-300 bg-white text-transparent dark:border-white/20 dark:bg-white/5"
-                        }`}
+                      }`}
                     >
                       <FiCheckCircle className="text-[12px]" />
                     </div>
@@ -858,8 +862,8 @@ const ReportPreviewIndex: React.FC = () => {
       console.error("DownloadPDFFile error:", error);
       message.error(
         error?.response?.data?.error ||
-        error?.message ||
-        "Download PDF failed"
+          error?.message ||
+          "Download PDF failed"
       );
     } finally {
       setSavingPdf(false);
@@ -984,7 +988,10 @@ const ReportPreviewIndex: React.FC = () => {
 
       <main className="px-3 py-4 sm:px-5">
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_10px_30px_rgba(15,23,42,0.08)] dark:border-cyan-400/10 dark:bg-[#0c1626] dark:shadow-[0_18px_40px_rgba(0,0,0,0.28)]">
-          <Pdf refreshToken={reportRefreshToken} />
+          <Pdf
+            refreshToken={reportRefreshToken}
+            selectedTaskIDs={selectedTaskIDs}
+          />
         </div>
       </main>
 

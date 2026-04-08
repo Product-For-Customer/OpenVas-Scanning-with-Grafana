@@ -132,10 +132,12 @@ func UpdateAppNotificationByID(c *gin.Context) {
 	db := config.DB()
 
 	var appNotification entity.AppNotification
-	if err := db.Preload("AppLineMaster").First(&appNotification, uint(nid)).Error; err != nil {
+	if err := db.First(&appNotification, uint(nid)).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "app notification not found"})
 		return
 	}
+
+	updates := map[string]interface{}{}
 
 	if input.Name != nil {
 		trimmedName := strings.TrimSpace(*input.Name)
@@ -143,7 +145,7 @@ func UpdateAppNotificationByID(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "name cannot be empty"})
 			return
 		}
-		appNotification.Name = trimmedName
+		updates["name"] = trimmedName
 	}
 
 	if input.SendID != nil {
@@ -152,32 +154,46 @@ func UpdateAppNotificationByID(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "send_id cannot be empty"})
 			return
 		}
-		appNotification.SendID = trimmedSendID
+		updates["send_id"] = trimmedSendID
 	}
 
 	if input.Alert != nil {
-		appNotification.Alert = *input.Alert
+		updates["alert"] = *input.Alert
 	}
 
 	if input.IsGroup != nil {
-		appNotification.IsGroup = *input.IsGroup
+		updates["is_group"] = *input.IsGroup
 	}
 
 	if input.AppLineMasterID != nil {
+		if *input.AppLineMasterID == 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "app_line_master_id is required"})
+			return
+		}
+
 		var lineMaster entity.AppLineMaster
 		if err := db.First(&lineMaster, *input.AppLineMasterID).Error; err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "app line master not found"})
 			return
 		}
-		appNotification.AppLineMasterID = *input.AppLineMasterID
+
+		updates["app_line_master_id"] = *input.AppLineMasterID
 	}
 
-	if err := db.Save(&appNotification).Error; err != nil {
+	if len(updates) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "no fields to update"})
+		return
+	}
+
+	if err := db.Model(&appNotification).Updates(updates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	db.Preload("AppLineMaster").First(&appNotification, appNotification.ID)
+	if err := db.Preload("AppLineMaster").First(&appNotification, appNotification.ID).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "update app notification success",

@@ -20,6 +20,7 @@ type SeveritySnapshotProps = {
   title?: string;
   totalLabel?: string;
   onReady?: (ready: boolean) => void;
+  selectedTaskIDs?: string[];
 };
 
 type SeverityKey = "Critical" | "High" | "Medium" | "Low" | "Info";
@@ -68,15 +69,29 @@ const safeNumber = (value: unknown): number => {
   return Number.isFinite(num) ? num : 0;
 };
 
+const normalizeTaskIDs = (ids?: string[]): string[] => {
+  if (!Array.isArray(ids)) return [];
+
+  return ids
+    .map((id) => String(id).trim())
+    .filter((id) => id !== "");
+};
+
 const SeveritySnapshot: React.FC<SeveritySnapshotProps> = ({
   title = "Severity Snapshot",
   totalLabel = "Total Findings",
   onReady,
+  selectedTaskIDs = [],
 }) => {
   const [rows, setRows] = useState<TaskVulnSummaryForReportResponse[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [queryTaskIDs, setQueryTaskIDs] = useState<string[]>([]);
   const [taskMode, setTaskMode] = useState<"all" | "filtered">("all");
+
+  const normalizedSelectedTaskIDs = useMemo(
+    () => normalizeTaskIDs(selectedTaskIDs),
+    [selectedTaskIDs]
+  );
 
   useEffect(() => {
     const parsed = readTaskIDsFromQuery();
@@ -116,19 +131,35 @@ const SeveritySnapshot: React.FC<SeveritySnapshotProps> = ({
     };
   }, [onReady]);
 
+  const effectiveTaskMode = useMemo<"all" | "filtered">(() => {
+    if (normalizedSelectedTaskIDs.length > 0) {
+      return "filtered";
+    }
+
+    return taskMode;
+  }, [normalizedSelectedTaskIDs, taskMode]);
+
+  const effectiveTaskIDs = useMemo<string[]>(() => {
+    if (normalizedSelectedTaskIDs.length > 0) {
+      return normalizedSelectedTaskIDs;
+    }
+
+    return queryTaskIDs;
+  }, [normalizedSelectedTaskIDs, queryTaskIDs]);
+
   const filteredRows = useMemo(() => {
-    if (taskMode === "all") {
+    if (effectiveTaskMode === "all") {
       return rows;
     }
 
-    if (queryTaskIDs.length === 0) {
+    if (effectiveTaskIDs.length === 0) {
       return rows;
     }
 
-    const selected = new Set(queryTaskIDs.map((id) => String(id).trim()));
+    const selected = new Set(effectiveTaskIDs.map((id) => String(id).trim()));
 
     return rows.filter((row) => selected.has(String(row.task_id).trim()));
-  }, [rows, queryTaskIDs, taskMode]);
+  }, [rows, effectiveTaskIDs, effectiveTaskMode]);
 
   const chartData = useMemo<SeverityChartRow[]>(() => {
     let critical = 0;
@@ -192,7 +223,7 @@ const SeveritySnapshot: React.FC<SeveritySnapshotProps> = ({
               {title}
             </h3>
             <p className="mt-1 text-[10px] leading-normal text-slate-600">
-              {taskMode === "all"
+              {effectiveTaskMode === "all"
                 ? "Summary of findings by severity level based on the latest consolidated task assessment."
                 : `Summary of findings by severity level for ${filteredTaskCount.toLocaleString()} selected task(s).`}
             </p>

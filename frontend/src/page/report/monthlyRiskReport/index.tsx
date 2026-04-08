@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect } from "react";
+import React, { useMemo, useEffect, useState } from "react";
 import {
   ResponsiveContainer,
   BarChart,
@@ -11,37 +11,49 @@ import {
   LabelList,
 } from "recharts";
 import { FiBarChart2, FiCpu, FiShield } from "react-icons/fi";
+import { ListDataForReportVulnerabilityMonth } from "../../../services/report";
 
 type MonthlyRiskRow = {
   month: string;
+  monthNo: number;
   vulnerabilityCount: number;
   riskScore: number;
 };
 
-type Section6MonthlyRiskReportProps = {
-  onReady?: (ready: boolean) => void;
+type ReportVulnerabilityMonthResponse = {
+  task_id: string;
+  task_name: string;
+  ip: string;
+  month: string;
+  month_no: number;
+  vulnerability: number;
+  risk_score: number;
 };
 
-const currentYear = 2026;
-const totalDevice = 5;
+type Section6MonthlyRiskReportProps = {
+  onReady?: (ready: boolean) => void;
+  selectedTaskIDs?: string[];
+};
 
-const mockData: MonthlyRiskRow[] = [
-  { month: "Jan", vulnerabilityCount: 186, riskScore: 9.8 },
-  { month: "Feb", vulnerabilityCount: 172, riskScore: 9.2 },
-  { month: "Mar", vulnerabilityCount: 161, riskScore: 8.7 },
-  { month: "Apr", vulnerabilityCount: 149, riskScore: 8.1 },
-  { month: "May", vulnerabilityCount: 137, riskScore: 7.5 },
-  { month: "Jun", vulnerabilityCount: 126, riskScore: 6.9 },
-  { month: "Jul", vulnerabilityCount: 114, riskScore: 6.2 },
-  { month: "Aug", vulnerabilityCount: 101, riskScore: 5.6 },
-  { month: "Sep", vulnerabilityCount: 88, riskScore: 4.9 },
-  { month: "Oct", vulnerabilityCount: 74, riskScore: 4.1 },
-  { month: "Nov", vulnerabilityCount: 59, riskScore: 3.4 },
-  { month: "Dec", vulnerabilityCount: 43, riskScore: 2.6 },
+const currentYear = new Date().getFullYear();
+
+const MONTHS: string[] = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
 ];
 
 const formatRiskScore = (value?: number) => {
-  if (typeof value !== "number" || Number.isNaN(value)) return "-";
+  if (typeof value !== "number" || Number.isNaN(value)) return "0.00";
   return value.toFixed(2);
 };
 
@@ -58,7 +70,8 @@ const getBarColor = (score: number) => {
   if (score >= 5) return "#84cc16";
   if (score >= 4) return "#22c55e";
   if (score >= 3) return "#14b8a6";
-  return "#0ea5e9";
+  if (score > 0) return "#0ea5e9";
+  return "#cbd5e1";
 };
 
 type CustomTooltipProps = {
@@ -119,16 +132,174 @@ const RiskScoreLabel: React.FC<any> = (props) => {
   );
 };
 
+const normalizeTaskIDs = (ids?: string[]): string[] => {
+  if (!Array.isArray(ids)) return [];
+
+  return ids
+    .map((id) => String(id).trim())
+    .filter((id) => id !== "");
+};
+
+const filterDataBySelectedTaskIDs = (
+  apiData: ReportVulnerabilityMonthResponse[] | null,
+  selectedTaskIDs: string[]
+): ReportVulnerabilityMonthResponse[] => {
+  if (!Array.isArray(apiData)) return [];
+
+  if (!selectedTaskIDs.length) {
+    return apiData;
+  }
+
+  const selectedSet = new Set(selectedTaskIDs.map((id) => String(id).trim()));
+
+  return apiData.filter((item) =>
+    selectedSet.has(String(item.task_id || "").trim())
+  );
+};
+
+const normalizeMonthlyData = (
+  apiData: ReportVulnerabilityMonthResponse[]
+): MonthlyRiskRow[] => {
+  const monthMap = new Map<
+    number,
+    {
+      month: string;
+      monthNo: number;
+      vulnerabilityCount: number;
+      totalRiskScore: number;
+      riskScoreCount: number;
+    }
+  >();
+
+  for (let i = 0; i < 12; i += 1) {
+    monthMap.set(i + 1, {
+      month: MONTHS[i],
+      monthNo: i + 1,
+      vulnerabilityCount: 0,
+      totalRiskScore: 0,
+      riskScoreCount: 0,
+    });
+  }
+
+  apiData.forEach((item) => {
+    const monthNo = Number(item.month_no);
+    if (!Number.isFinite(monthNo) || monthNo < 1 || monthNo > 12) return;
+
+    const current = monthMap.get(monthNo)!;
+
+    const vulnerability =
+      typeof item.vulnerability === "number" && !Number.isNaN(item.vulnerability)
+        ? item.vulnerability
+        : 0;
+
+    const riskScore =
+      typeof item.risk_score === "number" && !Number.isNaN(item.risk_score)
+        ? item.risk_score
+        : 0;
+
+    monthMap.set(monthNo, {
+      month: String(item.month || "").trim() || MONTHS[monthNo - 1],
+      monthNo,
+      vulnerabilityCount: current.vulnerabilityCount + vulnerability,
+      totalRiskScore: current.totalRiskScore + riskScore,
+      riskScoreCount: current.riskScoreCount + 1,
+    });
+  });
+
+  return Array.from(monthMap.values())
+    .sort((a, b) => a.monthNo - b.monthNo)
+    .map((item) => ({
+      month: item.month,
+      monthNo: item.monthNo,
+      vulnerabilityCount: item.vulnerabilityCount,
+      riskScore:
+        item.riskScoreCount > 0
+          ? Number((item.totalRiskScore / item.riskScoreCount).toFixed(2))
+          : 0,
+    }));
+};
+
+const countUniqueTaskIDs = (
+  apiData: ReportVulnerabilityMonthResponse[]
+): number => {
+  const uniqueTaskIDs = new Set<string>();
+
+  apiData.forEach((item) => {
+    const normalized = String(item.task_id || "").trim();
+    if (normalized !== "") {
+      uniqueTaskIDs.add(normalized);
+    }
+  });
+
+  return uniqueTaskIDs.size;
+};
+
 const Section6MonthlyRiskReport: React.FC<Section6MonthlyRiskReportProps> = ({
   onReady,
+  selectedTaskIDs = [],
 }) => {
+  const [apiData, setApiData] = useState<ReportVulnerabilityMonthResponse[] | null>(
+    null
+  );
+  const [loading, setLoading] = useState<boolean>(true);
+
+  const normalizedSelectedTaskIDs = useMemo(
+    () => normalizeTaskIDs(selectedTaskIDs),
+    [selectedTaskIDs]
+  );
+
   useEffect(() => {
-    onReady?.(true);
+    let alive = true;
+
+    const fetchMonthlyRisk = async () => {
+      try {
+        setLoading(true);
+        onReady?.(false);
+
+        // เรียก service แบบเดิมก่อน
+        // ต่อให้ backend ยังไม่รองรับ selectedTaskIDs
+        // เดี๋ยว frontend จะ filter เองอีกชั้น
+        const result = await ListDataForReportVulnerabilityMonth();
+
+        if (!alive) return;
+
+        setApiData(Array.isArray(result) ? result : []);
+      } catch (error) {
+        console.error("Failed to load monthly vulnerability report:", error);
+        if (!alive) return;
+        setApiData([]);
+      } finally {
+        if (!alive) return;
+        setLoading(false);
+        onReady?.(true);
+      }
+    };
+
+    fetchMonthlyRisk();
+
+    return () => {
+      alive = false;
+    };
   }, [onReady]);
 
+  const filteredApiData = useMemo(() => {
+    return filterDataBySelectedTaskIDs(apiData, normalizedSelectedTaskIDs);
+  }, [apiData, normalizedSelectedTaskIDs]);
+
+  const chartData = useMemo(() => {
+    return normalizeMonthlyData(filteredApiData);
+  }, [filteredApiData]);
+
+  const totalDevice = useMemo(() => {
+    return countUniqueTaskIDs(filteredApiData);
+  }, [filteredApiData]);
+
   const summary = useMemo(() => {
-    const highest = Math.max(...mockData.map((item) => item.riskScore));
-    const totalVulnerabilities = mockData.reduce(
+    const highest = chartData.length
+      ? Math.max(...chartData.map((item) => item.riskScore))
+      : 0;
+
+    const totalVulnerabilities = chartData.reduce(
       (sum, item) => sum + item.vulnerabilityCount,
       0
     );
@@ -137,7 +308,7 @@ const Section6MonthlyRiskReport: React.FC<Section6MonthlyRiskReportProps> = ({
       highest,
       totalVulnerabilities,
     };
-  }, []);
+  }, [chartData]);
 
   return (
     <section
@@ -160,7 +331,7 @@ const Section6MonthlyRiskReport: React.FC<Section6MonthlyRiskReportProps> = ({
                     Total Device
                   </p>
                   <p className="mt-0.5 text-[14px] font-semibold text-slate-900">
-                    {totalDevice}
+                    {formatCount(totalDevice)}
                   </p>
                 </div>
               </div>
@@ -221,7 +392,7 @@ const Section6MonthlyRiskReport: React.FC<Section6MonthlyRiskReportProps> = ({
           >
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
-                data={mockData}
+                data={chartData}
                 margin={{ top: 18, right: 8, left: 2, bottom: 0 }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -242,7 +413,7 @@ const Section6MonthlyRiskReport: React.FC<Section6MonthlyRiskReportProps> = ({
                 <Tooltip content={<CustomTooltip />} />
                 <Bar dataKey="riskScore" radius={[4, 4, 0, 0]} maxBarSize={24}>
                   <LabelList dataKey="riskScore" content={<RiskScoreLabel />} />
-                  {mockData.map((entry, index) => (
+                  {chartData.map((entry, index) => (
                     <Cell
                       key={`cell-${index}`}
                       fill={getBarColor(entry.riskScore)}
@@ -278,19 +449,19 @@ const Section6MonthlyRiskReport: React.FC<Section6MonthlyRiskReportProps> = ({
               </thead>
 
               <tbody>
-                {mockData.map((row) => (
+                {chartData.map((row) => (
                   <tr
-                    key={row.month}
+                    key={row.monthNo}
                     className="odd:bg-white even:bg-slate-50/50"
                   >
                     <td className="border-b border-slate-200 px-3 py-2 text-[10.5px] font-medium text-slate-900">
                       {row.month}
                     </td>
                     <td className="border-b border-slate-200 px-3 py-2 text-center text-[10.5px] text-slate-700">
-                      {formatCount(row.vulnerabilityCount)}
+                      {loading ? "0" : formatCount(row.vulnerabilityCount)}
                     </td>
                     <td className="border-b border-slate-200 px-3 py-2 text-center text-[10.5px] font-semibold text-slate-900">
-                      {formatRiskScore(row.riskScore)}
+                      {loading ? "0.00" : formatRiskScore(row.riskScore)}
                     </td>
                   </tr>
                 ))}

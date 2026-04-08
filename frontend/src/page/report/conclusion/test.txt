@@ -27,11 +27,9 @@ import {
   ListTaskVulnSummaryForReport,
   ListDeviceRiskForReport,
   ListCriticalForReport,
-  ListDataForReportVulnerabilityMonth,
   type TaskVulnSummaryForReportResponse,
   type DeviceRiskForReportDTO,
   type CriticalForReportResponse,
-  type ReportVulnerabilityMonthResponse,
 } from "../../../services/report";
 
 type ConclusionProps = {
@@ -59,26 +57,25 @@ type DeviceTrendRow = {
 
 type MonthlyRiskRow = {
   month: string;
-  monthNo: number;
   vulnerabilityCount: number;
   riskScore: number;
 };
 
 const currentYear = 2026;
 
-const MONTHS: string[] = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
+const monthlyMockData: MonthlyRiskRow[] = [
+  { month: "Jan", vulnerabilityCount: 186, riskScore: 9.8 },
+  { month: "Feb", vulnerabilityCount: 172, riskScore: 9.2 },
+  { month: "Mar", vulnerabilityCount: 161, riskScore: 8.7 },
+  { month: "Apr", vulnerabilityCount: 149, riskScore: 8.1 },
+  { month: "May", vulnerabilityCount: 137, riskScore: 7.5 },
+  { month: "Jun", vulnerabilityCount: 126, riskScore: 6.9 },
+  { month: "Jul", vulnerabilityCount: 114, riskScore: 6.2 },
+  { month: "Aug", vulnerabilityCount: 101, riskScore: 5.6 },
+  { month: "Sep", vulnerabilityCount: 88, riskScore: 4.9 },
+  { month: "Oct", vulnerabilityCount: 74, riskScore: 4.1 },
+  { month: "Nov", vulnerabilityCount: 59, riskScore: 3.4 },
+  { month: "Dec", vulnerabilityCount: 43, riskScore: 2.6 },
 ];
 
 const SEVERITY_COLORS: Record<SeverityKey, string> = {
@@ -243,81 +240,6 @@ const sortDevicesByRiskDesc = (rows: DeviceRiskForReportDTO[]) => {
   });
 };
 
-const filterMonthlyDataBySelectedTaskIDs = (
-  apiData: ReportVulnerabilityMonthResponse[],
-  selectedTaskIDs: string[]
-): ReportVulnerabilityMonthResponse[] => {
-  if (!selectedTaskIDs.length) return apiData;
-
-  const selectedSet = new Set(selectedTaskIDs.map((id) => String(id).trim()));
-
-  return apiData.filter((item) =>
-    selectedSet.has(String(item.task_id || "").trim())
-  );
-};
-
-const normalizeMonthlyData = (
-  apiData: ReportVulnerabilityMonthResponse[]
-): MonthlyRiskRow[] => {
-  const monthMap = new Map<
-    number,
-    {
-      month: string;
-      monthNo: number;
-      vulnerabilityCount: number;
-      totalRiskScore: number;
-      riskScoreCount: number;
-    }
-  >();
-
-  for (let i = 0; i < 12; i += 1) {
-    monthMap.set(i + 1, {
-      month: MONTHS[i],
-      monthNo: i + 1,
-      vulnerabilityCount: 0,
-      totalRiskScore: 0,
-      riskScoreCount: 0,
-    });
-  }
-
-  apiData.forEach((item) => {
-    const monthNo = Number(item.month_no);
-    if (!Number.isFinite(monthNo) || monthNo < 1 || monthNo > 12) return;
-
-    const current = monthMap.get(monthNo)!;
-
-    const vulnerability =
-      typeof item.vulnerability === "number" && !Number.isNaN(item.vulnerability)
-        ? item.vulnerability
-        : 0;
-
-    const riskScore =
-      typeof item.risk_score === "number" && !Number.isNaN(item.risk_score)
-        ? item.risk_score
-        : 0;
-
-    monthMap.set(monthNo, {
-      month: String(item.month || "").trim() || MONTHS[monthNo - 1],
-      monthNo,
-      vulnerabilityCount: current.vulnerabilityCount + vulnerability,
-      totalRiskScore: current.totalRiskScore + riskScore,
-      riskScoreCount: current.riskScoreCount + 1,
-    });
-  });
-
-  return Array.from(monthMap.values())
-    .sort((a, b) => a.monthNo - b.monthNo)
-    .map((item) => ({
-      month: item.month,
-      monthNo: item.monthNo,
-      vulnerabilityCount: item.vulnerabilityCount,
-      riskScore:
-        item.riskScoreCount > 0
-          ? Number((item.totalRiskScore / item.riskScoreCount).toFixed(2))
-          : 0,
-    }));
-};
-
 const Conclusion: React.FC<ConclusionProps> = ({
   onReady,
   selectedTaskIDs = [],
@@ -327,7 +249,6 @@ const Conclusion: React.FC<ConclusionProps> = ({
   const [summaryRows, setSummaryRows] = useState<TaskVulnSummaryForReportResponse[]>([]);
   const [deviceRows, setDeviceRows] = useState<DeviceRiskForReportDTO[]>([]);
   const [criticalRows, setCriticalRows] = useState<CriticalForReportResponse[]>([]);
-  const [monthlyRows, setMonthlyRows] = useState<ReportVulnerabilityMonthResponse[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
   const normalizedSelectedTaskIDs = useMemo(
@@ -372,20 +293,17 @@ const Conclusion: React.FC<ConclusionProps> = ({
             ? undefined
             : effectiveTaskIDs;
 
-        const [summaryResponse, deviceResponse, criticalResponse, monthlyResponse] =
-          await Promise.all([
-            ListTaskVulnSummaryForReport(requestTaskIds),
-            ListDeviceRiskForReport(requestTaskIds),
-            ListCriticalForReport(requestTaskIds, 50),
-            ListDataForReportVulnerabilityMonth(requestTaskIds),
-          ]);
+        const [summaryResponse, deviceResponse, criticalResponse] = await Promise.all([
+          ListTaskVulnSummaryForReport(requestTaskIds),
+          ListDeviceRiskForReport(requestTaskIds),
+          ListCriticalForReport(requestTaskIds, 50),
+        ]);
 
         if (!alive) return;
 
         setSummaryRows(Array.isArray(summaryResponse) ? summaryResponse : []);
         setDeviceRows(Array.isArray(deviceResponse) ? deviceResponse : []);
         setCriticalRows(Array.isArray(criticalResponse) ? criticalResponse : []);
-        setMonthlyRows(Array.isArray(monthlyResponse) ? monthlyResponse : []);
       } catch (error) {
         console.error("Conclusion report load error:", error);
 
@@ -393,7 +311,6 @@ const Conclusion: React.FC<ConclusionProps> = ({
         setSummaryRows([]);
         setDeviceRows([]);
         setCriticalRows([]);
-        setMonthlyRows([]);
       } finally {
         if (!alive) return;
         setLoading(false);
@@ -437,18 +354,6 @@ const Conclusion: React.FC<ConclusionProps> = ({
       selectedTaskIdSet.has(normalizeTaskId(row.task_id))
     );
   }, [criticalRows, selectedTaskIdSet, effectiveTaskMode]);
-
-  const filteredMonthlyRows = useMemo(() => {
-    if (effectiveTaskMode === "all" || selectedTaskIdSet.size === 0) {
-      return monthlyRows;
-    }
-
-    return filterMonthlyDataBySelectedTaskIDs(monthlyRows, effectiveTaskIDs);
-  }, [monthlyRows, selectedTaskIdSet, effectiveTaskMode, effectiveTaskIDs]);
-
-  const monthlyChartData = useMemo(() => {
-    return normalizeMonthlyData(filteredMonthlyRows);
-  }, [filteredMonthlyRows]);
 
   const severityData = useMemo<SeverityRow[]>(() => {
     let critical = 0;
@@ -543,13 +448,9 @@ const Conclusion: React.FC<ConclusionProps> = ({
   const priorityTone = getRiskTone(highestRiskScore);
 
   const monthlySummary = useMemo(() => {
-    const highest = monthlyChartData.length
-      ? Math.max(...monthlyChartData.map((item) => item.riskScore))
-      : 0;
-    const lowest = monthlyChartData.length
-      ? Math.min(...monthlyChartData.map((item) => item.riskScore))
-      : 0;
-    const totalVulnerabilities = monthlyChartData.reduce(
+    const highest = Math.max(...monthlyMockData.map((item) => item.riskScore));
+    const lowest = Math.min(...monthlyMockData.map((item) => item.riskScore));
+    const totalVulnerabilities = monthlyMockData.reduce(
       (sum, item) => sum + item.vulnerabilityCount,
       0
     );
@@ -559,7 +460,7 @@ const Conclusion: React.FC<ConclusionProps> = ({
       lowest,
       totalVulnerabilities,
     };
-  }, [monthlyChartData]);
+  }, []);
 
   const severityTooltipFormatter = (
     value: number | string | undefined,
@@ -768,7 +669,7 @@ const Conclusion: React.FC<ConclusionProps> = ({
             <div className="h-37.5 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
-                  data={monthlyChartData}
+                  data={monthlyMockData}
                   margin={{ top: 14, right: 6, left: -10, bottom: 0 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
@@ -806,7 +707,7 @@ const Conclusion: React.FC<ConclusionProps> = ({
                   />
                   <Bar dataKey="riskScore" radius={[5, 5, 0, 0]} maxBarSize={18}>
                     <LabelList dataKey="riskScore" content={<RiskScoreLabel />} />
-                    {monthlyChartData.map((entry, index) => (
+                    {monthlyMockData.map((entry, index) => (
                       <Cell
                         key={`monthly-${index}`}
                         fill={getMonthlyBarColor(entry.riskScore)}
@@ -818,7 +719,7 @@ const Conclusion: React.FC<ConclusionProps> = ({
             </div>
 
             <p className="mt-1 text-[8px] leading-[1.35] text-slate-500">
-              แนวโน้ม Risk Score รายเดือนจากข้อมูลจริงของรายงานปัจจุบัน
+              แนวโน้ม Risk Score ลดลงต่อเนื่องจาก Jan ถึง Dec
             </p>
           </div>
         </div>
@@ -1033,136 +934,82 @@ const Conclusion: React.FC<ConclusionProps> = ({
             </div>
           </div>
         </div>
-      </div>
 
-      <div className="grid grid-cols-12 gap-3 border-t border-slate-200 px-4 py-3">
-        <div className="col-span-7">
-          <div className="rounded-lg border border-slate-200 bg-white">
-            <div className="border-b border-slate-200 bg-slate-50/80 px-3.5 py-2.5">
-              <div className="flex items-center gap-2">
-                <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700">
-                  <FiAlertTriangle className="text-[12px]" />
-                </span>
-                <div>
-                  <h4 className="text-[11px] font-semibold text-slate-900">
-                    Critical Observation
-                  </h4>
-                  <p className="text-[8.5px] leading-[1.35] text-slate-600">
-                    ช่องโหว่สำคัญที่ควรติดตามเป็นลำดับต้น
-                  </p>
-                </div>
-              </div>
-            </div>
+        <div className="col-span-8">
+          <div className="h-full rounded-lg border border-slate-200 bg-white px-3.5 py-3">
+            <p className="text-[8px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+              Final interpretation
+            </p>
 
-            <div className="p-3">
-              {latestCritical ? (
-                <div className="rounded-md border border-rose-200 bg-rose-50/60 px-3 py-2.5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-[8px] font-semibold uppercase tracking-[0.12em] text-rose-700">
-                        Critical finding
-                      </p>
-                      <h5 className="mt-1 text-[10px] font-semibold leading-[1.35] text-slate-900">
-                        {normalizeText(latestCritical.vulnerability_name) || "-"}
-                      </h5>
-                      <p className="mt-1 text-[8px] leading-normal text-slate-700">
-                        {normalizeText(latestCritical.task_name) || "-"}{" "}
-                        {normalizeText(latestCritical.ip) ? `(${latestCritical.ip})` : ""}
-                      </p>
-                    </div>
+            <div className="mt-2 space-y-2.5 text-[8.5px] leading-[1.7] text-slate-700">
+              <p>
+                จากข้อมูลสรุปในรอบการประเมินนี้ พบว่าองค์กรยังคงมีผลการค้นพบด้านความมั่นคงปลอดภัยในระดับที่ต้องติดตามอย่างต่อเนื่อง
+                โดยเฉพาะในกลุ่มอุปกรณ์ที่มี Risk Score สูง ซึ่งควรได้รับการจัดลำดับความสำคัญก่อนในการดำเนินการแก้ไข
+                เพื่อจำกัดโอกาสที่ช่องโหว่จะถูกนำไปใช้ประโยชน์จริง
+              </p>
 
-                    <div className="shrink-0 rounded-md border border-rose-200 bg-white px-2 py-1 text-right">
-                      <p className="text-[6.5px] uppercase tracking-[0.12em] text-rose-700">
-                        Severity
-                      </p>
-                      <p className="mt-1 text-[10px] font-bold text-slate-900">
-                        {formatRiskScore(Number(latestCritical.severity || 0))}
-                      </p>
-                    </div>
-                  </div>
+              <p>
+                การกระจายตัวของ Severity แสดงให้เห็นว่าช่องโหว่ระดับ Critical และ High
+                ยังคงเป็นส่วนสำคัญของผลการสแกนทั้งหมด ขณะที่ Top 3 Device Risk Curve
+                สะท้อนให้เห็นชัดเจนว่าอุปกรณ์บางรายการมีภาระความเสี่ยงสูงกว่ากลุ่มอื่นอย่างมีนัยสำคัญ
+                และควรถูกใช้เป็น baseline สำหรับการลดความเสี่ยงในรอบถัดไป
+              </p>
 
-                  <div className="mt-2 grid grid-cols-3 gap-2">
-                    <div className="rounded-md border border-slate-200 bg-white px-2 py-1.5">
-                      <p className="text-[6.5px] uppercase tracking-[0.12em] text-slate-500">
-                        Detected
-                      </p>
-                      <p className="mt-1 text-[8px] font-medium text-slate-900">
-                        {formatDetectedDate(latestCritical.detected_date)}
-                      </p>
-                    </div>
+              <p>
+                {latestCritical
+                  ? `ตัวอย่างช่องโหว่ที่ควรจับตาเป็นพิเศษคือ "${normalizeText(
+                      latestCritical.vulnerability_name
+                    )}" ซึ่งตรวจพบบน ${
+                      normalizeText(latestCritical.task_name) || "อุปกรณ์เป้าหมาย"
+                    } เมื่อ ${formatDetectedDate(
+                      latestCritical.detected_date
+                    )} และเปิดรับความเสี่ยงมาแล้ว ${
+                      getDetectedDays(latestCritical.detected_date) ?? 0
+                    } วัน`
+                  : "ขณะนี้ไม่มีรายการ Critical Highlight เพิ่มเติมที่โดดเด่นสำหรับสรุปในรอบนี้"}
+                {" "}จึงควรเร่งตรวจสอบผลกระทบทางเทคนิคและจัดการตามลำดับความสำคัญทันที
+              </p>
 
-                    <div className="rounded-md border border-slate-200 bg-white px-2 py-1.5">
-                      <p className="text-[6.5px] uppercase tracking-[0.12em] text-slate-500">
-                        Age
-                      </p>
-                      <p className="mt-1 text-[8px] font-medium text-slate-900">
-                        {typeof getDetectedDays(latestCritical.detected_date) === "number"
-                          ? `${getDetectedDays(latestCritical.detected_date)} days`
-                          : "-"}
-                      </p>
-                    </div>
-
-                    <div className="rounded-md border border-slate-200 bg-white px-2 py-1.5">
-                      <p className="text-[6.5px] uppercase tracking-[0.12em] text-slate-500">
-                        Solution type
-                      </p>
-                      <p className="mt-1 text-[8px] font-medium text-slate-900">
-                        {normalizeText(latestCritical.solution_type) || "-"}
-                      </p>
-                    </div>
-                  </div>
-                  <div>
-                    <p></p>
-                  </div>
-                </div>
-              ) : (
-                <div className="rounded-md border border-dashed border-slate-200 bg-slate-50 px-3 py-3 text-[8px] text-slate-500">
-                  No critical observation found.
-                </div>
-              )}
+              <p>
+                ในเชิงบริหารจัดการ ควรวางแผน remediation เป็นลำดับจาก Highest Priority ไปยัง
+                Medium Severity และติดตามแนวโน้มรายเดือนเพื่อให้เห็นผลของการปรับปรุงในรอบถัดไปอย่างชัดเจน
+              </p>
             </div>
           </div>
         </div>
 
-        <div className="col-span-5">
-          <div className="rounded-lg border border-slate-200 bg-white">
-            <div className="border-b border-slate-200 bg-slate-50/80 px-3.5 py-2.5">
-              <h4 className="text-[11px] font-semibold text-slate-900">
-                Recommended actions
-              </h4>
-              <p className="text-[8.5px] leading-[1.35] text-slate-600">
-                ข้อเสนอแนะเชิงปฏิบัติการสำหรับรอบถัดไป
-              </p>
-            </div>
+        <div className="col-span-4">
+          <div className="h-full rounded-lg border border-slate-200 bg-white px-3 py-2.5">
+            <p className="text-[8px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+              Recommended actions
+            </p>
 
-            <div className="p-3">
-              <div className="space-y-2">
-                <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2">
-                  <p className="text-[8px] font-semibold uppercase tracking-[0.12em] text-rose-700">
-                    1. Immediate
-                  </p>
-                  <p className="mt-1 text-[8px] leading-[1.55] text-slate-700">
-                    Prioritize remediation for the highest-risk devices and close critical vulnerabilities first.
-                  </p>
-                </div>
+            <div className="mt-2 space-y-2">
+              <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2">
+                <p className="text-[8px] font-semibold uppercase tracking-[0.12em] text-rose-700">
+                  1. Immediate
+                </p>
+                <p className="mt-1 text-[8px] leading-[1.55] text-slate-700">
+                  Prioritize remediation for the highest-risk devices and close critical vulnerabilities first.
+                </p>
+              </div>
 
-                <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
-                  <p className="text-[8px] font-semibold uppercase tracking-[0.12em] text-amber-700">
-                    2. Near-term
-                  </p>
-                  <p className="mt-1 text-[8px] leading-[1.55] text-slate-700">
-                    Review Medium and High findings in sequence and verify that affected systems are patched or mitigated.
-                  </p>
-                </div>
+              <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
+                <p className="text-[8px] font-semibold uppercase tracking-[0.12em] text-amber-700">
+                  2. Near-term
+                </p>
+                <p className="mt-1 text-[8px] leading-[1.55] text-slate-700">
+                  Review Medium and High findings in sequence and verify that affected systems are patched or mitigated.
+                </p>
+              </div>
 
-                <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2">
-                  <p className="text-[8px] font-semibold uppercase tracking-[0.12em] text-emerald-700">
-                    3. Continuous
-                  </p>
-                  <p className="mt-1 text-[8px] leading-[1.55] text-slate-700">
-                    Reassess risk trends monthly and compare future scan results against the current baseline.
-                  </p>
-                </div>
+              <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2">
+                <p className="text-[8px] font-semibold uppercase tracking-[0.12em] text-emerald-700">
+                  3. Continuous
+                </p>
+                <p className="mt-1 text-[8px] leading-[1.55] text-slate-700">
+                  Reassess risk trends monthly and compare future scan results against the current baseline.
+                </p>
               </div>
             </div>
           </div>

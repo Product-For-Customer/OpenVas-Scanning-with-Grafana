@@ -5,6 +5,7 @@ import { ListDeviceRiskForReport } from "../../../services/report";
 
 type TopDeviceRiskReportProps = {
   onReady?: (ready: boolean) => void;
+  selectedTaskIDs?: string[];
 };
 
 const formatRiskScore = (score?: number) => {
@@ -97,13 +98,27 @@ const safeNumber = (value: unknown): number => {
   return Number.isFinite(num) ? num : 0;
 };
 
+const normalizeTaskIDs = (ids?: string[]): string[] => {
+  if (!Array.isArray(ids)) return [];
+
+  return ids
+    .map((id) => String(id).trim())
+    .filter((id) => id !== "");
+};
+
 const TopDeviceRiskReport: React.FC<TopDeviceRiskReportProps> = ({
   onReady,
+  selectedTaskIDs = [],
 }) => {
   const [devices, setDevices] = useState<DeviceRiskForReportDTO[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [queryTaskIDs, setQueryTaskIDs] = useState<string[]>([]);
   const [taskMode, setTaskMode] = useState<"all" | "filtered">("all");
+
+  const normalizedSelectedTaskIDs = useMemo(
+    () => normalizeTaskIDs(selectedTaskIDs),
+    [selectedTaskIDs]
+  );
 
   useEffect(() => {
     const parsed = readTaskIDsFromQuery();
@@ -149,21 +164,37 @@ const TopDeviceRiskReport: React.FC<TopDeviceRiskReportProps> = ({
     };
   }, [onReady]);
 
+  const effectiveTaskMode = useMemo<"all" | "filtered">(() => {
+    if (normalizedSelectedTaskIDs.length > 0) {
+      return "filtered";
+    }
+
+    return taskMode;
+  }, [normalizedSelectedTaskIDs, taskMode]);
+
+  const effectiveTaskIDs = useMemo<string[]>(() => {
+    if (normalizedSelectedTaskIDs.length > 0) {
+      return normalizedSelectedTaskIDs;
+    }
+
+    return queryTaskIDs;
+  }, [normalizedSelectedTaskIDs, queryTaskIDs]);
+
   const filteredDevices = useMemo(() => {
-    if (taskMode === "all") {
+    if (effectiveTaskMode === "all") {
       return devices;
     }
 
-    if (queryTaskIDs.length === 0) {
+    if (effectiveTaskIDs.length === 0) {
       return devices;
     }
 
-    const selected = new Set(queryTaskIDs.map((id) => String(id).trim()));
+    const selected = new Set(effectiveTaskIDs.map((id) => String(id).trim()));
 
     return devices.filter((device) =>
       selected.has(String(device.task_id).trim())
     );
-  }, [devices, queryTaskIDs, taskMode]);
+  }, [devices, effectiveTaskIDs, effectiveTaskMode]);
 
   const sortedDevices = useMemo(() => {
     return [...filteredDevices].sort((a, b) => {
@@ -258,7 +289,7 @@ const TopDeviceRiskReport: React.FC<TopDeviceRiskReportProps> = ({
                   {formatNumber(totalTargets)}
                 </p>
                 <p className="mt-1 text-[11px] leading-5 text-slate-600">
-                  {taskMode === "all"
+                  {effectiveTaskMode === "all"
                     ? "Number of assessed devices included in the latest scan cycle."
                     : "Number of assessed devices included in the selected task scope."}
                 </p>
@@ -284,7 +315,7 @@ const TopDeviceRiskReport: React.FC<TopDeviceRiskReportProps> = ({
                   {formatRiskScore(averageRiskScore)}
                 </p>
                 <p className={`mt-1 text-[11px] leading-5 ${averageTone.desc}`}>
-                  {taskMode === "all"
+                  {effectiveTaskMode === "all"
                     ? "Average risk level across all Devices in this assessment."
                     : "Average risk level across selected Devices in this assessment."}
                 </p>

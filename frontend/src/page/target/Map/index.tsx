@@ -14,7 +14,6 @@ import {
   FiX,
   FiAlertTriangle,
   FiHome,
-  FiHash,
   FiPlus,
   FiEdit2,
   FiSave,
@@ -475,15 +474,6 @@ const MapPopupCard: React.FC<{
         </div>
 
         <div className="space-y-2 p-3">
-          <div className="rounded-[14px] border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-white/5">
-            <div className="flex items-center gap-2 text-[11px] font-medium text-slate-700 dark:text-white/75">
-              <FiHash />
-              Task ID
-            </div>
-            <p className="mt-1.5 break-all text-[12px] text-slate-600 dark:text-white/65">
-              {device.target_id}
-            </p>
-          </div>
 
           <div className="rounded-[14px] border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-white/5">
             <div className="flex items-center gap-2 text-[11px] font-medium text-slate-700 dark:text-white/75">
@@ -1078,9 +1068,6 @@ const MapDevice: React.FC = () => {
                             <div className="min-w-0">
                               <p className="truncate text-[12px] font-semibold text-slate-800 dark:text-white/85">
                                 {device.device_name}
-                              </p>
-                              <p className="mt-1 truncate text-[10px] text-slate-500 dark:text-white/45">
-                                Task ID: {device.target_id}
                               </p>
                               <p className="mt-1 truncate text-[10px] text-slate-400 dark:text-white/35">
                                 {device.location} • {device.building}

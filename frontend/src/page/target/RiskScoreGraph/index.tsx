@@ -10,7 +10,6 @@ import {
   Tooltip,
 } from "recharts";
 import {
-  FiShield,
   FiActivity,
   FiChevronDown,
   FiCalendar,
@@ -565,18 +564,7 @@ const RiskScoreGraph: React.FC = () => {
           <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
             <div className="min-w-0 flex-1">
               <div className="mb-2.5 flex flex-wrap items-center gap-1.5">
-                <div
-                  className={[
-                    "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5",
-                    "bg-cyan-50 text-cyan-700 border border-cyan-200/80",
-                    "dark:bg-cyan-500/10 dark:text-cyan-300 dark:border-cyan-400/20",
-                  ].join(" ")}
-                >
-                  <FiShield className="text-[11px]" />
-                  <span className="text-[10.5px] font-semibold tracking-wide">
-                    Risk Analytics
-                  </span>
-                </div>
+                
 
                 {peakRisk && (
                   <div

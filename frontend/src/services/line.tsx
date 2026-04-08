@@ -247,11 +247,13 @@ export const DeleteAppNotificationByID = async (
 export type AppLineMasterResponse = {
   id: number;
   name: string;
+  description: string;
   token: string;
 };
 
 export type CreateAppLineMasterInput = {
   name: string;
+  description: string;
   token: string;
 };
 
@@ -262,6 +264,7 @@ export type CreateAppLineMasterResponse = {
 
 export type UpdateAppLineMasterInput = {
   name?: string;
+  description?: string;
   token?: string;
 };
 

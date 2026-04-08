@@ -1,14 +1,14 @@
 import React from "react";
 
 type LoaderProps = {
-  size?: number;
-  text?: string;
+  width?: number;
+  height?: number;
   overlay?: boolean;
 };
 
 const Loader: React.FC<LoaderProps> = ({
-  size = 14,
-  text = "LOADING...",
+  width = 14,
+  height = 58,
   overlay = true,
 }) => {
   return (
@@ -19,14 +19,13 @@ const Loader: React.FC<LoaderProps> = ({
         aria-live="polite"
         aria-label="Loading"
       >
-        <div className="loader-dots">
-          <span className="dot dot-1" />
-          <span className="dot dot-2" />
-          <span className="dot dot-3" />
-          <span className="dot dot-4" />
+        <div className="loader-bars">
+          <span className="bar bar-1" />
+          <span className="bar bar-2" />
+          <span className="bar bar-3" />
+          <span className="bar bar-4" />
+          <span className="bar bar-5" />
         </div>
-
-        <div className="loader-text">{text}</div>
       </div>
 
       <style>
@@ -38,9 +37,12 @@ const Loader: React.FC<LoaderProps> = ({
             display: flex;
             align-items: center;
             justify-content: center;
-            background: rgba(15, 23, 42, 0.08);
-            backdrop-filter: blur(2px);
-            -webkit-backdrop-filter: blur(2px);
+            background:
+              radial-gradient(circle at top, rgba(168, 85, 247, 0.05), transparent 35%),
+              radial-gradient(circle at bottom, rgba(59, 130, 246, 0.05), transparent 35%),
+              rgba(15, 23, 42, 0.08);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
           }
 
           .loader-wrap {
@@ -52,89 +54,96 @@ const Loader: React.FC<LoaderProps> = ({
 
           .loader-box {
             display: inline-flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 10px;
             padding: 0;
             background: transparent;
-            box-shadow: none;
             border: none;
+            box-shadow: none;
           }
 
-          .loader-dots {
+          .loader-bars {
             display: flex;
-            align-items: flex-end;
-            gap: 10px;
-            height: 28px;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            height: ${height + 20}px;
           }
 
-          .dot {
-            width: ${size}px;
-            height: ${size}px;
-            border-radius: 9999px;
+          .bar {
             display: inline-block;
-            animation: bounceWave 0.9s ease-in-out infinite;
-            transform-origin: center bottom;
+            width: ${width}px;
+            height: ${height}px;
+            border-radius: 9999px;
+            transform-origin: center center;
+            animation: stretchBar 1.45s ease-in-out infinite;
+            box-shadow:
+              0 0 10px rgba(99, 102, 241, 0.16),
+              0 0 18px rgba(59, 130, 246, 0.10);
+            will-change: transform, opacity;
           }
 
-          .dot-1 {
-            background: #e76f51;
+          .bar-1 {
+            background: linear-gradient(180deg, #67e8f9 0%, #38bdf8 100%);
             animation-delay: 0s;
           }
 
-          .dot-2 {
-            background: #e9c46a;
-            animation-delay: 0.12s;
+          .bar-2 {
+            background: linear-gradient(180deg, #60a5fa 0%, #3b82f6 100%);
+            animation-delay: 0.14s;
           }
 
-          .dot-3 {
-            background: #5fc0b7;
-            animation-delay: 0.24s;
+          .bar-3 {
+            background: linear-gradient(180deg, #818cf8 0%, #6366f1 100%);
+            animation-delay: 0.28s;
           }
 
-          .dot-4 {
-            background: #3d556b;
-            animation-delay: 0.36s;
+          .bar-4 {
+            background: linear-gradient(180deg, #8b5cf6 0%, #7c3aed 100%);
+            animation-delay: 0.42s;
           }
 
-          .loader-text {
-            font-size: 12px;
-            font-weight: 500;
-            letter-spacing: 0.28em;
-            color: #4b6275;
-            user-select: none;
+          .bar-5 {
+            background: linear-gradient(180deg, #c084fc 0%, #a855f7 100%);
+            animation-delay: 0.56s;
           }
 
-          @keyframes bounceWave {
+          @keyframes stretchBar {
             0%, 100% {
-              transform: translateY(0) scale(1);
-              opacity: 0.9;
+              transform: scaleY(0.48);
+              opacity: 0.76;
             }
-            30% {
-              transform: translateY(-8px) scale(1.05);
-              opacity: 1;
+            20% {
+              transform: scaleY(1.08);
+              opacity: 0.95;
+            }
+            40% {
+              transform: scaleY(0.62);
+              opacity: 0.84;
             }
             60% {
-              transform: translateY(0) scale(1);
-              opacity: 0.95;
+              transform: scaleY(1.32);
+              opacity: 1;
+            }
+            80% {
+              transform: scaleY(0.72);
+              opacity: 0.9;
             }
           }
 
           @media (max-width: 640px) {
-            .loader-dots {
-              gap: 8px;
-              height: 24px;
+            .loader-bars {
+              gap: 10px;
+              height: ${Math.max(height, 48)}px;
             }
 
-            .loader-text {
-              font-size: 11px;
-              letter-spacing: 0.22em;
+            .bar {
+              width: ${Math.max(width - 2, 8)}px;
             }
           }
 
           @media (prefers-reduced-motion: reduce) {
-            .dot {
+            .bar {
               animation: none;
             }
           }

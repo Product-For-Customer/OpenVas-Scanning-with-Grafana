@@ -49,6 +49,7 @@ type HighlightItem = {
 
 type ExecutiveHighlightsProps = {
   onReady?: (ready: boolean) => void;
+  selectedTaskIDs?: string[];
 };
 
 type SectionBlock = {
@@ -163,19 +164,49 @@ const readTaskIDsFromQuery = (): { mode: "all" | "filtered"; ids: string[] } => 
   return { mode: "filtered", ids };
 };
 
+const normalizeTaskIDs = (ids?: string[]): string[] => {
+  if (!Array.isArray(ids)) return [];
+
+  return ids
+    .map((id) => String(id).trim())
+    .filter((id) => id !== "");
+};
+
 const ExecutiveHighlights: React.FC<ExecutiveHighlightsProps> = ({
   onReady,
+  selectedTaskIDs = [],
 }) => {
   const [rows, setRows] = useState<CriticalForReportDTO[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [queryTaskIDs, setQueryTaskIDs] = useState<string[]>([]);
   const [taskMode, setTaskMode] = useState<"all" | "filtered">("all");
 
+  const normalizedSelectedTaskIDs = useMemo(
+    () => normalizeTaskIDs(selectedTaskIDs),
+    [selectedTaskIDs]
+  );
+
   useEffect(() => {
     const parsed = readTaskIDsFromQuery();
     setQueryTaskIDs(parsed.ids);
     setTaskMode(parsed.mode);
   }, []);
+
+  const effectiveTaskMode = useMemo<"all" | "filtered">(() => {
+    if (normalizedSelectedTaskIDs.length > 0) {
+      return "filtered";
+    }
+
+    return taskMode;
+  }, [normalizedSelectedTaskIDs, taskMode]);
+
+  const effectiveTaskIDs = useMemo<string[]>(() => {
+    if (normalizedSelectedTaskIDs.length > 0) {
+      return normalizedSelectedTaskIDs;
+    }
+
+    return queryTaskIDs;
+  }, [normalizedSelectedTaskIDs, queryTaskIDs]);
 
   useEffect(() => {
     let alive = true;
@@ -187,9 +218,9 @@ const ExecutiveHighlights: React.FC<ExecutiveHighlightsProps> = ({
         setLoading(true);
 
         const response =
-          taskMode === "all"
+          effectiveTaskMode === "all"
             ? await ListCriticalForReport(undefined, 50)
-            : await ListCriticalForReport(queryTaskIDs, 50);
+            : await ListCriticalForReport(effectiveTaskIDs, 50);
 
         if (!alive) return;
 
@@ -215,7 +246,7 @@ const ExecutiveHighlights: React.FC<ExecutiveHighlightsProps> = ({
     return () => {
       alive = false;
     };
-  }, [onReady, taskMode, queryTaskIDs]);
+  }, [onReady, effectiveTaskMode, effectiveTaskIDs]);
 
   const items: HighlightItem[] = useMemo(() => {
     return [...rows]
