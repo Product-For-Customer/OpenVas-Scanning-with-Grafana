@@ -240,21 +240,6 @@ services:
       - gvmd
       - ospd-openvas
 
-  grafana:
-    image: grafana/grafana:latest
-    container_name: grafana
-    restart: unless-stopped
-    ports:
-      - "3001:3000"
-    environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin1234
-      - GF_SERVER_ROOT_URL=http://localhost:3001
-    volumes:
-      - grafana_data:/var/lib/grafana
-    depends_on:
-      - pg-gvm
-
   # ================= DB INIT (สร้าง trigger ครั้งเดียวแล้วจบ) =================
   db-init:
     image: registry.community.greenbone.net/community/pg-gvm:stable
@@ -355,5 +340,4 @@ volumes:
   redis_socket_vol:
   openvas_data_vol:
   openvas_log_data_vol:
-  grafana_data:
   n8n_data:
