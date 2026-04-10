@@ -204,7 +204,7 @@ const TableTarget: React.FC<TableTargetProps> = ({ data, loading }) => {
     }
 
     filtered.sort((a, b) => {
-      const diff = b.vulnerabilityTotal - a.vulnerabilityTotal;
+      const diff = b.riskScore - a.riskScore;
       return sortOrder === "desc" ? diff : -diff;
     });
 
@@ -225,6 +225,8 @@ const TableTarget: React.FC<TableTargetProps> = ({ data, loading }) => {
 
     return { totalTargets, totalVulns, highestRisk };
   }, [data]);
+
+  const shouldScrollTable = !loading && rows.length > 5;
 
   return (
     <section
@@ -278,7 +280,9 @@ const TableTarget: React.FC<TableTargetProps> = ({ data, loading }) => {
                 >
                   <FiRadio className="text-[11px] text-cyan-500" />
                   <span className="text-[10px] font-medium">
-                    {loading ? "Scanner Syncing" : `${stats.totalTargets} targets loaded`}
+                    {loading
+                      ? "Scanner Syncing"
+                      : `${stats.totalTargets} targets loaded`}
                   </span>
                 </div>
 
@@ -314,7 +318,8 @@ const TableTarget: React.FC<TableTargetProps> = ({ data, loading }) => {
                 Device Vulnerability Table
               </h2>
               <p className="text-[11px] sm:text-[12px] text-gray-500 dark:text-white/55 mt-1">
-                Monitored targets, firmware details, vulnerability totals, and live risk posture
+                Monitored targets, firmware details, vulnerability totals, and
+                live risk posture
               </p>
             </div>
 
@@ -347,7 +352,7 @@ const TableTarget: React.FC<TableTargetProps> = ({ data, loading }) => {
                   ].join(" ")}
                 >
                   <span>
-                    {sortOrder === "desc" ? "Highest Vulns" : "Lowest Vulns"}
+                    {sortOrder === "desc" ? "Highest Risk" : "Lowest Risk"}
                   </span>
                   <FiChevronDown
                     className={`transition ${
@@ -366,7 +371,7 @@ const TableTarget: React.FC<TableTargetProps> = ({ data, loading }) => {
                       }}
                       className="w-full px-3 py-2.5 text-left text-[12px] text-gray-700 hover:bg-gray-50 dark:text-white/80 dark:hover:bg-white/5"
                     >
-                      Highest Vulnerability
+                      Highest Risk Score
                     </button>
                     <button
                       type="button"
@@ -376,7 +381,7 @@ const TableTarget: React.FC<TableTargetProps> = ({ data, loading }) => {
                       }}
                       className="w-full px-3 py-2.5 text-left text-[12px] text-gray-700 hover:bg-gray-50 dark:text-white/80 dark:hover:bg-white/5"
                     >
-                      Lowest Vulnerability
+                      Lowest Risk Score
                     </button>
                   </div>
                 )}
@@ -392,9 +397,16 @@ const TableTarget: React.FC<TableTargetProps> = ({ data, loading }) => {
             "dark:border-white/10 dark:bg-white/3",
           ].join(" ")}
         >
-          <div className="overflow-x-auto">
+          <div
+            className={[
+              "overflow-x-auto",
+              shouldScrollTable
+                ? "max-h-92.5 overflow-y-auto"
+                : "overflow-y-visible",
+            ].join(" ")}
+          >
             <table className="min-w-full">
-              <thead>
+              <thead className="sticky top-0 z-20 bg-white dark:bg-[#0B1220]">
                 <tr className="border-b border-gray-200/80 dark:border-white/10">
                   <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 dark:text-white/50 whitespace-nowrap">
                     No

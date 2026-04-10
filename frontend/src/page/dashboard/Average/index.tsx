@@ -38,20 +38,27 @@ type ChartRow = {
   asset_label: string;
   axis_key: string;
   latest_task_id: string;
+
   latest_risk_score: number;
   previous_risk_score: number;
   diff_risk_score: number;
+
   latest_total: number;
   previous_total: number;
   previous_version_status: string;
   latest_creation_time: number | null;
   previous_creation_time: number | null;
 
+  has_previous_record: boolean;
+
   previous_for_increase: number;
   previous_for_nonincrease: number;
   latest_overlay_equal_or_lower: number;
   latest_positive_diff: number;
   overlay_top_value: number;
+
+  latest_increase_label: number | null;
+  latest_equal_or_lower_label: number | null;
 };
 
 type FilterOption = {
@@ -62,11 +69,22 @@ type FilterOption = {
 type DetailRow = {
   task_id: string;
   task_name: string;
+
   detected_date_raw: string;
+  detected_timestamp: number;
   detected_date_label: string;
+  detected_tick_date: string;
+  detected_tick_time: string;
   detected_time?: string;
+
   risk_score: number;
   axis_key: string;
+  detail_color: string;
+
+  host_ip: string;
+  total: number;
+  critical: number;
+  high: number;
 };
 
 const SORT_OPTIONS: SortType[] = [
@@ -115,10 +133,42 @@ const isDarkMode = () => {
 };
 
 const toDate = (value: unknown): Date | null => {
-  if (!value) return null;
-  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
-  const date = new Date(String(value));
-  return Number.isNaN(date.getTime()) ? null : date;
+  if (value === null || value === undefined || value === "") return null;
+
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) return null;
+
+    if (value < 1e12) {
+      const d = new Date(value * 1000);
+      return Number.isNaN(d.getTime()) ? null : d;
+    }
+
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+
+  const str = String(value).trim();
+  if (!str) return null;
+
+  if (/^\d+$/.test(str)) {
+    const num = Number(str);
+    if (!Number.isFinite(num)) return null;
+
+    if (num < 1e12) {
+      const d = new Date(num * 1000);
+      return Number.isNaN(d.getTime()) ? null : d;
+    }
+
+    const d = new Date(num);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+
+  const d = new Date(str);
+  return Number.isNaN(d.getTime()) ? null : d;
 };
 
 const formatDetectedDateLabel = (value: unknown) => {
@@ -130,6 +180,15 @@ const formatDetectedDateLabel = (value: unknown) => {
     year: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
+  }).format(date);
+};
+
+const formatDetectedTickDate = (value: unknown) => {
+  const date = toDate(value);
+  if (!date) return "-";
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "short",
   }).format(date);
 };
 
@@ -154,6 +213,50 @@ const getDetectedDateValue = (item: any) => {
   );
 };
 
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+
+const rgbToHex = (r: number, g: number, b: number) => {
+  const toHex = (v: number) =>
+    Math.max(0, Math.min(255, Math.round(v)))
+      .toString(16)
+      .padStart(2, "0");
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+};
+
+const interpolateColor = (
+  c1: [number, number, number],
+  c2: [number, number, number],
+  t: number
+) => {
+  return rgbToHex(
+    lerp(c1[0], c2[0], t),
+    lerp(c1[1], c2[1], t),
+    lerp(c1[2], c2[2], t)
+  );
+};
+
+const getRiskHeatColor = (risk: number) => {
+  const clamped = Math.max(0, Math.min(10, Number(risk || 0)));
+
+  const green: [number, number, number] = [34, 197, 94];
+  const yellow: [number, number, number] = [250, 204, 21];
+  const orange: [number, number, number] = [249, 115, 22];
+  const red: [number, number, number] = [239, 68, 68];
+
+  if (clamped <= 5) {
+    const t = clamped / 5;
+    return interpolateColor(green, yellow, t);
+  }
+
+  if (clamped <= 7.5) {
+    const t = (clamped - 5) / 2.5;
+    return interpolateColor(yellow, orange, t);
+  }
+
+  const t = (clamped - 7.5) / 2.5;
+  return interpolateColor(orange, red, t);
+};
+
 const CustomTooltip = ({
   active,
   payload,
@@ -167,16 +270,16 @@ const CustomTooltip = ({
   if (!item) return null;
 
   const diff = item.diff_risk_score ?? 0;
-  const isUp = diff > 0;
-  const isDown = diff < 0;
+  const isUp = item.has_previous_record && diff > 0;
+  const isDown = item.has_previous_record && diff < 0;
 
   return (
     <div className="min-w-62.5 max-w-[320px] rounded-[18px] border border-gray-200/90 bg-white/96 px-3 py-2.5 shadow-[0_14px_32px_rgba(15,23,42,0.14)] backdrop-blur dark:border-white/10 dark:bg-[#0B1220]/96 dark:shadow-[0_14px_28px_rgba(0,0,0,0.32)]">
       <div className="mb-2">
-        <p className="text-[13px] font-semibold text-[#1f2240] dark:text-white/92 wrap-break-word">
+        <p className="wrap-break-word text-[13px] font-semibold text-[#1f2240] dark:text-white/92">
           {item.task_name || "Unknown Task"}
         </p>
-        <p className="mt-0.5 text-[11px] text-gray-500 dark:text-white/45 break-all">
+        <p className="mt-0.5 break-all text-[11px] text-gray-500 dark:text-white/45">
           Host: {item.host || "-"}
         </p>
       </div>
@@ -185,7 +288,7 @@ const CustomTooltip = ({
         <div className="flex items-center justify-between gap-3">
           <span className="text-[#8B7CFF]">Previous Risk</span>
           <span className="font-semibold text-[#1f2240] dark:text-white/92">
-            {formatRisk(item.previous_risk_score)}
+            {item.has_previous_record ? formatRisk(item.previous_risk_score) : "-"}
           </span>
         </div>
 
@@ -203,43 +306,45 @@ const CustomTooltip = ({
         <div className="grid grid-cols-1 gap-1.5">
           <div className="flex items-center justify-between gap-3 text-gray-600 dark:text-white/68">
             <span>Task Name</span>
-            <span className="font-medium text-right wrap-break-word">
+            <span className="wrap-break-word text-right font-medium">
               {item.task_name || "-"}
             </span>
           </div>
 
           <div className="flex items-center justify-between gap-3 text-gray-600 dark:text-white/68">
             <span>Host</span>
-            <span className="font-medium text-right break-all">
+            <span className="break-all text-right font-medium">
               {item.host || "-"}
             </span>
           </div>
 
           <div className="flex items-center justify-between gap-3 text-gray-600 dark:text-white/68">
             <span>Latest Total</span>
-            <span className="font-semibold text-right text-[#1f2240] dark:text-white/90">
+            <span className="text-right font-semibold text-[#1f2240] dark:text-white/90">
               {item.latest_total ?? 0}
             </span>
           </div>
 
           <div className="flex items-center justify-between gap-3 text-gray-600 dark:text-white/68">
             <span>Previous Total</span>
-            <span className="font-semibold text-right text-[#1f2240] dark:text-white/90">
-              {item.previous_total ?? 0}
+            <span className="text-right font-semibold text-[#1f2240] dark:text-white/90">
+              {item.has_previous_record ? item.previous_total ?? 0 : "-"}
             </span>
           </div>
 
           <div className="flex items-center justify-between gap-3 text-gray-600 dark:text-white/68">
             <span>Latest Time</span>
-            <span className="font-medium text-right">
+            <span className="text-right font-medium">
               {formatUnixThai(item.latest_creation_time)}
             </span>
           </div>
 
           <div className="flex items-center justify-between gap-3 text-gray-600 dark:text-white/68">
             <span>Previous Time</span>
-            <span className="font-medium text-right">
-              {formatUnixThai(item.previous_creation_time)}
+            <span className="text-right font-medium">
+              {item.has_previous_record
+                ? formatUnixThai(item.previous_creation_time)
+                : "-"}
             </span>
           </div>
         </div>
@@ -260,8 +365,7 @@ const CustomTooltip = ({
             ) : isDown ? (
               <MdTrendingDown className="text-[13px]" />
             ) : null}
-            Risk Change: {diff > 0 ? "+" : ""}
-            {formatRisk(diff)}
+            Risk Change: {item.has_previous_record ? `${diff > 0 ? "+" : ""}${formatRisk(diff)}` : "0.00"}
           </span>
         </div>
       </div>
@@ -282,9 +386,9 @@ const DetailTooltip = ({
   if (!item) return null;
 
   return (
-    <div className="min-w-60 max-w-[320px] rounded-[18px] border border-gray-200/90 bg-white/96 px-3 py-2.5 shadow-[0_14px_32px_rgba(15,23,42,0.14)] backdrop-blur dark:border-white/10 dark:bg-[#0B1220]/96 dark:shadow-[0_14px_28px_rgba(0,0,0,0.32)]">
+    <div className="min-w-62.5 max-w-85 rounded-[18px] border border-gray-200/90 bg-white/96 px-3 py-2.5 shadow-[0_14px_32px_rgba(15,23,42,0.14)] backdrop-blur dark:border-white/10 dark:bg-[#0B1220]/96 dark:shadow-[0_14px_28px_rgba(0,0,0,0.32)]">
       <div className="mb-2">
-        <p className="text-[13px] font-semibold text-[#1f2240] dark:text-white/92 wrap-break-word">
+        <p className="wrap-break-word text-[13px] font-semibold text-[#1f2240] dark:text-white/92">
           {item.task_name || "-"}
         </p>
         <p className="mt-0.5 text-[11px] text-gray-500 dark:text-white/45">
@@ -292,11 +396,45 @@ const DetailTooltip = ({
         </p>
       </div>
 
-      <div className="flex items-center justify-between gap-3 text-[11px]">
-        <span className="text-cyan-600 dark:text-cyan-300">Risk Score</span>
-        <span className="font-semibold text-[#1f2240] dark:text-white/92">
-          {formatRisk(item.risk_score)}
-        </span>
+      <div className="space-y-1.5 text-[11px]">
+        <div className="flex items-center justify-between gap-3">
+          <span style={{ color: item.detail_color }}>Risk Score</span>
+          <span className="font-semibold text-[#1f2240] dark:text-white/92">
+            {formatRisk(item.risk_score)}
+          </span>
+        </div>
+
+        <div className="h-px bg-gray-200 dark:bg-white/10" />
+
+        <div className="grid grid-cols-1 gap-1.5">
+          <div className="flex items-center justify-between gap-3 text-gray-600 dark:text-white/68">
+            <span>Host IP</span>
+            <span className="break-all text-right font-medium">
+              {item.host_ip || "-"}
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between gap-3 text-gray-600 dark:text-white/68">
+            <span>Vulnerability Total</span>
+            <span className="text-right font-semibold text-[#1f2240] dark:text-white/90">
+              {item.total ?? 0}
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between gap-3 text-gray-600 dark:text-white/68">
+            <span>Critical</span>
+            <span className="text-right font-semibold text-[#1f2240] dark:text-white/90">
+              {item.critical ?? 0}
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between gap-3 text-gray-600 dark:text-white/68">
+            <span>High</span>
+            <span className="text-right font-semibold text-[#1f2240] dark:text-white/90">
+              {item.high ?? 0}
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -340,9 +478,11 @@ const DetailXAxisTick = (props: {
   const rawValue = String(payload?.value || "");
   const dark = isDarkMode();
 
-  const label = rawValue.includes("__AXIS__")
+  const pure = rawValue.includes("__AXIS__")
     ? rawValue.split("__AXIS__")[0]
     : rawValue;
+
+  const [datePart = "-", timePart = "-"] = pure.split("__TIME__");
 
   return (
     <g transform={`translate(${x},${y})`}>
@@ -351,10 +491,21 @@ const DetailXAxisTick = (props: {
         y={12}
         textAnchor="middle"
         fill={dark ? COLORS.axisSubtleDark : COLORS.axisLight}
-        fontSize={11}
+        fontSize={10}
         fontWeight={600}
       >
-        {label}
+        <tspan x={0} dy="0">
+          {datePart}
+        </tspan>
+        <tspan
+          x={0}
+          dy="12"
+          fill={dark ? "rgba(255,255,255,0.38)" : "#98A2B3"}
+          fontSize={9}
+          fontWeight={500}
+        >
+          {timePart}
+        </tspan>
       </text>
     </g>
   );
@@ -364,10 +515,24 @@ const CustomLegend = ({ detailMode = false }: { detailMode?: boolean }) => {
   if (detailMode) {
     return (
       <div className="mb-3 flex flex-wrap items-center gap-2.5 sm:gap-3">
-        <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200/70 bg-cyan-50 px-2.5 py-1 dark:border-cyan-400/15 dark:bg-cyan-400/10">
-          <span className="inline-block h-2 w-2 rounded-full bg-[#39C6F4]" />
-          <span className="text-[11px] font-medium text-cyan-700 dark:text-cyan-300">
-            Risk Score by Date-Time
+        <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200/70 bg-emerald-50 px-2.5 py-1 dark:border-emerald-400/15 dark:bg-emerald-400/10">
+          <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
+          <span className="text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
+            Low Risk
+          </span>
+        </div>
+
+        <div className="inline-flex items-center gap-2 rounded-full border border-amber-200/70 bg-amber-50 px-2.5 py-1 dark:border-amber-400/15 dark:bg-amber-400/10">
+          <span className="inline-block h-2 w-2 rounded-full bg-amber-500" />
+          <span className="text-[11px] font-medium text-amber-700 dark:text-amber-300">
+            Medium Risk
+          </span>
+        </div>
+
+        <div className="inline-flex items-center gap-2 rounded-full border border-rose-200/70 bg-rose-50 px-2.5 py-1 dark:border-rose-400/15 dark:bg-rose-400/10">
+          <span className="inline-block h-2 w-2 rounded-full bg-rose-500" />
+          <span className="text-[11px] font-medium text-rose-700 dark:text-rose-300">
+            High Risk
           </span>
         </div>
       </div>
@@ -401,7 +566,7 @@ const CustomLegend = ({ detailMode = false }: { detailMode?: boolean }) => {
 };
 
 const AverageEnrollment: React.FC = () => {
-  const [sortBy, setSortBy] = useState<SortType>("Latest Updated"); //@ts-ignore
+  const [sortBy, setSortBy] = useState<SortType>("Latest Updated");
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [rows, setRows] = useState<TargetDifferDTO[]>([]);
@@ -445,30 +610,45 @@ const AverageEnrollment: React.FC = () => {
 
       const res = await ListALLReportByTaskID(taskID);
 
-      const mapped: DetailRow[] = (Array.isArray(res) ? res : [])
+      const rawRows = Array.isArray(res)
+        ? res
+        : Array.isArray((res as any)?.data)
+        ? (res as any).data
+        : [];
+
+      const mapped: DetailRow[] = rawRows
         .map((item: any, index: number) => {
           const detectedRaw = getDetectedDateValue(item);
-          const detectedLabel = formatDetectedDateLabel(detectedRaw);
+          const detectedDate = toDate(detectedRaw);
+          const detectedTimestamp = detectedDate?.getTime() ?? index;
+          const detectedDateLabel = formatDetectedDateLabel(detectedRaw);
+          const detectedTickDate = formatDetectedTickDate(detectedRaw);
+          const detectedTickTime = formatDetectedTimeLabel(detectedRaw);
+          const riskScore = Number(item?.risk_score ?? 0);
 
           return {
             task_id: String(item?.task_id ?? taskID),
             task_name: String(item?.task_name ?? taskName ?? "-"),
             detected_date_raw: String(detectedRaw ?? ""),
-            detected_date_label: `${detectedLabel} ${formatDetectedTimeLabel(
-              detectedRaw
-            )}`,
-            detected_time: formatDetectedTimeLabel(detectedRaw),
-            risk_score: Number(item?.risk_score ?? 0),
-            axis_key: `${detectedLabel} ${formatDetectedTimeLabel(
-              detectedRaw
-            )}__AXIS__${index}`,
+            detected_timestamp: detectedTimestamp,
+            detected_date_label: detectedDateLabel,
+            detected_tick_date: detectedTickDate,
+            detected_tick_time: detectedTickTime,
+            detected_time: detectedTickTime,
+            risk_score: riskScore,
+            axis_key: `${detectedTickDate}__TIME__${detectedTickTime}__AXIS__${index}`,
+            detail_color: getRiskHeatColor(riskScore),
+
+            host_ip: String(item?.host_ip ?? item?.ip ?? item?.host ?? "-"),
+            total: Number(item?.total ?? 0),
+            critical: Number(item?.critical ?? 0),
+            high: Number(item?.high ?? 0),
           };
         })
-        .sort((a, b) => {
-          const da = toDate(a.detected_date_raw)?.getTime() ?? 0;
-          const db = toDate(b.detected_date_raw)?.getTime() ?? 0;
-          return da - db;
-        });
+        .sort(
+          (a: DetailRow, b: DetailRow) =>
+            a.detected_timestamp - b.detected_timestamp
+        );
 
       setDetailRows(mapped);
     } catch (error) {
@@ -513,12 +693,25 @@ const AverageEnrollment: React.FC = () => {
   const mappedRows = useMemo<ChartRow[]>(() => {
     return rows.map((item, index) => {
       const taskName = item.task_name || "-";
-      const host = item.host || "-";
+      const host = (item as any).host || (item as any).host_ip || "-";
 
-      const previousRisk = Number(item.previous_risk_score ?? 0);
-      const latestRisk = Number(item.latest_risk_score ?? 0);
-      const isEqual = latestRisk === previousRisk;
-      const isIncrease = latestRisk > previousRisk;
+      const previousRisk = Number((item as any).previous_risk_score ?? 0);
+      const latestRisk = Number((item as any).latest_risk_score ?? 0);
+
+      const rawPreviousCreationTime = (item as any).previous_creation_time;
+      const rawPreviousTotal = Number((item as any).previous_total ?? 0);
+
+      const hasPreviousRecord =
+        rawPreviousCreationTime !== null &&
+        rawPreviousCreationTime !== undefined &&
+        rawPreviousCreationTime !== "" &&
+        !Number.isNaN(Number(rawPreviousCreationTime));
+
+      const isEqual = hasPreviousRecord && latestRisk === previousRisk;
+      const isIncrease = hasPreviousRecord && latestRisk > previousRisk;
+      const isEqualOrLower = !hasPreviousRecord || latestRisk <= previousRisk;
+
+      const diffRisk = hasPreviousRecord ? latestRisk - previousRisk : 0;
 
       return {
         host,
@@ -526,24 +719,34 @@ const AverageEnrollment: React.FC = () => {
         asset_label: shortenTaskName(taskName),
         axis_key: `${shortenTaskName(taskName)}__AXIS__${host}__${index}`,
         latest_task_id:
-          item.latest_task_id !== null && item.latest_task_id !== undefined
-            ? String(item.latest_task_id)
+          (item as any).latest_task_id !== null &&
+          (item as any).latest_task_id !== undefined
+            ? String((item as any).latest_task_id)
             : "-",
+
         latest_risk_score: latestRisk,
-        previous_risk_score: previousRisk,
-        diff_risk_score: Number(item.diff_risk_score ?? 0),
-        latest_total: Number(item.latest_total ?? 0),
-        previous_total: Number(item.previous_total ?? 0),
-        previous_version_status: item.previous_version_status || "-",
-        latest_creation_time: item.latest_creation_time ?? null,
-        previous_creation_time: item.previous_creation_time ?? null,
+        previous_risk_score: hasPreviousRecord ? previousRisk : 0,
+        diff_risk_score: diffRisk,
+
+        latest_total: Number((item as any).latest_total ?? 0),
+        previous_total: hasPreviousRecord ? rawPreviousTotal : 0,
+        previous_version_status: (item as any).previous_version_status || "-",
+        latest_creation_time: (item as any).latest_creation_time ?? null,
+        previous_creation_time: hasPreviousRecord
+          ? Number(rawPreviousCreationTime)
+          : null,
+
+        has_previous_record: hasPreviousRecord,
 
         previous_for_increase: isIncrease ? previousRisk : 0,
-        previous_for_nonincrease: !isIncrease && !isEqual ? previousRisk : 0,
-        latest_overlay_equal_or_lower:
-          latestRisk <= previousRisk ? latestRisk : 0,
+        previous_for_nonincrease:
+          hasPreviousRecord && !isIncrease && !isEqual ? previousRisk : 0,
+        latest_overlay_equal_or_lower: isEqualOrLower ? latestRisk : 0,
         latest_positive_diff: isIncrease ? latestRisk - previousRisk : 0,
         overlay_top_value: Math.max(previousRisk, latestRisk),
+
+        latest_increase_label: isIncrease ? latestRisk : null,
+        latest_equal_or_lower_label: isEqualOrLower ? latestRisk : null,
       };
     });
   }, [rows]);
@@ -563,7 +766,9 @@ const AverageEnrollment: React.FC = () => {
       });
     }
 
-    options.sort((a, b) => a.label.localeCompare(b.label));
+    options.sort((a: FilterOption, b: FilterOption) =>
+      a.label.localeCompare(b.label)
+    );
     return options;
   }, [mappedRows]);
 
@@ -571,7 +776,7 @@ const AverageEnrollment: React.FC = () => {
     const keyword = searchQuery.trim().toLowerCase();
     if (!keyword) return filterOptions;
 
-    return filterOptions.filter((opt) =>
+    return filterOptions.filter((opt: FilterOption) =>
       opt.label.toLowerCase().includes(keyword)
     );
   }, [filterOptions, searchQuery]);
@@ -580,7 +785,7 @@ const AverageEnrollment: React.FC = () => {
     if (selectedKeys.length === 0) return mappedRows;
 
     const selectedSet = new Set(selectedKeys);
-    return mappedRows.filter((row) =>
+    return mappedRows.filter((row: ChartRow) =>
       selectedSet.has(`${row.task_name}__${row.host}`)
     );
   }, [mappedRows, selectedKeys]);
@@ -589,15 +794,18 @@ const AverageEnrollment: React.FC = () => {
     const sorted = [...filteredMappedRows];
 
     if (sortBy === "Highest Latest Risk") {
-      sorted.sort((a, b) => b.latest_risk_score - a.latest_risk_score);
+      sorted.sort(
+        (a: ChartRow, b: ChartRow) => b.latest_risk_score - a.latest_risk_score
+      );
     } else if (sortBy === "Biggest Change") {
       sorted.sort(
-        (a, b) =>
+        (a: ChartRow, b: ChartRow) =>
           Math.abs(b.diff_risk_score || 0) - Math.abs(a.diff_risk_score || 0)
       );
     } else {
       sorted.sort(
-        (a, b) => (b.latest_creation_time || 0) - (a.latest_creation_time || 0)
+        (a: ChartRow, b: ChartRow) =>
+          (b.latest_creation_time || 0) - (a.latest_creation_time || 0)
       );
     }
 
@@ -606,20 +814,22 @@ const AverageEnrollment: React.FC = () => {
 
   const summary = useMemo(() => {
     const totalAssets = filteredMappedRows.length;
+
     const avgLatestRisk =
       totalAssets > 0
         ? filteredMappedRows.reduce(
-            (sum, item) => sum + Number(item.latest_risk_score || 0),
+            (sum: number, item: ChartRow) =>
+              sum + Number(item.latest_risk_score || 0),
             0
           ) / totalAssets
         : 0;
 
     const increasedCount = filteredMappedRows.filter(
-      (item) => Number(item.diff_risk_score || 0) > 0
+      (item: ChartRow) => item.has_previous_record && item.diff_risk_score > 0
     ).length;
 
     const decreasedCount = filteredMappedRows.filter(
-      (item) => Number(item.diff_risk_score || 0) < 0
+      (item: ChartRow) => item.has_previous_record && item.diff_risk_score < 0
     ).length;
 
     return {
@@ -633,59 +843,73 @@ const AverageEnrollment: React.FC = () => {
   const detailAvgRisk = useMemo(() => {
     if (detailRows.length === 0) return 0;
     return (
-      detailRows.reduce((sum, item) => sum + Number(item.risk_score || 0), 0) /
-      detailRows.length
+      detailRows.reduce(
+        (sum: number, item: DetailRow) => sum + Number(item.risk_score || 0),
+        0
+      ) / detailRows.length
     );
   }, [detailRows]);
 
   const maxRisk = useMemo(() => {
     if (detailMode) {
-      const values = detailRows.map((item) => item.risk_score || 0);
-      const rawMax = Math.max(...values, 0);
-      return Math.max(6, Math.ceil(rawMax + 1));
+      return 10;
     }
 
-    const values = chartData.map((item) => item.overlay_top_value || 0);
+    const values = chartData.map(
+      (item: ChartRow) => item.overlay_top_value || 0
+    );
     const rawMax = Math.max(...values, 0);
     return Math.max(6, Math.ceil(rawMax + 1));
-  }, [chartData, detailRows, detailMode]);
+  }, [chartData, detailMode]);
 
   const yTicks = useMemo(() => {
+    if (detailMode) {
+      return [0, 2, 4, 6, 8, 10];
+    }
+
     const step = maxRisk <= 6 ? 1 : Math.ceil(maxRisk / 5);
     const ticks: number[] = [];
+
     for (let i = 0; i <= maxRisk; i += step) {
       ticks.push(i);
     }
+
     if (ticks[ticks.length - 1] !== maxRisk) ticks.push(maxRisk);
     return ticks;
-  }, [maxRisk]);
+  }, [maxRisk, detailMode]);
 
   const selectedCount = selectedKeys.length;
 
   const dropdownButtonLabel = useMemo(() => {
     if (selectedCount === 0) return "Filter Device";
     if (selectedCount === 1) {
-      const found = filterOptions.find((x) => x.key === selectedKeys[0]);
+      const found = filterOptions.find(
+        (x: FilterOption) => x.key === selectedKeys[0]
+      );
       return found?.label || "1 selected";
     }
     return `${selectedCount} selected`;
   }, [selectedCount, filterOptions, selectedKeys]);
 
   const toggleSelect = (key: string) => {
-    setSelectedKeys((prev) =>
-      prev.includes(key) ? prev.filter((item) => item !== key) : [...prev, key]
+    setSelectedKeys((prev: string[]) =>
+      prev.includes(key)
+        ? prev.filter((item: string) => item !== key)
+        : [...prev, key]
     );
   };
 
   const handleSelectAllVisible = () => {
-    const visibleKeys = filteredOptions.map((x) => x.key);
+    const visibleKeys = filteredOptions.map((x: FilterOption) => x.key);
 
-    setSelectedKeys((prev) => {
+    setSelectedKeys((prev: string[]) => {
       const prevSet = new Set(prev);
-      const allVisibleSelected = visibleKeys.every((key) => prevSet.has(key));
+      const allVisibleSelected = visibleKeys.every((key: string) =>
+        prevSet.has(key)
+      );
 
       if (allVisibleSelected) {
-        return prev.filter((key) => !visibleKeys.includes(key));
+        return prev.filter((key: string) => !visibleKeys.includes(key));
       }
 
       const merged = new Set([...prev, ...visibleKeys]);
@@ -699,7 +923,7 @@ const AverageEnrollment: React.FC = () => {
 
   const allVisibleSelected =
     filteredOptions.length > 0 &&
-    filteredOptions.every((opt) => selectedKeys.includes(opt.key));
+    filteredOptions.every((opt: FilterOption) => selectedKeys.includes(opt.key));
 
   const sortButtonLabel = sortBy;
 
@@ -711,9 +935,9 @@ const AverageEnrollment: React.FC = () => {
   return (
     <section
       className={[
-        "relative overflow-hidden rounded-[22px] p-3 sm:p-4 md:p-4.5 h-full w-full flex flex-col",
-        "bg-white border border-gray-200/80 shadow-[0_10px_24px_rgba(15,23,42,0.05)]",
-        "dark:bg-[#081120] dark:border-white/10 dark:ring-1 dark:ring-cyan-400/10 dark:shadow-[0_14px_40px_rgba(0,0,0,0.24)]",
+        "relative flex h-full w-full flex-col overflow-hidden rounded-[22px] p-3 sm:p-4 md:p-4.5",
+        "border border-gray-200/80 bg-white shadow-[0_10px_24px_rgba(15,23,42,0.05)]",
+        "dark:border-white/10 dark:bg-[#081120] dark:ring-1 dark:ring-cyan-400/10 dark:shadow-[0_14px_40px_rgba(0,0,0,0.24)]",
       ].join(" ")}
     >
       <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[22px]">
@@ -721,7 +945,7 @@ const AverageEnrollment: React.FC = () => {
         <div className="absolute bottom-0 left-0 h-28 w-28 rounded-full bg-violet-400/10 blur-3xl" />
       </div>
 
-      <div className="relative z-10">
+      <div className="relative z-10 flex h-full min-h-0 flex-col">
         <div className="mb-4 flex flex-col gap-3">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
             <div className="min-w-0">
@@ -733,7 +957,9 @@ const AverageEnrollment: React.FC = () => {
                 <div className="min-w-0">
                   <h2 className="text-[17px] font-semibold tracking-tight text-[#1f2240] dark:text-white/92 sm:text-[19px]">
                     {detailMode
-                      ? `Risk Score Timeline${detailTaskName ? ` • ${detailTaskName}` : ""}`
+                      ? `Risk Score Timeline${
+                          detailTaskName ? ` • ${detailTaskName}` : ""
+                        }`
                       : "Target Risk Comparison"}
                   </h2>
                   <p className="text-[11px] text-gray-500 dark:text-white/55 sm:text-[12px]">
@@ -747,27 +973,29 @@ const AverageEnrollment: React.FC = () => {
 
             {!detailMode ? (
               <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start xl:items-center">
-                <div className="relative min-w-full sm:min-w-72.5" ref={dropdownRef}>
+                <div
+                  className="relative min-w-full sm:min-w-72.5"
+                  ref={dropdownRef}
+                >
                   <button
                     type="button"
-                    onClick={() => setOpen((prev) => !prev)}
+                    onClick={() => setOpen((prev: boolean) => !prev)}
                     className={[
-                      "w-full min-h-9 px-3.5 rounded-2xl inline-flex items-center justify-between gap-3 transition text-left",
-                      "bg-white border border-gray-200/80 text-[12px] font-medium text-gray-600 hover:bg-gray-50",
-                      "dark:bg-white/6 dark:border-white/10 dark:text-white/75 dark:hover:bg-white/10",
+                      "inline-flex min-h-9 w-full items-center justify-between gap-3 rounded-2xl px-3.5 text-left transition",
+                      "border border-gray-200/80 bg-white text-[12px] font-medium text-gray-600 hover:bg-gray-50",
+                      "dark:border-white/10 dark:bg-white/6 dark:text-white/75 dark:hover:bg-white/10",
                     ].join(" ")}
                   >
                     <span className="truncate">{dropdownButtonLabel}</span>
 
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex shrink-0 items-center gap-2">
                       {selectedCount > 0 && (
-                        <span className="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-[10px] font-semibold bg-cyan-50 text-cyan-700 border border-cyan-200 dark:bg-cyan-500/10 dark:text-cyan-300 dark:border-cyan-400/20">
+                        <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full border border-cyan-200 bg-cyan-50 px-1.5 text-[10px] font-semibold text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-400/10 dark:text-cyan-300">
                           {selectedCount}
                         </span>
                       )}
-
                       <FiChevronDown
-                        className={`text-[13px] text-gray-400 dark:text-white/45 transition-transform ${
+                        className={`text-[14px] transition-transform ${
                           open ? "rotate-180" : ""
                         }`}
                       />
@@ -775,96 +1003,83 @@ const AverageEnrollment: React.FC = () => {
                   </button>
 
                   {open && (
-                    <div className="absolute right-0 mt-2 w-full rounded-[22px] border border-gray-200 bg-white shadow-xl overflow-hidden z-30 dark:border-white/10 dark:bg-[#0B1220] dark:shadow-[0_18px_44px_rgba(0,0,0,0.28)]">
-                      <div className="p-2.5 border-b border-gray-100 dark:border-white/10">
-                        <div
-                          className={[
-                            "flex items-center gap-2 rounded-2xl px-3 h-9",
-                            "bg-slate-50 border border-slate-200/80",
-                            "dark:bg-white/5 dark:border-white/10",
-                          ].join(" ")}
-                        >
-                          <FiSearch className="text-gray-400 dark:text-white/40 shrink-0 text-[13px]" />
+                    <div className="absolute right-0 z-30 mt-2 w-full overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.12)] dark:border-white/10 dark:bg-[#0B1220]">
+                      <div className="border-b border-gray-100 p-3 dark:border-white/10">
+                        <div className="relative">
+                          <FiSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-gray-400 dark:text-white/35" />
                           <input
-                            type="text"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="Search task name or host..."
-                            className="w-full bg-transparent outline-none text-[12px] text-gray-700 placeholder:text-gray-400 dark:text-white/80 dark:placeholder:text-white/30"
+                            placeholder="Search device..."
+                            className="h-10 w-full rounded-xl border border-gray-200 bg-white pl-9 pr-9 text-[12px] text-gray-700 outline-none focus:border-cyan-300 dark:border-white/10 dark:bg-white/5 dark:text-white/85"
                           />
-                          {searchQuery.trim() !== "" && (
+                          {searchQuery && (
                             <button
                               type="button"
                               onClick={() => setSearchQuery("")}
-                              className="text-gray-400 hover:text-gray-600 dark:text-white/35 dark:hover:text-white/70"
-                              aria-label="Clear search"
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-white/35 dark:hover:text-white/70"
                             >
                               <FiX className="text-[13px]" />
                             </button>
                           )}
                         </div>
 
-                        <div className="mt-2.5 flex items-center justify-between gap-2">
+                        <div className="mt-3 flex items-center justify-between gap-2">
                           <button
                             type="button"
                             onClick={handleSelectAllVisible}
-                            className="text-[11px] font-medium text-cyan-600 hover:text-cyan-700 dark:text-cyan-300 dark:hover:text-cyan-200"
+                            className="rounded-xl bg-gray-100 px-3 py-1.5 text-[11px] font-medium text-gray-700 hover:bg-gray-200 dark:bg-white/8 dark:text-white/80 dark:hover:bg-white/12"
                           >
-                            {allVisibleSelected ? "Unselect visible" : "Select visible"}
+                            {allVisibleSelected
+                              ? "Unselect visible"
+                              : "Select visible"}
                           </button>
 
                           <button
                             type="button"
                             onClick={clearAllSelections}
-                            className="text-[11px] font-medium text-gray-500 hover:text-gray-700 dark:text-white/50 dark:hover:text-white/75"
+                            className="rounded-xl bg-rose-50 px-3 py-1.5 text-[11px] font-medium text-rose-600 hover:bg-rose-100 dark:bg-rose-400/10 dark:text-rose-300 dark:hover:bg-rose-400/15"
                           >
-                            Clear all
+                            Clear
                           </button>
                         </div>
                       </div>
 
-                      <div className="max-h-62 overflow-y-auto overscroll-contain p-2 pr-1">
+                      <div className="max-h-70 overflow-y-auto p-2">
                         {filteredOptions.length === 0 ? (
-                          <div className="px-3 py-7 text-center text-[12px] text-gray-500 dark:text-white/50">
-                            No matching task / host
+                          <div className="px-3 py-6 text-center text-[12px] text-gray-500 dark:text-white/45">
+                            No device found
                           </div>
                         ) : (
-                          <div className="space-y-1">
-                            {filteredOptions.map((opt) => {
-                              const checked = selectedKeys.includes(opt.key);
+                          filteredOptions.map((option: FilterOption) => {
+                            const checked = selectedKeys.includes(option.key);
 
-                              return (
-                                <button
-                                  key={opt.key}
-                                  type="button"
-                                  onClick={() => toggleSelect(opt.key)}
+                            return (
+                              <button
+                                key={option.key}
+                                type="button"
+                                onClick={() => toggleSelect(option.key)}
+                                className="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-white/6"
+                              >
+                                <div className="min-w-0">
+                                  <div className="truncate text-[12px] font-medium text-gray-700 dark:text-white/85">
+                                    {option.label}
+                                  </div>
+                                </div>
+
+                                <div
                                   className={[
-                                    "w-full flex items-start gap-3 rounded-2xl px-3 py-2.5 text-left transition",
+                                    "flex h-5 w-5 items-center justify-center rounded-md border",
                                     checked
-                                      ? "bg-cyan-50 border border-cyan-200 dark:bg-cyan-500/10 dark:border-cyan-400/20"
-                                      : "border border-transparent hover:bg-gray-50 dark:hover:bg-white/5",
+                                      ? "border-cyan-400 bg-cyan-500 text-white"
+                                      : "border-gray-300 bg-white text-transparent dark:border-white/15 dark:bg-white/5",
                                   ].join(" ")}
                                 >
-                                  <span
-                                    className={[
-                                      "mt-0.5 h-4.5 w-4.5 rounded-md border flex items-center justify-center shrink-0 transition",
-                                      checked
-                                        ? "bg-cyan-500 border-cyan-500 text-white"
-                                        : "bg-white border-gray-300 text-transparent dark:bg-white/5 dark:border-white/20",
-                                    ].join(" ")}
-                                  >
-                                    <FiCheck className="text-[10px]" />
-                                  </span>
-
-                                  <span className="min-w-0 flex-1">
-                                    <span className="block text-[12px] font-medium text-gray-700 dark:text-white/80 wrap-break-word">
-                                      {opt.label}
-                                    </span>
-                                  </span>
-                                </button>
-                              );
-                            })}
-                          </div>
+                                  <FiCheck className="text-[11px]" />
+                                </div>
+                              </button>
+                            );
+                          })
                         )}
                       </div>
                     </div>
@@ -872,297 +1087,146 @@ const AverageEnrollment: React.FC = () => {
                 </div>
 
                 <div
-                  className="relative min-w-full sm:min-w-62.5"
+                  className="relative min-w-full sm:min-w-55"
                   ref={sortDropdownRef}
                 >
                   <button
                     type="button"
                     onClick={() => setSortOpen((prev) => !prev)}
                     className={[
-                      "w-full min-h-9 px-3.5 rounded-2xl inline-flex items-center justify-between gap-3 transition text-left",
-                      "bg-white border border-gray-200/80 text-[12px] font-medium text-gray-600 hover:bg-gray-50",
-                      "dark:bg-white/6 dark:border-white/10 dark:text-white/75 dark:hover:bg-white/10",
+                      "inline-flex min-h-9 w-full items-center justify-between gap-3 rounded-2xl px-3.5 text-left transition",
+                      "border border-gray-200/80 bg-white text-[12px] font-medium text-gray-600 hover:bg-gray-50",
+                      "dark:border-white/10 dark:bg-white/6 dark:text-white/75 dark:hover:bg-white/10",
                     ].join(" ")}
                   >
                     <span className="truncate">{sortButtonLabel}</span>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-[10px] font-semibold bg-violet-50 text-violet-700 border border-violet-200 dark:bg-violet-500/10 dark:text-violet-300 dark:border-violet-400/20">
-                        Sort
-                      </span>
-
-                      <FiChevronDown
-                        className={`text-[13px] text-gray-400 dark:text-white/45 transition-transform ${
-                          sortOpen ? "rotate-180" : ""
-                        }`}
-                      />
-                    </div>
+                    <FiChevronDown
+                      className={`text-[14px] transition-transform ${
+                        sortOpen ? "rotate-180" : ""
+                      }`}
+                    />
                   </button>
 
                   {sortOpen && (
-                    <div className="absolute right-0 mt-2 w-full rounded-[22px] border border-gray-200 bg-white shadow-xl overflow-hidden z-30 dark:border-white/10 dark:bg-[#0B1220] dark:shadow-[0_18px_44px_rgba(0,0,0,0.28)]">
+                    <div className="absolute right-0 z-30 mt-2 w-full overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.12)] dark:border-white/10 dark:bg-[#0B1220]">
                       <div className="p-2">
-                        <div className="space-y-1">
-                          {SORT_OPTIONS.map((item) => {
-                            const active = sortBy === item;
+                        {SORT_OPTIONS.map((option) => {
+                          const checked = sortBy === option;
+                          return (
+                            <button
+                              key={option}
+                              type="button"
+                              onClick={() => {
+                                setSortBy(option);
+                                setSortOpen(false);
+                              }}
+                              className="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-white/6"
+                            >
+                              <span className="text-[12px] font-medium text-gray-700 dark:text-white/85">
+                                {option}
+                              </span>
 
-                            return (
-                              <button
-                                key={item}
-                                type="button"
-                                onClick={() => {
-                                  setSortBy(item);
-                                  setSortOpen(false);
-                                }}
+                              <div
                                 className={[
-                                  "w-full flex items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition",
-                                  active
-                                    ? "bg-violet-50 border border-violet-200 dark:bg-violet-500/10 dark:border-violet-400/20"
-                                    : "border border-transparent hover:bg-gray-50 dark:hover:bg-white/5",
+                                  "flex h-5 w-5 items-center justify-center rounded-md border",
+                                  checked
+                                    ? "border-cyan-400 bg-cyan-500 text-white"
+                                    : "border-gray-300 bg-white text-transparent dark:border-white/15 dark:bg-white/5",
                                 ].join(" ")}
                               >
-                                <span
-                                  className={[
-                                    "h-4.5 w-4.5 rounded-md border flex items-center justify-center shrink-0 transition",
-                                    active
-                                      ? "bg-violet-500 border-violet-500 text-white"
-                                      : "bg-white border-gray-300 text-transparent dark:bg-white/5 dark:border-white/20",
-                                  ].join(" ")}
-                                >
-                                  <FiCheck className="text-[10px]" />
-                                </span>
-
-                                <span className="block text-[12px] font-medium text-gray-700 dark:text-white/80">
-                                  {item}
-                                </span>
-                              </button>
-                            );
-                          })}
-                        </div>
+                                <FiCheck className="text-[11px]" />
+                              </div>
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
                 </div>
 
-                {!detailMode && (
-                  <button
-                    type="button"
-                    onClick={() => void fetchData("refresh")}
-                    disabled={refreshing}
-                    className={[
-                      "inline-flex items-center justify-center gap-2 rounded-2xl h-9 px-3.5 transition shrink-0",
-                      "bg-white border border-gray-200/80 text-[12px] font-medium text-gray-600 hover:bg-gray-50",
-                      "dark:bg-white/6 dark:border-white/10 dark:text-white/75 dark:hover:bg-white/10",
-                      refreshing ? "opacity-70 cursor-not-allowed" : "",
-                    ].join(" ")}
-                  >
-                    <FiRefreshCw className={refreshing ? "animate-spin" : ""} />
-                    Refresh
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => void fetchData("refresh")}
+                  disabled={refreshing}
+                  className="inline-flex min-h-9 items-center justify-center gap-2 rounded-2xl border border-gray-200/80 bg-white px-4 text-[12px] font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:bg-white/6 dark:text-white/80 dark:hover:bg-white/10"
+                >
+                  <FiRefreshCw
+                    className={`text-[13px] ${refreshing ? "animate-spin" : ""}`}
+                  />
+                  Refresh
+                </button>
               </div>
             ) : (
-              <div className="flex items-center">
+              <div className="flex justify-end">
                 <button
                   type="button"
                   onClick={handleBackToOverview}
-                  className={[
-                    "inline-flex items-center justify-center gap-2 rounded-2xl h-9 px-3.5 transition shrink-0",
-                    "bg-white border border-gray-200/80 text-[12px] font-medium text-gray-600 hover:bg-gray-50",
-                    "dark:bg-white/6 dark:border-white/10 dark:text-white/75 dark:hover:bg-white/10",
-                  ].join(" ")}
+                  className="inline-flex min-h-9 items-center justify-center gap-2 rounded-2xl border border-gray-200/80 bg-white px-4 text-[12px] font-medium text-gray-700 hover:bg-gray-50 dark:border-white/10 dark:bg-white/6 dark:text-white/80 dark:hover:bg-white/10"
                 >
-                  <FiArrowLeft />
+                  <FiArrowLeft className="text-[13px]" />
                   Back
                 </button>
               </div>
             )}
           </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-            <div className="rounded-[18px] border border-gray-200/80 bg-white/60 px-3 py-2.5 dark:border-white/10 dark:bg-white/5">
-              <div className="flex items-center gap-2 text-[11px] text-gray-500 dark:text-white/50">
-                <FiShield />
-                <span>{detailMode ? "Reports" : "Compared Targets"}</span>
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+            <div className="rounded-[22px] border border-gray-200/80 bg-white px-4 py-3 shadow-sm dark:border-white/10 dark:bg-white/6">
+              <div className="mb-2 flex items-center gap-2 text-[12px] font-medium text-gray-500 dark:text-white/55">
+                <FiShield className="text-[13px] text-cyan-500" />
+                {detailMode ? "Data Points" : "Total Assets"}
               </div>
-              <div className="mt-1 text-[18px] font-semibold text-[#1f2240] dark:text-white/92">
+              <div className="text-[20px] font-semibold text-[#1f2240] dark:text-white/92">
                 {detailMode ? detailRows.length : summary.totalAssets}
               </div>
             </div>
 
-            <div className="rounded-[18px] border border-gray-200/80 bg-white/60 px-3 py-2.5 dark:border-white/10 dark:bg-white/5">
-              <div className="flex items-center gap-2 text-[11px] text-gray-500 dark:text-white/50">
-                <FiActivity />
-                <span>Average Risk</span>
+            <div className="rounded-[22px] border border-gray-200/80 bg-white px-4 py-3 shadow-sm dark:border-white/10 dark:bg-white/6">
+              <div className="mb-2 flex items-center gap-2 text-[12px] font-medium text-gray-500 dark:text-white/55">
+                <FiActivity className="text-[13px] text-violet-500" />
+                Average Risk
               </div>
-              <div className="mt-1 text-[18px] font-semibold text-[#1f2240] dark:text-white/92">
-                {detailMode ? formatRisk(detailAvgRisk) : formatRisk(summary.avgLatestRisk)}
+              <div className="text-[20px] font-semibold text-[#1f2240] dark:text-white/92">
+                {formatRisk(detailMode ? detailAvgRisk : summary.avgLatestRisk)}
               </div>
             </div>
 
-            {!detailMode ? (
-              <>
-                <div className="rounded-[18px] border border-gray-200/80 bg-white/60 px-3 py-2.5 dark:border-white/10 dark:bg-white/5">
-                  <div className="flex items-center gap-2 text-[11px] text-gray-500 dark:text-white/50">
-                    <MdTrendingUp className="text-[14px]" />
-                    <span>Risk Increased</span>
-                  </div>
-                  <div className="mt-1 text-[18px] font-semibold text-rose-600 dark:text-rose-300">
-                    {summary.increasedCount}
-                  </div>
-                </div>
-
-                <div className="rounded-[18px] border border-gray-200/80 bg-white/60 px-3 py-2.5 dark:border-white/10 dark:bg-white/5">
-                  <div className="flex items-center gap-2 text-[11px] text-gray-500 dark:text-white/50">
-                    <MdTrendingDown className="text-[14px]" />
-                    <span>Risk Decreased</span>
-                  </div>
-                  <div className="mt-1 text-[18px] font-semibold text-cyan-600 dark:text-cyan-300">
-                    {summary.decreasedCount}
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="rounded-[18px] border border-gray-200/80 bg-white/60 px-3 py-2.5 dark:border-white/10 dark:bg-white/5 col-span-2">
-                <div className="flex items-center gap-2 text-[11px] text-gray-500 dark:text-white/50">
-                  <FiActivity />
-                  <span>Selected Task</span>
-                </div>
-                <div className="mt-1 text-[14px] font-semibold text-[#1f2240] dark:text-white/92 wrap-break-word">
-                  {detailTaskName || detailTaskID || "-"}
-                </div>
+            <div className="rounded-[22px] border border-gray-200/80 bg-white px-4 py-3 shadow-sm dark:border-white/10 dark:bg-white/6">
+              <div className="mb-2 flex items-center gap-2 text-[12px] font-medium text-gray-500 dark:text-white/55">
+                <FiAlertCircle className="text-[13px] text-rose-500" />
+                {detailMode ? "Risk Range" : "Increased / Decreased"}
               </div>
-            )}
+              <div className="text-[20px] font-semibold text-[#1f2240] dark:text-white/92">
+                {detailMode
+                  ? "0.00 - 10.00"
+                  : `${summary.increasedCount} / ${summary.decreasedCount}`}
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="relative z-10 flex-1 min-h-0 rounded-[20px] border border-gray-200/80 bg-white/72 p-3 sm:p-4 dark:border-white/10 dark:bg-white/4">
-          <CustomLegend detailMode={detailMode} />
+        <CustomLegend detailMode={detailMode} />
 
-          <div className="h-85 sm:h-97.5 xl:h-107.5">
-            {detailMode ? (
-              detailLoading ? (
-                <div className="grid h-full w-full place-items-center rounded-[18px] border border-dashed border-gray-200 bg-white/50 dark:border-white/10 dark:bg-white/5">
-                  <div className="text-center">
-                    <div className="mx-auto mb-2.5 flex h-10 w-10 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-600 dark:bg-cyan-400/10 dark:text-cyan-300">
-                      <FiRefreshCw className="animate-spin text-[18px]" />
-                    </div>
-                    <p className="text-[12px] font-semibold text-[#1f2240] dark:text-white/92">
-                      Loading report detail
-                    </p>
-                    <p className="mt-1 text-[10px] text-gray-500 dark:text-white/50">
-                      กำลังดึงข้อมูลจาก ListALLReportByTaskID
-                    </p>
-                  </div>
-                </div>
-              ) : detailRows.length === 0 ? (
-                <div className="grid h-full w-full place-items-center rounded-[18px] border border-dashed border-gray-200 bg-white/50 dark:border-white/10 dark:bg-white/5">
-                  <div className="text-center">
-                    <div className="mx-auto mb-2.5 flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 dark:bg-amber-400/10 dark:text-amber-300">
-                      <FiAlertCircle className="text-[18px]" />
-                    </div>
-                    <p className="text-[12px] font-semibold text-[#1f2240] dark:text-white/92">
-                      No report detail data
-                    </p>
-                    <p className="mt-1 text-[10px] text-gray-500 dark:text-white/50">
-                      ยังไม่มีข้อมูลจาก ListALLReportByTaskID
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={detailRows}
-                    margin={{ top: 18, right: 8, left: -12, bottom: 6 }}
-                    barCategoryGap="18%"
-                  >
-                    <CartesianGrid
-                      stroke={isDarkMode() ? COLORS.gridDark : COLORS.gridLight}
-                      strokeDasharray="3 3"
-                      vertical={false}
-                    />
-
-                    <XAxis
-                      dataKey="axis_key"
-                      tick={<DetailXAxisTick />}
-                      axisLine={false}
-                      tickLine={false}
-                      interval={0}
-                      height={42}
-                    />
-
-                    <YAxis
-                      tick={{
-                        fill: isDarkMode() ? COLORS.axisDark : COLORS.axisLight,
-                        fontSize: 11,
-                      }}
-                      axisLine={false}
-                      tickLine={false}
-                      width={38}
-                      domain={[0, maxRisk]}
-                      ticks={yTicks}
-                    />
-
-                    <Tooltip
-                      content={<DetailTooltip />}
-                      cursor={{
-                        fill: isDarkMode()
-                          ? "rgba(255,255,255,0.04)"
-                          : "rgba(148,163,184,0.08)",
-                      }}
-                    />
-
-                    <ReferenceLine
-                      y={Number(detailAvgRisk.toFixed(2))}
-                      stroke={isDarkMode() ? COLORS.avgLineDark : COLORS.avgLineLight}
-                      strokeDasharray="5 5"
-                      ifOverflow="extendDomain"
-                    />
-
-                    <Bar
-                      dataKey="risk_score"
-                      name="Risk Score"
-                      radius={[8, 8, 0, 0]}
-                      maxBarSize={34}
-                    >
-                      <LabelList
-                        dataKey="risk_score"
-                        position="top"
-                        formatter={(value: any) => formatRisk(Number(value ?? 0))}
-                        style={{
-                          fill: isDarkMode() ? "rgba(255,255,255,0.86)" : "#475467",
-                          fontSize: 10,
-                          fontWeight: 700,
-                        }}
-                      />
-                      {detailRows.map((_, index) => (
-                        <Cell key={`detail-${index}`} fill={COLORS.detail} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              )
-            ) : chartData.length === 0 ? (
-              <div className="grid h-full w-full place-items-center rounded-[18px] border border-dashed border-gray-200 bg-white/50 dark:border-white/10 dark:bg-white/5">
-                <div className="text-center">
-                  <div className="mx-auto mb-2.5 flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 dark:bg-amber-400/10 dark:text-amber-300">
-                    <FiAlertCircle className="text-[18px]" />
-                  </div>
-                  <p className="text-[12px] font-semibold text-[#1f2240] dark:text-white/92">
-                    No target differ data
-                  </p>
-                  <p className="mt-1 text-[10px] text-gray-500 dark:text-white/50">
-                    ยังไม่มีข้อมูลเปรียบเทียบ latest / previous
-                  </p>
-                </div>
+        <div className="min-h-105 flex-1">
+          {loading ? (
+            <div className="flex h-105 items-center justify-center text-[13px] text-gray-500 dark:text-white/55">
+              Loading...
+            </div>
+          ) : detailLoading ? (
+            <div className="flex h-105 items-center justify-center text-[13px] text-gray-500 dark:text-white/55">
+              Loading detail...
+            </div>
+          ) : detailMode ? (
+            detailRows.length === 0 ? (
+              <div className="flex h-105 items-center justify-center text-[13px] text-gray-500 dark:text-white/55">
+                No Data
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height={420} minWidth={0}>
                 <BarChart
-                  data={chartData}
+                  data={detailRows}
                   margin={{ top: 18, right: 8, left: -12, bottom: 6 }}
-                  barCategoryGap="14%"
-                  barGap="-100%"
+                  barCategoryGap="22%"
                 >
                   <CartesianGrid
                     stroke={isDarkMode() ? COLORS.gridDark : COLORS.gridLight}
@@ -1172,11 +1236,11 @@ const AverageEnrollment: React.FC = () => {
 
                   <XAxis
                     dataKey="axis_key"
-                    tick={<CustomXAxisTick />}
+                    tick={<DetailXAxisTick />}
                     axisLine={false}
                     tickLine={false}
                     interval={0}
-                    height={42}
+                    height={72}
                   />
 
                   <YAxis
@@ -1187,12 +1251,12 @@ const AverageEnrollment: React.FC = () => {
                     axisLine={false}
                     tickLine={false}
                     width={38}
-                    domain={[0, maxRisk]}
-                    ticks={yTicks}
+                    domain={[0, 10]}
+                    ticks={[0, 2, 4, 6, 8, 10]}
                   />
 
                   <Tooltip
-                    content={<CustomTooltip />}
+                    content={<DetailTooltip />}
                     cursor={{
                       fill: isDarkMode()
                         ? "rgba(255,255,255,0.04)"
@@ -1201,58 +1265,27 @@ const AverageEnrollment: React.FC = () => {
                   />
 
                   <ReferenceLine
-                    y={Number(summary.avgLatestRisk.toFixed(2))}
+                    y={Number(detailAvgRisk.toFixed(2))}
                     stroke={isDarkMode() ? COLORS.avgLineDark : COLORS.avgLineLight}
                     strokeDasharray="5 5"
                     ifOverflow="extendDomain"
                   />
 
                   <Bar
-                    dataKey="previous_for_nonincrease"
-                    name="Previous Risk"
-                    fill={COLORS.previous}
+                    dataKey="risk_score"
+                    name="Risk Score"
                     radius={[8, 8, 0, 0]}
-                    maxBarSize={34}
-                    onClick={(payload) => handleOverviewBarClick(payload as unknown as ChartRow)}
-                    style={{ cursor: "pointer" }}
+                    maxBarSize={42}
                   >
-                    <LabelList
-                      dataKey="previous_for_nonincrease"
-                      position="top"
-                      formatter={(value: any) =>
-                        Number(value ?? 0) > 0 ? formatRisk(Number(value ?? 0)) : ""
-                      }
-                      style={{
-                        fill: isDarkMode() ? "rgba(255,255,255,0.78)" : "#667085",
-                        fontSize: 10,
-                        fontWeight: 700,
-                      }}
-                    />
-                  </Bar>
+                    {detailRows.map((entry: DetailRow, index: number) => (
+                      <Cell
+                        key={`detail-cell-${entry.axis_key}-${index}`}
+                        fill={entry.detail_color}
+                      />
+                    ))}
 
-                  <Bar
-                    dataKey="previous_for_increase"
-                    name="Previous Risk"
-                    stackId="riskUp"
-                    fill={COLORS.previous}
-                    radius={[8, 8, 0, 0]}
-                    maxBarSize={34}
-                    onClick={(payload) => handleOverviewBarClick(payload as unknown as ChartRow)}
-                    style={{ cursor: "pointer" }}
-                  />
-
-                  <Bar
-                    dataKey="latest_positive_diff"
-                    name="Latest Risk Increased"
-                    stackId="riskUp"
-                    fill={COLORS.latestUp}
-                    radius={[8, 8, 0, 0]}
-                    maxBarSize={34}
-                    onClick={(payload) => handleOverviewBarClick(payload as unknown as ChartRow)}
-                    style={{ cursor: "pointer" }}
-                  >
                     <LabelList
-                      dataKey="overlay_top_value"
+                      dataKey="risk_score"
                       position="top"
                       formatter={(value: any) => formatRisk(Number(value ?? 0))}
                       style={{
@@ -1262,33 +1295,159 @@ const AverageEnrollment: React.FC = () => {
                       }}
                     />
                   </Bar>
-
-                  <Bar
-                    dataKey="latest_overlay_equal_or_lower"
-                    name="Latest Risk"
-                    fill={COLORS.latestStable}
-                    radius={[8, 8, 0, 0]}
-                    maxBarSize={34}
-                    onClick={(payload) => handleOverviewBarClick(payload as unknown as ChartRow)}
-                    style={{ cursor: "pointer" }}
-                  >
-                    <LabelList
-                      dataKey="latest_overlay_equal_or_lower"
-                      position="top"
-                      formatter={(value: any) =>
-                        Number(value ?? 0) > 0 ? formatRisk(Number(value ?? 0)) : ""
-                      }
-                      style={{
-                        fill: isDarkMode() ? "rgba(255,255,255,0.86)" : "#475467",
-                        fontSize: 10,
-                        fontWeight: 700,
-                      }}
-                    />
-                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
-            )}
-          </div>
+            )
+          ) : chartData.length === 0 ? (
+            <div className="flex h-105 items-center justify-center text-[13px] text-gray-500 dark:text-white/55">
+              No Data
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={420} minWidth={0}>
+              <BarChart
+                data={chartData}
+                margin={{ top: 18, right: 8, left: -12, bottom: 6 }}
+                barCategoryGap="14%"
+                barGap="-100%"
+              >
+                <CartesianGrid
+                  stroke={isDarkMode() ? COLORS.gridDark : COLORS.gridLight}
+                  strokeDasharray="3 3"
+                  vertical={false}
+                />
+
+                <XAxis
+                  dataKey="axis_key"
+                  tick={<CustomXAxisTick />}
+                  axisLine={false}
+                  tickLine={false}
+                  interval={0}
+                  height={42}
+                />
+
+                <YAxis
+                  tick={{
+                    fill: isDarkMode() ? COLORS.axisDark : COLORS.axisLight,
+                    fontSize: 11,
+                  }}
+                  axisLine={false}
+                  tickLine={false}
+                  width={38}
+                  domain={[0, maxRisk]}
+                  ticks={yTicks}
+                />
+
+                <Tooltip
+                  content={<CustomTooltip />}
+                  cursor={{
+                    fill: isDarkMode()
+                      ? "rgba(255,255,255,0.04)"
+                      : "rgba(148,163,184,0.08)",
+                  }}
+                />
+
+                <ReferenceLine
+                  y={Number(summary.avgLatestRisk.toFixed(2))}
+                  stroke={isDarkMode() ? COLORS.avgLineDark : COLORS.avgLineLight}
+                  strokeDasharray="5 5"
+                  ifOverflow="extendDomain"
+                />
+
+                <Bar
+                  dataKey="previous_for_nonincrease"
+                  name="Previous Risk"
+                  fill={COLORS.previous}
+                  radius={[8, 8, 0, 0]}
+                  maxBarSize={34}
+                  onClick={(payload) =>
+                    handleOverviewBarClick(payload as unknown as ChartRow)
+                  }
+                  style={{ cursor: "pointer" }}
+                >
+                  <LabelList
+                    dataKey="previous_for_nonincrease"
+                    position="top"
+                    formatter={(value: any) =>
+                      Number(value ?? 0) > 0 ? formatRisk(Number(value ?? 0)) : ""
+                    }
+                    style={{
+                      fill: isDarkMode() ? "rgba(255,255,255,0.78)" : "#667085",
+                      fontSize: 10,
+                      fontWeight: 700,
+                    }}
+                  />
+                </Bar>
+
+                <Bar
+                  dataKey="previous_for_increase"
+                  name="Previous Risk"
+                  stackId="riskUp"
+                  fill={COLORS.previous}
+                  radius={[0, 0, 0, 0]}
+                  maxBarSize={34}
+                  onClick={(payload) =>
+                    handleOverviewBarClick(payload as unknown as ChartRow)
+                  }
+                  style={{ cursor: "pointer" }}
+                />
+
+                <Bar
+                  dataKey="latest_positive_diff"
+                  name="Latest Risk Increased"
+                  stackId="riskUp"
+                  fill={COLORS.latestUp}
+                  radius={[8, 8, 0, 0]}
+                  maxBarSize={34}
+                  onClick={(payload) =>
+                    handleOverviewBarClick(payload as unknown as ChartRow)
+                  }
+                  style={{ cursor: "pointer" }}
+                >
+                  <LabelList
+                    dataKey="latest_increase_label"
+                    position="top"
+                    formatter={(value: any) =>
+                      value !== null && value !== undefined && Number(value) > 0
+                        ? formatRisk(Number(value))
+                        : ""
+                    }
+                    style={{
+                      fill: isDarkMode() ? "rgba(255,255,255,0.86)" : "#475467",
+                      fontSize: 10,
+                      fontWeight: 700,
+                    }}
+                  />
+                </Bar>
+
+                <Bar
+                  dataKey="latest_overlay_equal_or_lower"
+                  name="Latest Risk"
+                  fill={COLORS.latestStable}
+                  radius={[8, 8, 0, 0]}
+                  maxBarSize={34}
+                  onClick={(payload) =>
+                    handleOverviewBarClick(payload as unknown as ChartRow)
+                  }
+                  style={{ cursor: "pointer" }}
+                >
+                  <LabelList
+                    dataKey="latest_equal_or_lower_label"
+                    position="top"
+                    formatter={(value: any) =>
+                      value !== null && value !== undefined && Number(value) >= 0
+                        ? formatRisk(Number(value))
+                        : ""
+                    }
+                    style={{
+                      fill: isDarkMode() ? "rgba(255,255,255,0.86)" : "#475467",
+                      fontSize: 10,
+                      fontWeight: 700,
+                    }}
+                  />
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </div>
     </section>

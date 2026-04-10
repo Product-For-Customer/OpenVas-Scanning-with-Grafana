@@ -64,6 +64,7 @@ func main() {
 	r.GET("/download-pdf", report.DownloadPDF)
 	r.GET("/send-pdf-to-line", report.SendPDFToLine)
 	r.GET("/app-report", report.ListAppReport)
+	r.GET("/reports/all/:task_id", vulnerability.ListALLReportByTaskID) // complete
 
 	// ===== Protected Routes =====
 	authorized := r.Group("")
@@ -81,7 +82,6 @@ func main() {
 		authorized.GET("/target-differ", vulnerability.ListTargetDiffer)
 		authorized.GET("/vulnerabilities/level/:level", vulnerability.ListVulnerabilityByLevel)
 		authorized.GET("/tasks/summary-vulnerability", vulnerability.ListTaskVulnSummary)
-		authorized.GET("/reports/all/:task_id", vulnerability.ListALLReportByTaskID)
 
 		// ===== Location =====
 		authorized.GET("/locations", location.ListLocation)

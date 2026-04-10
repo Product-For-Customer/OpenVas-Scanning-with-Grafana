@@ -196,7 +196,7 @@ const Sidebar: React.FC = () => {
               {isExpanded && (
                 <div className="min-w-0">
                   <span className="block text-[16px] font-semibold tracking-tight text-[#1f2240] dark:text-white/90">
-                    Scan Network
+                    Argus Scanning
                   </span>
                   <span className="block text-[10.5px] text-gray-500 dark:text-white/45">
                     Network Security Panel
