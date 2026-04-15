@@ -401,5 +401,37 @@ export const ListALLReportByTaskID = async (
   }
 };
 
+// =======================
+// DTO: /all-targets
+// =======================
+export type AllTargetDTO = {
+  task_id: string;
+  name: string;
+  ip: string;
+  detected_date: string;
+  aging_day: number;
+  risk_score: number;
+};
+
+// =======================
+// API: GET /all-targets
+// =======================
+export const ListALLTarget = async (): Promise<AllTargetDTO[] | null> => {
+  try {
+    const response = await vulnerabilityApi.get("/all-targets");
+
+    if (response.status === 200) {
+      const data = response.data?.data ?? response.data;
+      return Array.isArray(data) ? (data as AllTargetDTO[]) : [];
+    }
+
+    console.error("Unexpected status:", response.status);
+    return null;
+  } catch (error) {
+    console.error("Error fetching all targets:", error);
+    return null;
+  }
+};
+
 export default vulnerabilityApi;
 

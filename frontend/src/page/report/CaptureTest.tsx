@@ -21,12 +21,8 @@ const sectionHeadingClass =
 const sectionDescClass =
   "mt-1.5 max-w-full text-[10.5px] leading-[1.6] text-slate-600";
 
-const PAGE_WIDTH = 1120; //@ts-ignore
-const PAGE_HEIGHT = 1620;
-
-const pageShellClass = "flex h-[1620px] flex-col bg-white text-slate-900";
-
-const noop = () => {};
+const PAGE_WIDTH = 1120;
+const PAGE_HEIGHT = 1604;
 
 const HIGHLIGHTS_PAGE_SIZE = 2;
 const DEVICE_PAGE_SIZE = 18;
@@ -321,7 +317,14 @@ const CaptureTest: React.FC<CaptureTestProps> = ({
         window.clearTimeout(settleTimerRef.current);
       }
     };
-  }, [prefetchLoading, totalPages, highlightPages, devicePages, prefetchedHighlights, prefetchedDevices]);
+  }, [
+    prefetchLoading,
+    totalPages,
+    highlightPages,
+    devicePages,
+    prefetchedHighlights,
+    prefetchedDevices,
+  ]);
 
   const reportReady = useMemo(() => {
     return (
@@ -343,264 +346,333 @@ const CaptureTest: React.FC<CaptureTestProps> = ({
     conclusionReady,
   ]);
 
+  const basePageStyle: React.CSSProperties = {
+    position: "relative",
+    display: "block",
+    width: `${PAGE_WIDTH}px`,
+    height: `${PAGE_HEIGHT}px`,
+    overflow: "hidden",
+    background: "#ffffff",
+    color: "#0f172a",
+    boxSizing: "border-box",
+    margin: 0,
+    padding: 0,
+  };
+
   const renderFooter = (pageNumber: number) => (
-    <div className="mt-auto px-8 pt-8 pb-12">
+    <div
+      style={{
+        position: "absolute",
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: "#ffffff",
+        padding: "20px 32px 24px 32px",
+        boxSizing: "border-box",
+      }}
+    >
       <ReportFooter page={`Page ${pageNumber} of ${totalPages}`} />
     </div>
   );
 
   const renderSimpleLoader = () => (
-    <div className="flex h-full min-h-101.25 w-full items-center justify-center bg-white">
+    <div className="flex h-full w-full items-center justify-center bg-white">
       <div className="text-[12px] text-slate-500">Preparing report data...</div>
     </div>
   );
 
-  const renderPageByDescriptor = (
-    descriptor: PageDescriptor,
-    pageNumber: number
-  ) => {
-    if (prefetchLoading) {
-      return renderSimpleLoader();
-    }
+  const renderOverviewPage = (pageNumber: number): React.ReactElement => {
+    return (
+      <div
+        key="overview"
+        data-page-number={pageNumber}
+        data-page-type="overview"
+        className="capture-page"
+        style={basePageStyle}
+      >
+        <div className="w-full bg-white">
+          <ReportHeader refreshToken={refreshToken} />
+        </div>
 
-    switch (descriptor.type) {
-      case "overview":
-        return (
-          <div className={pageShellClass}>
-            <div className="w-full bg-white">
-              <ReportHeader refreshToken={refreshToken} />
+        <main className="px-8 pt-6 pb-24">
+          <section className="mt-0">
+            <div className="mb-3 border-b border-slate-200 pb-2.5">
+              <p className={sectionLabelClass}>Section 1</p>
+              <h2 className={sectionHeadingClass}>Total Severity</h2>
+              <p className={sectionDescClass}>
+                สรุปภาพรวมผลการสแกนล่าสุด โดยแสดงตัวชี้วัดสำคัญของการประเมิน
+                พร้อมจำนวนช่องโหว่ในแต่ละระดับความรุนแรง
+              </p>
             </div>
 
-            <main className="flex-1 px-8 pt-6 pb-8">
-              <section className="mt-0">
-                <div className="mb-3 border-b border-slate-200 pb-2.5">
-                  <p className={sectionLabelClass}>Section 1</p>
-                  <h2 className={sectionHeadingClass}>Total Severity</h2>
-                  <p className={sectionDescClass}>
-                    สรุปภาพรวมผลการสแกนล่าสุด โดยแสดงตัวชี้วัดสำคัญของการประเมิน
-                    พร้อมจำนวนช่องโหว่ในแต่ละระดับความรุนแรง
-                  </p>
-                </div>
+            <ReportKPI
+              onReady={setKpiReady}
+              selectedTaskIDs={effectiveTaskIDs}
+            />
+          </section>
 
-                <ReportKPI
-                  onReady={setKpiReady}
-                  selectedTaskIDs={effectiveTaskIDs}
-                />
-              </section>
+          <section className="mt-5">
+            <div className="mb-3 border-b border-slate-200 pb-2.5">
+              <p className={sectionLabelClass}>Section 2</p>
+              <h2 className={sectionHeadingClass}>
+                Severity Distribution Overview
+              </h2>
+              <p className={sectionDescClass}>
+                แสดงภาพรวมการกระจายของช่องโหว่ตามระดับความรุนแรงในรูปแบบย่อ
+                เพื่อให้เหมาะกับการจัดวางในรายงาน PDF แบบหน้าเดียว
+              </p>
+            </div>
 
-              <section className="mt-5">
-                <div className="mb-3 border-b border-slate-200 pb-2.5">
-                  <p className={sectionLabelClass}>Section 2</p>
-                  <h2 className={sectionHeadingClass}>
-                    Severity Distribution Overview
-                  </h2>
-                  <p className={sectionDescClass}>
-                    แสดงภาพรวมการกระจายของช่องโหว่ตามระดับความรุนแรงในรูปแบบย่อ
-                    เพื่อให้เหมาะกับการจัดวางในรายงาน PDF แบบหน้าเดียว
-                  </p>
-                </div>
+            <SeveritySnapshot
+              onReady={setSeverityReady}
+              selectedTaskIDs={effectiveTaskIDs}
+            />
+          </section>
+        </main>
 
-                <SeveritySnapshot
-                  onReady={setSeverityReady}
-                  selectedTaskIDs={effectiveTaskIDs}
-                />
-              </section>
-            </main>
-
-            {renderFooter(pageNumber)}
-          </div>
-        );
-
-      case "highlights":
-        return (
-          <div className={pageShellClass}>
-            <main className="flex-1 px-8 pt-7 pb-8">
-              <section className="mt-0">
-                <div className="mb-3 border-b border-slate-200 pb-2.5">
-                  <div className="flex items-end justify-between gap-4">
-                    <div>
-                      <p className={sectionLabelClass}>Section 3</p>
-                      <h2 className={sectionHeadingClass}>Critical Highlights</h2>
-                      <p className={sectionDescClass}>
-                        สรุปประเด็นสำคัญของช่องโหว่ระดับวิกฤตที่ควรได้รับการติดตามก่อน
-                        โดยแสดงชื่อช่องโหว่ , ผลกระทบ , รายละเอียด
-                        และข้อมูลเชิงลึกรวมถึงวิธีการแก้ไขเพื่อใช้ประกอบการตัดสินใจ
-                      </p>
-                    </div>
-
-                    {descriptor.totalPagesInSection > 1 ? (
-                      <div className="shrink-0 text-[10px] font-medium text-slate-500">
-                        Page {descriptor.pageNumberInSection} of{" "}
-                        {descriptor.totalPagesInSection}
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-
-                <ExecutiveHighlights
-                  onReady={noop}
-                  selectedTaskIDs={effectiveTaskIDs}
-                  pageIndex={descriptor.pageIndex}
-                  pageSize={descriptor.pageSize}
-                  showOuterHeader={true}
-                  onDataCountChange={noop}
-                  prefetchedRows={prefetchedHighlights}
-                  prefetchedLoading={prefetchLoading}
-                />
-              </section>
-            </main>
-
-            {renderFooter(pageNumber)}
-          </div>
-        );
-
-      case "device-risk":
-        return (
-          <div className={pageShellClass}>
-            <main className="flex-1 px-8 pt-7 pb-8">
-              <section className="mt-0">
-                <div className="mb-3 border-b border-slate-200 pb-2.5">
-                  <div className="flex items-end justify-between gap-4">
-                    <div>
-                      <p className={sectionLabelClass}>Section 4</p>
-                      <h2 className={sectionHeadingClass}>
-                        Top Device Risk Report
-                      </h2>
-                      <p className={sectionDescClass}>
-                        แสดงรายการอุปกรณ์ที่มีความเสี่ยงสูงจากผลการประเมินล่าสุด
-                        โดยเรียงลำดับตามค่า Risk Score
-                        เพื่อช่วยให้ติดตามอุปกรณ์ที่ควรได้รับการจัดการก่อน
-                        ในรูปแบบที่เหมาะกับการอ่านบนรายงาน PDF
-                      </p>
-                    </div>
-
-                    {descriptor.totalPagesInSection > 1 ? (
-                      <div className="shrink-0 text-[10px] font-medium text-slate-500">
-                        Page {descriptor.pageNumberInSection} of{" "}
-                        {descriptor.totalPagesInSection}
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-
-                <TopDeviceRiskReport
-                  onReady={noop}
-                  selectedTaskIDs={effectiveTaskIDs}
-                  pageIndex={descriptor.pageIndex}
-                  pageSize={descriptor.pageSize}
-                  showOuterHeader={true}
-                  onDataCountChange={noop}
-                  prefetchedDevices={prefetchedDevices}
-                  prefetchedLoading={prefetchLoading}
-                />
-              </section>
-            </main>
-
-            {renderFooter(pageNumber)}
-          </div>
-        );
-
-      case "comparison-monthly":
-        return (
-          <div className={pageShellClass}>
-            <main className="flex-1 px-8 pt-7 pb-8">
-              <section
-                className="mt-0"
-                style={{
-                  breakInside: "avoid-page",
-                  pageBreakInside: "avoid",
-                }}
-              >
-                <div className="mb-3 border-b border-slate-200 pb-2.5">
-                  <p className={sectionLabelClass}>Section 5</p>
-                  <h2 className={sectionHeadingClass}>
-                    Top 10 Risk Score Comparison
-                  </h2>
-                  <p className={sectionDescClass}>
-                    เปรียบเทียบค่า Latest Risk และ Previous Risk ของแต่ละเป้าหมาย
-                    เพื่อให้เห็นแนวโน้มความเสี่ยงล่าสุด
-                  </p>
-                </div>
-
-                <ComparisonReport
-                  onReady={setComparisonReady}
-                  selectedTaskIDs={effectiveTaskIDs}
-                />
-              </section>
-
-              <section
-                className="mt-5"
-                style={{
-                  breakInside: "avoid-page",
-                  pageBreakInside: "avoid",
-                }}
-              >
-                <div className="mb-3 border-b border-slate-200 pb-2.5">
-                  <p className={sectionLabelClass}>Section 6</p>
-                  <h2 className={sectionHeadingClass}>
-                    Monthly Risk Score Overview
-                  </h2>
-                  <p className={sectionDescClass}>
-                    This section presents mock monthly vulnerability counts and
-                    risk scores for the current year, together with a compact
-                    summary table for report review.
-                  </p>
-                </div>
-
-                <Section6MonthlyRiskReport
-                  onReady={setMonthlyReady}
-                  selectedTaskIDs={effectiveTaskIDs}
-                />
-              </section>
-            </main>
-
-            {renderFooter(pageNumber)}
-          </div>
-        );
-
-      case "conclusion":
-        return (
-          <div className={pageShellClass}>
-            <main className="flex-1 px-8 pt-7 pb-8">
-              <section
-                className="mt-0"
-                style={{
-                  breakInside: "avoid-page",
-                  pageBreakInside: "avoid",
-                }}
-              >
-                <div className="mb-3 border-b border-slate-200 pb-2.5">
-                  <p className={sectionLabelClass}>Section 7</p>
-                  <h2 className={sectionHeadingClass}>
-                    Final Conclusion and Executive Summary
-                  </h2>
-                  <p className={sectionDescClass}>
-                    สรุปภาพรวมของรายงานทั้งหมดในหน้าเดียว
-                    โดยรวบรวมตัวเลขสำคัญ การกระจายความรุนแรง
-                    ความเสี่ยงของเป้าหมายหลัก และข้อสังเกตสำหรับการตัดสินใจเชิงปฏิบัติการ
-                  </p>
-                </div>
-
-                <Conclusion
-                  onReady={setConclusionReady}
-                  selectedTaskIDs={effectiveTaskIDs}
-                />
-              </section>
-            </main>
-
-            {renderFooter(pageNumber)}
-          </div>
-        );
-
-      default:
-        return null;
-    }
+        {renderFooter(pageNumber)}
+      </div>
+    );
   };
+
+  const renderHighlightsPage = (
+    descriptor: Extract<PageDescriptor, { type: "highlights" }>,
+    pageNumber: number
+  ): React.ReactElement => {
+    return (
+      <div
+        key={descriptor.key}
+        data-page-number={pageNumber}
+        data-page-type="highlights"
+        className="capture-page"
+        style={basePageStyle}
+      >
+        <main className="px-8 pt-7 pb-24">
+          <section className="mt-0">
+            <div className="mb-3 border-b border-slate-200 pb-2.5">
+              <div className="flex items-end justify-between gap-4">
+                <div>
+                  <p className={sectionLabelClass}>Section 3</p>
+                  <h2 className={sectionHeadingClass}>Critical Highlights</h2>
+                  <p className={sectionDescClass}>
+                    สรุปประเด็นสำคัญของช่องโหว่ระดับวิกฤตที่ควรได้รับการติดตามก่อน
+                    โดยแสดงชื่อช่องโหว่ , ผลกระทบ , รายละเอียด
+                    และข้อมูลเชิงลึกรวมถึงวิธีการแก้ไขเพื่อใช้ประกอบการตัดสินใจ
+                  </p>
+                </div>
+
+                {descriptor.totalPagesInSection > 1 ? (
+                  <div className="shrink-0 text-[10px] font-medium text-slate-500">
+                    Page {descriptor.pageNumberInSection} of{" "}
+                    {descriptor.totalPagesInSection}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+
+            <ExecutiveHighlights
+              onReady={() => {}}
+              selectedTaskIDs={effectiveTaskIDs}
+              pageIndex={descriptor.pageIndex}
+              pageSize={descriptor.pageSize}
+              showOuterHeader={true}
+              onDataCountChange={() => {}}
+              prefetchedRows={prefetchedHighlights}
+              prefetchedLoading={prefetchLoading}
+            />
+          </section>
+        </main>
+
+        {renderFooter(pageNumber)}
+      </div>
+    );
+  };
+
+  const renderDeviceRiskPage = (
+    descriptor: Extract<PageDescriptor, { type: "device-risk" }>,
+    pageNumber: number
+  ): React.ReactElement => {
+    return (
+      <div
+        key={descriptor.key}
+        data-page-number={pageNumber}
+        data-page-type="device-risk"
+        className="capture-page"
+        style={basePageStyle}
+      >
+        <main className="px-8 pt-7 pb-24">
+          <section className="mt-0">
+            <div className="mb-3 border-b border-slate-200 pb-2.5">
+              <div className="flex items-end justify-between gap-4">
+                <div>
+                  <p className={sectionLabelClass}>Section 4</p>
+                  <h2 className={sectionHeadingClass}>Top Device Risk Report</h2>
+                  <p className={sectionDescClass}>
+                    แสดงรายการอุปกรณ์ที่มีความเสี่ยงสูงจากผลการประเมินล่าสุด
+                    โดยเรียงลำดับตามค่า Risk Score
+                    เพื่อช่วยให้ติดตามอุปกรณ์ที่ควรได้รับการจัดการก่อน
+                    ในรูปแบบที่เหมาะกับการอ่านบนรายงาน PDF
+                  </p>
+                </div>
+
+                {descriptor.totalPagesInSection > 1 ? (
+                  <div className="shrink-0 text-[10px] font-medium text-slate-500">
+                    Page {descriptor.pageNumberInSection} of{" "}
+                    {descriptor.totalPagesInSection}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+
+            <TopDeviceRiskReport
+              onReady={() => {}}
+              selectedTaskIDs={effectiveTaskIDs}
+              pageIndex={descriptor.pageIndex}
+              pageSize={descriptor.pageSize}
+              showOuterHeader={true}
+              onDataCountChange={() => {}}
+              prefetchedDevices={prefetchedDevices}
+              prefetchedLoading={prefetchLoading}
+            />
+          </section>
+        </main>
+
+        {renderFooter(pageNumber)}
+      </div>
+    );
+  };
+
+  const renderComparisonMonthlyPage = (
+    pageNumber: number
+  ): React.ReactElement => {
+    return (
+      <div
+        key="comparison-monthly"
+        data-page-number={pageNumber}
+        data-page-type="comparison-monthly"
+        className="capture-page"
+        style={basePageStyle}
+      >
+        <main className="px-8 pt-7 pb-24">
+          <section className="mt-0">
+            <div className="mb-3 border-b border-slate-200 pb-2.5">
+              <p className={sectionLabelClass}>Section 5</p>
+              <h2 className={sectionHeadingClass}>
+                Top 10 Risk Score Comparison
+              </h2>
+              <p className={sectionDescClass}>
+                เปรียบเทียบค่า Latest Risk และ Previous Risk ของแต่ละเป้าหมาย
+                เพื่อให้เห็นแนวโน้มความเสี่ยงล่าสุด
+              </p>
+            </div>
+
+            <ComparisonReport
+              onReady={setComparisonReady}
+              selectedTaskIDs={effectiveTaskIDs}
+            />
+          </section>
+
+          <section className="mt-5">
+            <div className="mb-3 border-b border-slate-200 pb-2.5">
+              <p className={sectionLabelClass}>Section 6</p>
+              <h2 className={sectionHeadingClass}>
+                Monthly Risk Score Overview
+              </h2>
+              <p className={sectionDescClass}>
+                This section presents mock monthly vulnerability counts and risk
+                scores for the current year, together with a compact summary
+                table for report review.
+              </p>
+            </div>
+
+            <Section6MonthlyRiskReport
+              onReady={setMonthlyReady}
+              selectedTaskIDs={effectiveTaskIDs}
+            />
+          </section>
+        </main>
+
+        {renderFooter(pageNumber)}
+      </div>
+    );
+  };
+
+  const renderConclusionPage = (pageNumber: number): React.ReactElement => {
+    return (
+      <div
+        key="conclusion"
+        data-page-number={pageNumber}
+        data-page-type="conclusion"
+        className="capture-page"
+        style={basePageStyle}
+      >
+        <main className="px-8 pt-7 pb-24">
+          <section className="mt-0">
+            <div className="mb-3 border-b border-slate-200 pb-2.5">
+              <p className={sectionLabelClass}>Section 7</p>
+              <h2 className={sectionHeadingClass}>
+                Final Conclusion and Executive Summary
+              </h2>
+              <p className={sectionDescClass}>
+                สรุปภาพรวมของรายงานทั้งหมดในหน้าเดียว
+                โดยรวบรวมตัวเลขสำคัญ การกระจายความรุนแรง
+                ความเสี่ยงของเป้าหมายหลัก และข้อสังเกตสำหรับการตัดสินใจเชิงปฏิบัติการ
+              </p>
+            </div>
+
+            <Conclusion
+              onReady={setConclusionReady}
+              selectedTaskIDs={effectiveTaskIDs}
+            />
+          </section>
+        </main>
+
+        {renderFooter(pageNumber)}
+      </div>
+    );
+  };
+
+  const renderedPages = useMemo(() => {
+    if (prefetchLoading) {
+      return [
+        <div key="loading" className="capture-page" style={basePageStyle}>
+          {renderSimpleLoader()}
+        </div>,
+      ];
+    }
+
+    return pageDescriptors.map((descriptor, index) => {
+      const pageNumber = index + 1;
+
+      switch (descriptor.type) {
+        case "overview":
+          return renderOverviewPage(pageNumber);
+        case "highlights":
+          return renderHighlightsPage(descriptor, pageNumber);
+        case "device-risk":
+          return renderDeviceRiskPage(descriptor, pageNumber);
+        case "comparison-monthly":
+          return renderComparisonMonthlyPage(pageNumber);
+        case "conclusion":
+          return renderConclusionPage(pageNumber);
+        default:
+          return null;
+      }
+    });
+  }, [
+    prefetchLoading,
+    pageDescriptors,
+    effectiveTaskIDs,
+    prefetchedHighlights,
+    prefetchedDevices,
+    refreshToken,
+    totalPages,
+  ]);
 
   return (
     <div
       id="capture-root"
-      className="w-full bg-white text-slate-900"
+      className="bg-white text-slate-900"
       data-report-ready={reportReady ? "true" : "false"}
       data-prefetch-loading={prefetchLoading ? "true" : "false"}
       data-dom-settled={domSettled ? "true" : "false"}
@@ -611,8 +683,45 @@ const CaptureTest: React.FC<CaptureTestProps> = ({
         width: `${PAGE_WIDTH}px`,
         margin: "0 auto",
         position: "relative",
+        background: "#ffffff",
       }}
     >
+      <style>
+        {`
+          @page {
+            size: A4;
+            margin: 0.2in;
+          }
+
+          html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #ffffff !important;
+          }
+
+          body {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+
+          #capture-root {
+            margin: 0 auto !important;
+            padding: 0 !important;
+            background: #ffffff !important;
+          }
+
+          #capture-root > .capture-page {
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+
+          #capture-root > .capture-page:last-child {
+            margin-bottom: 0 !important;
+            padding-bottom: 0 !important;
+          }
+        `}
+      </style>
+
       {!reportReady && (
         <div
           aria-hidden="true"
@@ -626,27 +735,7 @@ const CaptureTest: React.FC<CaptureTestProps> = ({
         />
       )}
 
-      {pageDescriptors.map((descriptor, index) => {
-        const pageNumber = index + 1;
-
-        return (
-          <div
-            key={descriptor.key}
-            data-page-number={pageNumber}
-            data-page-type={descriptor.type}
-            style={
-              index === 0
-                ? undefined
-                : {
-                    pageBreakBefore: "always",
-                    breakBefore: "page",
-                  }
-            }
-          >
-            {renderPageByDescriptor(descriptor, pageNumber)}
-          </div>
-        );
-      })}
+      {renderedPages}
     </div>
   );
 };

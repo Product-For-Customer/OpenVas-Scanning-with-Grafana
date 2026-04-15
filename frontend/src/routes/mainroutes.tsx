@@ -16,6 +16,8 @@ const VulnerabilityByLevel = Loadable(lazy(() => import("../page/dashboard/only/
 const Vulnerability = Loadable(lazy(() => import("../page/vulnerability/index")));
 const VulnerabilityDetail = Loadable(lazy(() => import("../page/vulnerability/List/Detail/index")));
 const Report = Loadable(lazy(() => import("../page/report/index")));
+const Diagram = Loadable(lazy(() => import("../page/diagram/index")));
+const DiagramNode = Loadable(lazy(() => import("../page/diagram/node/index")));
 
 // ===== Login Pages =====
 const SignIn = Loadable(lazy(() => import("../page/Authentication/Signin/index")));
@@ -49,7 +51,9 @@ const AdminRoutes = (): RouteObject[] => [
       { path: "user", element: <User /> },
       { path: "vulnerability-detail", element: <VulnerabilityDetail /> },
       { path: "service", element: <Service /> },
-      { path: "report", element: <Report /> }
+      { path: "report", element: <Report /> },
+      { path: "diagrams", element: <Diagram /> },
+      { path: "diagram-node", element: <DiagramNode /> }
     ],
   },
   { path: "*", element: <Navigate to="/admin" replace /> },
