@@ -21,6 +21,7 @@ type ReportVulnerabilityMonthDTO struct {
 //
 // Logic:
 // - ใช้ latest report ต่อ host + task_name
+// - ไม่นำ severity ติดลบมาคิด
 // - คำนวณ vulnerability_total และ risk_score ต่อ asset
 // - 1 row = 1 asset (task_id + task_name + ip) ในเดือนนั้น
 // - frontend ค่อย aggregate เองเป็นรายเดือน
@@ -53,6 +54,7 @@ LatestReportPerHostTask AS (
 
 -- =========================================================
 -- 2) fact ของ latest snapshot ต่อ asset
+--    ไม่นำ severity ติดลบมาคิด
 -- =========================================================
 ResultFact AS (
   SELECT
@@ -65,6 +67,7 @@ ResultFact AS (
   JOIN public.results r
     ON r.report = lrht.report_id
    AND r.host = lrht.host_ip
+   AND COALESCE(r.severity, 0) >= 0
 ),
 
 -- =========================================================

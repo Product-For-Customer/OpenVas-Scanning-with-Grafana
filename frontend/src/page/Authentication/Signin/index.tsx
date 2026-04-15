@@ -15,12 +15,8 @@ import {
   FiShield,
   FiWifi,
   FiServer,
-  FiActivity,
-  FiCpu,
-  FiRadio,
 } from "react-icons/fi";
 import { FaNetworkWired } from "react-icons/fa";
-import { IoAirplane } from "react-icons/io5";
 import { Login } from "../../../services/auth";
 import {
   SendOTPForSignUp,
@@ -45,7 +41,7 @@ type SignUpFormData = {
 type ViewMode = "login" | "signup" | "forgot" | "reset";
 
 const ANIM_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
-const ANIM_DURATION = "900ms";
+const ANIM_DURATION = "1100ms";
 
 const Index: React.FC = () => {
   const navigate = useNavigate();
@@ -101,13 +97,22 @@ const Index: React.FC = () => {
   const isSignUp = viewMode === "signup";
 
   const inputBase =
-    "h-[46px] w-full rounded-2xl border border-[#c7dcff] bg-white/92 pl-11 pr-4 text-[14px] text-slate-700 outline-none transition-all duration-300 placeholder:text-slate-400 focus:border-[#34b8ff] focus:bg-white focus:ring-4 focus:ring-[#34b8ff]/10 shadow-[0_8px_24px_rgba(15,23,42,0.04)]";
+    "h-[40px] w-full rounded-xl border border-slate-200/90 bg-white/85 dark:bg-white/[0.06] dark:border-white/10 pl-10 pr-10 text-[12px] text-slate-700 dark:text-white/85 outline-none transition-all duration-300 placeholder:text-slate-400 dark:placeholder:text-white/30 focus:border-cyan-400 dark:focus:border-cyan-400 focus:ring-4 focus:ring-cyan-100/70 dark:focus:ring-cyan-500/15 shadow-sm dark:shadow-none";
 
   const labelBase =
-    "mb-1.5 block pl-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#3d8ee7]";
+    "mb-1 block pl-1 text-[9px] font-semibold uppercase tracking-[0.10em] text-slate-500 dark:text-white/45";
 
   const panelTitleClass =
-    "bg-[linear-gradient(90deg,#2f80ed_0%,#56ccf2_100%)] bg-clip-text text-transparent font-extrabold leading-none";
+    "bg-linear-to-r from-cyan-500 via-sky-500 to-violet-500 bg-clip-text text-transparent font-extrabold leading-none";
+
+  const sectionBadgeClass =
+    "mb-3 inline-flex items-center gap-1.5 rounded-full border border-cyan-200/70 bg-cyan-50/80 dark:bg-cyan-500/10 dark:border-cyan-400/20 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-cyan-700 dark:text-cyan-300 shadow-sm dark:shadow-none";
+
+  const subtleCardClass =
+    "rounded-[16px] border border-slate-200/80 dark:border-white/10 bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.68)_0%,rgba(2,6,23,0.92)_100%)] p-3 shadow-[0_12px_30px_rgba(47,128,237,0.08)] dark:shadow-none";
+
+  const primaryButtonClass =
+    "inline-flex h-[38px] min-w-[130px] items-center justify-center rounded-2xl bg-linear-to-r from-cyan-500 via-sky-500 to-violet-500 text-white shadow-sm shadow-[0_18px_34px_rgba(47,128,237,0.28)] transition-all duration-300 hover:translate-y-[-1px] hover:shadow-[0_20px_36px_rgba(47,128,237,0.34)] disabled:cursor-not-allowed disabled:opacity-70";
 
   const resetSignUpForm = () => {
     setSignupForm({
@@ -243,8 +248,8 @@ const Index: React.FC = () => {
       console.error("CheckUserEmail error:", err);
       setForgotError(
         err?.response?.data?.error ||
-          err?.message ||
-          "เกิดข้อผิดพลาดระหว่างตรวจสอบอีเมล"
+        err?.message ||
+        "เกิดข้อผิดพลาดระหว่างตรวจสอบอีเมล"
       );
     } finally {
       setForgotSubmitting(false);
@@ -301,8 +306,8 @@ const Index: React.FC = () => {
       console.error("Send OTP error:", err);
       setResetError(
         err?.response?.data?.error ||
-          err?.message ||
-          "เกิดข้อผิดพลาดระหว่างส่ง OTP"
+        err?.message ||
+        "เกิดข้อผิดพลาดระหว่างส่ง OTP"
       );
     } finally {
       setResetSubmitting(false);
@@ -406,8 +411,8 @@ const Index: React.FC = () => {
       console.error("Send OTP error:", error);
       message.error(
         error?.response?.data?.error ||
-          error?.message ||
-          "เกิดข้อผิดพลาดในการส่ง OTP"
+        error?.message ||
+        "เกิดข้อผิดพลาดในการส่ง OTP"
       );
     } finally {
       setSignupSubmitting(false);
@@ -421,204 +426,202 @@ const Index: React.FC = () => {
     message.success("สมัครสมาชิกสำเร็จ");
   };
 
+  const renderMotionStyles = () => (
+    <style>{`
+      @keyframes scanBeam {
+        0% { transform: translateY(-110%); opacity: 0; }
+        18% { opacity: 0.95; }
+        50% { opacity: 0.55; }
+        100% { transform: translateY(220%); opacity: 0; }
+      }
+      @keyframes floatSoft {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-10px); }
+      }
+      @keyframes floatSoftAlt {
+        0%, 100% { transform: translateY(0px) scale(1); }
+        50% { transform: translateY(8px) scale(1.03); }
+      }
+      @keyframes pulseGlow {
+        0%, 100% { opacity: 0.55; box-shadow: 0 0 0 rgba(34,211,238,0); }
+        50% { opacity: 1; box-shadow: 0 0 18px rgba(34,211,238,0.38); }
+      }
+      @keyframes orbitLine {
+        0% { transform: translateX(-20px); opacity: 0.2; }
+        50% { opacity: 0.8; }
+        100% { transform: translateX(20px); opacity: 0.2; }
+      }
+    `}</style>
+  );
+
   const renderDeviceDecoration = () => (
-    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[96px] overflow-hidden">
-      <div className="absolute bottom-4 left-6 flex items-end gap-3 text-[#42bfff]/80">
-        <div className="rounded-2xl border border-[#42bfff]/30 bg-white/55 p-2 shadow-[0_8px_30px_rgba(46,144,250,0.14)] backdrop-blur-sm">
-          <FaNetworkWired className="text-[22px]" />
-        </div>
-        <div className="rounded-2xl border border-[#42bfff]/30 bg-white/55 p-2 shadow-[0_8px_30px_rgba(46,144,250,0.14)] backdrop-blur-sm">
-          <FiServer className="text-[22px]" />
-        </div>
-      </div>
-
-      <div className="absolute bottom-4 right-6 flex items-end gap-3 text-[#42bfff]/80">
-        <div className="rounded-2xl border border-[#42bfff]/30 bg-white/55 p-2 shadow-[0_8px_30px_rgba(46,144,250,0.14)] backdrop-blur-sm">
-          <FiRadio className="text-[22px]" />
-        </div>
-        <div className="rounded-2xl border border-[#42bfff]/30 bg-white/55 p-2 shadow-[0_8px_30px_rgba(46,144,250,0.14)] backdrop-blur-sm">
-          <FiWifi className="text-[22px]" />
-        </div>
-      </div>
-
-      <svg
-        className="absolute bottom-0 left-0 h-[76px] w-[220px]"
-        viewBox="0 0 220 76"
-        fill="none"
-      >
-        <path
-          d="M8 62H120C146 62 160 49 174 32C184 20 196 12 212 8"
-          stroke="url(#leftLine)"
-          strokeWidth="2.2"
-          strokeDasharray="5 7"
-          strokeLinecap="round"
+    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-14.5 overflow-hidden">
+      <div className="absolute bottom-3 left-4 flex items-center gap-2">
+        <span
+          className="h-2 w-2 rounded-full bg-cyan-400"
+          style={{ animation: "pulseGlow 2.6s ease-in-out infinite" }}
         />
-        <defs>
-          <linearGradient id="leftLine" x1="8" y1="62" x2="212" y2="8">
-            <stop stopColor="#56CCF2" stopOpacity="0" />
-            <stop offset="0.45" stopColor="#56CCF2" stopOpacity="0.8" />
-            <stop offset="1" stopColor="#2F80ED" stopOpacity="1" />
-          </linearGradient>
-        </defs>
-      </svg>
-
-      <svg
-        className="absolute bottom-0 right-0 h-[76px] w-[220px]"
-        viewBox="0 0 220 76"
-        fill="none"
-      >
-        <path
-          d="M212 62H100C74 62 60 49 46 32C36 20 24 12 8 8"
-          stroke="url(#rightLine)"
-          strokeWidth="2.2"
-          strokeDasharray="5 7"
-          strokeLinecap="round"
+        <span className="h-px w-14 bg-linear-to-r from-cyan-400 via-sky-400 to-violet-400 opacity-80" />
+      </div>
+      <div className="absolute bottom-3 right-4 flex items-center gap-2">
+        <span className="h-px w-14 bg-linear-to-r from-violet-400 via-sky-400 to-cyan-400 opacity-80" />
+        <span
+          className="h-2 w-2 rounded-full bg-violet-400"
+          style={{ animation: "pulseGlow 2.6s ease-in-out infinite 0.6s" }}
         />
-        <defs>
-          <linearGradient id="rightLine" x1="212" y1="62" x2="8" y2="8">
-            <stop stopColor="#56CCF2" stopOpacity="0" />
-            <stop offset="0.45" stopColor="#56CCF2" stopOpacity="0.8" />
-            <stop offset="1" stopColor="#2F80ED" stopOpacity="1" />
-          </linearGradient>
-        </defs>
-      </svg>
+      </div>
     </div>
   );
 
   const renderPhotoPanel = () => (
-    <div className="relative h-full overflow-hidden">
+    <div className="relative h-full overflow-hidden bg-slate-950">
       <img
         src={travelPhoto}
         alt="Network Security"
         className="absolute inset-0 h-full w-full object-cover"
       />
 
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(4,12,24,0.55)_0%,rgba(5,16,33,0.38)_36%,rgba(3,10,22,0.70)_100%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(86,204,242,0.28),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(47,128,237,0.22),transparent_30%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,6,23,0.38)_0%,rgba(2,6,23,0.56)_38%,rgba(2,6,23,0.84)_100%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(6,182,212,0.22),transparent_26%),radial-gradient(circle_at_bottom_left,rgba(139,92,246,0.18),transparent_32%)]" />
 
-      <div className="absolute inset-0 opacity-25">
-        <div className="h-full w-full bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[size:28px_28px]" />
+      <div className="absolute inset-0 opacity-[0.11]">
+        <div className="h-full w-full bg-[linear-gradient(rgba(255,255,255,0.10)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.10)_1px,transparent_1px)] bg-size-[22px_22px]" />
       </div>
 
-      <div className="absolute left-0 right-0 top-0 px-8 pt-8 text-white">
-        <div className="flex items-center justify-between gap-3">
+      <div
+        className="absolute inset-x-[18%] top-[-25%] h-[55%] rounded-full bg-cyan-400/20 blur-3xl"
+        style={{ animation: "floatSoftAlt 7s ease-in-out infinite" }}
+      />
+      <div
+        className="absolute inset-x-0 top-[-20%] h-[42%] bg-linear-to-b from-cyan-300/18 via-sky-300/8 to-transparent"
+        style={{ animation: "scanBeam 4.8s linear infinite" }}
+      />
+
+      <div className="absolute inset-x-0 top-0 p-6 text-white">
+        <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-[12px] font-semibold uppercase tracking-[0.24em] text-cyan-200/90">
-              Network Scan Console
+            <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-cyan-300/90">
+              Network Security Scan
             </p>
-            <h1 className="mt-2 text-[40px] font-extrabold leading-none">
+            <h1 className="mt-2 text-[28px] font-extrabold leading-none">
               Argus Sentinel
             </h1>
+            <p className="mt-3 max-w-57.5 text-[11px] leading-5 text-slate-200/80">
+              Secure access for scan operations, device visibility, and report review.
+            </p>
           </div>
 
-          <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 backdrop-blur-md">
-            <div className="flex items-center gap-2 text-[12px] font-medium text-white/90">
+          <div className="rounded-full border border-white/10 bg-white/10 px-3 py-1.5 backdrop-blur-md">
+            <div className="flex items-center gap-1.5 text-[10px] font-semibold text-white/90">
               <FiShield className="text-cyan-300" />
-              Secure Access
+              Protected
             </div>
           </div>
         </div>
 
-        <p className="mt-6 max-w-[420px] text-[14px] leading-6 text-slate-100/88">
-          Centralize your switch, router, wireless and infrastructure visibility
-          through a clean access portal for monitoring, reporting and device
-          intelligence.
-        </p>
+        <div className="mt-5 flex items-center gap-2">
+          <span
+            className="h-2 w-2 rounded-full bg-cyan-400"
+            style={{ animation: "pulseGlow 2.2s ease-in-out infinite" }}
+          />
+          <span
+            className="h-px w-16 bg-white/20"
+            style={{ animation: "orbitLine 2.8s ease-in-out infinite" }}
+          />
+          <span
+            className="h-2 w-2 rounded-full bg-sky-400"
+            style={{ animation: "pulseGlow 2.2s ease-in-out infinite 0.4s" }}
+          />
+        </div>
+      </div>
 
-        <div className="mt-7 flex flex-wrap gap-3">
+      <div className="absolute bottom-16 left-5 right-5">
+        <div className="grid grid-cols-3 gap-2">
           {[
-            { icon: <FiServer />, label: "Switch" },
-            { icon: <FiCpu />, label: "Router" },
-            { icon: <FiWifi />, label: "Wireless" },
-            { icon: <FiActivity />, label: "Monitoring" },
+            { icon: <FiServer className="text-[15px]" />, label: "Switch", delay: "0s" },
+            { icon: <FaNetworkWired className="text-[15px]" />, label: "Router", delay: "0.45s" },
+            { icon: <FiWifi className="text-[15px]" />, label: "Wireless", delay: "0.9s" },
           ].map((item) => (
             <div
               key={item.label}
-              className="flex items-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-4 py-2.5 text-[13px] text-white/95 shadow-[0_10px_30px_rgba(15,23,42,0.18)] backdrop-blur-md"
+              className="rounded-2xl border border-white/10 bg-slate-900/45 px-3 py-2 backdrop-blur-md"
+              style={{ animation: `floatSoft 4.8s ease-in-out infinite ${item.delay}` }}
             >
-              <span className="text-cyan-300">{item.icon}</span>
-              <span className="font-medium">{item.label}</span>
+              <div className="flex items-center gap-2 text-white">
+                <span className="inline-flex h-7 w-7 items-center justify-center rounded-xl bg-white/10 text-cyan-300 shadow-[0_0_18px_rgba(34,211,238,0.14)]">
+                  {item.icon}
+                </span>
+                <div className="min-w-0">
+                  <div className="text-[9px] uppercase tracking-[0.16em] text-slate-300/60">
+                    Device
+                  </div>
+                  <div className="text-[11px] font-semibold text-white/95">
+                    {item.label}
+                  </div>
+                </div>
+              </div>
             </div>
           ))}
         </div>
       </div>
 
-      <div className="absolute bottom-8 left-8 right-8">
-        <div className="grid grid-cols-3 gap-3">
-          {[
-            { label: "Devices Online", value: "128", tone: "text-cyan-300" },
-            { label: "Scan Coverage", value: "96%", tone: "text-sky-300" },
-            { label: "Threat Intel", value: "Live", tone: "text-emerald-300" },
-          ].map((item) => (
-            <div
-              key={item.label}
-              className="rounded-[22px] border border-white/10 bg-white/8 px-4 py-4 shadow-[0_14px_34px_rgba(2,6,23,0.24)] backdrop-blur-md"
-            >
-              <p className="text-[11px] uppercase tracking-[0.12em] text-slate-200/70">
-                {item.label}
-              </p>
-              <p className={`mt-2 text-[24px] font-bold ${item.tone}`}>
-                {item.value}
-              </p>
-            </div>
-          ))}
+      <div className="absolute bottom-5 left-5 right-5">
+        <div className="flex items-center gap-2">
+          <div className="rounded-full border border-cyan-400/20 bg-slate-900/55 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-cyan-200 backdrop-blur-md">
+            Live Scan
+          </div>
+          <div className="rounded-full border border-violet-400/20 bg-slate-900/55 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-violet-200 backdrop-blur-md">
+            Threat View
+          </div>
         </div>
       </div>
     </div>
   );
 
   const renderTopWire = () => (
-    <div className="pointer-events-none absolute right-8 top-7">
-      <div className="relative h-[48px] w-[110px]">
-        <IoAirplane className="absolute right-0 top-0 rotate-[18deg] text-[24px] text-[#3ebcff]" />
-        <svg
-          className="absolute inset-0 h-full w-full"
-          viewBox="0 0 110 48"
-          fill="none"
-        >
-          <path
-            d="M6 34C24 16 48 10 76 14C86 16 94 20 102 28"
-            stroke="#48c4ff"
-            strokeWidth="1.8"
-            strokeDasharray="2 6"
-            strokeLinecap="round"
-          />
-        </svg>
+    <div className="pointer-events-none absolute right-5 top-5">
+      <div className="flex items-center gap-2">
+        <span className="h-2 w-2 rounded-full bg-cyan-400 shadow-[0_0_14px_rgba(34,211,238,0.95)]" />
+        <span className="h-px w-8 bg-linear-to-r from-cyan-400 via-sky-400 to-violet-400" />
+        <span className="h-2 w-2 rounded-full bg-violet-400 shadow-[0_0_14px_rgba(167,139,250,0.95)]" />
       </div>
     </div>
   );
 
   const renderSectionBadge = (label: string) => (
-    <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#a9dbff] bg-[#eef8ff] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#2f80ed]">
-      <FaNetworkWired className="text-[12px]" />
+    <div className={sectionBadgeClass}>
+      <FaNetworkWired className="text-[9px]" />
       {label}
     </div>
   );
 
+  const renderErrorBox = (text: string) =>
+    text ? (
+      <div className="mt-3 rounded-lg border border-red-200 bg-red-50 dark:bg-red-500/10 dark:border-red-400/20 px-3 py-2.5 text-[12px] text-red-600 dark:text-red-300">
+        {text}
+      </div>
+    ) : null;
+
   const renderLoginForm = () => (
-    <div className="w-full max-w-[430px]">
+    <div className="w-full max-w-77.5">
       <div className="text-center">
-        {renderSectionBadge("Access Portal")}
-        <h2 className={`${panelTitleClass} text-[52px] tracking-[-0.04em]`}>
+        {renderSectionBadge("Scan Access")}
+        <h2 className={`${panelTitleClass} text-[30px] tracking-[-0.04em]`}>
           Welcome
         </h2>
-        <p className="mt-3 text-[14px] text-slate-500">
-          Sign in to the network monitoring console
+        <p className="mt-1.5 text-[11px] text-slate-500 dark:text-white/55">
+          Sign in to the security scan console
         </p>
       </div>
 
-      {loginError ? (
-        <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-600">
-          {loginError}
-        </div>
-      ) : null}
+      {renderErrorBox(loginError)}
 
-      <form onSubmit={handleLoginSubmit} className="mt-6">
-        <div className="space-y-4">
+      <form onSubmit={handleLoginSubmit} className="mt-5">
+        <div className="space-y-3">
           <div>
             <label className={labelBase}>Email Address</label>
             <div className="relative">
-              <FiMail className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[16px] text-[#4d86c7]" />
+              <FiMail className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-cyan-600 dark:text-cyan-300" />
               <input
                 type="email"
                 value={loginEmail}
@@ -633,7 +636,7 @@ const Index: React.FC = () => {
           <div>
             <label className={labelBase}>Password</label>
             <div className="relative">
-              <FiLock className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[16px] text-[#4d86c7]" />
+              <FiLock className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-cyan-600 dark:text-cyan-300" />
               <input
                 type={showLoginPassword ? "text" : "password"}
                 value={loginPassword}
@@ -645,21 +648,21 @@ const Index: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowLoginPassword((prev) => !prev)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#6d7890] transition hover:text-[#1b9ef0]"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-white/40 transition hover:text-cyan-600 dark:hover:text-cyan-300"
                 aria-label={showLoginPassword ? "Hide password" : "Show password"}
               >
                 {showLoginPassword ? (
-                  <FiEyeOff className="text-[16px]" />
+                  <FiEyeOff className="text-[14px]" />
                 ) : (
-                  <FiEye className="text-[16px]" />
+                  <FiEye className="text-[14px]" />
                 )}
               </button>
             </div>
           </div>
         </div>
 
-        <div className="mt-3 flex items-center justify-between gap-3">
-          <div className="rounded-full bg-[#f2f8ff] px-3 py-1.5 text-[11px] font-medium text-slate-500">
+        <div className="mt-2.5 flex items-center justify-between gap-2">
+          <div className="rounded-full bg-[#f2f8ff] dark:bg-white/8 px-2 py-0.5 text-[9px] font-medium text-slate-500 dark:text-white/55">
             Admin access only
           </div>
 
@@ -670,41 +673,41 @@ const Index: React.FC = () => {
               setForgotEmail(loginEmail.trim());
               setViewMode("forgot");
             }}
-            className="text-[12px] font-semibold text-slate-500 transition hover:text-[#1b9ef0]"
+            className="text-[10px] font-semibold text-slate-500 dark:text-white/55 transition hover:text-cyan-600 dark:hover:text-cyan-300"
           >
             Forgot your password?
           </button>
         </div>
 
-        <div className="mt-7 flex justify-center">
+        <div className="mt-5 flex justify-center">
           <button
             type="submit"
             disabled={loginSubmitting}
-            className="inline-flex h-[48px] min-w-[170px] items-center justify-center rounded-2xl bg-[linear-gradient(90deg,#2f80ed_0%,#56ccf2_100%)] px-6 text-[14px] font-bold uppercase tracking-[0.08em] text-white shadow-[0_18px_34px_rgba(47,128,237,0.28)] transition-all duration-300 hover:translate-y-[-1px] hover:shadow-[0_20px_36px_rgba(47,128,237,0.34)] disabled:cursor-not-allowed disabled:opacity-70"
+            className={primaryButtonClass}
           >
             {loginSubmitting ? "Logging In..." : "Login"}
           </button>
         </div>
 
-        <div className="mt-7 flex items-center gap-4">
-          <div className="h-px flex-1 bg-[#d7e6fb]" />
-          <span className="text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+        <div className="mt-5 flex items-center gap-2">
+          <div className="h-px flex-1 bg-[#d7e6fb] dark:bg-white/10" />
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 dark:text-white/30">
             OR
           </span>
-          <div className="h-px flex-1 bg-[#d7e6fb]" />
+          <div className="h-px flex-1 bg-[#d7e6fb] dark:bg-white/10" />
         </div>
 
-        <div className="mt-6 text-center text-[14px] text-slate-600">
-          Don&apos;t have account?{" "}
+        <div className="mt-4 text-center text-[12px] text-slate-600 dark:text-white/65">
+          Don&apos;t have an account?{" "}
           <button
             type="button"
             onClick={() => {
               setLoginError("");
               setViewMode("signup");
             }}
-            className="font-extrabold text-slate-900 transition hover:text-[#1b9ef0]"
+            className="font-extrabold text-slate-900 dark:text-white transition hover:text-cyan-600 dark:hover:text-cyan-300"
           >
-            Register Now
+            Sign Up
           </button>
         </div>
       </form>
@@ -712,29 +715,24 @@ const Index: React.FC = () => {
   );
 
   const renderForgotForm = () => (
-    <div className="w-full max-w-[460px]">
+    <div className="w-full max-w-[320px]">
       <div className="text-center">
         {renderSectionBadge("Recovery")}
-        <h2 className={`${panelTitleClass} text-[44px] tracking-[-0.04em]`}>
+        <h2 className={`${panelTitleClass} text-[27px] tracking-[-0.04em]`}>
           Forgot Password
         </h2>
-        <p className="mt-3 text-[14px] leading-6 text-slate-500">
-          Verify that your email exists before continuing the password reset
-          flow.
+        <p className="mt-1.5 text-[11px] leading-5 text-slate-500 dark:text-white/55">
+          Verify that your email exists before continuing the password reset flow.
         </p>
       </div>
 
-      {forgotError ? (
-        <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-600">
-          {forgotError}
-        </div>
-      ) : null}
+      {renderErrorBox(forgotError)}
 
-      <form onSubmit={handleForgotSubmit} className="mt-6">
+      <form onSubmit={handleForgotSubmit} className="mt-5">
         <div>
           <label className={labelBase}>Email Address</label>
           <div className="relative">
-            <FiMail className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[16px] text-[#4d86c7]" />
+            <FiMail className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-cyan-600 dark:text-cyan-300" />
             <input
               type="email"
               value={forgotEmail}
@@ -746,17 +744,17 @@ const Index: React.FC = () => {
           </div>
         </div>
 
-        <div className="mt-5 rounded-[24px] border border-[#d7ecff] bg-[linear-gradient(180deg,#fafdff_0%,#f3f9ff_100%)] p-4 shadow-[0_12px_30px_rgba(47,128,237,0.08)]">
-          <div className="flex items-start gap-3">
-            <div className="mt-0.5 rounded-2xl bg-[#e9f6ff] p-3 text-[#2f80ed]">
-              <FiRefreshCw className="text-[16px]" />
+        <div className={`mt-3 ${subtleCardClass}`}>
+          <div className="flex items-start gap-2">
+            <div className="mt-0.5 rounded-lg bg-[#e9f6ff] dark:bg-cyan-500/10 p-2 text-cyan-600 dark:text-cyan-300">
+              <FiRefreshCw className="text-[14px]" />
             </div>
 
             <div className="min-w-0 flex-1">
-              <p className="text-[14px] font-semibold text-slate-800">
+              <p className="text-[12px] font-semibold text-slate-800 dark:text-white/85">
                 Secure recovery pipeline
               </p>
-              <p className="mt-1.5 text-[13px] leading-6 text-slate-500">
+              <p className="mt-1 text-[11px] leading-4.5 text-slate-500 dark:text-white/55">
                 The system checks your email first, then allows the OTP-based
                 reset process to continue safely.
               </p>
@@ -764,22 +762,22 @@ const Index: React.FC = () => {
           </div>
         </div>
 
-        <div className="mt-7 flex justify-center">
+        <div className="mt-5 flex justify-center">
           <button
             type="submit"
             disabled={forgotSubmitting}
-            className="inline-flex h-[48px] min-w-[190px] items-center justify-center rounded-2xl bg-[linear-gradient(90deg,#2f80ed_0%,#56ccf2_100%)] px-6 text-[14px] font-bold uppercase tracking-[0.08em] text-white shadow-[0_18px_34px_rgba(47,128,237,0.28)] transition-all duration-300 hover:translate-y-[-1px] hover:shadow-[0_20px_36px_rgba(47,128,237,0.34)] disabled:cursor-not-allowed disabled:opacity-70"
+            className={primaryButtonClass}
           >
             {forgotSubmitting ? "Checking..." : "Continue"}
           </button>
         </div>
 
-        <div className="mt-6 text-center text-[14px] text-slate-600">
+        <div className="mt-4 text-center text-[12px] text-slate-600 dark:text-white/65">
           Remember your password?{" "}
           <button
             type="button"
             onClick={() => setViewMode("login")}
-            className="font-extrabold text-slate-900 transition hover:text-[#1b9ef0]"
+            className="font-extrabold text-slate-900 dark:text-white transition hover:text-cyan-600 dark:hover:text-cyan-300"
           >
             Sign In
           </button>
@@ -789,32 +787,28 @@ const Index: React.FC = () => {
   );
 
   const renderResetForm = () => (
-    <div className="w-full max-w-[470px]">
+    <div className="w-full max-w-82.5">
       <div className="text-center">
         {renderSectionBadge("Reset")}
-        <h2 className={`${panelTitleClass} text-[44px] tracking-[-0.04em]`}>
+        <h2 className={`${panelTitleClass} text-[27px] tracking-[-0.04em]`}>
           Reset Password
         </h2>
-        <p className="mt-3 text-[14px] leading-6 text-slate-500">
+        <p className="mt-1.5 text-[11px] leading-5 text-slate-500 dark:text-white/55">
           Set a new password for
           <br />
-          <span className="font-semibold text-slate-700">
+          <span className="font-semibold text-slate-700 dark:text-white/85">
             {verifiedResetEmail || "your account"}
           </span>
         </p>
       </div>
 
-      {resetError ? (
-        <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-600">
-          {resetError}
-        </div>
-      ) : null}
+      {renderErrorBox(resetError)}
 
-      <form onSubmit={handleResetSubmit} className="mt-6 space-y-4">
+      <form onSubmit={handleResetSubmit} className="mt-5 space-y-3">
         <div>
           <label className={labelBase}>New Password</label>
           <div className="relative">
-            <FiKey className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[16px] text-[#4d86c7]" />
+            <FiKey className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-cyan-600 dark:text-cyan-300" />
             <input
               type={showResetPassword ? "text" : "password"}
               value={newPassword}
@@ -825,15 +819,15 @@ const Index: React.FC = () => {
             <button
               type="button"
               onClick={() => setShowResetPassword((prev) => !prev)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-[#6d7890] transition hover:text-[#1b9ef0]"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-white/40 transition hover:text-cyan-600 dark:hover:text-cyan-300"
               aria-label={
                 showResetPassword ? "Hide new password" : "Show new password"
               }
             >
               {showResetPassword ? (
-                <FiEyeOff className="text-[16px]" />
+                <FiEyeOff className="text-[14px]" />
               ) : (
-                <FiEye className="text-[16px]" />
+                <FiEye className="text-[14px]" />
               )}
             </button>
           </div>
@@ -842,7 +836,7 @@ const Index: React.FC = () => {
         <div>
           <label className={labelBase}>Confirm Password</label>
           <div className="relative">
-            <FiLock className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[16px] text-[#4d86c7]" />
+            <FiLock className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-cyan-600 dark:text-cyan-300" />
             <input
               type={showConfirmResetPassword ? "text" : "password"}
               value={confirmPassword}
@@ -853,7 +847,7 @@ const Index: React.FC = () => {
             <button
               type="button"
               onClick={() => setShowConfirmResetPassword((prev) => !prev)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-[#6d7890] transition hover:text-[#1b9ef0]"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-white/40 transition hover:text-cyan-600 dark:hover:text-cyan-300"
               aria-label={
                 showConfirmResetPassword
                   ? "Hide confirm password"
@@ -861,40 +855,40 @@ const Index: React.FC = () => {
               }
             >
               {showConfirmResetPassword ? (
-                <FiEyeOff className="text-[16px]" />
+                <FiEyeOff className="text-[14px]" />
               ) : (
-                <FiEye className="text-[16px]" />
+                <FiEye className="text-[14px]" />
               )}
             </button>
           </div>
         </div>
 
-        <div className="rounded-[24px] border border-[#d7ecff] bg-[linear-gradient(180deg,#fafdff_0%,#f3f9ff_100%)] p-4 shadow-[0_12px_30px_rgba(47,128,237,0.08)]">
-          <div className="flex items-start gap-3">
-            <div className="mt-0.5 rounded-2xl bg-[#e9f6ff] p-3 text-[#2f80ed]">
-              <FiShield className="text-[16px]" />
+        <div className={subtleCardClass}>
+          <div className="flex items-start gap-2">
+            <div className="mt-0.5 rounded-lg bg-[#e9f6ff] dark:bg-cyan-500/10 p-2 text-cyan-600 dark:text-cyan-300">
+              <FiShield className="text-[14px]" />
             </div>
 
             <div className="min-w-0 flex-1">
-              <p className="text-[14px] font-semibold text-slate-800">
+              <p className="text-[12px] font-semibold text-slate-800 dark:text-white/85">
                 Credential hardening
               </p>
-              <p className="mt-1.5 text-[13px] leading-6 text-slate-500">
+              <p className="mt-1 text-[11px] leading-4.5 text-slate-500 dark:text-white/55">
                 Use at least 8 characters with uppercase, lowercase, numbers,
                 and symbols for stronger protection.
               </p>
 
-              <div className="mt-4">
-                <div className="mb-2 flex items-center justify-between gap-3">
-                  <span className="text-[12px] font-medium text-slate-500">
+              <div className="mt-3">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <span className="text-[10px] font-medium text-slate-500 dark:text-white/50">
                     Password strength
                   </span>
-                  <span className="text-[12px] font-semibold text-[#2f80ed]">
+                  <span className="text-[10px] font-semibold text-cyan-600 dark:text-cyan-300">
                     {passwordStrengthLabel}
                   </span>
                 </div>
 
-                <div className="h-2.5 overflow-hidden rounded-full bg-[#dfeaf8]">
+                <div className="h-2 overflow-hidden rounded-full bg-[#dfeaf8] dark:bg-white/10">
                   <div
                     className="h-full rounded-full bg-[linear-gradient(90deg,#22c1f1,#3b82f6,#8b5cf6)] transition-all duration-300"
                     style={{ width: `${passwordStrength}%` }}
@@ -909,18 +903,18 @@ const Index: React.FC = () => {
           <button
             type="submit"
             disabled={resetSubmitting}
-            className="inline-flex h-[48px] min-w-[220px] items-center justify-center rounded-2xl bg-[linear-gradient(90deg,#2f80ed_0%,#56ccf2_100%)] px-6 text-[14px] font-bold uppercase tracking-[0.08em] text-white shadow-[0_18px_34px_rgba(47,128,237,0.28)] transition-all duration-300 hover:translate-y-[-1px] hover:shadow-[0_20px_36px_rgba(47,128,237,0.34)] disabled:cursor-not-allowed disabled:opacity-70"
+            className={primaryButtonClass}
           >
             {resetSubmitting ? "Sending OTP..." : "Confirm Reset"}
           </button>
         </div>
 
-        <div className="text-center text-[14px] text-slate-600">
+        <div className="text-center text-[14px] text-slate-600 dark:text-white/65">
           Back to{" "}
           <button
             type="button"
             onClick={() => setViewMode("login")}
-            className="font-extrabold text-slate-900 transition hover:text-[#1b9ef0]"
+            className="font-extrabold text-slate-900 dark:text-white transition hover:text-cyan-600 dark:hover:text-cyan-300"
           >
             Sign In
           </button>
@@ -930,24 +924,24 @@ const Index: React.FC = () => {
   );
 
   const renderSignUpForm = () => (
-    <div className="w-full max-w-[520px]">
+    <div className="w-full max-w-110">
       <div className="text-center">
         {renderSectionBadge("Provisioning")}
-        <h2 className={`${panelTitleClass} text-[48px] tracking-[-0.04em]`}>
+        <h2 className={`${panelTitleClass} text-[29px] tracking-[-0.04em]`}>
           Create Account
         </h2>
-        <p className="mt-3 text-[14px] text-slate-500">
+        <p className="mt-1.5 text-[11px] text-slate-500 dark:text-white/55">
           Register access for the network scan dashboard
         </p>
       </div>
 
-      <form onSubmit={handleSignUpSubmit} className="mt-6">
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <form onSubmit={handleSignUpSubmit} className="mt-5">
+        <div className="space-y-3.5">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className={labelBase}>First Name</label>
               <div className="relative">
-                <FiUser className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[16px] text-[#4d86c7]" />
+                <FiUser className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-cyan-600 dark:text-cyan-300" />
                 <input
                   type="text"
                   name="first_name"
@@ -962,7 +956,7 @@ const Index: React.FC = () => {
             <div>
               <label className={labelBase}>Last Name</label>
               <div className="relative">
-                <FiUser className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[16px] text-[#4d86c7]" />
+                <FiUser className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-cyan-600 dark:text-cyan-300" />
                 <input
                   type="text"
                   name="last_name"
@@ -978,7 +972,7 @@ const Index: React.FC = () => {
           <div>
             <label className={labelBase}>Email Address</label>
             <div className="relative">
-              <FiMail className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[16px] text-[#4d86c7]" />
+              <FiMail className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-cyan-600 dark:text-cyan-300" />
               <input
                 type="email"
                 name="email"
@@ -991,11 +985,11 @@ const Index: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className={labelBase}>Phone Number</label>
               <div className="relative">
-                <FiPhone className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[16px] text-[#4d86c7]" />
+                <FiPhone className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-cyan-600 dark:text-cyan-300" />
                 <input
                   type="text"
                   name="phone_number"
@@ -1010,7 +1004,7 @@ const Index: React.FC = () => {
             <div>
               <label className={labelBase}>Password</label>
               <div className="relative">
-                <FiLock className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[16px] text-[#4d86c7]" />
+                <FiLock className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-cyan-600 dark:text-cyan-300" />
                 <input
                   type={showSignUpPassword ? "text" : "password"}
                   name="password"
@@ -1022,24 +1016,24 @@ const Index: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowSignUpPassword((prev) => !prev)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[#6d7890] transition hover:text-[#1b9ef0]"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-white/40 transition hover:text-cyan-600 dark:hover:text-cyan-300"
                   aria-label={showSignUpPassword ? "Hide password" : "Show password"}
                 >
                   {showSignUpPassword ? (
-                    <FiEyeOff className="text-[16px]" />
+                    <FiEyeOff className="text-[14px]" />
                   ) : (
-                    <FiEye className="text-[16px]" />
+                    <FiEye className="text-[14px]" />
                   )}
                 </button>
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className={labelBase}>Location</label>
               <div className="relative">
-                <FiMapPin className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[16px] text-[#4d86c7]" />
+                <FiMapPin className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-cyan-600 dark:text-cyan-300" />
                 <input
                   type="text"
                   name="location"
@@ -1054,7 +1048,7 @@ const Index: React.FC = () => {
             <div>
               <label className={labelBase}>Position</label>
               <div className="relative">
-                <FiBriefcase className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[16px] text-[#4d86c7]" />
+                <FiBriefcase className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-cyan-600 dark:text-cyan-300" />
                 <input
                   type="text"
                   name="position"
@@ -1066,47 +1060,24 @@ const Index: React.FC = () => {
               </div>
             </div>
           </div>
-
-          <div className="rounded-[24px] border border-[#d7ecff] bg-[linear-gradient(180deg,#fafdff_0%,#f3f9ff_100%)] p-4 shadow-[0_12px_30px_rgba(47,128,237,0.08)]">
-            <div className="flex flex-wrap items-center gap-2">
-              {[
-                { icon: <FiServer />, text: "Switch" },
-                { icon: <FiCpu />, text: "Router" },
-                { icon: <FiWifi />, text: "Wireless" },
-              ].map((item) => (
-                <div
-                  key={item.text}
-                  className="inline-flex items-center gap-2 rounded-full border border-[#cbe7ff] bg-white px-3 py-2 text-[12px] font-semibold text-[#2f80ed]"
-                >
-                  {item.icon}
-                  {item.text}
-                </div>
-              ))}
-            </div>
-
-            <p className="mt-3 text-[13px] leading-6 text-slate-500">
-              Create an operator account for monitoring infrastructure,
-              reviewing scan reports and managing network visibility.
-            </p>
-          </div>
         </div>
 
-        <div className="mt-7 flex justify-center">
+        <div className="mt-5 flex justify-center">
           <button
             type="submit"
             disabled={signupSubmitting}
-            className="inline-flex h-[50px] min-w-[190px] items-center justify-center rounded-2xl bg-[linear-gradient(90deg,#2f80ed_0%,#56ccf2_100%)] px-6 text-[14px] font-bold uppercase tracking-[0.08em] text-white shadow-[0_18px_34px_rgba(47,128,237,0.28)] transition-all duration-300 hover:translate-y-[-1px] hover:shadow-[0_20px_36px_rgba(47,128,237,0.34)] disabled:cursor-not-allowed disabled:opacity-70"
+            className={primaryButtonClass}
           >
             {signupSubmitting ? "Sending OTP..." : "Sign Up"}
           </button>
         </div>
 
-        <div className="mt-6 text-center text-[14px] text-slate-600">
+        <div className="mt-4 text-center text-[12px] text-slate-600 dark:text-white/65">
           Have an account?{" "}
           <button
             type="button"
             onClick={() => setViewMode("login")}
-            className="font-extrabold text-slate-900 transition hover:text-[#1b9ef0]"
+            className="font-extrabold text-slate-900 dark:text-white transition hover:text-cyan-600 dark:hover:text-cyan-300"
           >
             Sign In
           </button>
@@ -1115,31 +1086,107 @@ const Index: React.FC = () => {
     </div>
   );
 
-  return (
-    <>
-      <div className="relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,#f7fbff_0%,#eef5fb_100%)] px-4 py-6 sm:px-6 lg:px-8">
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute left-[-140px] top-[-120px] h-[340px] w-[340px] rounded-full bg-cyan-200/30 blur-3xl" />
-          <div className="absolute right-[-100px] top-[90px] h-[320px] w-[320px] rounded-full bg-sky-200/30 blur-3xl" />
-          <div className="absolute bottom-[-160px] left-[12%] h-[360px] w-[360px] rounded-full bg-blue-200/25 blur-3xl" />
+  const renderMobileHero = () => (
+    <div className="xl:hidden">
+      <div className="relative h-41.25 overflow-hidden rounded-t-[22px]">
+        <img
+          src={travelPhoto}
+          alt="Network Security"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,17,31,0.42)_0%,rgba(7,17,31,0.74)_100%)]" />
+        <div className="absolute inset-0 opacity-15">
+          <div className="h-full w-full bg-[linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-size-[16px_16px]" />
         </div>
 
-        <div className="mx-auto flex min-h-[calc(100vh-3rem)] max-w-[1440px] items-center justify-center">
-          <div className="relative w-full overflow-hidden rounded-[34px] border border-white/70 bg-white/80 shadow-[0_24px_90px_rgba(15,23,42,0.10)] backdrop-blur-xl">
+        <div className="absolute inset-x-0 top-0 px-3 pt-3 text-white">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <p className="text-[9px] font-semibold uppercase tracking-[0.20em] text-cyan-300">
+                Network Security Scan
+              </p>
+              <h1 className="mt-1 text-[22px] font-extrabold leading-none">
+                Argus Sentinel
+              </h1>
+              <p className="mt-2 text-[10px] text-white/80">
+                Secure access for scan operations and reporting.
+              </p>
+            </div>
+
+            <div className="rounded-full border border-white/10 bg-white/10 px-2.5 py-1.5 backdrop-blur-md">
+              <div className="flex items-center gap-1 text-[9px] font-semibold text-white/90">
+                <FiShield className="text-cyan-300" />
+                Protected
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="absolute bottom-3 left-3 right-3">
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { icon: <FiServer className="text-[13px]" />, label: "Switch" },
+              { icon: <FaNetworkWired className="text-[13px]" />, label: "Router" },
+              { icon: <FiWifi className="text-[13px]" />, label: "Wireless" },
+            ].map((item) => (
+              <div
+                key={item.label}
+                className="rounded-xl border border-white/10 bg-slate-900/40 px-2 py-1.5 backdrop-blur-md"
+              >
+                <div className="flex items-center gap-2 text-white">
+                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-white/10 text-cyan-300">
+                    {item.icon}
+                  </span>
+                  <span className="truncate text-[10px] font-medium">
+                    {item.label}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <>
+      {renderMotionStyles()}
+
+      <div className="relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,#f8fbff_0%,#eef4fa_48%,#e9f1fb_100%)] dark:bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.14),transparent_24%),radial-gradient(circle_at_bottom_left,rgba(139,92,246,0.12),transparent_26%),linear-gradient(180deg,#020617_0%,#081120_45%,#0b1220_100%)] px-2 py-2.5 sm:px-3 lg:px-4">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute left-35 top-30 h-55 w-55 rounded-full bg-cyan-300/25 dark:bg-cyan-500/12 blur-3xl" />
+          <div className="absolute -right-25 top-22.5 h-45 w-45 rounded-full bg-sky-300/20 dark:bg-violet-500/12 blur-3xl" />
+          <div className="absolute -bottom-40 left-[12%] h-45 w-55 rounded-full bg-blue-200/25 dark:bg-blue-500/10 blur-3xl" />
+          <div className="absolute bottom-[4%] right-[8%] h-40 w-40 rounded-full bg-violet-200/20 dark:bg-cyan-400/10 blur-3xl" />
+          <div className="absolute inset-0 opacity-[0.25] dark:opacity-[0.08]">
+            <div className="h-full w-full bg-[linear-gradient(rgba(59,130,246,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.08)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-size-[28px_28px]" />
+          </div>
+        </div>
+
+        <div className="mx-auto flex min-h-[calc(100vh-1rem)] max-w-280 items-center justify-center">
+          <div className="relative w-full overflow-hidden rounded-[22px] border border-white/80 dark:border-white/10 bg-white/80 dark:bg-white/4 shadow-[0_18px_54px_rgba(15,23,42,0.08)] dark:shadow-[0_24px_80px_rgba(2,8,23,0.55)] backdrop-blur-xl">
+            {renderMobileHero()}
+
             <div className="hidden xl:block">
-              <div className="relative h-[760px] overflow-hidden">
-                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.55)_0%,rgba(255,255,255,0.76)_100%)]" />
+              <div className="relative h-140 overflow-hidden">
+                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.38)_0%,rgba(255,255,255,0.58)_100%)] dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.02)_0%,rgba(255,255,255,0.01)_100%)]" />
 
                 <div
-                  className="absolute left-0 top-0 h-full w-1/2"
+                  className="absolute top-0 left-0 h-full"
                   style={{
-                    transition: `transform ${ANIM_DURATION} ${ANIM_EASE}`,
-                    transform: isSignUp ? "translateX(0%)" : "translateX(0%)",
+                    width: isSignUp ? "56%" : "50%",
+                    right: isSignUp ? "0" : "auto",
+                    left: isSignUp ? "0" : "0",
+                    transform: isSignUp ? "translateX(0%)" : "translateX(100%)",
+                    transition: `transform ${ANIM_DURATION} ${ANIM_EASE}, width ${ANIM_DURATION} ${ANIM_EASE}`,
+                    willChange: "transform, width",
+                    zIndex: isSignUp ? 10 : 20,
                   }}
                 >
-                  <div className="relative h-full overflow-hidden bg-[linear-gradient(180deg,#fbfeff_0%,#f3f9ff_100%)] px-10 py-10">
-                    <div className="absolute inset-0 opacity-40">
-                      <div className="h-full w-full bg-[linear-gradient(rgba(47,128,237,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(47,128,237,0.06)_1px,transparent_1px)] bg-[size:26px_26px]" />
+                  <div className="relative h-full overflow-hidden bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_60%,#f6f3ff_100%)] dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.88)_0%,rgba(8,15,31,0.96)_58%,rgba(12,18,32,1)_100%)] px-6 py-5">
+                    <div className="absolute inset-0 opacity-30 dark:opacity-10">
+                      <div className="h-full w-full bg-[linear-gradient(rgba(47,128,237,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(47,128,237,0.05)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-size-[20px_20px]" />
                     </div>
 
                     {renderTopWire()}
@@ -1153,9 +1200,9 @@ const Index: React.FC = () => {
                           transform:
                             viewMode === "login"
                               ? "translateX(0px) scale(1)"
-                              : "translateX(28px) scale(0.975)",
+                              : "translateX(22px) scale(0.96)",
                           filter:
-                            viewMode === "login" ? "blur(0px)" : "blur(4px)",
+                            viewMode === "login" ? "blur(0px)" : "blur(3px)",
                           transition: `opacity 620ms ${ANIM_EASE}, transform 760ms ${ANIM_EASE}, filter 760ms ${ANIM_EASE}`,
                           pointerEvents: viewMode === "login" ? "auto" : "none",
                         }}
@@ -1170,9 +1217,9 @@ const Index: React.FC = () => {
                           transform:
                             viewMode === "forgot"
                               ? "translateX(0px) scale(1)"
-                              : "translateX(28px) scale(0.975)",
+                              : "translateX(22px) scale(0.96)",
                           filter:
-                            viewMode === "forgot" ? "blur(0px)" : "blur(4px)",
+                            viewMode === "forgot" ? "blur(0px)" : "blur(3px)",
                           transition: `opacity 620ms ${ANIM_EASE}, transform 760ms ${ANIM_EASE}, filter 760ms ${ANIM_EASE}`,
                           pointerEvents: viewMode === "forgot" ? "auto" : "none",
                         }}
@@ -1187,11 +1234,11 @@ const Index: React.FC = () => {
                           transform:
                             viewMode === "reset"
                               ? "translateX(0px) scale(1)"
-                              : "translateX(24px) scale(0.975)",
+                              : "translateX(18px) scale(0.96)",
                           filter:
-                            viewMode === "reset" ? "blur(0px)" : "blur(4px)",
+                            viewMode === "reset" ? "blur(0px)" : "blur(3px)",
                           transition: `opacity 620ms ${ANIM_EASE}, transform 760ms ${ANIM_EASE}, filter 760ms ${ANIM_EASE}`,
-                          transitionDelay: viewMode === "reset" ? "100ms" : "0ms",
+                          transitionDelay: viewMode === "reset" ? "80ms" : "0ms",
                           pointerEvents: viewMode === "reset" ? "auto" : "none",
                         }}
                       >
@@ -1205,11 +1252,11 @@ const Index: React.FC = () => {
                           transform:
                             viewMode === "signup"
                               ? "translateX(0px) scale(1)"
-                              : "translateX(-28px) scale(0.975)",
+                              : "translateX(-28px) scale(0.95)",
                           filter:
-                            viewMode === "signup" ? "blur(0px)" : "blur(4px)",
+                            viewMode === "signup" ? "blur(0px)" : "blur(3px)",
                           transition: `opacity 620ms ${ANIM_EASE}, transform 760ms ${ANIM_EASE}, filter 760ms ${ANIM_EASE}`,
-                          transitionDelay: viewMode === "signup" ? "120ms" : "0ms",
+                          transitionDelay: viewMode === "signup" ? "100ms" : "0ms",
                           pointerEvents: viewMode === "signup" ? "auto" : "none",
                         }}
                       >
@@ -1220,25 +1267,31 @@ const Index: React.FC = () => {
                 </div>
 
                 <div
-                  className="absolute top-0 h-full w-1/2 overflow-hidden"
+                  className="absolute top-0 bottom-0 left-0 overflow-hidden"
                   style={{
-                    transform: isSignUp ? "translateX(0%)" : "translateX(100%)",
-                    transition: `transform ${ANIM_DURATION} ${ANIM_EASE}`,
-                    willChange: "transform",
-                    zIndex: 20,
-                    right: isSignUp ? "0" : "auto",
-                    left: isSignUp ? "auto" : "0",
+                    width: isSignUp ? "44%" : "50%",
+                    transform: isSignUp
+                      ? "translateX(127.2727%) translateY(0px)"
+                      : "translateX(0%) translateY(0px)",
+                    transition: `transform ${ANIM_DURATION} ${ANIM_EASE}, width ${ANIM_DURATION} ${ANIM_EASE}, box-shadow ${ANIM_DURATION} ${ANIM_EASE}`,
+                    willChange: "transform, width",
+                    zIndex: isSignUp ? 30 : 10,
                   }}
                 >
                   <div
                     style={{
-                      transform: isSignUp ? "scale(1.03)" : "scale(1)",
+                      transform: isSignUp
+                        ? "scale(1.04) rotate(0.35deg)"
+                        : "scale(1) rotate(0deg)",
                       filter: isSignUp
-                        ? "saturate(1.03) brightness(1.01)"
+                        ? "saturate(1.1) brightness(1.05)"
                         : "saturate(1) brightness(1)",
-                      transition: `transform ${ANIM_DURATION} ${ANIM_EASE}, filter ${ANIM_DURATION} ${ANIM_EASE}`,
+                      boxShadow: isSignUp
+                        ? "0 24px 60px rgba(14,165,233,0.18)"
+                        : "0 12px 34px rgba(15,23,42,0.12)",
+                      transition: `transform ${ANIM_DURATION} ${ANIM_EASE}, filter ${ANIM_DURATION} ${ANIM_EASE}, box-shadow ${ANIM_DURATION} ${ANIM_EASE}`,
                     }}
-                    className="h-full shadow-[0_8px_28px_rgba(15,23,42,0.12)]"
+                    className="h-full"
                   >
                     {renderPhotoPanel()}
                   </div>
@@ -1246,127 +1299,12 @@ const Index: React.FC = () => {
               </div>
             </div>
 
-            <div className="xl:hidden">
-              <div className="relative h-[250px] overflow-hidden">
-                <img
-                  src={travelPhoto}
-                  alt="Network Security"
-                  className="absolute inset-0 h-full w-full object-cover"
-                />
-                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(4,12,24,0.56)_0%,rgba(4,12,24,0.60)_100%)]" />
-                <div className="absolute inset-0 opacity-20">
-                  <div className="h-full w-full bg-[linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-[size:24px_24px]" />
-                </div>
-
-                <div className="absolute inset-x-0 top-0 px-5 pt-5 text-white">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-cyan-200/90">
-                        Network Scan Console
-                      </p>
-                      <h1 className="mt-2 text-[28px] font-extrabold leading-none">
-                        Argus Sentinel
-                      </h1>
-                    </div>
-
-                    <div className="rounded-2xl border border-white/15 bg-white/10 px-3 py-2 backdrop-blur-md">
-                      <FiShield className="text-[16px] text-cyan-300" />
-                    </div>
-                  </div>
-
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {[
-                      { icon: <FiServer />, label: "Switch" },
-                      { icon: <FiCpu />, label: "Router" },
-                      { icon: <FiWifi />, label: "Wireless" },
-                    ].map((item) => (
-                      <div
-                        key={item.label}
-                        className="flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[11px] text-white/90 backdrop-blur-md"
-                      >
-                        <span className="text-cyan-300">{item.icon}</span>
-                        {item.label}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="relative overflow-hidden bg-[linear-gradient(180deg,#fbfeff_0%,#f3f9ff_100%)] px-4 pb-6 pt-6 sm:px-6">
-                <div className="absolute inset-0 opacity-40">
-                  <div className="h-full w-full bg-[linear-gradient(rgba(47,128,237,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(47,128,237,0.06)_1px,transparent_1px)] bg-[size:24px_24px]" />
-                </div>
-
-                {renderTopWire()}
-                {renderDeviceDecoration()}
-
-                <div className="mx-auto relative min-h-[560px] w-full max-w-[560px]">
-                  <div
-                    className="absolute inset-0"
-                    style={{
-                      opacity: viewMode === "login" ? 1 : 0,
-                      transform:
-                        viewMode === "login"
-                          ? "translateX(0px) scale(1)"
-                          : "translateX(18px) scale(0.975)",
-                      filter: viewMode === "login" ? "blur(0px)" : "blur(3px)",
-                      transition: `opacity 600ms ${ANIM_EASE}, transform 760ms ${ANIM_EASE}, filter 760ms ${ANIM_EASE}`,
-                      pointerEvents: viewMode === "login" ? "auto" : "none",
-                    }}
-                  >
-                    {renderLoginForm()}
-                  </div>
-
-                  <div
-                    className="absolute inset-0"
-                    style={{
-                      opacity: viewMode === "forgot" ? 1 : 0,
-                      transform:
-                        viewMode === "forgot"
-                          ? "translateX(0px) scale(1)"
-                          : "translateX(18px) scale(0.975)",
-                      filter: viewMode === "forgot" ? "blur(0px)" : "blur(3px)",
-                      transition: `opacity 600ms ${ANIM_EASE}, transform 760ms ${ANIM_EASE}, filter 760ms ${ANIM_EASE}`,
-                      pointerEvents: viewMode === "forgot" ? "auto" : "none",
-                    }}
-                  >
-                    {renderForgotForm()}
-                  </div>
-
-                  <div
-                    className="absolute inset-0"
-                    style={{
-                      opacity: viewMode === "reset" ? 1 : 0,
-                      transform:
-                        viewMode === "reset"
-                          ? "translateX(0px) scale(1)"
-                          : "translateX(18px) scale(0.975)",
-                      filter: viewMode === "reset" ? "blur(0px)" : "blur(3px)",
-                      transition: `opacity 600ms ${ANIM_EASE}, transform 760ms ${ANIM_EASE}, filter 760ms ${ANIM_EASE}`,
-                      transitionDelay: viewMode === "reset" ? "100ms" : "0ms",
-                      pointerEvents: viewMode === "reset" ? "auto" : "none",
-                    }}
-                  >
-                    {renderResetForm()}
-                  </div>
-
-                  <div
-                    className="absolute inset-0"
-                    style={{
-                      opacity: viewMode === "signup" ? 1 : 0,
-                      transform:
-                        viewMode === "signup"
-                          ? "translateX(0px) scale(1)"
-                          : "translateX(-18px) scale(0.975)",
-                      filter: viewMode === "signup" ? "blur(0px)" : "blur(3px)",
-                      transition: `opacity 600ms ${ANIM_EASE}, transform 760ms ${ANIM_EASE}, filter 760ms ${ANIM_EASE}`,
-                      transitionDelay: viewMode === "signup" ? "120ms" : "0ms",
-                      pointerEvents: viewMode === "signup" ? "auto" : "none",
-                    }}
-                  >
-                    {renderSignUpForm()}
-                  </div>
-                </div>
+            <div className="xl:hidden px-3 pb-4 pt-4 sm:px-5">
+              <div className="rounded-[20px] border border-slate-200/80 dark:border-white/10 bg-white/85 dark:bg-white/3 p-4 sm:p-5 shadow-sm dark:shadow-none">
+                {viewMode === "login" && renderLoginForm()}
+                {viewMode === "forgot" && renderForgotForm()}
+                {viewMode === "reset" && renderResetForm()}
+                {viewMode === "signup" && renderSignUpForm()}
               </div>
             </div>
           </div>
@@ -1375,16 +1313,16 @@ const Index: React.FC = () => {
 
       <ModalOTPSignUp
         open={otpOpen}
-        signupData={pendingSignupData}
         onClose={() => setOtpOpen(false)}
+        signupData={pendingSignupData}
         onVerified={handleVerified}
       />
 
       <ModalOTP
         open={openResetOTPModal}
+        onClose={() => setOpenResetOTPModal(false)}
         email={verifiedResetEmail}
         newPassword={newPassword}
-        onClose={() => setOpenResetOTPModal(false)}
         onVerified={handleResetVerified}
       />
     </>

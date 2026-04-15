@@ -17,7 +17,7 @@ type MonthlyRiskRow = {
   month: string;
   monthNo: number;
   vulnerabilityCount: number;
-  riskScore: number;
+  avgRiskScore: number;
 };
 
 type ReportVulnerabilityMonthResponse = {
@@ -62,16 +62,89 @@ const formatCount = (value?: number) => {
   return value.toLocaleString("en-US");
 };
 
+// จัดระดับสีใหม่ให้เหมาะกับคะแนนเต็ม 10
+// 0 = no data
+// 0.01 - <4 = low  -> green
+// 4 - <7    = medium -> yellow
+// 7 - <9    = high -> orange
+// 9 - 10    = critical -> red
+const getRiskLevel = (score: number) => {
+  if (score >= 9) return "critical";
+  if (score >= 7) return "high";
+  if (score >= 4) return "medium";
+  if (score > 0) return "low";
+  return "none";
+};
+
 const getBarColor = (score: number) => {
-  if (score >= 9) return "#dc2626";
-  if (score >= 8) return "#ea580c";
-  if (score >= 7) return "#f59e0b";
-  if (score >= 6) return "#eab308";
-  if (score >= 5) return "#84cc16";
-  if (score >= 4) return "#22c55e";
-  if (score >= 3) return "#14b8a6";
-  if (score > 0) return "#0ea5e9";
-  return "#cbd5e1";
+  const level = getRiskLevel(score);
+
+  switch (level) {
+    case "critical":
+      return "#dc2626"; // red
+    case "high":
+      return "#f97316"; // orange
+    case "medium":
+      return "#eab308"; // yellow
+    case "low":
+      return "#22c55e"; // green
+    default:
+      return "#cbd5e1"; // slate
+  }
+};
+
+const getCardClasses = (score: number) => {
+  const level = getRiskLevel(score);
+
+  switch (level) {
+    case "critical":
+      return {
+        wrapper: "border-red-200 bg-red-50",
+        icon: "border-red-200 text-red-700",
+        label: "text-red-700",
+      };
+    case "high":
+      return {
+        wrapper: "border-orange-200 bg-orange-50",
+        icon: "border-orange-200 text-orange-700",
+        label: "text-orange-700",
+      };
+    case "medium":
+      return {
+        wrapper: "border-yellow-200 bg-yellow-50",
+        icon: "border-yellow-200 text-yellow-700",
+        label: "text-yellow-700",
+      };
+    case "low":
+      return {
+        wrapper: "border-green-200 bg-green-50",
+        icon: "border-green-200 text-green-700",
+        label: "text-green-700",
+      };
+    default:
+      return {
+        wrapper: "border-slate-200 bg-slate-50",
+        icon: "border-slate-200 text-slate-700",
+        label: "text-slate-500",
+      };
+  }
+};
+
+const getTextRiskColor = (score: number) => {
+  const level = getRiskLevel(score);
+
+  switch (level) {
+    case "critical":
+      return "text-red-700";
+    case "high":
+      return "text-orange-700";
+    case "medium":
+      return "text-yellow-700";
+    case "low":
+      return "text-green-700";
+    default:
+      return "text-slate-700";
+  }
 };
 
 type CustomTooltipProps = {
@@ -89,7 +162,7 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload }) => {
   if (!row) return null;
 
   return (
-    <div className="min-w-52 rounded-md border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
+    <div className="min-w-56 rounded-md border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
       <p className="text-[12px] font-semibold text-slate-900">
         {row.month} {currentYear}
       </p>
@@ -103,9 +176,11 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload }) => {
         </div>
 
         <div>
-          <span className="font-medium text-slate-700">Risk Score:</span>{" "}
-          <span className="font-semibold text-slate-900">
-            {formatRiskScore(row.riskScore)}
+          <span className="font-medium text-slate-700">AVG Risk Score:</span>{" "}
+          <span
+            className={`font-semibold ${getTextRiskColor(row.avgRiskScore)}`}
+          >
+            {formatRiskScore(row.avgRiskScore)}
           </span>
         </div>
       </div>
@@ -113,8 +188,15 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload }) => {
   );
 };
 
-const RiskScoreLabel: React.FC<any> = (props) => {
-  const { x, y, width, value } = props;
+type RiskScoreLabelProps = {
+  x?: number;
+  y?: number;
+  width?: number;
+  value?: number;
+};
+
+const RiskScoreLabel: React.FC<RiskScoreLabelProps> = (props) => {
+  const { x = 0, y = 0, width = 0, value } = props;
 
   if (typeof value !== "number" || Number.isNaN(value)) return null;
 
@@ -185,7 +267,8 @@ const normalizeMonthlyData = (
     const monthNo = Number(item.month_no);
     if (!Number.isFinite(monthNo) || monthNo < 1 || monthNo > 12) return;
 
-    const current = monthMap.get(monthNo)!;
+    const current = monthMap.get(monthNo);
+    if (!current) return;
 
     const vulnerability =
       typeof item.vulnerability === "number" && !Number.isNaN(item.vulnerability)
@@ -212,26 +295,28 @@ const normalizeMonthlyData = (
       month: item.month,
       monthNo: item.monthNo,
       vulnerabilityCount: item.vulnerabilityCount,
-      riskScore:
+      avgRiskScore:
         item.riskScoreCount > 0
           ? Number((item.totalRiskScore / item.riskScoreCount).toFixed(2))
           : 0,
     }));
 };
 
-const countUniqueTaskIDs = (
+const countUniqueAssets = (
   apiData: ReportVulnerabilityMonthResponse[]
 ): number => {
-  const uniqueTaskIDs = new Set<string>();
+  const uniqueAssets = new Set<string>();
 
   apiData.forEach((item) => {
-    const normalized = String(item.task_id || "").trim();
-    if (normalized !== "") {
-      uniqueTaskIDs.add(normalized);
+    const taskID = String(item.task_id || "").trim();
+    const ip = String(item.ip || "").trim();
+
+    if (taskID !== "" || ip !== "") {
+      uniqueAssets.add(`${taskID}__${ip}`);
     }
   });
 
-  return uniqueTaskIDs.size;
+  return uniqueAssets.size;
 };
 
 const Section6MonthlyRiskReport: React.FC<Section6MonthlyRiskReportProps> = ({
@@ -256,13 +341,9 @@ const Section6MonthlyRiskReport: React.FC<Section6MonthlyRiskReportProps> = ({
         setLoading(true);
         onReady?.(false);
 
-        // เรียก service แบบเดิมก่อน
-        // ต่อให้ backend ยังไม่รองรับ selectedTaskIDs
-        // เดี๋ยว frontend จะ filter เองอีกชั้น
         const result = await ListDataForReportVulnerabilityMonth();
 
         if (!alive) return;
-
         setApiData(Array.isArray(result) ? result : []);
       } catch (error) {
         console.error("Failed to load monthly vulnerability report:", error);
@@ -291,24 +372,37 @@ const Section6MonthlyRiskReport: React.FC<Section6MonthlyRiskReportProps> = ({
   }, [filteredApiData]);
 
   const totalDevice = useMemo(() => {
-    return countUniqueTaskIDs(filteredApiData);
+    return countUniqueAssets(filteredApiData);
   }, [filteredApiData]);
 
   const summary = useMemo(() => {
-    const highest = chartData.length
-      ? Math.max(...chartData.map((item) => item.riskScore))
-      : 0;
-
     const totalVulnerabilities = chartData.reduce(
       (sum, item) => sum + item.vulnerabilityCount,
       0
     );
 
+    const nonZeroRiskMonths = chartData.filter((item) => item.avgRiskScore > 0);
+
+    if (!nonZeroRiskMonths.length) {
+      return {
+        highestAvgRiskScore: 0,
+        highestAvgRiskMonth: "-",
+        totalVulnerabilities,
+      };
+    }
+
+    const highestRow = nonZeroRiskMonths.reduce((prev, current) =>
+      current.avgRiskScore > prev.avgRiskScore ? current : prev
+    );
+
     return {
-      highest,
+      highestAvgRiskScore: highestRow.avgRiskScore,
+      highestAvgRiskMonth: highestRow.month,
       totalVulnerabilities,
     };
   }, [chartData]);
+
+  const highestRiskCard = getCardClasses(summary.highestAvgRiskScore);
 
   return (
     <section
@@ -337,18 +431,31 @@ const Section6MonthlyRiskReport: React.FC<Section6MonthlyRiskReportProps> = ({
               </div>
             </div>
 
-            <div className="border border-rose-200 bg-rose-50 px-3 py-2.5">
+            <div className={`border px-3 py-2.5 ${highestRiskCard.wrapper}`}>
               <div className="flex items-start gap-2.5">
-                <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-rose-200 bg-white text-rose-700">
+                <span
+                  className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border bg-white ${highestRiskCard.icon}`}
+                >
                   <FiBarChart2 className="text-[13px]" />
                 </span>
 
                 <div>
-                  <p className="text-[8.5px] font-semibold uppercase tracking-[0.12em] text-rose-700">
-                    Highest Risk
+                  <p
+                    className={`text-[8.5px] font-semibold uppercase tracking-[0.12em] ${highestRiskCard.label}`}
+                  >
+                    Highest AVG Risk
                   </p>
-                  <p className="mt-0.5 text-[14px] font-semibold text-slate-900">
-                    {formatRiskScore(summary.highest)}
+                  <p
+                    className={`mt-0.5 text-[14px] font-semibold ${getTextRiskColor(
+                      summary.highestAvgRiskScore
+                    )}`}
+                  >
+                    {formatRiskScore(summary.highestAvgRiskScore)}
+                  </p>
+                  <p className="mt-0.5 text-[9px] font-medium text-slate-600">
+                    {summary.highestAvgRiskMonth === "-"
+                      ? "No month data"
+                      : `${summary.highestAvgRiskMonth} ${currentYear}`}
                   </p>
                 </div>
               </div>
@@ -376,7 +483,7 @@ const Section6MonthlyRiskReport: React.FC<Section6MonthlyRiskReportProps> = ({
         <div className="px-3 py-3">
           <div className="mb-2 flex items-center justify-between">
             <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-              Monthly Risk Score Trend
+              Monthly AVG Risk Score Trend
             </p>
             <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[9px] font-medium text-slate-600">
               Year {currentYear}
@@ -411,12 +518,12 @@ const Section6MonthlyRiskReport: React.FC<Section6MonthlyRiskReportProps> = ({
                   tickMargin={6}
                 />
                 <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="riskScore" radius={[4, 4, 0, 0]} maxBarSize={24}>
-                  <LabelList dataKey="riskScore" content={<RiskScoreLabel />} />
+                <Bar dataKey="avgRiskScore" radius={[4, 4, 0, 0]} maxBarSize={24}>
+                  <LabelList dataKey="avgRiskScore" content={<RiskScoreLabel />} />
                   {chartData.map((entry, index) => (
                     <Cell
-                      key={`cell-${index}`}
-                      fill={getBarColor(entry.riskScore)}
+                      key={`cell-${entry.monthNo}-${index}`}
+                      fill={getBarColor(entry.avgRiskScore)}
                     />
                   ))}
                 </Bar>
@@ -443,7 +550,7 @@ const Section6MonthlyRiskReport: React.FC<Section6MonthlyRiskReportProps> = ({
                     Vulnerabilities
                   </th>
                   <th className="border-b border-slate-200 px-3 py-2 text-center text-[9px] font-semibold uppercase tracking-widest text-slate-600">
-                    Risk Score
+                    AVG Risk Score
                   </th>
                 </tr>
               </thead>
@@ -460,8 +567,12 @@ const Section6MonthlyRiskReport: React.FC<Section6MonthlyRiskReportProps> = ({
                     <td className="border-b border-slate-200 px-3 py-2 text-center text-[10.5px] text-slate-700">
                       {loading ? "0" : formatCount(row.vulnerabilityCount)}
                     </td>
-                    <td className="border-b border-slate-200 px-3 py-2 text-center text-[10.5px] font-semibold text-slate-900">
-                      {loading ? "0.00" : formatRiskScore(row.riskScore)}
+                    <td
+                      className={`border-b border-slate-200 px-3 py-2 text-center text-[10.5px] font-semibold ${
+                        loading ? "text-slate-900" : getTextRiskColor(row.avgRiskScore)
+                      }`}
+                    >
+                      {loading ? "0.00" : formatRiskScore(row.avgRiskScore)}
                     </td>
                   </tr>
                 ))}
@@ -470,9 +581,8 @@ const Section6MonthlyRiskReport: React.FC<Section6MonthlyRiskReportProps> = ({
           </div>
 
           <p className="mt-2 text-[10px] leading-4.5 text-slate-500">
-            Note: This section presents the monthly risk score distribution for
-            the current year, together with the corresponding vulnerability
-            counts observed in each month.
+            Note: This section presents the monthly AVG risk score together
+            with the corresponding vulnerability counts observed in each month.
           </p>
         </div>
       </div>

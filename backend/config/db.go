@@ -89,6 +89,8 @@ func SetupDatabase() {
 		&entity.AppUser{},
 		&entity.AppStatusNotify{},
 		&entity.AppHistoryNotify{},
+		&entity.AppDiagram{},
+		&entity.AppDiagramNode{},
 		&entity.AppGroup{},
 		&entity.AppLocation{},
 		&entity.AppGroupLocation{},
@@ -335,46 +337,6 @@ func SeedDatabase() {
 			}
 			fmt.Println("✅ Seeded AppNotification")
 		}
-	}
-
-	// =========================
-	// Seed AppLocation
-	// ถ้ามีข้อมูลแล้ว ข้ามทั้งตาราง
-	// =========================
-	if tableHasAnyRows(&entity.AppLocation{}) {
-		fmt.Println("⏭️ Skip seeding AppLocation: table already has data")
-	} else {
-		locations := []entity.AppLocation{
-			{
-				Location:   "ห้อง Network Center",
-				Building:   "อาคารเทคโนโลยีสารสนเทศ",
-				Floor:      1,
-				Latitude:   13.7563,
-				Longtitude: 100.5018,
-				TargetID:   "1",
-			},
-			{
-				Location:   "โถงทางเดินชั้น 2",
-				Building:   "อาคาร A",
-				Floor:      2,
-				Latitude:   13.7367,
-				Longtitude: 100.5231,
-				TargetID:   "2",
-			},
-			{
-				Location:   "ห้อง Server ชั้น 3",
-				Building:   "อาคาร Data Center",
-				Floor:      3,
-				Latitude:   13.7649,
-				Longtitude: 100.5383,
-				TargetID:   "3",
-			},
-		}
-
-		if err := db.Create(&locations).Error; err != nil {
-			log.Fatalf("❌ failed to seed AppLocation: %v", err)
-		}
-		fmt.Println("✅ Seeded AppLocation")
 	}
 
 	// =========================

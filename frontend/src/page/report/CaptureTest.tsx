@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import ReportHeader from "./ReportHeader";
 import ReportKPI from "./ReportKPI";
 import SeveritySnapshot from "./SeveritySnapshot";
@@ -8,7 +8,11 @@ import ComparisonReport from "./comparision";
 import Section6MonthlyRiskReport from "./monthlyRiskReport";
 import Conclusion from "./conclusion";
 import ReportFooter from "./ReportFooter";
-import { reportInfo } from "../../interface/mock";
+import {
+  ListCriticalForReport,
+  ListDeviceRiskForReport,
+} from "../../services/report";
+import type { DeviceRiskForReportDTO } from "../../services/report";
 
 const sectionLabelClass =
   "text-[8.5px] font-semibold uppercase tracking-normal text-slate-500";
@@ -17,76 +21,594 @@ const sectionHeadingClass =
 const sectionDescClass =
   "mt-1.5 max-w-full text-[10.5px] leading-[1.6] text-slate-600";
 
-const pageShellClass = "flex h-[1550px] flex-col bg-white";
+const PAGE_WIDTH = 1120; //@ts-ignore
+const PAGE_HEIGHT = 1620;
 
-const readTaskIDsFromQuery = (): string[] => {
-  if (typeof window === "undefined") return [];
+const pageShellClass = "flex h-[1620px] flex-col bg-white text-slate-900";
+
+const noop = () => {};
+
+const HIGHLIGHTS_PAGE_SIZE = 2;
+const DEVICE_PAGE_SIZE = 18;
+
+type CaptureTestProps = {
+  refreshToken?: number;
+  selectedTaskIDs?: string[];
+};
+
+type CriticalForReportDTO = {
+  task_id: string;
+  task_name: string;
+  ip: string;
+  vulnerability_id: string;
+  vulnerability_name: string;
+  detected_date: string;
+  severity: number;
+  cve_list: string;
+  summary: string;
+  impact: string;
+  affected: string;
+  insight: string;
+  solution: string;
+  solution_type: string;
+};
+
+type PageDescriptor =
+  | {
+      key: string;
+      type: "overview";
+      title: string;
+    }
+  | {
+      key: string;
+      type: "highlights";
+      title: string;
+      pageIndex: number;
+      pageSize: number;
+      pageNumberInSection: number;
+      totalPagesInSection: number;
+    }
+  | {
+      key: string;
+      type: "device-risk";
+      title: string;
+      pageIndex: number;
+      pageSize: number;
+      pageNumberInSection: number;
+      totalPagesInSection: number;
+    }
+  | {
+      key: string;
+      type: "comparison-monthly";
+      title: string;
+    }
+  | {
+      key: string;
+      type: "conclusion";
+      title: string;
+    };
+
+const readTaskIDsFromQuery = (): { mode: "all" | "filtered"; ids: string[] } => {
+  if (typeof window === "undefined") {
+    return { mode: "all", ids: [] };
+  }
 
   const searchParams = new URLSearchParams(window.location.search);
   const raw = (searchParams.get("task_id") || "").trim();
 
   if (!raw || raw.toUpperCase() === "ALL") {
-    return [];
+    return { mode: "all", ids: [] };
   }
 
-  return raw
+  const ids = raw
     .split(",")
     .map((item) => item.trim())
     .filter((item) => item !== "");
+
+  if (ids.length === 0) {
+    return { mode: "all", ids: [] };
+  }
+
+  return { mode: "filtered", ids };
 };
 
-const CaptureTest: React.FC = () => {
+const normalizeTaskIDs = (ids?: string[]): string[] => {
+  if (!Array.isArray(ids)) return [];
+
+  return ids
+    .map((id) => String(id).trim())
+    .filter((id) => id !== "");
+};
+
+const CaptureTest: React.FC<CaptureTestProps> = ({
+  refreshToken = 0,
+  selectedTaskIDs = [],
+}) => {
+  const [prefetchedHighlights, setPrefetchedHighlights] = useState<
+    CriticalForReportDTO[]
+  >([]);
+  const [prefetchedDevices, setPrefetchedDevices] = useState<
+    DeviceRiskForReportDTO[]
+  >([]);
+  const [prefetchLoading, setPrefetchLoading] = useState<boolean>(true);
+
+  const [queryTaskIDs, setQueryTaskIDs] = useState<string[]>([]);
+  const [taskMode, setTaskMode] = useState<"all" | "filtered">("all");
+
   const [kpiReady, setKpiReady] = useState(false);
   const [severityReady, setSeverityReady] = useState(false);
-  const [executiveReady, setExecutiveReady] = useState(false);
-  const [topDeviceReady, setTopDeviceReady] = useState(false);
   const [comparisonReady, setComparisonReady] = useState(false);
-  const [section6Ready, setSection6Ready] = useState(false);
+  const [monthlyReady, setMonthlyReady] = useState(false);
   const [conclusionReady, setConclusionReady] = useState(false);
-  const [headerRefreshToken, setHeaderRefreshToken] = useState(0);
-  const [queryTaskIDs, setQueryTaskIDs] = useState<string[]>([]);
+
+  const [domSettled, setDomSettled] = useState(false);
+  const settleTimerRef = useRef<number | null>(null);
+
+  const normalizedSelectedTaskIDs = useMemo(
+    () => normalizeTaskIDs(selectedTaskIDs),
+    [selectedTaskIDs]
+  );
 
   useEffect(() => {
-    setHeaderRefreshToken(Date.now());
-    setQueryTaskIDs(readTaskIDsFromQuery());
+    const parsed = readTaskIDsFromQuery();
+    setQueryTaskIDs(parsed.ids);
+    setTaskMode(parsed.mode);
   }, []);
+
+  const effectiveTaskMode = useMemo<"all" | "filtered">(() => {
+    if (normalizedSelectedTaskIDs.length > 0) {
+      return "filtered";
+    }
+    return taskMode;
+  }, [normalizedSelectedTaskIDs, taskMode]);
+
+  const effectiveTaskIDs = useMemo<string[]>(() => {
+    if (normalizedSelectedTaskIDs.length > 0) {
+      return normalizedSelectedTaskIDs;
+    }
+    return queryTaskIDs;
+  }, [normalizedSelectedTaskIDs, queryTaskIDs]);
+
+  useEffect(() => {
+    setKpiReady(false);
+    setSeverityReady(false);
+    setComparisonReady(false);
+    setMonthlyReady(false);
+    setConclusionReady(false);
+    setDomSettled(false);
+  }, [refreshToken, effectiveTaskMode, effectiveTaskIDs]);
+
+  useEffect(() => {
+    let alive = true;
+
+    const preloadData = async () => {
+      try {
+        setPrefetchLoading(true);
+
+        const [criticalResult, deviceResult] = await Promise.all([
+          effectiveTaskMode === "all"
+            ? ListCriticalForReport(undefined, 9999)
+            : ListCriticalForReport(effectiveTaskIDs, 9999),
+          ListDeviceRiskForReport(),
+        ]);
+
+        if (!alive) return;
+
+        const criticalRows = Array.isArray(criticalResult)
+          ? (criticalResult as CriticalForReportDTO[])
+          : [];
+
+        const allDevices = Array.isArray(deviceResult)
+          ? (deviceResult as DeviceRiskForReportDTO[])
+          : [];
+
+        const selectedTaskSet = new Set(
+          effectiveTaskIDs.map((id) => String(id).trim())
+        );
+
+        const filteredDevices =
+          effectiveTaskMode === "all" || effectiveTaskIDs.length === 0
+            ? allDevices
+            : allDevices.filter((item) =>
+                selectedTaskSet.has(String(item.task_id).trim())
+              );
+
+        setPrefetchedHighlights(criticalRows);
+        setPrefetchedDevices(filteredDevices);
+      } catch (error) {
+        console.error("CaptureTest preload data error:", error);
+        if (!alive) return;
+        setPrefetchedHighlights([]);
+        setPrefetchedDevices([]);
+      } finally {
+        if (!alive) return;
+        setPrefetchLoading(false);
+      }
+    };
+
+    preloadData();
+
+    return () => {
+      alive = false;
+    };
+  }, [effectiveTaskMode, effectiveTaskIDs, refreshToken]);
+
+  const highlightPages = useMemo(() => {
+    const total = prefetchedHighlights.length;
+    if (total <= 0) return 1;
+    return Math.max(1, Math.ceil(total / HIGHLIGHTS_PAGE_SIZE));
+  }, [prefetchedHighlights]);
+
+  const devicePages = useMemo(() => {
+    const total = prefetchedDevices.length;
+    if (total <= 0) return 1;
+    return Math.max(1, Math.ceil(total / DEVICE_PAGE_SIZE));
+  }, [prefetchedDevices]);
+
+  const pageDescriptors = useMemo<PageDescriptor[]>(() => {
+    const pages: PageDescriptor[] = [
+      {
+        key: "overview",
+        type: "overview",
+        title: "Total Severity & Severity Distribution",
+      },
+    ];
+
+    for (let i = 0; i < highlightPages; i += 1) {
+      pages.push({
+        key: `highlights-${i}`,
+        type: "highlights",
+        title:
+          highlightPages > 1
+            ? `Critical Highlights (${i + 1}/${highlightPages})`
+            : "Critical Highlights",
+        pageIndex: i,
+        pageSize: HIGHLIGHTS_PAGE_SIZE,
+        pageNumberInSection: i + 1,
+        totalPagesInSection: highlightPages,
+      });
+    }
+
+    for (let i = 0; i < devicePages; i += 1) {
+      pages.push({
+        key: `device-risk-${i}`,
+        type: "device-risk",
+        title:
+          devicePages > 1
+            ? `Top Device Risk Report (${i + 1}/${devicePages})`
+            : "Top Device Risk Report",
+        pageIndex: i,
+        pageSize: DEVICE_PAGE_SIZE,
+        pageNumberInSection: i + 1,
+        totalPagesInSection: devicePages,
+      });
+    }
+
+    pages.push({
+      key: "comparison-monthly",
+      type: "comparison-monthly",
+      title: "Risk Comparison & Monthly Overview",
+    });
+
+    pages.push({
+      key: "conclusion",
+      type: "conclusion",
+      title: "Final Conclusion & Executive Summary",
+    });
+
+    return pages;
+  }, [highlightPages, devicePages]);
+
+  const totalPages = pageDescriptors.length;
+
+  useEffect(() => {
+    setDomSettled(false);
+
+    if (settleTimerRef.current) {
+      window.clearTimeout(settleTimerRef.current);
+    }
+
+    if (prefetchLoading) {
+      return;
+    }
+
+    settleTimerRef.current = window.setTimeout(() => {
+      setDomSettled(true);
+    }, 500);
+
+    return () => {
+      if (settleTimerRef.current) {
+        window.clearTimeout(settleTimerRef.current);
+      }
+    };
+  }, [prefetchLoading, totalPages, highlightPages, devicePages, prefetchedHighlights, prefetchedDevices]);
 
   const reportReady = useMemo(() => {
     return (
+      !prefetchLoading &&
+      domSettled &&
       kpiReady &&
       severityReady &&
-      executiveReady &&
-      topDeviceReady &&
       comparisonReady &&
-      section6Ready &&
+      monthlyReady &&
       conclusionReady
     );
   }, [
+    prefetchLoading,
+    domSettled,
     kpiReady,
     severityReady,
-    executiveReady,
-    topDeviceReady,
     comparisonReady,
-    section6Ready,
+    monthlyReady,
     conclusionReady,
   ]);
+
+  const renderFooter = (pageNumber: number) => (
+    <div className="mt-auto px-8 pt-8 pb-12">
+      <ReportFooter page={`Page ${pageNumber} of ${totalPages}`} />
+    </div>
+  );
+
+  const renderSimpleLoader = () => (
+    <div className="flex h-full min-h-101.25 w-full items-center justify-center bg-white">
+      <div className="text-[12px] text-slate-500">Preparing report data...</div>
+    </div>
+  );
+
+  const renderPageByDescriptor = (
+    descriptor: PageDescriptor,
+    pageNumber: number
+  ) => {
+    if (prefetchLoading) {
+      return renderSimpleLoader();
+    }
+
+    switch (descriptor.type) {
+      case "overview":
+        return (
+          <div className={pageShellClass}>
+            <div className="w-full bg-white">
+              <ReportHeader refreshToken={refreshToken} />
+            </div>
+
+            <main className="flex-1 px-8 pt-6 pb-8">
+              <section className="mt-0">
+                <div className="mb-3 border-b border-slate-200 pb-2.5">
+                  <p className={sectionLabelClass}>Section 1</p>
+                  <h2 className={sectionHeadingClass}>Total Severity</h2>
+                  <p className={sectionDescClass}>
+                    สรุปภาพรวมผลการสแกนล่าสุด โดยแสดงตัวชี้วัดสำคัญของการประเมิน
+                    พร้อมจำนวนช่องโหว่ในแต่ละระดับความรุนแรง
+                  </p>
+                </div>
+
+                <ReportKPI
+                  onReady={setKpiReady}
+                  selectedTaskIDs={effectiveTaskIDs}
+                />
+              </section>
+
+              <section className="mt-5">
+                <div className="mb-3 border-b border-slate-200 pb-2.5">
+                  <p className={sectionLabelClass}>Section 2</p>
+                  <h2 className={sectionHeadingClass}>
+                    Severity Distribution Overview
+                  </h2>
+                  <p className={sectionDescClass}>
+                    แสดงภาพรวมการกระจายของช่องโหว่ตามระดับความรุนแรงในรูปแบบย่อ
+                    เพื่อให้เหมาะกับการจัดวางในรายงาน PDF แบบหน้าเดียว
+                  </p>
+                </div>
+
+                <SeveritySnapshot
+                  onReady={setSeverityReady}
+                  selectedTaskIDs={effectiveTaskIDs}
+                />
+              </section>
+            </main>
+
+            {renderFooter(pageNumber)}
+          </div>
+        );
+
+      case "highlights":
+        return (
+          <div className={pageShellClass}>
+            <main className="flex-1 px-8 pt-7 pb-8">
+              <section className="mt-0">
+                <div className="mb-3 border-b border-slate-200 pb-2.5">
+                  <div className="flex items-end justify-between gap-4">
+                    <div>
+                      <p className={sectionLabelClass}>Section 3</p>
+                      <h2 className={sectionHeadingClass}>Critical Highlights</h2>
+                      <p className={sectionDescClass}>
+                        สรุปประเด็นสำคัญของช่องโหว่ระดับวิกฤตที่ควรได้รับการติดตามก่อน
+                        โดยแสดงชื่อช่องโหว่ , ผลกระทบ , รายละเอียด
+                        และข้อมูลเชิงลึกรวมถึงวิธีการแก้ไขเพื่อใช้ประกอบการตัดสินใจ
+                      </p>
+                    </div>
+
+                    {descriptor.totalPagesInSection > 1 ? (
+                      <div className="shrink-0 text-[10px] font-medium text-slate-500">
+                        Page {descriptor.pageNumberInSection} of{" "}
+                        {descriptor.totalPagesInSection}
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+
+                <ExecutiveHighlights
+                  onReady={noop}
+                  selectedTaskIDs={effectiveTaskIDs}
+                  pageIndex={descriptor.pageIndex}
+                  pageSize={descriptor.pageSize}
+                  showOuterHeader={true}
+                  onDataCountChange={noop}
+                  prefetchedRows={prefetchedHighlights}
+                  prefetchedLoading={prefetchLoading}
+                />
+              </section>
+            </main>
+
+            {renderFooter(pageNumber)}
+          </div>
+        );
+
+      case "device-risk":
+        return (
+          <div className={pageShellClass}>
+            <main className="flex-1 px-8 pt-7 pb-8">
+              <section className="mt-0">
+                <div className="mb-3 border-b border-slate-200 pb-2.5">
+                  <div className="flex items-end justify-between gap-4">
+                    <div>
+                      <p className={sectionLabelClass}>Section 4</p>
+                      <h2 className={sectionHeadingClass}>
+                        Top Device Risk Report
+                      </h2>
+                      <p className={sectionDescClass}>
+                        แสดงรายการอุปกรณ์ที่มีความเสี่ยงสูงจากผลการประเมินล่าสุด
+                        โดยเรียงลำดับตามค่า Risk Score
+                        เพื่อช่วยให้ติดตามอุปกรณ์ที่ควรได้รับการจัดการก่อน
+                        ในรูปแบบที่เหมาะกับการอ่านบนรายงาน PDF
+                      </p>
+                    </div>
+
+                    {descriptor.totalPagesInSection > 1 ? (
+                      <div className="shrink-0 text-[10px] font-medium text-slate-500">
+                        Page {descriptor.pageNumberInSection} of{" "}
+                        {descriptor.totalPagesInSection}
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+
+                <TopDeviceRiskReport
+                  onReady={noop}
+                  selectedTaskIDs={effectiveTaskIDs}
+                  pageIndex={descriptor.pageIndex}
+                  pageSize={descriptor.pageSize}
+                  showOuterHeader={true}
+                  onDataCountChange={noop}
+                  prefetchedDevices={prefetchedDevices}
+                  prefetchedLoading={prefetchLoading}
+                />
+              </section>
+            </main>
+
+            {renderFooter(pageNumber)}
+          </div>
+        );
+
+      case "comparison-monthly":
+        return (
+          <div className={pageShellClass}>
+            <main className="flex-1 px-8 pt-7 pb-8">
+              <section
+                className="mt-0"
+                style={{
+                  breakInside: "avoid-page",
+                  pageBreakInside: "avoid",
+                }}
+              >
+                <div className="mb-3 border-b border-slate-200 pb-2.5">
+                  <p className={sectionLabelClass}>Section 5</p>
+                  <h2 className={sectionHeadingClass}>
+                    Top 10 Risk Score Comparison
+                  </h2>
+                  <p className={sectionDescClass}>
+                    เปรียบเทียบค่า Latest Risk และ Previous Risk ของแต่ละเป้าหมาย
+                    เพื่อให้เห็นแนวโน้มความเสี่ยงล่าสุด
+                  </p>
+                </div>
+
+                <ComparisonReport
+                  onReady={setComparisonReady}
+                  selectedTaskIDs={effectiveTaskIDs}
+                />
+              </section>
+
+              <section
+                className="mt-5"
+                style={{
+                  breakInside: "avoid-page",
+                  pageBreakInside: "avoid",
+                }}
+              >
+                <div className="mb-3 border-b border-slate-200 pb-2.5">
+                  <p className={sectionLabelClass}>Section 6</p>
+                  <h2 className={sectionHeadingClass}>
+                    Monthly Risk Score Overview
+                  </h2>
+                  <p className={sectionDescClass}>
+                    This section presents mock monthly vulnerability counts and
+                    risk scores for the current year, together with a compact
+                    summary table for report review.
+                  </p>
+                </div>
+
+                <Section6MonthlyRiskReport
+                  onReady={setMonthlyReady}
+                  selectedTaskIDs={effectiveTaskIDs}
+                />
+              </section>
+            </main>
+
+            {renderFooter(pageNumber)}
+          </div>
+        );
+
+      case "conclusion":
+        return (
+          <div className={pageShellClass}>
+            <main className="flex-1 px-8 pt-7 pb-8">
+              <section
+                className="mt-0"
+                style={{
+                  breakInside: "avoid-page",
+                  pageBreakInside: "avoid",
+                }}
+              >
+                <div className="mb-3 border-b border-slate-200 pb-2.5">
+                  <p className={sectionLabelClass}>Section 7</p>
+                  <h2 className={sectionHeadingClass}>
+                    Final Conclusion and Executive Summary
+                  </h2>
+                  <p className={sectionDescClass}>
+                    สรุปภาพรวมของรายงานทั้งหมดในหน้าเดียว
+                    โดยรวบรวมตัวเลขสำคัญ การกระจายความรุนแรง
+                    ความเสี่ยงของเป้าหมายหลัก และข้อสังเกตสำหรับการตัดสินใจเชิงปฏิบัติการ
+                  </p>
+                </div>
+
+                <Conclusion
+                  onReady={setConclusionReady}
+                  selectedTaskIDs={effectiveTaskIDs}
+                />
+              </section>
+            </main>
+
+            {renderFooter(pageNumber)}
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
 
   return (
     <div
       id="capture-root"
       className="w-full bg-white text-slate-900"
       data-report-ready={reportReady ? "true" : "false"}
-      data-kpi-ready={kpiReady ? "true" : "false"}
-      data-severity-ready={severityReady ? "true" : "false"}
-      data-executive-ready={executiveReady ? "true" : "false"}
-      data-top-device-ready={topDeviceReady ? "true" : "false"}
-      data-comparison-ready={comparisonReady ? "true" : "false"}
-      data-section6-ready={section6Ready ? "true" : "false"}
-      data-conclusion-ready={conclusionReady ? "true" : "false"}
-      data-task-id-mode={queryTaskIDs.length > 0 ? "filtered" : "all"}
-      data-task-ids={queryTaskIDs.join(",")}
+      data-prefetch-loading={prefetchLoading ? "true" : "false"}
+      data-dom-settled={domSettled ? "true" : "false"}
+      data-task-id-mode={effectiveTaskIDs.length > 0 ? "filtered" : "all"}
+      data-task-ids={effectiveTaskIDs.join(",")}
+      data-total-pages={String(totalPages)}
       style={{
-        width: "1120px",
+        width: `${PAGE_WIDTH}px`,
         margin: "0 auto",
         position: "relative",
       }}
@@ -104,183 +626,27 @@ const CaptureTest: React.FC = () => {
         />
       )}
 
-      {/* PAGE 1 */}
-      <div className={pageShellClass}>
-        <div className="w-full bg-white">
-          <ReportHeader
-            refreshToken={headerRefreshToken}
-            info={{
-              ...reportInfo,
-              companyName: "Get on Technology",
-            }}
-          />
-        </div>
+      {pageDescriptors.map((descriptor, index) => {
+        const pageNumber = index + 1;
 
-        <main className="flex-1 px-7 pt-5 pb-2">
-          <section className="mt-0">
-            <div className="mb-3 border-b border-slate-200 pb-2.5">
-              <p className={sectionLabelClass}>Section 1</p>
-
-              <h2 className={sectionHeadingClass}>Total Severity</h2>
-
-              <p className={sectionDescClass}>
-                สรุปภาพรวมผลการสแกนล่าสุด โดยแสดงตัวชี้วัดสำคัญของการประเมิน
-                พร้อมจำนวนช่องโหว่ในแต่ละระดับความรุนแรง
-              </p>
-            </div>
-
-            <ReportKPI onReady={setKpiReady} />
-          </section>
-
-          <section className="mt-4">
-            <div className="mb-3 border-b border-slate-200 pb-2.5">
-              <p className={sectionLabelClass}>Section 2</p>
-
-              <h2 className={sectionHeadingClass}>
-                Severity Distribution Overview
-              </h2>
-
-              <p className={sectionDescClass}>
-                แสดงภาพรวมการกระจายของช่องโหว่ตามระดับความรุนแรงในรูปแบบย่อ
-                เพื่อให้เหมาะกับการจัดวางในรายงาน PDF แบบหน้าเดียว
-              </p>
-            </div>
-
-            <SeveritySnapshot onReady={setSeverityReady} />
-          </section>
-        </main>
-
-        <div className="mt-auto px-7 pb-0">
-          <ReportFooter page="Page 1 of 4" />
-        </div>
-      </div>
-
-      {/* PAGE 2 */}
-      <div
-        className={pageShellClass}
-        style={{
-          pageBreakBefore: "always",
-          breakBefore: "page",
-        }}
-      >
-        <main className="flex-1 px-7 pt-6 pb-2">
-          <section className="mt-0">
-            <div className="mb-3 border-b border-slate-200 pb-2.5">
-              <p className={sectionLabelClass}>Section 3</p>
-
-              <h2 className={sectionHeadingClass}>Criticals Highlights</h2>
-
-              <p className={sectionDescClass}>
-                สรุปประเด็นสำคัญของช่องโหว่ระดับวิกฤตที่ควรได้รับการติดตามก่อน
-                โดยแสดงชื่อช่องโหว่ , ผลกระทบ , รายละเอียด
-                และข้อมูลเชิงลึกรวมถึงวิธีการแก้ไขเพื่อใช้ประกอบการตัดสินใจ
-              </p>
-            </div>
-
-            <ExecutiveHighlights onReady={setExecutiveReady} />
-          </section>
-
-          <section
-            className="mt-4"
-            style={{
-              breakInside: "avoid-page",
-              pageBreakInside: "avoid",
-            }}
+        return (
+          <div
+            key={descriptor.key}
+            data-page-number={pageNumber}
+            data-page-type={descriptor.type}
+            style={
+              index === 0
+                ? undefined
+                : {
+                    pageBreakBefore: "always",
+                    breakBefore: "page",
+                  }
+            }
           >
-            <div className="mb-3 border-b border-slate-200 pb-2.5">
-              <p className={sectionLabelClass}>Section 4</p>
-
-              <h2 className={sectionHeadingClass}>Top Device Risk</h2>
-
-              <p className={sectionDescClass}>
-                สรุปอุปกรณ์ที่มีค่าความเสี่ยงสูงสุดจากผลการสแกนล่าสุด
-                เพื่อช่วยให้เห็นลำดับความสำคัญในการติดตามและจัดการความเสี่ยง
-              </p>
-            </div>
-
-            <TopDeviceRiskReport onReady={setTopDeviceReady} />
-          </section>
-        </main>
-
-        <div className="mt-auto px-7 pb-0">
-          <ReportFooter page="Page 2 of 4" />
-        </div>
-      </div>
-
-      {/* PAGE 3 */}
-      <div
-        className={pageShellClass}
-        style={{
-          pageBreakBefore: "always",
-          breakBefore: "page",
-        }}
-      >
-        <main className="flex-1 px-7 pt-6 pb-2">
-          <section className="mt-0">
-            <div className="mb-3 border-b border-slate-200 pb-2.5">
-              <p className={sectionLabelClass}>Section 5</p>
-
-              <h2 className={sectionHeadingClass}>Comparison Overview</h2>
-
-              <p className={sectionDescClass}>
-                แสดงภาพรวมเปรียบเทียบแนวโน้มความเสี่ยงของอุปกรณ์
-                เพื่อช่วยในการวิเคราะห์สถานะโดยรวมของระบบ
-              </p>
-            </div>
-
-            <ComparisonReport onReady={setComparisonReady} />
-          </section>
-
-          <section className="mt-4">
-            <div className="mb-3 border-b border-slate-200 pb-2.5">
-              <p className={sectionLabelClass}>Section 6</p>
-
-              <h2 className={sectionHeadingClass}>Monthly Risk Report</h2>
-
-              <p className={sectionDescClass}>
-                แสดงแนวโน้มความเสี่ยงรายเดือน เพื่อช่วยติดตามภาพรวมของความเสี่ยง
-                และการเปลี่ยนแปลงในแต่ละช่วงเวลา
-              </p>
-            </div>
-
-            <Section6MonthlyRiskReport onReady={setSection6Ready} />
-          </section>
-        </main>
-
-        <div className="mt-auto px-7 pb-0">
-          <ReportFooter page="Page 3 of 4" />
-        </div>
-      </div>
-
-      {/* PAGE 4 */}
-      <div
-        className={pageShellClass}
-        style={{
-          pageBreakBefore: "always",
-          breakBefore: "page",
-        }}
-      >
-        <main className="flex-1 px-7 pt-6 pb-2">
-          <section className="mt-0">
-            <div className="mb-3 border-b border-slate-200 pb-2.5">
-              <p className={sectionLabelClass}>Section 7</p>
-
-              <h2 className={sectionHeadingClass}>Conclusion</h2>
-
-              <p className={sectionDescClass}>
-                สรุปผลการประเมินภาพรวม พร้อมข้อเสนอแนะเชิงปฏิบัติสำหรับการติดตาม
-                และลดความเสี่ยงด้านความปลอดภัยของระบบ
-              </p>
-            </div>
-
-            <Conclusion onReady={setConclusionReady} />
-          </section>
-        </main>
-
-        <div className="mt-auto px-7 pb-0">
-          <ReportFooter page="Page 4 of 4" />
-        </div>
-      </div>
+            {renderPageByDescriptor(descriptor, pageNumber)}
+          </div>
+        );
+      })}
     </div>
   );
 };

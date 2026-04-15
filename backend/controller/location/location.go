@@ -12,52 +12,48 @@ import (
 )
 
 type CreateLocationInput struct {
-	Location   string  `json:"location" binding:"required"`
-	Building   string  `json:"building" binding:"required"`
-	Floor      uint    `json:"floor" binding:"required"`
-	Latitude   float64 `json:"latitude" binding:"required"`
-	Longtitude float64 `json:"longtitude" binding:"required"`
-	TargetID   string  `json:"target_id" binding:"required"`
+	Location         string  `json:"location" binding:"required"`
+	Building         string  `json:"building" binding:"required"`
+	Floor            uint    `json:"floor" binding:"required"`
+	Latitude         float64 `json:"latitude" binding:"required"`
+	Longtitude       float64 `json:"longtitude" binding:"required"`
+	AppDiagramNodeID uint    `json:"app_diagram_node_id" binding:"required"`
 }
 
 type UpdateLocationInput struct {
-	Location   *string  `json:"location"`
-	Building   *string  `json:"building"`
-	Floor      *uint    `json:"floor"`
-	Latitude   *float64 `json:"latitude"`
-	Longtitude *float64 `json:"longtitude"`
-	TargetID   *string  `json:"target_id"`
+	Location         *string  `json:"location"`
+	Building         *string  `json:"building"`
+	Floor            *uint    `json:"floor"`
+	Latitude         *float64 `json:"latitude"`
+	Longtitude       *float64 `json:"longtitude"`
+	AppDiagramNodeID *uint    `json:"app_diagram_node_id"`
 }
 
-type TargetInfo struct {
-	TaskID   string `json:"task_id"`
-	Hostname string `json:"hostname"`
-	IP       string `json:"ip"`
+type AppDiagramNodeInfo struct {
+	ID          uint    `json:"id"`
+	DiagramID   uint    `json:"diagram_id"`
+	TaskID      string  `json:"task_id"`
+	Label       string  `json:"label"`
+	Description string  `json:"description"`
+	Icon        string  `json:"icon"`
+	X           float64 `json:"x"`
+	Y           float64 `json:"y"`
+	Width       float64 `json:"width"`
+	Height      float64 `json:"height"`
+	ZIndex      int     `json:"z_index"`
 }
 
 type LocationResponse struct {
-	ID         uint        `json:"id"`
-	Location   string      `json:"location"`
-	Building   string      `json:"building"`
-	Floor      uint        `json:"floor"`
-	Latitude   float64     `json:"latitude"`
-	Longtitude float64     `json:"longtitude"`
-	TargetID   string      `json:"target_id"`
-	Target     *TargetInfo `json:"target,omitempty"`
-	CreatedAt  interface{} `json:"created_at"`
-	UpdatedAt  interface{} `json:"updated_at"`
-}
-
-type locationListRow struct {
-	ID         uint    `json:"id"`
-	Location   string  `json:"location"`
-	Building   string  `json:"building"`
-	Floor      uint    `json:"floor"`
-	Latitude   float64 `json:"latitude"`
-	Longtitude float64 `json:"longtitude"`
-	TargetID   string  `json:"target_id"`
-	Hostname   string  `json:"hostname"`
-	IP         string  `json:"ip"`
+	ID               uint                 `json:"id"`
+	Location         string               `json:"location"`
+	Building         string               `json:"building"`
+	Floor            uint                 `json:"floor"`
+	Latitude         float64              `json:"latitude"`
+	Longtitude       float64              `json:"longtitude"`
+	AppDiagramNodeID uint                 `json:"app_diagram_node_id"`
+	AppDiagramNode   *AppDiagramNodeInfo  `json:"app_diagram_node,omitempty"`
+	CreatedAt        interface{}          `json:"created_at"`
+	UpdatedAt        interface{}          `json:"updated_at"`
 }
 
 func cleanString(value string) string {
@@ -71,47 +67,39 @@ func cleanOptionalString(value *string) string {
 	return strings.TrimSpace(*value)
 }
 
-func mapLocationResponse(loc entity.AppLocation) LocationResponse {
-	return LocationResponse{
-		ID:         loc.ID,
-		Location:   loc.Location,
-		Building:   loc.Building,
-		Floor:      loc.Floor,
-		Latitude:   loc.Latitude,
-		Longtitude: loc.Longtitude,
-		TargetID:   loc.TargetID,
-		Target: nil,
-		CreatedAt:  loc.CreatedAt,
-		UpdatedAt:  loc.UpdatedAt,
+func mapAppDiagramNodeInfo(node *entity.AppDiagramNode) *AppDiagramNodeInfo {
+	if node == nil || node.ID == 0 {
+		return nil
+	}
+
+	return &AppDiagramNodeInfo{
+		ID:          node.ID,
+		DiagramID:   node.DiagramID,
+		TaskID:      node.TaskID,
+		Label:       node.Label,
+		Description: node.Description,
+		Icon:        node.Icon,
+		X:           node.X,
+		Y:           node.Y,
+		Width:       node.Width,
+		Height:      node.Height,
+		ZIndex:      node.ZIndex,
 	}
 }
 
-func mapLocationRowResponse(row locationListRow, createdAt interface{}, updatedAt interface{}) LocationResponse {
-	resp := LocationResponse{
-		ID:         row.ID,
-		Location:   row.Location,
-		Building:   row.Building,
-		Floor:      row.Floor,
-		Latitude:   row.Latitude,
-		Longtitude: row.Longtitude,
-		TargetID:   row.TargetID,
-		CreatedAt:  createdAt,
-		UpdatedAt:  updatedAt,
+func mapLocationResponse(loc entity.AppLocation) LocationResponse {
+	return LocationResponse{
+		ID:               loc.ID,
+		Location:         loc.Location,
+		Building:         loc.Building,
+		Floor:            loc.Floor,
+		Latitude:         loc.Latitude,
+		Longtitude:       loc.Longtitude,
+		AppDiagramNodeID: loc.AppDiagramNodeID,
+		AppDiagramNode:   mapAppDiagramNodeInfo(loc.AppDiagramNode),
+		CreatedAt:        loc.CreatedAt,
+		UpdatedAt:        loc.UpdatedAt,
 	}
-
-	trimHostname := strings.TrimSpace(row.Hostname)
-	trimIP := strings.TrimSpace(row.IP)
-	trimTaskID := strings.TrimSpace(row.TargetID)
-
-	if trimTaskID != "" || trimHostname != "" || trimIP != "" {
-		resp.Target = &TargetInfo{
-			TaskID:   trimTaskID,
-			Hostname: trimHostname,
-			IP:       trimIP,
-		}
-	}
-
-	return resp
 }
 
 func CreateLocation(c *gin.Context) {
@@ -127,7 +115,6 @@ func CreateLocation(c *gin.Context) {
 
 	locationName := cleanString(input.Location)
 	buildingName := cleanString(input.Building)
-	targetID := cleanString(input.TargetID)
 
 	if locationName == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -143,20 +130,28 @@ func CreateLocation(c *gin.Context) {
 		return
 	}
 
-	if targetID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "target_id cannot be empty",
+	var node entity.AppDiagramNode
+	if err := db.First(&node, input.AppDiagramNodeID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "app_diagram_node_id not found",
+			})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
 		})
 		return
 	}
 
 	location := entity.AppLocation{
-		Location:   locationName,
-		Building:   buildingName,
-		Floor:      input.Floor,
-		Latitude:   input.Latitude,
-		Longtitude: input.Longtitude,
-		TargetID:   targetID,
+		Location:         locationName,
+		Building:         buildingName,
+		Floor:            input.Floor,
+		Latitude:         input.Latitude,
+		Longtitude:       input.Longtitude,
+		AppDiagramNodeID: input.AppDiagramNodeID,
 	}
 
 	if err := db.Create(&location).Error; err != nil {
@@ -166,7 +161,8 @@ func CreateLocation(c *gin.Context) {
 		return
 	}
 
-	if err := db.First(&location, location.ID).Error; err != nil {
+	var createdLocation entity.AppLocation
+	if err := db.Preload("AppDiagramNode").First(&createdLocation, location.ID).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "failed to reload created location",
 		})
@@ -175,98 +171,27 @@ func CreateLocation(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "create location success",
-		"data":    mapLocationResponse(location),
+		"data":    mapLocationResponse(createdLocation),
 	})
 }
 
 func ListLocation(c *gin.Context) {
 	db := config.DB()
 
-	query := `
-WITH
-LatestReportPerTask AS (
-  SELECT DISTINCT ON (rp.task)
-    rp.task AS task_id,
-    rp.id AS report_id,
-    rp.creation_time
-  FROM public.reports rp
-  WHERE rp.task IS NOT NULL
-  ORDER BY rp.task, rp.creation_time DESC, rp.id DESC
-),
-LatestTaskHosts AS (
-  SELECT DISTINCT
-    lrt.task_id::text AS task_id,
-    COALESCE(NULLIF(BTRIM(t.name), ''), '-') AS hostname,
-    COALESCE(NULLIF(BTRIM(r.host), ''), '') AS ip,
-    lrt.creation_time
-  FROM LatestReportPerTask lrt
-  JOIN public.results r
-    ON r.report = lrt.report_id
-  LEFT JOIN public.tasks t
-    ON t.id = lrt.task_id
-  WHERE r.host IS NOT NULL
-    AND BTRIM(r.host) <> ''
-)
-SELECT
-  al.id,
-  al.location,
-  al.building,
-  al.floor,
-  al.latitude,
-  al.longtitude,
-  al.target_id,
-  al.created_at,
-  al.updated_at,
-  COALESCE(lth.hostname, '') AS hostname,
-  COALESCE(lth.ip, '') AS ip
-FROM app_locations al
-LEFT JOIN LatestTaskHosts lth
-  ON BTRIM(lth.task_id) = BTRIM(al.target_id)
-WHERE al.deleted_at IS NULL
-ORDER BY al.id ASC;
-`
-
-	type locationListResult struct {
-		ID         uint    `json:"id"`
-		Location   string  `json:"location"`
-		Building   string  `json:"building"`
-		Floor      uint    `json:"floor"`
-		Latitude   float64 `json:"latitude"`
-		Longtitude float64 `json:"longtitude"`
-		TargetID   string  `json:"target_id"`
-		CreatedAt  string  `json:"created_at"`
-		UpdatedAt  string  `json:"updated_at"`
-		Hostname   string  `json:"hostname"`
-		IP         string  `json:"ip"`
-	}
-
-	rows := make([]locationListResult, 0)
-	if err := db.Raw(query).Scan(&rows).Error; err != nil {
+	var locations []entity.AppLocation
+	if err := db.
+		Preload("AppDiagramNode").
+		Order("id ASC").
+		Find(&locations).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":  "failed to list locations",
-			"detail": err.Error(),
+			"error": "failed to list locations",
 		})
 		return
 	}
 
-	response := make([]gin.H, 0, len(rows))
-	for _, row := range rows {
-		response = append(response, gin.H{
-			"id":          row.ID,
-			"location":    row.Location,
-			"building":    row.Building,
-			"floor":       row.Floor,
-			"latitude":    row.Latitude,
-			"longtitude":  row.Longtitude,
-			"target_id":   row.TargetID,
-			"created_at":  row.CreatedAt,
-			"updated_at":  row.UpdatedAt,
-			"target_info": gin.H{
-				"task_id":  row.TargetID,
-				"hostname": row.Hostname,
-				"ip":       row.IP,
-			},
-		})
+	response := make([]LocationResponse, 0, len(locations))
+	for _, loc := range locations {
+		response = append(response, mapLocationResponse(loc))
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -287,98 +212,25 @@ func ListLocationByID(c *gin.Context) {
 
 	db := config.DB()
 
-	query := `
-WITH
-LatestReportPerTask AS (
-  SELECT DISTINCT ON (rp.task)
-    rp.task AS task_id,
-    rp.id AS report_id,
-    rp.creation_time
-  FROM public.reports rp
-  WHERE rp.task IS NOT NULL
-  ORDER BY rp.task, rp.creation_time DESC, rp.id DESC
-),
-LatestTaskHosts AS (
-  SELECT DISTINCT
-    lrt.task_id::text AS task_id,
-    COALESCE(NULLIF(BTRIM(t.name), ''), '-') AS hostname,
-    COALESCE(NULLIF(BTRIM(r.host), ''), '') AS ip,
-    lrt.creation_time
-  FROM LatestReportPerTask lrt
-  JOIN public.results r
-    ON r.report = lrt.report_id
-  LEFT JOIN public.tasks t
-    ON t.id = lrt.task_id
-  WHERE r.host IS NOT NULL
-    AND BTRIM(r.host) <> ''
-)
-SELECT
-  al.id,
-  al.location,
-  al.building,
-  al.floor,
-  al.latitude,
-  al.longtitude,
-  al.target_id,
-  al.created_at,
-  al.updated_at,
-  COALESCE(lth.hostname, '') AS hostname,
-  COALESCE(lth.ip, '') AS ip
-FROM app_locations al
-LEFT JOIN LatestTaskHosts lth
-  ON BTRIM(lth.task_id) = BTRIM(al.target_id)
-WHERE al.deleted_at IS NULL
-  AND al.id = ?
-LIMIT 1;
-`
+	var location entity.AppLocation
+	if err := db.
+		Preload("AppDiagramNode").
+		First(&location, uint(lid)).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "location not found",
+			})
+			return
+		}
 
-	type locationByIDResult struct {
-		ID         uint    `json:"id"`
-		Location   string  `json:"location"`
-		Building   string  `json:"building"`
-		Floor      uint    `json:"floor"`
-		Latitude   float64 `json:"latitude"`
-		Longtitude float64 `json:"longtitude"`
-		TargetID   string  `json:"target_id"`
-		CreatedAt  string  `json:"created_at"`
-		UpdatedAt  string  `json:"updated_at"`
-		Hostname   string  `json:"hostname"`
-		IP         string  `json:"ip"`
-	}
-
-	var row locationByIDResult
-	if err := db.Raw(query, uint(lid)).Scan(&row).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":  "failed to get location by id",
-			"detail": err.Error(),
-		})
-		return
-	}
-
-	if row.ID == 0 {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": "location not found",
+			"error": "failed to get location by id",
 		})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"data": gin.H{
-			"id":         row.ID,
-			"location":   row.Location,
-			"building":   row.Building,
-			"floor":      row.Floor,
-			"latitude":   row.Latitude,
-			"longtitude": row.Longtitude,
-			"target_id":  row.TargetID,
-			"created_at": row.CreatedAt,
-			"updated_at": row.UpdatedAt,
-			"target_info": gin.H{
-				"task_id":  row.TargetID,
-				"hostname": row.Hostname,
-				"ip":       row.IP,
-			},
-		},
+		"data": mapLocationResponse(location),
 	})
 }
 
@@ -405,8 +257,15 @@ func UpdateLocationByID(c *gin.Context) {
 
 	var location entity.AppLocation
 	if err := db.First(&location, uint(lid)).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": "location not found",
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "location not found",
+			})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
 		})
 		return
 	}
@@ -447,15 +306,23 @@ func UpdateLocationByID(c *gin.Context) {
 		updates["longtitude"] = *input.Longtitude
 	}
 
-	if input.TargetID != nil {
-		newTargetID := cleanOptionalString(input.TargetID)
-		if newTargetID == "" {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": "target_id cannot be empty",
+	if input.AppDiagramNodeID != nil {
+		var node entity.AppDiagramNode
+		if err := db.First(&node, *input.AppDiagramNodeID).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": "app_diagram_node_id not found",
+				})
+				return
+			}
+
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": err.Error(),
 			})
 			return
 		}
-		updates["target_id"] = newTargetID
+
+		updates["app_diagram_node_id"] = *input.AppDiagramNodeID
 	}
 
 	if len(updates) == 0 {
@@ -465,19 +332,17 @@ func UpdateLocationByID(c *gin.Context) {
 		return
 	}
 
-	tx := db.Model(&entity.AppLocation{}).
+	if err := db.Model(&entity.AppLocation{}).
 		Where("id = ?", location.ID).
-		Updates(updates)
-
-	if tx.Error != nil {
+		Updates(updates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": tx.Error.Error(),
+			"error": err.Error(),
 		})
 		return
 	}
 
 	var updatedLocation entity.AppLocation
-	if err := db.First(&updatedLocation, location.ID).Error; err != nil {
+	if err := db.Preload("AppDiagramNode").First(&updatedLocation, location.ID).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "failed to reload updated location",
 		})

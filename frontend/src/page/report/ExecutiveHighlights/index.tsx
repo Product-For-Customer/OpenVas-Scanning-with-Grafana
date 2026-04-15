@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   FiAlertTriangle,
   FiClock,
-  FiCpu,
   FiFileText,
   FiShield,
   FiTool,
@@ -12,7 +11,7 @@ import { ListCriticalForReport } from "../../../services/report";
 
 type HighlightTone = "good" | "warning" | "critical" | "neutral";
 
-type CriticalForReportDTO = {
+export type CriticalForReportDTO = {
   task_id: string;
   task_name: string;
   ip: string;
@@ -50,6 +49,13 @@ type HighlightItem = {
 type ExecutiveHighlightsProps = {
   onReady?: (ready: boolean) => void;
   selectedTaskIDs?: string[];
+  pageIndex?: number;
+  pageSize?: number;
+  onDataCountChange?: (count: number) => void;
+  showOuterHeader?: boolean;
+  countOnly?: boolean;
+  prefetchedRows?: CriticalForReportDTO[];
+  prefetchedLoading?: boolean;
 };
 
 type SectionBlock = {
@@ -175,11 +181,20 @@ const normalizeTaskIDs = (ids?: string[]): string[] => {
 const ExecutiveHighlights: React.FC<ExecutiveHighlightsProps> = ({
   onReady,
   selectedTaskIDs = [],
+  pageIndex = 0,
+  pageSize = 2,
+  onDataCountChange,
+  showOuterHeader = true,
+  countOnly = false,
+  prefetchedRows,
+  prefetchedLoading = false,
 }) => {
   const [rows, setRows] = useState<CriticalForReportDTO[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [queryTaskIDs, setQueryTaskIDs] = useState<string[]>([]);
   const [taskMode, setTaskMode] = useState<"all" | "filtered">("all");
+
+  const hasPrefetchedRows = Array.isArray(prefetchedRows);
 
   const normalizedSelectedTaskIDs = useMemo(
     () => normalizeTaskIDs(selectedTaskIDs),
@@ -209,6 +224,16 @@ const ExecutiveHighlights: React.FC<ExecutiveHighlightsProps> = ({
   }, [normalizedSelectedTaskIDs, queryTaskIDs]);
 
   useEffect(() => {
+    if (!hasPrefetchedRows) return;
+
+    setRows(prefetchedRows ?? []);
+    setLoading(Boolean(prefetchedLoading));
+    onReady?.(!prefetchedLoading);
+  }, [hasPrefetchedRows, prefetchedRows, prefetchedLoading, onReady]);
+
+  useEffect(() => {
+    if (hasPrefetchedRows) return;
+
     let alive = true;
 
     onReady?.(false);
@@ -219,8 +244,8 @@ const ExecutiveHighlights: React.FC<ExecutiveHighlightsProps> = ({
 
         const response =
           effectiveTaskMode === "all"
-            ? await ListCriticalForReport(undefined, 50)
-            : await ListCriticalForReport(effectiveTaskIDs, 50);
+            ? await ListCriticalForReport(undefined, 9999)
+            : await ListCriticalForReport(effectiveTaskIDs, 9999);
 
         if (!alive) return;
 
@@ -246,7 +271,7 @@ const ExecutiveHighlights: React.FC<ExecutiveHighlightsProps> = ({
     return () => {
       alive = false;
     };
-  }, [onReady, effectiveTaskMode, effectiveTaskIDs]);
+  }, [onReady, effectiveTaskMode, effectiveTaskIDs, hasPrefetchedRows]);
 
   const items: HighlightItem[] = useMemo(() => {
     return [...rows]
@@ -275,33 +300,49 @@ const ExecutiveHighlights: React.FC<ExecutiveHighlightsProps> = ({
       });
   }, [rows]);
 
+  useEffect(() => {
+    onDataCountChange?.(items.length);
+  }, [items.length, onDataCountChange]);
+
+  const pagedItems = useMemo(() => {
+    const start = pageIndex * pageSize;
+    const end = start + pageSize;
+    return items.slice(start, end);
+  }, [items, pageIndex, pageSize]);
+
+  if (countOnly) {
+    return null;
+  }
+
   if (loading) {
     return (
       <section className="border border-slate-300 bg-white">
-        <div className="border-b border-slate-200 px-5 py-4">
-          <div className="flex items-end justify-between gap-4">
-            <div>
-              <p className="text-[8.5px] font-semibold uppercase tracking-normal text-slate-500">
-                Management Summary
-              </p>
-              <h3 className="mt-1 text-[15px] font-bold leading-[1.2] text-slate-900">
-                Key Critical Findings at a Glance
-              </h3>
-              <p className="mt-1 text-[10px] leading-[1.6] text-slate-600">
-                Highlighting the most critical vulnerabilities detected in the
-                latest scan, including business impact, affected scope, and
-                recommended remediation actions.
-              </p>
-            </div>
+        {showOuterHeader ? (
+          <div className="border-b border-slate-200 px-5 py-4">
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                <p className="text-[8.5px] font-semibold uppercase tracking-normal text-slate-500">
+                  Management Summary
+                </p>
+                <h3 className="mt-1 text-[15px] font-bold leading-[1.2] text-slate-900">
+                  Key Critical Findings at a Glance
+                </h3>
+                <p className="mt-1 text-[10px] leading-[1.6] text-slate-600">
+                  Highlighting the most critical vulnerabilities detected in the
+                  latest scan, including business impact, affected scope, and
+                  recommended remediation actions.
+                </p>
+              </div>
 
-            <div className="text-right">
-              <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-400 bg-amber-500 px-3.5 py-2 text-[10.5px] font-extrabold leading-none text-white shadow-sm">
-                <FiAlertTriangle className="text-[12px]" />
-                Remediate within 48 hours
-              </span>
+              <div className="text-right">
+                <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-400 bg-amber-500 px-3.5 py-2 text-[10.5px] font-extrabold leading-none text-white shadow-sm">
+                  <FiAlertTriangle className="text-[12px]" />
+                  Remediate within 48 hours
+                </span>
+              </div>
             </div>
           </div>
-        </div>
+        ) : null}
 
         <div className="px-5 py-5">
           <div className="space-y-3">
@@ -317,6 +358,43 @@ const ExecutiveHighlights: React.FC<ExecutiveHighlightsProps> = ({
   if (items.length === 0) {
     return (
       <section className="border border-slate-300 bg-white">
+        {showOuterHeader ? (
+          <div className="border-b border-slate-200 px-5 py-4">
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                <p className="text-[8.5px] font-semibold uppercase tracking-normal text-slate-500">
+                  Management Summary
+                </p>
+                <h3 className="mt-1 text-[15px] font-bold leading-[1.2] text-slate-900">
+                  Key Critical Findings at a Glance
+                </h3>
+                <p className="mt-1 text-[10px] leading-[1.6] text-slate-600">
+                  Highlighting the most critical vulnerabilities detected in the
+                  latest scan, including business impact, affected scope, and
+                  recommended remediation actions.
+                </p>
+              </div>
+
+              <div className="text-right">
+                <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-400 bg-amber-500 px-3.5 py-2 text-[10.5px] font-extrabold leading-none text-white shadow-sm">
+                  <FiAlertTriangle className="text-[12px]" />
+                  Remediate within 48 hours
+                </span>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        <div className="px-5 py-5">
+          <div className="text-[11px] text-slate-500">No Data</div>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="border border-slate-300 bg-white">
+      {showOuterHeader ? (
         <div className="border-b border-slate-200 px-5 py-4">
           <div className="flex items-end justify-between gap-4">
             <div>
@@ -341,43 +419,10 @@ const ExecutiveHighlights: React.FC<ExecutiveHighlightsProps> = ({
             </div>
           </div>
         </div>
-
-        <div className="px-5 py-5">
-          <div className="text-[11px] text-slate-500">No Data</div>
-        </div>
-      </section>
-    );
-  }
-
-  return (
-    <section className="border border-slate-300 bg-white">
-      <div className="border-b border-slate-200 px-5 py-4">
-        <div className="flex items-end justify-between gap-4">
-          <div>
-            <p className="text-[8.5px] font-semibold uppercase tracking-normal text-slate-500">
-              Management Summary
-            </p>
-            <h3 className="mt-1 text-[15px] font-bold leading-[1.2] text-slate-900">
-              Key Critical Findings at a Glance
-            </h3>
-            <p className="mt-1 text-[10px] leading-[1.6] text-slate-600">
-              Highlighting the most critical vulnerabilities detected in the
-              latest scan, including business impact, affected scope, and
-              recommended remediation actions.
-            </p>
-          </div>
-
-          <div className="text-right">
-            <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-400 bg-amber-500 px-3.5 py-2 text-[10.5px] font-extrabold leading-none text-white shadow-sm">
-              <FiAlertTriangle className="text-[12px]" />
-              Remediate within 48 hours
-            </span>
-          </div>
-        </div>
-      </div>
+      ) : null}
 
       <div className="divide-y divide-slate-200">
-        {items.map((item) => {
+        {pagedItems.map((item) => {
           const tone = item.tone || "critical";
 
           const sectionBlocks: SectionBlock[] = [];
@@ -389,7 +434,8 @@ const ExecutiveHighlights: React.FC<ExecutiveHighlightsProps> = ({
               content: item.summary,
               icon: <FiFileText className="text-[13px] text-slate-500" />,
               containerClassName: "border border-slate-200 bg-white px-4 py-3.5",
-              titleClassName: "text-[10.5px] font-semibold text-slate-900",
+              titleClassName:
+                "text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-700",
             });
           }
 
@@ -398,10 +444,10 @@ const ExecutiveHighlights: React.FC<ExecutiveHighlightsProps> = ({
               key: "insight",
               title: "Insight",
               content: item.insight,
-              icon: <FiShield className="text-[13px] text-slate-500" />,
-              containerClassName:
-                "border border-slate-200 bg-slate-50 px-4 py-3.5",
-              titleClassName: "text-[10.5px] font-semibold text-slate-900",
+              icon: <FiInfo className="text-[13px] text-slate-500" />,
+              containerClassName: "border border-slate-200 bg-slate-50 px-4 py-3.5",
+              titleClassName:
+                "text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-700",
             });
           }
 
@@ -411,9 +457,9 @@ const ExecutiveHighlights: React.FC<ExecutiveHighlightsProps> = ({
               title: "Impact",
               content: item.impact,
               icon: <FiAlertTriangle className="text-[13px] text-slate-500" />,
-              containerClassName:
-                "border border-slate-200 bg-slate-50 px-4 py-3.5",
-              titleClassName: "text-[10.5px] font-semibold text-slate-900",
+              containerClassName: "border border-rose-200 bg-rose-50 px-4 py-3.5",
+              titleClassName:
+                "text-[11px] font-semibold uppercase tracking-[0.12em] text-rose-700",
             });
           }
 
@@ -422,23 +468,25 @@ const ExecutiveHighlights: React.FC<ExecutiveHighlightsProps> = ({
               key: "affected",
               title: "Affected Scope",
               content: item.affected,
-              icon: <FiInfo className="text-[13px] text-slate-500" />,
+              icon: <FiShield className="text-[13px] text-slate-500" />,
               containerClassName: "border border-slate-200 bg-white px-4 py-3.5",
-              titleClassName: "text-[10.5px] font-semibold text-slate-900",
+              titleClassName:
+                "text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-700",
             });
           }
 
           if (item.solution) {
             sectionBlocks.push({
               key: "solution",
-              title: "Recommended Solution",
+              title: "Recommended Action",
               content: item.solution,
-              icon: <FiTool className="text-[13px] text-emerald-700" />,
+              icon: <FiTool className="text-[13px] text-slate-500" />,
               containerClassName:
                 "border border-emerald-200 bg-emerald-50 px-4 py-3.5",
-              titleClassName: "text-[10.5px] font-semibold text-slate-900",
+              titleClassName:
+                "text-[11px] font-semibold uppercase tracking-[0.12em] text-emerald-700",
               extra: item.solutionType ? (
-                <span className="inline-flex items-center rounded-full border border-emerald-300 bg-emerald-100 px-2 py-0.5 text-[8.5px] font-semibold uppercase tracking-[0.08em] text-emerald-800">
+                <span className="inline-flex items-center border border-emerald-200 bg-white px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-emerald-700">
                   {item.solutionType}
                 </span>
               ) : undefined,
@@ -447,110 +495,107 @@ const ExecutiveHighlights: React.FC<ExecutiveHighlightsProps> = ({
 
           return (
             <div
-              key={item.id}
-              className="px-5 py-4"
+              key={`${item.id}-${item.title}`}
+              className="px-5 py-5"
               style={{
                 breakInside: "avoid-page",
                 pageBreakInside: "avoid",
               }}
             >
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="rounded-none border border-slate-200 bg-white p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2.5">
-                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-rose-50 text-rose-700">
-                        <FiAlertTriangle className="text-[15px]" />
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span
+                        className={`inline-flex items-center border px-2.5 py-1 text-[9.5px] font-bold uppercase tracking-[0.12em] ${toneStyle[tone]}`}
+                      >
+                        {toneLabel[tone]}
                       </span>
 
-                      <h4 className="text-[13.5px] font-semibold leading-[1.45] text-slate-900">
-                        {item.title}
-                      </h4>
+                      {typeof item.severity === "number" ? (
+                        <span className="inline-flex items-center border border-slate-200 bg-slate-50 px-2.5 py-1 text-[9.5px] font-semibold uppercase tracking-[0.08em] text-slate-700">
+                          Severity {item.severity.toFixed(1)}
+                        </span>
+                      ) : null}
                     </div>
-                  </div>
 
-                  <div className="shrink-0">
-                    <span
-                      className={`inline-flex items-center gap-1.5 border px-2.5 py-1 text-[8.5px] font-semibold uppercase tracking-[0.12em] ${toneStyle[tone]}`}
-                    >
-                      <FiAlertTriangle className="text-[10px]" />
-                      {toneLabel[tone]}
-                    </span>
+                    <h3 className="mt-3 text-[14px] font-bold leading-6 text-slate-900">
+                      {item.title}
+                    </h3>
+
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {item.target && (
+                        <div className="inline-flex items-center gap-2 border border-slate-200 bg-slate-50 px-3 py-2 text-[10.5px] text-slate-700">
+                          <FiShield className="text-[12px] text-slate-500" />
+                          <span>
+                            <span className="font-semibold text-slate-900">
+                              Target:
+                            </span>{" "}
+                            {item.target}
+                          </span>
+                        </div>
+                      )}
+
+                      {item.ip && (
+                        <div className="inline-flex items-center gap-2 border border-slate-200 bg-slate-50 px-3 py-2 text-[10.5px] text-slate-700">
+                          <FiShield className="text-[12px] text-slate-500" />
+                          <span>
+                            <span className="font-semibold text-slate-900">
+                              IP:
+                            </span>{" "}
+                            {item.ip}
+                          </span>
+                        </div>
+                      )}
+
+                      {item.detectedDate && (
+                        <div className="inline-flex items-center gap-2 border border-slate-200 bg-slate-50 px-3 py-2 text-[10.5px] text-slate-700">
+                          <FiClock className="text-[12px] text-slate-500" />
+                          <span>
+                            <span className="font-semibold text-slate-900">
+                              Detected:
+                            </span>{" "}
+                            {formatDetectedDate(item.detectedDate)}
+                          </span>
+                        </div>
+                      )}
+
+                      {typeof item.detectedDays === "number" && (
+                        <div className="inline-flex items-center gap-2 border border-rose-200 bg-rose-50 px-3 py-2 text-[10.5px] text-rose-700">
+                          <FiClock className="text-[12px]" />
+                          <span>
+                            <span className="font-semibold">Exposed for:</span>{" "}
+                            {item.detectedDays} day
+                            {item.detectedDays !== 1 ? "s" : ""}
+                          </span>
+                        </div>
+                      )}
+
+                      {item.cveList && (
+                        <div className="inline-flex items-center gap-2 border border-slate-200 bg-slate-50 px-3 py-2 text-[10.5px] text-slate-700">
+                          <FiFileText className="text-[12px] text-slate-500" />
+                          <span>
+                            <span className="font-semibold text-slate-900">
+                              CVE:
+                            </span>{" "}
+                            {item.cveList}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                {(item.target ||
-                  item.ip ||
-                  item.cveList ||
-                  item.detectedDate ||
-                  typeof item.detectedDays === "number") && (
-                  <div className="flex flex-wrap gap-2.5">
-                    {item.target && (
-                      <div className="inline-flex items-center gap-2 border border-slate-200 bg-slate-50 px-3 py-2 text-[10.5px] text-slate-700">
-                        <FiCpu className="text-[12px] text-slate-500" />
-                        <span>
-                          <span className="font-semibold text-slate-900">
-                            Device:
-                          </span>{" "}
-                          {item.target}
-                        </span>
-                      </div>
-                    )}
-
-                    {item.ip && (
-                      <div className="inline-flex items-center gap-2 border border-slate-200 bg-slate-50 px-3 py-2 text-[10.5px] text-slate-700">
-                        <FiShield className="text-[12px] text-slate-500" />
-                        <span>
-                          <span className="font-semibold text-slate-900">
-                            IP:
-                          </span>{" "}
-                          {item.ip}
-                        </span>
-                      </div>
-                    )}
-
-                    {item.detectedDate && (
-                      <div className="inline-flex items-center gap-2 border border-slate-200 bg-slate-50 px-3 py-2 text-[10.5px] text-slate-700">
-                        <FiClock className="text-[12px] text-slate-500" />
-                        <span>
-                          <span className="font-semibold text-slate-900">
-                            Detected:
-                          </span>{" "}
-                          {formatDetectedDate(item.detectedDate)}
-                        </span>
-                      </div>
-                    )}
-
-                    {typeof item.detectedDays === "number" && (
-                      <div className="inline-flex items-center gap-2 border border-rose-200 bg-rose-50 px-3 py-2 text-[10.5px] text-rose-700">
-                        <FiClock className="text-[12px]" />
-                        <span>
-                          <span className="font-semibold">Exposed for:</span>{" "}
-                          {item.detectedDays} day
-                          {item.detectedDays !== 1 ? "s" : ""}
-                        </span>
-                      </div>
-                    )}
-
-                    {item.cveList && (
-                      <div className="inline-flex items-center gap-2 border border-slate-200 bg-slate-50 px-3 py-2 text-[10.5px] text-slate-700">
-                        <FiFileText className="text-[12px] text-slate-500" />
-                        <span>
-                          <span className="font-semibold text-slate-900">
-                            CVE:
-                          </span>{" "}
-                          {item.cveList}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {sectionBlocks.length > 0 && (
-                  <div className="grid grid-cols-1 gap-3">
+                {sectionBlocks.length > 0 ? (
+                  <div className="mt-4 grid grid-cols-1 gap-3">
                     {sectionBlocks.map((section, sectionIndex) => (
                       <div
                         key={section.key}
                         className={section.containerClassName}
+                        style={{
+                          breakInside: "avoid-page",
+                          pageBreakInside: "avoid",
+                        }}
                       >
                         <div className="flex flex-wrap items-center gap-2">
                           {section.icon}
@@ -566,7 +611,7 @@ const ExecutiveHighlights: React.FC<ExecutiveHighlightsProps> = ({
                       </div>
                     ))}
                   </div>
-                )}
+                ) : null}
               </div>
             </div>
           );

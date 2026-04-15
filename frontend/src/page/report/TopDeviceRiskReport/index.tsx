@@ -6,6 +6,13 @@ import { ListDeviceRiskForReport } from "../../../services/report";
 type TopDeviceRiskReportProps = {
   onReady?: (ready: boolean) => void;
   selectedTaskIDs?: string[];
+  pageIndex?: number;
+  pageSize?: number;
+  onDataCountChange?: (count: number) => void;
+  showOuterHeader?: boolean;
+  countOnly?: boolean;
+  prefetchedDevices?: DeviceRiskForReportDTO[];
+  prefetchedLoading?: boolean;
 };
 
 const formatRiskScore = (score?: number) => {
@@ -109,11 +116,20 @@ const normalizeTaskIDs = (ids?: string[]): string[] => {
 const TopDeviceRiskReport: React.FC<TopDeviceRiskReportProps> = ({
   onReady,
   selectedTaskIDs = [],
+  pageIndex = 0,
+  pageSize = 20,
+  onDataCountChange,
+  showOuterHeader = true,
+  countOnly = false,
+  prefetchedDevices,
+  prefetchedLoading = false,
 }) => {
   const [devices, setDevices] = useState<DeviceRiskForReportDTO[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [queryTaskIDs, setQueryTaskIDs] = useState<string[]>([]);
   const [taskMode, setTaskMode] = useState<"all" | "filtered">("all");
+
+  const hasPrefetchedDevices = Array.isArray(prefetchedDevices);
 
   const normalizedSelectedTaskIDs = useMemo(
     () => normalizeTaskIDs(selectedTaskIDs),
@@ -127,6 +143,16 @@ const TopDeviceRiskReport: React.FC<TopDeviceRiskReportProps> = ({
   }, []);
 
   useEffect(() => {
+    if (!hasPrefetchedDevices) return;
+
+    setDevices(prefetchedDevices ?? []);
+    setLoading(Boolean(prefetchedLoading));
+    onReady?.(!prefetchedLoading);
+  }, [hasPrefetchedDevices, prefetchedDevices, prefetchedLoading, onReady]);
+
+  useEffect(() => {
+    if (hasPrefetchedDevices) return;
+
     let isMounted = true;
 
     onReady?.(false);
@@ -162,7 +188,7 @@ const TopDeviceRiskReport: React.FC<TopDeviceRiskReportProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [onReady]);
+  }, [onReady, hasPrefetchedDevices]);
 
   const effectiveTaskMode = useMemo<"all" | "filtered">(() => {
     if (normalizedSelectedTaskIDs.length > 0) {
@@ -209,6 +235,26 @@ const TopDeviceRiskReport: React.FC<TopDeviceRiskReportProps> = ({
     });
   }, [filteredDevices]);
 
+  useEffect(() => {
+    onDataCountChange?.(sortedDevices.length);
+  }, [sortedDevices.length, onDataCountChange]);
+
+  const pagedDevices = useMemo(() => {
+    const start = pageIndex * pageSize;
+    const end = start + pageSize;
+    return sortedDevices.slice(start, end);
+  }, [sortedDevices, pageIndex, pageSize]);
+
+  const isSingleColumn = pagedDevices.length <= 10;
+
+  const leftColumnDevices = useMemo(() => {
+    return isSingleColumn ? pagedDevices : pagedDevices.slice(0, 10);
+  }, [pagedDevices, isSingleColumn]);
+
+  const rightColumnDevices = useMemo(() => {
+    return isSingleColumn ? [] : pagedDevices.slice(10, 20);
+  }, [pagedDevices, isSingleColumn]);
+
   const averageRiskScore = useMemo(() => {
     if (sortedDevices.length === 0) return 0;
 
@@ -228,28 +274,101 @@ const TopDeviceRiskReport: React.FC<TopDeviceRiskReportProps> = ({
     return getAverageRiskTone(averageRiskScore);
   }, [averageRiskScore]);
 
+  const renderDeviceItem = (
+    device: DeviceRiskForReportDTO,
+    absoluteIndex: number
+  ) => {
+    return (
+      <li
+        key={`${device.task_id}-${device.ip_address || "no-ip"}-${absoluteIndex}`}
+        className="px-4 py-3 sm:px-5"
+        style={{
+          breakInside: "avoid-page",
+          pageBreakInside: "avoid",
+        }}
+      >
+        <div className="flex items-start gap-3">
+          <div className="flex min-w-0 flex-1 items-start gap-3">
+            <span className="mt-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-200 px-1 text-[10px] font-bold text-slate-700">
+              {absoluteIndex + 1}
+            </span>
+
+            <div className="min-w-0 flex-1">
+              <p className="text-[12px] font-medium leading-5 text-slate-900">
+                {device.task_name || "-"}
+              </p>
+
+              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] leading-5 text-slate-600">
+                <span>
+                  <span className="font-medium text-slate-700">IP:</span>{" "}
+                  {device.ip_address || "-"}
+                </span>
+
+                <span>
+                  <span className="font-medium text-slate-700">Risk:</span>{" "}
+                  {formatRiskScore(device.risk_score)}
+                </span>
+
+                <span>
+                  <span className="font-medium text-slate-700">
+                    Vulnerabilities:
+                  </span>{" "}
+                  {formatVulnerabilityTotal(device.vulnerability_total)}
+                </span>
+              </div>
+
+              {device.firmware_version ? (
+                <p className="mt-1 text-[10.5px] leading-5 text-slate-500">
+                  Firmware: {truncateText(device.firmware_version, 95)}
+                </p>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </li>
+    );
+  };
+
+  if (countOnly) {
+    return null;
+  }
+
   if (loading) {
     return (
       <section className="border border-slate-300 bg-white">
         <div className="px-5 py-5 md:px-6">
-          <div className="border-b border-slate-200 pb-4">
-            <div className="h-5 w-52 animate-pulse rounded bg-slate-200" />
-            <div className="mt-2 h-4 w-80 animate-pulse rounded bg-slate-100" />
-          </div>
+          {showOuterHeader ? (
+            <div className="border-b border-slate-200 pb-4">
+              <div className="h-5 w-52 animate-pulse bg-slate-200" />
+              <div className="mt-2 h-4 w-80 animate-pulse bg-slate-100" />
+            </div>
+          ) : null}
 
           <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-            <div className="h-20 flex-1 animate-pulse rounded-md border border-slate-200 bg-slate-50" />
-            <div className="h-20 flex-1 animate-pulse rounded-md border border-slate-200 bg-slate-50" />
+            <div className="h-20 flex-1 animate-pulse border border-slate-200 bg-slate-50" />
+            <div className="h-20 flex-1 animate-pulse border border-slate-200 bg-slate-50" />
           </div>
 
-          <div className="mt-5 divide-y divide-slate-200 rounded-md border border-slate-200">
-            {[1, 2, 3, 4, 5].map((item) => (
-              <div key={item} className="px-4 py-4">
-                <div className="h-4 w-56 animate-pulse rounded bg-slate-200" />
-                <div className="mt-2 h-3 w-40 animate-pulse rounded bg-slate-100" />
-                <div className="mt-2 h-3 w-72 animate-pulse rounded bg-slate-100" />
-              </div>
-            ))}
+          <div className="mt-5 grid grid-cols-2 gap-4">
+            <div className="divide-y divide-slate-200 border border-slate-200">
+              {[1, 2, 3, 4, 5].map((item) => (
+                <div key={`left-${item}`} className="px-4 py-4">
+                  <div className="h-4 w-56 animate-pulse bg-slate-200" />
+                  <div className="mt-2 h-3 w-40 animate-pulse bg-slate-100" />
+                  <div className="mt-2 h-3 w-72 animate-pulse bg-slate-100" />
+                </div>
+              ))}
+            </div>
+
+            <div className="divide-y divide-slate-200 border border-slate-200">
+              {[1, 2, 3, 4, 5].map((item) => (
+                <div key={`right-${item}`} className="px-4 py-4">
+                  <div className="h-4 w-56 animate-pulse bg-slate-200" />
+                  <div className="mt-2 h-3 w-40 animate-pulse bg-slate-100" />
+                  <div className="mt-2 h-3 w-72 animate-pulse bg-slate-100" />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -260,12 +379,18 @@ const TopDeviceRiskReport: React.FC<TopDeviceRiskReportProps> = ({
     return (
       <section className="border border-slate-300 bg-white">
         <div className="px-5 py-6 md:px-6">
-          <h3 className="text-[17px] font-semibold text-slate-900">
-            Device Risk List
-          </h3>
-          <p className="mt-2 text-[13px] leading-6 text-slate-600">
-            ไม่พบข้อมูลอุปกรณ์สำหรับรายงานรอบนี้
-          </p>
+          {showOuterHeader ? (
+            <>
+              <h3 className="text-[17px] font-semibold text-slate-900">
+                Device Risk List
+              </h3>
+              <p className="mt-2 text-[13px] leading-6 text-slate-600">
+                ไม่พบข้อมูลอุปกรณ์สำหรับรายงานรอบนี้
+              </p>
+            </>
+          ) : (
+            <p className="text-[13px] leading-6 text-slate-600">No Data</p>
+          )}
         </div>
       </section>
     );
@@ -274,114 +399,90 @@ const TopDeviceRiskReport: React.FC<TopDeviceRiskReportProps> = ({
   return (
     <section className="border border-slate-300 bg-white">
       <div className="px-5 py-5 md:px-6">
-        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div className="border border-slate-200 bg-slate-50 px-4 py-3.5">
-            <div className="flex items-start gap-3">
-              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700">
-                <FiCpu className="text-[17px]" />
-              </span>
+        {showOuterHeader ? (
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="border border-slate-200 bg-slate-50 px-4 py-3.5">
+              <div className="flex items-start gap-3">
+                <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700">
+                  <FiCpu className="text-[17px]" />
+                </span>
 
-              <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-600">
-                  Total Devices
-                </p>
-                <p className="mt-1 text-[17px] font-bold text-slate-900">
-                  {formatNumber(totalTargets)}
-                </p>
-                <p className="mt-1 text-[11px] leading-5 text-slate-600">
-                  {effectiveTaskMode === "all"
-                    ? "Number of assessed devices included in the latest scan cycle."
-                    : "Number of assessed devices included in the selected task scope."}
-                </p>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-600">
+                    Total Devices
+                  </p>
+                  <p className="mt-1 text-[17px] font-bold text-slate-900">
+                    {formatNumber(totalTargets)}
+                  </p>
+                  <p className="mt-1 text-[11px] leading-5 text-slate-600">
+                    {effectiveTaskMode === "all"
+                      ? "Number of assessed devices included in the latest scan cycle."
+                      : "Number of assessed devices included in the selected task scope."}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className={`border px-4 py-3.5 ${averageTone.card}`}>
-            <div className="flex items-start gap-3">
-              <span
-                className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border ${averageTone.iconWrap}`}
-              >
-                <FiActivity className="text-[17px]" />
-              </span>
-
-              <div className="min-w-0">
-                <p
-                  className={`text-[10px] font-semibold uppercase tracking-[0.14em] ${averageTone.label}`}
+            <div className={`border px-4 py-3.5 ${averageTone.card}`}>
+              <div className="flex items-start gap-3">
+                <span
+                  className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border ${averageTone.iconWrap}`}
                 >
-                  Average Risk Score
-                </p>
-                <p className={`mt-1 text-[17px] font-bold ${averageTone.value}`}>
-                  {formatRiskScore(averageRiskScore)}
-                </p>
-                <p className={`mt-1 text-[11px] leading-5 ${averageTone.desc}`}>
-                  {effectiveTaskMode === "all"
-                    ? "Average risk level across all Devices in this assessment."
-                    : "Average risk level across selected Devices in this assessment."}
-                </p>
+                  <FiActivity className="text-[17px]" />
+                </span>
+
+                <div className="min-w-0">
+                  <p
+                    className={`text-[10px] font-semibold uppercase tracking-[0.14em] ${averageTone.label}`}
+                  >
+                    Average Risk Score
+                  </p>
+                  <p className={`mt-1 text-[17px] font-bold ${averageTone.value}`}>
+                    {formatRiskScore(averageRiskScore)}
+                  </p>
+                  <p className={`mt-1 text-[11px] leading-5 ${averageTone.desc}`}>
+                    {effectiveTaskMode === "all"
+                      ? "Average risk level across all Devices in this assessment."
+                      : "Average risk level across selected Devices in this assessment."}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        ) : null}
 
         <div
-          className="mt-5 overflow-hidden rounded-md border border-slate-200"
+          className={[
+            "mt-5 gap-4",
+            isSingleColumn ? "grid grid-cols-1" : "grid grid-cols-2",
+          ].join(" ")}
           style={{
             breakInside: "avoid-page",
             pageBreakInside: "avoid",
           }}
         >
-          <ul className="divide-y divide-slate-200">
-            {sortedDevices.map((device, index) => (
-              <li
-                key={`${device.task_id}-${index}`}
-                className="px-4 py-3 sm:px-5"
-                style={{
-                  breakInside: "avoid-page",
-                  pageBreakInside: "avoid",
-                }}
-              >
-                <div className="flex items-start gap-3">
-                  <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-slate-400" />
+          <div className="overflow-hidden border border-slate-200">
+            <ul className="divide-y divide-slate-200">
+              {leftColumnDevices.map((device, index) =>
+                renderDeviceItem(device, pageIndex * pageSize + index)
+              )}
+            </ul>
+          </div>
 
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[12px] font-medium leading-5 text-slate-900">
-                      {device.task_name || "-"}
-                    </p>
-
-                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] leading-5 text-slate-600">
-                      <span>
-                        <span className="font-medium text-slate-700">IP:</span>{" "}
-                        {device.ip_address || "-"}
-                      </span>
-
-                      <span>
-                        <span className="font-medium text-slate-700">Risk:</span>{" "}
-                        {formatRiskScore(device.risk_score)}
-                      </span>
-
-                      <span>
-                        <span className="font-medium text-slate-700">
-                          Vulnerabilities:
-                        </span>{" "}
-                        {formatVulnerabilityTotal(device.vulnerability_total)}
-                      </span>
-                    </div>
-
-                    {device.firmware_version ? (
-                      <p className="mt-1 text-[10.5px] leading-5 text-slate-500">
-                        Firmware: {truncateText(device.firmware_version, 95)}
-                      </p>
-                    ) : null}
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
+          {!isSingleColumn ? (
+            <div className="overflow-hidden border border-slate-200">
+              <ul className="divide-y divide-slate-200">
+                {rightColumnDevices.map((device, index) =>
+                  renderDeviceItem(device, pageIndex * pageSize + 10 + index)
+                )}
+              </ul>
+            </div>
+          ) : null}
         </div>
 
         <p className="mt-3 text-[11px] leading-5 text-slate-500">
-          Note: The list is ordered by risk score in descending order.
+          Note: The list is ordered by risk score in descending order and shown
+          20 devices per page.
         </p>
       </div>
     </section>

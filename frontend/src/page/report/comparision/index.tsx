@@ -242,7 +242,16 @@ const ComparisonReport: React.FC<ComparisonReportProps> = ({
           previousTime: item.previous_creation_time ?? null,
         };
       })
-      .sort((a, b) => (b.latestTime || 0) - (a.latestTime || 0));
+      .sort((a, b) => {
+        const latestRiskDiff = b.latestRisk - a.latestRisk;
+        if (latestRiskDiff !== 0) return latestRiskDiff;
+
+        const latestTotalDiff = b.latestTotal - a.latestTotal;
+        if (latestTotalDiff !== 0) return latestTotalDiff;
+
+        return (b.latestTime || 0) - (a.latestTime || 0);
+      })
+      .slice(0, 10);
   }, [rawData]);
 
   const highestLatestRisk = useMemo(() => {
@@ -308,7 +317,7 @@ const ComparisonReport: React.FC<ComparisonReportProps> = ({
 
               <div className="min-w-0">
                 <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-                  Total Devices
+                  Devices
                 </p>
                 <p className="mt-1 text-[15px] font-semibold text-slate-900">
                   {totalDevices}
@@ -410,7 +419,7 @@ const ComparisonReport: React.FC<ComparisonReportProps> = ({
         </div>
 
         <p className="mt-2 text-[10.5px] leading-5 text-slate-500">
-          หมายเหตุ: ข้อมูลถูกเรียงตามเวลาสแกนล่าสุดจากใหม่ไปเก่า และแสดงข้อมูลตาม task ที่ถูกเลือกสำหรับการสร้างรายงาน
+          หมายเหตุ: แสดงเฉพาะ Top 10 เป้าหมายที่มีค่า Latest Risk สูงที่สุด และเรียงจากมากไปน้อย
         </p>
       </div>
     </section>
