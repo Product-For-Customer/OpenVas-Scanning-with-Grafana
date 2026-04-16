@@ -145,19 +145,6 @@ const formatRiskScore = (value?: number) => {
   return value.toFixed(2);
 };
 
-const formatDetectedDate = (detectedDate?: string) => {
-  if (!detectedDate) return "-";
-
-  const date = new Date(detectedDate);
-  if (Number.isNaN(date.getTime())) return "-";
-
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(date);
-};
-
 const getDetectedDays = (detectedDate?: string) => {
   if (!detectedDate) return undefined;
 
@@ -534,10 +521,24 @@ const Conclusion: React.FC<ConclusionProps> = ({
     return Number(highestRiskTarget?.riskScore || 0);
   }, [highestRiskTarget]);
 
-  const latestCritical = useMemo(() => {
+  const topCriticalObservations = useMemo(() => { //เเทนที่ 
     return [...filteredCriticalRows]
-      .sort((a, b) => Number(b.severity || 0) - Number(a.severity || 0))
-      .find((item) => normalizeText(item.vulnerability_name));
+      .filter((item) => normalizeText(item.vulnerability_name))
+      .sort((a, b) => {
+        const severityDiff = Number(b.severity || 0) - Number(a.severity || 0);
+        if (severityDiff !== 0) return severityDiff;
+
+        const dateA = new Date(a.detected_date || "").getTime();
+        const dateB = new Date(b.detected_date || "").getTime();
+        if (!Number.isNaN(dateA) && !Number.isNaN(dateB) && dateB !== dateA) {
+          return dateB - dateA;
+        }
+
+        return String(a.vulnerability_name || "").localeCompare(
+          String(b.vulnerability_name || "")
+        );
+      })
+      .slice(0, 3);
   }, [filteredCriticalRows]);
 
   const priorityTone = getRiskTone(highestRiskScore);
@@ -1037,7 +1038,7 @@ const Conclusion: React.FC<ConclusionProps> = ({
 
       <div className="grid grid-cols-12 gap-3 border-t border-slate-200 px-4 py-3">
         <div className="col-span-7">
-          <div className="rounded-lg border border-slate-200 bg-white">
+          <div className="flex h-full flex-col rounded-lg border border-slate-200 bg-white">
             <div className="border-b border-slate-200 bg-slate-50/80 px-3.5 py-2.5">
               <div className="flex items-center gap-2">
                 <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700">
@@ -1054,66 +1055,83 @@ const Conclusion: React.FC<ConclusionProps> = ({
               </div>
             </div>
 
-            <div className="p-3">
-              {latestCritical ? (
-                <div className="rounded-md border border-rose-200 bg-rose-50/60 px-3 py-2.5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-[8px] font-semibold uppercase tracking-[0.12em] text-rose-700">
-                        Critical finding
-                      </p>
-                      <h5 className="mt-1 text-[10px] font-semibold leading-[1.35] text-slate-900">
-                        {normalizeText(latestCritical.vulnerability_name) || "-"}
-                      </h5>
-                      <p className="mt-1 text-[8px] leading-normal text-slate-700">
-                        {normalizeText(latestCritical.task_name) || "-"}{" "}
-                        {normalizeText(latestCritical.ip) ? `(${latestCritical.ip})` : ""}
-                      </p>
-                    </div>
+            <div className="flex-1 p-3">
+              {topCriticalObservations.length > 0 ? (
+                <div className="space-y-2">
+                  {topCriticalObservations.map((item, index) => {
+                    const severity = Number(item.severity || 0);
+                    return (
+                      <div
+                        key={`${item.task_id || "task"}-${item.vulnerability_name || "vuln"}-${index}`}
+                        className="border-b border-slate-200 pb-2 last:border-b-0 last:pb-0"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex min-w-0 items-center gap-2.5">
+                            <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-rose-200 bg-rose-50 text-rose-700">
+                              <FiAlertTriangle className="text-[12px]" />
+                            </span>
 
-                    <div className="shrink-0 rounded-md border border-rose-200 bg-white px-2 py-1 text-right">
-                      <p className="text-[6.5px] uppercase tracking-[0.12em] text-rose-700">
-                        Severity
-                      </p>
-                      <p className="mt-1 text-[10px] font-bold text-slate-900">
-                        {formatRiskScore(Number(latestCritical.severity || 0))}
-                      </p>
-                    </div>
-                  </div>
+                            <div className="min-w-0">
+                              <h5 className="truncate text-[10px] font-semibold leading-[1.35] text-slate-900">
+                                {normalizeText(item.vulnerability_name) || "-"}
+                              </h5>
 
-                  <div className="mt-2 grid grid-cols-3 gap-2">
-                    <div className="rounded-md border border-slate-200 bg-white px-2 py-1.5">
-                      <p className="text-[6.5px] uppercase tracking-[0.12em] text-slate-500">
-                        Detected
-                      </p>
-                      <p className="mt-1 text-[8px] font-medium text-slate-900">
-                        {formatDetectedDate(latestCritical.detected_date)}
-                      </p>
-                    </div>
+                              <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[7.5px] text-slate-600">
+                                <span className="rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 font-medium text-violet-700">
+                                  {normalizeText(item.solution_type) || "VendorFix"}
+                                </span>
 
-                    <div className="rounded-md border border-slate-200 bg-white px-2 py-1.5">
-                      <p className="text-[6.5px] uppercase tracking-[0.12em] text-slate-500">
-                        Age
-                      </p>
-                      <p className="mt-1 text-[8px] font-medium text-slate-900">
-                        {typeof getDetectedDays(latestCritical.detected_date) === "number"
-                          ? `${getDetectedDays(latestCritical.detected_date)} days`
-                          : "-"}
-                      </p>
-                    </div>
+                                <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 font-medium text-slate-700">
+                                  {normalizeText(item.task_name) || "-"}
+                                </span>
+                              </div>
 
-                    <div className="rounded-md border border-slate-200 bg-white px-2 py-1.5">
-                      <p className="text-[6.5px] uppercase tracking-[0.12em] text-slate-500">
-                        Solution type
-                      </p>
-                      <p className="mt-1 text-[8px] font-medium text-slate-900">
-                        {normalizeText(latestCritical.solution_type) || "-"}
-                      </p>
-                    </div>
-                  </div>
-                  <div>
-                    <p></p>
-                  </div>
+                              <div className="mt-1 flex flex-wrap items-center gap-2 text-[7.5px] text-slate-600">
+                                <span>
+                                  Severity:{" "}
+                                  <span className="font-semibold text-slate-800">
+                                    {formatRiskScore(severity)}
+                                  </span>
+                                </span>
+
+                                <span>
+                                  Host:{" "}
+                                  <span className="font-semibold text-slate-800">
+                                    {normalizeText(item.ip) || "-"}
+                                  </span>
+                                </span>
+
+                                <span>
+                                  Detected:{" "}
+                                  <span className="font-semibold text-slate-800">
+                                    {item.detected_date
+                                      ? new Intl.DateTimeFormat("en-GB", {
+                                        day: "2-digit",
+                                        month: "2-digit",
+                                        year: "numeric",
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                        hour12: false,
+                                      }).format(new Date(item.detected_date))
+                                      : "-"}
+                                  </span>
+                                </span>
+
+                                <span>
+                                  Age:{" "}
+                                  <span className="font-semibold text-slate-800">
+                                    {typeof getDetectedDays(item.detected_date) === "number"
+                                      ? `${getDetectedDays(item.detected_date)} days`
+                                      : "-"}
+                                  </span>
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="rounded-md border border-dashed border-slate-200 bg-slate-50 px-3 py-3 text-[8px] text-slate-500">
@@ -1125,7 +1143,7 @@ const Conclusion: React.FC<ConclusionProps> = ({
         </div>
 
         <div className="col-span-5">
-          <div className="rounded-lg border border-slate-200 bg-white">
+          <div className="flex h-full flex-col rounded-lg border border-slate-200 bg-white">
             <div className="border-b border-slate-200 bg-slate-50/80 px-3.5 py-2.5">
               <h4 className="text-[11px] font-semibold text-slate-900">
                 Recommended actions
@@ -1135,32 +1153,35 @@ const Conclusion: React.FC<ConclusionProps> = ({
               </p>
             </div>
 
-            <div className="p-3">
+            <div className="flex flex-1 flex-col justify-center p-3">
               <div className="space-y-2">
-                <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2">
-                  <p className="text-[8px] font-semibold uppercase tracking-[0.12em] text-rose-700">
+                <div className="rounded-md border border-slate-200 bg-slate-50/50 px-3 py-2.5">
+                  <p className="text-[8px] font-semibold uppercase tracking-[0.12em] text-slate-800">
                     1. Immediate
                   </p>
-                  <p className="mt-1 text-[8px] leading-[1.55] text-slate-700">
-                    Prioritize remediation for the highest-risk devices and close critical vulnerabilities first.
+                  <p className="mt-1 text-[8px] leading-[1.55] text-slate-600">
+                    Prioritize remediation for the highest-risk devices and close
+                    critical vulnerabilities first.
                   </p>
                 </div>
 
-                <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
-                  <p className="text-[8px] font-semibold uppercase tracking-[0.12em] text-amber-700">
+                <div className="rounded-md border border-slate-200 bg-white px-3 py-2.5">
+                  <p className="text-[8px] font-semibold uppercase tracking-[0.12em] text-slate-800">
                     2. Near-term
                   </p>
-                  <p className="mt-1 text-[8px] leading-[1.55] text-slate-700">
-                    Review Medium and High findings in sequence and verify that affected systems are patched or mitigated.
+                  <p className="mt-1 text-[8px] leading-[1.55] text-slate-600">
+                    Review Medium and High findings in sequence and verify that
+                    affected systems are patched or mitigated.
                   </p>
                 </div>
 
-                <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2">
-                  <p className="text-[8px] font-semibold uppercase tracking-[0.12em] text-emerald-700">
+                <div className="rounded-md border border-slate-200 bg-slate-50/50 px-3 py-2.5">
+                  <p className="text-[8px] font-semibold uppercase tracking-[0.12em] text-slate-800">
                     3. Continuous
                   </p>
-                  <p className="mt-1 text-[8px] leading-[1.55] text-slate-700">
-                    Reassess risk trends monthly and compare future scan results against the current baseline.
+                  <p className="mt-1 text-[8px] leading-[1.55] text-slate-600">
+                    Reassess risk trends monthly and compare future scan results
+                    against the current baseline.
                   </p>
                 </div>
               </div>

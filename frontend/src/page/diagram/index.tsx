@@ -61,7 +61,7 @@ const Diagrams: React.FC = () => {
 
   const [query, setQuery] = useState("");
   const [view, setView] = useState<ViewMode>("list");
-  const [sortMode, setSortMode] = useState<SortMode>("latest");
+  const [sortMode, setSortMode] = useState<SortMode>("oldest");
   const [openSort, setOpenSort] = useState(false);
 
   const [openFormModal, setOpenFormModal] = useState(false);

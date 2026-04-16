@@ -301,6 +301,41 @@ const sectionChipClass =
 const panelClass =
   "rounded-2xl border border-slate-200 bg-slate-50/70 p-4 dark:border-white/10 dark:bg-white/[0.03]";
 
+const createGradientBtn = [
+  "inline-flex h-8 items-center justify-center gap-2 rounded-full",
+  "bg-linear-to-r from-cyan-500 via-sky-500 to-blue-600 px-3.5",
+  "text-white transition hover:from-cyan-600 hover:via-sky-600 hover:to-blue-700",
+].join(" ");
+
+const editGradientIconBtn = [
+  "inline-flex h-8 w-8 items-center justify-center rounded-full",
+  "text-white shadow-sm transition-all duration-200",
+  "bg-linear-to-r from-sky-400 via-blue-400 to-indigo-500",
+  "hover:from-sky-500 hover:via-blue-500 hover:to-indigo-600",
+  "focus:outline-none focus:ring-2 focus:ring-sky-200",
+  "dark:focus:ring-sky-500/30",
+].join(" ");
+
+const deleteGradientIconBtn = [
+  "inline-flex h-8 w-8 items-center justify-center rounded-full",
+  "text-white shadow-sm transition-all duration-200",
+  "bg-linear-to-r from-rose-400 via-red-400 to-rose-500",
+  "hover:from-rose-500 hover:via-red-500 hover:to-rose-600",
+  "focus:outline-none focus:ring-2 focus:ring-red-200",
+  "dark:focus:ring-red-500/30",
+].join(" ");
+
+
+const notifyPrimaryGradientBtn = [
+  "inline-flex h-10 items-center justify-center gap-2 rounded-full px-4",
+  "text-white shadow-sm transition-all duration-200",
+  "bg-linear-to-r from-cyan-500 via-sky-500 to-blue-600",
+  "hover:from-cyan-600 hover:via-sky-600 hover:to-blue-700",
+  "focus:outline-none focus:ring-2 focus:ring-sky-200",
+  "disabled:cursor-not-allowed disabled:opacity-60",
+  "dark:focus:ring-sky-500/30",
+].join(" ");
+
 const ActionButton: React.FC<{
   onClick?: () => void;
   children: React.ReactNode;
@@ -679,6 +714,7 @@ const Notify: React.FC = () => {
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<SortKey>("Newest");
   const [openSort, setOpenSort] = useState(false);
+  const [openIntegrationMenu, setOpenIntegrationMenu] = useState(false);
 
   const [rows, setRows] = useState<UiNotification[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -688,6 +724,7 @@ const Notify: React.FC = () => {
   const [loadingLineMasters, setLoadingLineMasters] = useState<boolean>(true);
   const [lineMasterError, setLineMasterError] = useState<string>("");
   const [lineMasterSearch, setLineMasterSearch] = useState("");
+  const integrationMenuRef = useRef<HTMLDivElement | null>(null);
 
   const [openCreateModal, setOpenCreateModal] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -748,6 +785,61 @@ const Notify: React.FC = () => {
 
   const [notifyPage, setNotifyPage] = useState(1);
 
+
+  const editFormSnapshot = useMemo(
+    () =>
+      JSON.stringify({
+        name: normalizeText(editForm.name),
+        send_id: normalizeText(editForm.send_id),
+        alert: editForm.alert,
+        is_group: editForm.is_group,
+        app_line_master_id: String(editForm.app_line_master_id || ""),
+      }),
+    [editForm],
+  );
+
+  const selectedRowSnapshot = useMemo(
+    () =>
+      selectedRow
+        ? JSON.stringify({
+            name: normalizeText(selectedRow.name),
+            send_id: normalizeText(selectedRow.send_id),
+            alert: Boolean(selectedRow.alert),
+            is_group: Boolean(selectedRow.is_group),
+            app_line_master_id: String(selectedRow.app_line_master_id || ""),
+          })
+        : "",
+    [selectedRow],
+  );
+
+  const isNotifyEditChanged = Boolean(selectedRow) && editFormSnapshot !== selectedRowSnapshot;
+
+  const masterFormSnapshot = useMemo(
+    () =>
+      JSON.stringify({
+        name: normalizeText(masterFormData.name),
+        description: normalizeText(masterFormData.description),
+        token: normalizeText(masterFormData.token),
+      }),
+    [masterFormData],
+  );
+
+  const editingMasterSnapshot = useMemo(
+    () =>
+      editingMaster
+        ? JSON.stringify({
+            name: normalizeText(editingMaster.name || ""),
+            description: normalizeText(editingMaster.description || ""),
+            token: normalizeText(editingMaster.token || ""),
+          })
+        : "",
+    [editingMaster],
+  );
+
+  const isBotEditChanged =
+    masterFormMode === "create" ? true : Boolean(editingMaster) && masterFormSnapshot !== editingMasterSnapshot;
+
+
   const lineMasterMap = useMemo(() => {
     return new Map<number, string>(
       lineMasters.map((item) => [item.id, item.name ?? `Line Master #${item.id}`]),
@@ -767,11 +859,21 @@ const Notify: React.FC = () => {
     });
   }, [uiLineMasters, lineMasterSearch]);
 
-  const shouldLineMasterScroll = filteredLineMasters.length >= 3;
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (integrationMenuRef.current && !integrationMenuRef.current.contains(event.target as Node)) {
+        setOpenIntegrationMenu(false);
+      }
+    };
 
-  const lineMasterListClass = shouldLineMasterScroll
-    ? "overflow-y-auto pr-1 max-h-[228px]"
-    : "overflow-visible";
+    if (openIntegrationMenu) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [openIntegrationMenu]);
 
   const fetchNotifications = useCallback(async (force = false) => {
     try {
@@ -1531,7 +1633,7 @@ const Notify: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => openEdit(item)}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-violet-200 text-violet-600 transition hover:bg-violet-50 dark:border-violet-400/20 dark:text-violet-300 dark:hover:bg-violet-500/10"
+                          className={editGradientIconBtn}
                           title="Edit"
                         >
                           <FiEdit2 className="text-[13px]" />
@@ -1539,7 +1641,7 @@ const Notify: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => openDeleteModal(item)}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rose-200 text-rose-600 transition hover:bg-rose-50 dark:border-rose-400/20 dark:text-rose-300 dark:hover:bg-rose-500/10"
+                          className={deleteGradientIconBtn}
                           title="Delete"
                         >
                           <FiTrash2 className="text-[13px]" />
@@ -1638,158 +1740,154 @@ const Notify: React.FC = () => {
 
             <div className="flex flex-wrap items-center gap-2">
               <ActionButton
-                onClick={fetchNotifications}
+                onClick={() => {
+                  void fetchNotifications(true);
+                  void fetchLineMasters(true);
+                }}
                 className="border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white/80 dark:hover:bg-white/10"
               >
                 <FiRefreshCw className="text-[13px]" />
                 Refresh
               </ActionButton>
 
-              <ActionButton
-                onClick={openCreateMasterModal}
-                className="border border-cyan-200 bg-cyan-50 text-cyan-700 hover:bg-cyan-100 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-300 dark:hover:bg-cyan-500/15"
-              >
-                <FiLink2 className="text-[13px]" />
-                Add Integration
-              </ActionButton>
-
-              <ActionButton
-                onClick={openCreate}
-                className="bg-[#6d5efc] text-white hover:bg-[#5f51eb]"
-              >
-                <FiPlus className="text-[13px]" />
-                Add Notify
-              </ActionButton>
-            </div>
-          </div>
-
-          <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-12 xl:items-start">
-            <div className="xl:col-span-4">
-              <div className={`${panelClass} flex flex-col`}>
-                <div className="mb-4 flex items-center justify-between gap-3">
-                  <div>
-                    <h3 className="text-[13px] font-semibold text-slate-800 dark:text-white/85">
-                      Integration List
-                    </h3>
-                    <p className="mt-0.5 text-[10.5px] text-slate-500 dark:text-white/45">
-                      Connected channels and apps
-                    </p>
-                  </div>
-                  <div className="rounded-full border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-[10px] font-medium text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-300">
+              <div className="relative" ref={integrationMenuRef}>
+                <ActionButton
+                  onClick={() => setOpenIntegrationMenu((prev) => !prev)}
+                  className="border border-cyan-200 bg-cyan-50 text-cyan-700 hover:bg-cyan-100 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-300 dark:hover:bg-cyan-500/15"
+                >
+                  <FiLink2 className="text-[13px]" />
+                  Integrations
+                  <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-white/80 px-1.5 py-0.5 text-[10px] font-semibold text-cyan-700 dark:bg-cyan-950/60 dark:text-cyan-200">
                     {filteredLineMasters.length}
-                  </div>
-                </div>
-
-                <div className="relative mb-3">
-                  <FiSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-slate-400 dark:text-white/35" />
-                  <input
-                    value={lineMasterSearch}
-                    onChange={(e) => setLineMasterSearch(e.target.value)}
-                    placeholder="Search integration..."
-                    className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-[12px] outline-none transition focus:border-cyan-300 focus:ring-2 focus:ring-cyan-100 dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:placeholder:text-white/35 dark:focus:border-cyan-400/30 dark:focus:ring-cyan-400/10"
+                  </span>
+                  <FiChevronDown
+                    className={`text-[13px] transition-transform duration-200 ${openIntegrationMenu ? "rotate-180" : ""}`}
                   />
-                </div>
+                </ActionButton>
 
-                {loadingLineMasters ? (
-                  <div className="flex min-h-55 items-center justify-center text-[12px] text-slate-500 dark:text-white/50">
-                    Loading integrations...
-                  </div>
-                ) : lineMasterError ? (
-                  <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-[12px] text-rose-700 dark:border-rose-400/20 dark:bg-rose-500/10 dark:text-rose-200">
-                    {lineMasterError}
-                  </div>
-                ) : filteredLineMasters.length === 0 ? (
-                  <div className="flex min-h-55 items-center justify-center rounded-xl border border-dashed border-slate-200 text-[12px] text-slate-500 dark:border-white/10 dark:text-white/45">
-                    No integration found
-                  </div>
-                ) : (
-                  <div className={lineMasterListClass}>
-                    <div className="space-y-2.5">
-                      {filteredLineMasters.map((item) => (
-                        <div
-                          key={item.id}
-                          className={["group rounded-xl p-3 transition-all duration-200", item.cardClass].join(" ") }
-                        >
-                          <div className="flex items-start gap-3">
+                {openIntegrationMenu && (
+                  <div className="absolute right-0 z-30 mt-2 w-[min(92vw,420px)] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.18)] dark:border-white/10 dark:bg-[#0b1525]">
+                    <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-white/10">
+                      <div>
+                        <h3 className="text-[13px] font-semibold text-slate-800 dark:text-white/85">
+                          Integration List
+                        </h3>
+                        <p className="mt-0.5 text-[10.5px] text-slate-500 dark:text-white/45">
+                          Connected channels and apps
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={openCreateMasterModal}
+                        className={createGradientBtn}
+                      >
+                        <FiPlus className="text-[12px]" />
+                        <span className="text-[11px] font-medium">Bot</span>
+                      </button>
+                    </div>
+
+                    <div className="border-b border-slate-200 px-4 py-3 dark:border-white/10">
+                      <div className="relative">
+                        <FiSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-slate-400 dark:text-white/35" />
+                        <input
+                          value={lineMasterSearch}
+                          onChange={(e) => setLineMasterSearch(e.target.value)}
+                          placeholder="Search integration..."
+                          className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-[12px] outline-none transition focus:border-cyan-300 focus:ring-2 focus:ring-cyan-100 dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:placeholder:text-white/35 dark:focus:border-cyan-400/30 dark:focus:ring-cyan-400/10"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="max-h-48.5 overflow-y-auto p-3">
+                      {loadingLineMasters ? (
+                        <div className="flex min-h-40 items-center justify-center text-[12px] text-slate-500 dark:text-white/50">
+                          Loading integrations...
+                        </div>
+                      ) : lineMasterError ? (
+                        <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-[12px] text-rose-700 dark:border-rose-400/20 dark:bg-rose-500/10 dark:text-rose-200">
+                          {lineMasterError}
+                        </div>
+                      ) : filteredLineMasters.length === 0 ? (
+                        <div className="flex min-h-40 items-center justify-center rounded-xl border border-dashed border-slate-200 text-[12px] text-slate-500 dark:border-white/10 dark:text-white/45">
+                          No integration found
+                        </div>
+                      ) : (
+                        <div className="space-y-2.5">
+                          {filteredLineMasters.map((item) => (
                             <div
-                              className={[
-                                "grid h-10 w-10 shrink-0 place-items-center rounded-xl border text-[15px]",
-                                item.iconWrapClass,
-                              ].join(" ")}
+                              key={item.id}
+                              className={["group rounded-xl p-3 transition-all duration-200", item.cardClass].join(" ")}
                             >
-                              {item.icon}
-                            </div>
+                              <div className="flex items-start gap-3">
+                                <div
+                                  className={[
+                                    "grid h-10 w-10 shrink-0 place-items-center rounded-xl border text-[15px]",
+                                    item.iconWrapClass,
+                                  ].join(" ")}
+                                >
+                                  {item.icon}
+                                </div>
 
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="min-w-0">
+                                <div className="min-w-0 flex-1">
                                   <p className="truncate text-[12px] font-semibold text-slate-800 dark:text-white/85">
                                     {item.name}
                                   </p>
-                                  <p className="mt-0.5 text-[10.5px] text-slate-500 dark:text-white/45">
-                                    {item.category}
+
+                                  <p className="mt-2 line-clamp-2 text-[11px] leading-5 text-slate-600 dark:text-white/55">
+                                    {item.description}
                                   </p>
+
+                                  <div className="mt-3 flex items-center gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        openEditMasterModal(
+                                          lineMasters.find((m) => m.id === item.id)!,
+                                        )
+                                      }
+                                      className={editGradientIconBtn}
+                                      title="Edit Bot LINE"
+                                    >
+                                      <FiEdit2 className="text-[13px]" />
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        openDeleteMasterModal(
+                                          lineMasters.find((m) => m.id === item.id)!,
+                                        )
+                                      }
+                                      className={deleteGradientIconBtn}
+                                      title="Delete Bot LINE"
+                                    >
+                                      <FiTrash2 className="text-[13px]" />
+                                    </button>
+                                  </div>
                                 </div>
-
-                                <div className="flex items-center gap-1">
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      openEditMasterModal(
-                                        lineMasters.find((m) => m.id === item.id)!,
-                                      )
-                                    }
-                                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-violet-200 text-violet-600 transition hover:bg-violet-50 dark:border-violet-400/20 dark:text-violet-300 dark:hover:bg-violet-500/10"
-                                    title="Edit Integration"
-                                  >
-                                    <FiEdit2 className="text-[13px]" />
-                                  </button>
-
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      openDeleteMasterModal(
-                                        lineMasters.find((m) => m.id === item.id)!,
-                                      )
-                                    }
-                                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rose-200 text-rose-600 transition hover:bg-rose-50 dark:border-rose-400/20 dark:text-rose-300 dark:hover:bg-rose-500/10"
-                                    title="Delete Integration"
-                                  >
-                                    <FiTrash2 className="text-[13px]" />
-                                  </button>
-                                </div>
-                              </div>
-
-                              <p className="mt-2 line-clamp-2 text-[11px] leading-5 text-slate-600 dark:text-white/55">
-                                {item.description}
-                              </p>
-
-                              <div className="mt-2 flex items-center justify-between gap-2">
-                                <span
-                                  className={[
-                                    "inline-flex rounded-full border px-2 py-1 text-[10px] font-medium",
-                                    item.chipClass,
-                                  ].join(" ")}
-                                >
-                                  Connected
-                                </span>
-
-                                <span className="text-[10px] text-slate-400 dark:text-white/30">
-                                  Token ready
-                                </span>
                               </div>
                             </div>
-                          </div>
+                          ))}
                         </div>
-                      ))}
+                      )}
                     </div>
                   </div>
                 )}
               </div>
-            </div>
 
-            <div className="xl:col-span-8">
-              <div className={`${panelClass} flex flex-col`}>
+              <button
+                type="button"
+                onClick={openCreate}
+                className={notifyPrimaryGradientBtn}
+              >
+                <FiPlus className="text-[12px]" />
+                <span className="text-[11px] font-medium">Add Notify</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-5">
+            <div className={`${panelClass} flex flex-col`}>
                 <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                   <div>
                     <h3 className="text-[13px] font-semibold text-slate-800 dark:text-white/85">
@@ -1857,7 +1955,6 @@ const Notify: React.FC = () => {
               </div>
             </div>
           </div>
-        </div>
       </section>
 
       {openCreateModal && (
@@ -1959,7 +2056,7 @@ const Notify: React.FC = () => {
               <ActionButton
                 onClick={submitCreate}
                 disabled={creating}
-                className="bg-[#6d5efc] text-white hover:bg-[#5f51eb]"
+                className="bg-cyan-600 text-white hover:bg-cyan-700"
               >
                 {creating ? "Creating..." : "Create"}
               </ActionButton>
@@ -2066,8 +2163,8 @@ const Notify: React.FC = () => {
               </ActionButton>
               <ActionButton
                 onClick={submitEdit}
-                disabled={editing}
-                className="bg-[#6d5efc] text-white hover:bg-[#5f51eb]"
+                disabled={editing || !isNotifyEditChanged}
+                className="bg-cyan-600 text-white hover:bg-cyan-700"
               >
                 {editing ? "Saving..." : "Save"}
               </ActionButton>
@@ -2288,7 +2385,7 @@ const Notify: React.FC = () => {
               </ActionButton>
               <ActionButton
                 onClick={handleSubmitMaster}
-                disabled={masterSubmitting}
+                disabled={masterSubmitting || (masterFormMode === "edit" && !isBotEditChanged)}
                 className="bg-cyan-600 text-white hover:bg-cyan-700"
               >
                 {masterSubmitting
