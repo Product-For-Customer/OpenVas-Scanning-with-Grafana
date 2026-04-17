@@ -8,9 +8,14 @@ import {
   FiEdit2,
   FiLayers,
   FiCrosshair,
-  FiHash,
   FiType,
   FiAlignLeft,
+  FiCpu,
+  FiCalendar,
+  FiAlertTriangle,
+  FiBarChart2,
+  FiHash,
+  FiActivity,
 } from "react-icons/fi";
 import {
   CreateAppDiagramNode,
@@ -24,6 +29,7 @@ import {
   type DiagramResponse,
   type UpdateAppDiagramNodeInput,
 } from "../../../services/diagram";
+import { ListALLTarget, type AllTargetDTO } from "../../../services";
 import DiagramNodeFormModal, {
   type DiagramNodeFormValues,
   type DiagramNodeModalMode,
@@ -54,6 +60,114 @@ const normalizeSizePercent = (value: number, fallback: number) => {
   return clamp(value, 1, 100);
 };
 
+const formatDetectedDateTime = (value?: string) => {
+  if (!value) return "-";
+
+  try {
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return value;
+
+    return d.toLocaleString("th-TH", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
+  } catch {
+    return value;
+  }
+};
+
+const formatRiskScore = (value?: number) => {
+  const num = Number(value ?? 0);
+  if (!Number.isFinite(num)) return "0.00";
+  return num.toFixed(2);
+};
+
+const formatSeverity = (value?: number) => {
+  const num = Number(value ?? 0);
+  if (!Number.isFinite(num)) return "0.00";
+  return num.toFixed(2);
+};
+
+const getRiskScoreTone = (value?: number) => {
+  const score = Number(value ?? 0);
+
+  if (!Number.isFinite(score)) {
+    return {
+      box: "border-slate-200 bg-slate-50",
+      label: "text-sky-700",
+      value: "text-slate-800",
+      dot: "bg-slate-400",
+    };
+  }
+
+  if (score >= 9) {
+    return {
+      box: "border-red-200 bg-red-50",
+      label: "text-red-700",
+      value: "text-red-700",
+      dot: "bg-red-500",
+    };
+  }
+
+  if (score >= 7) {
+    return {
+      box: "border-orange-200 bg-orange-50",
+      label: "text-orange-700",
+      value: "text-orange-700",
+      dot: "bg-orange-500",
+    };
+  }
+
+  if (score >= 4) {
+    return {
+      box: "border-amber-200 bg-amber-50",
+      label: "text-amber-700",
+      value: "text-amber-700",
+      dot: "bg-amber-500",
+    };
+  }
+
+  if (score > 0) {
+    return {
+      box: "border-lime-200 bg-lime-50",
+      label: "text-lime-700",
+      value: "text-lime-700",
+      dot: "bg-lime-500",
+    };
+  }
+
+  return {
+    box: "border-emerald-200 bg-emerald-50",
+    label: "text-emerald-700",
+    value: "text-emerald-700",
+    dot: "bg-emerald-500",
+  };
+};
+
+const getLevelTone = (level?: string) => {
+  const normalized = String(level ?? "").trim().toLowerCase();
+
+  if (normalized === "critical") {
+    return {
+      box: "border-red-200 bg-red-50",
+      label: "text-red-700",
+      value: "text-red-700",
+      dot: "bg-red-500",
+    };
+  }
+
+  return {
+    box: "border-slate-200 bg-slate-50",
+    label: "text-sky-700",
+    value: "text-slate-800",
+    dot: "bg-slate-400",
+  };
+};
+
 type HoverCardState = {
   node: AppDiagramNodeResponse;
   left: number;
@@ -62,8 +176,8 @@ type HoverCardState = {
   placeBelow: boolean;
 };
 
-const TOOLTIP_WIDTH = 260;
-const TOOLTIP_ESTIMATED_HEIGHT = 210;
+const TOOLTIP_WIDTH = 300;
+const TOOLTIP_ESTIMATED_HEIGHT = 420;
 const TOOLTIP_GAP = 14;
 const CONTAINER_PADDING = 12;
 
@@ -77,18 +191,26 @@ const DiagramNode: React.FC = () => {
   const imageWrapperRef = useRef<HTMLDivElement | null>(null);
   const hoverLeaveTimerRef = useRef<number | null>(null);
 
+  const hasFetchedRef = useRef(false);
+  const isLoadingDataRef = useRef(false);
+  const isMountedRef = useRef(false);
+  const editRequestIdRef = useRef(0);
+
   const [diagram, setDiagram] = useState<DiagramResponse | null>(null);
   const [nodes, setNodes] = useState<AppDiagramNodeResponse[]>([]);
   const [allNodes, setAllNodes] = useState<AppDiagramNodeResponse[]>([]);
+  const [targets, setTargets] = useState<AllTargetDTO[]>([]);
 
-  const [loading, setLoading] = useState(true); //@ts-ignore
+  const [loading, setLoading] = useState(true);
   const [reloading, setReloading] = useState(false);
   const [error, setError] = useState("");
 
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<DiagramNodeModalMode>("create");
   const [modalLoading, setModalLoading] = useState(false);
-  const [selectedNode, setSelectedNode] = useState<AppDiagramNodeResponse | null>(null);
+  const [selectedNode, setSelectedNode] = useState<AppDiagramNodeResponse | null>(
+    null
+  );
   const [draftPosition, setDraftPosition] = useState<{
     x: number;
     y: number;
@@ -98,59 +220,97 @@ const DiagramNode: React.FC = () => {
 
   const [hoverCard, setHoverCard] = useState<HoverCardState | null>(null);
 
-  const imageSrc = useMemo(() => getImageSrc(diagram?.image_base64), [diagram?.image_base64]);
+  const imageSrc = useMemo(
+    () => getImageSrc(diagram?.image_base64),
+    [diagram?.image_base64]
+  );
 
-  const clearHoverLeaveTimer = () => {
+  const targetMap = useMemo(() => {
+    const map = new Map<string, AllTargetDTO>();
+
+    for (const target of targets) {
+      const key = String(target.task_id || "").trim();
+      if (!key) continue;
+      map.set(key, target);
+    }
+
+    return map;
+  }, [targets]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  const clearHoverLeaveTimer = useCallback(() => {
     if (hoverLeaveTimerRef.current) {
       window.clearTimeout(hoverLeaveTimerRef.current);
       hoverLeaveTimerRef.current = null;
     }
-  };
+  }, []);
 
-  const scheduleHideHoverCard = () => {
+  const scheduleHideHoverCard = useCallback(() => {
     clearHoverLeaveTimer();
     hoverLeaveTimerRef.current = window.setTimeout(() => {
-      setHoverCard(null);
+      if (isMountedRef.current) {
+        setHoverCard(null);
+      }
     }, 40);
-  };
+  }, [clearHoverLeaveTimer]);
 
   useEffect(() => {
     return () => {
       clearHoverLeaveTimer();
     };
-  }, []);
+  }, [clearHoverLeaveTimer]);
 
   const loadData = useCallback(
     async (showLoading = true) => {
       if (!diagramId || Number.isNaN(diagramId)) {
-        setError("ไม่พบ DiagramID");
-        setLoading(false);
+        if (isMountedRef.current) {
+          setError("ไม่พบ DiagramID");
+          setLoading(false);
+          setReloading(false);
+        }
         return;
       }
 
-      if (showLoading) {
-        setLoading(true);
-      } else {
-        setReloading(true);
-      }
-
-      setError("");
+      if (isLoadingDataRef.current) return;
 
       try {
-        const [diagramData, fetchedAllNodes] = await Promise.all([
+        isLoadingDataRef.current = true;
+
+        if (isMountedRef.current) {
+          if (showLoading) {
+            setLoading(true);
+          } else {
+            setReloading(true);
+          }
+          setError("");
+        }
+
+        const [diagramData, fetchedAllNodes, fetchedTargets] = await Promise.all([
           ListDiagramByID(diagramId),
           ListAppDiagramNodes(),
+          ListALLTarget(),
         ]);
+
+        if (!isMountedRef.current) return;
 
         if (!diagramData) {
           setError("ไม่สามารถโหลดข้อมูล Diagram ได้");
           setDiagram(null);
           setNodes([]);
           setAllNodes([]);
+          setTargets([]);
           return;
         }
 
         const safeAllNodes = Array.isArray(fetchedAllNodes) ? fetchedAllNodes : [];
+        const safeTargets = Array.isArray(fetchedTargets) ? fetchedTargets : [];
 
         const filteredNodes = safeAllNodes
           .filter((item) => Number(item.diagram_id) === diagramId)
@@ -164,51 +324,70 @@ const DiagramNode: React.FC = () => {
         setDiagram(diagramData);
         setAllNodes(safeAllNodes);
         setNodes(filteredNodes);
-      } catch {
+        setTargets(safeTargets);
+      } catch (err) {
+        console.error("loadData error:", err);
+
+        if (!isMountedRef.current) return;
+
         setError("เกิดข้อผิดพลาดในการโหลดข้อมูล Diagram Node");
         setDiagram(null);
         setNodes([]);
         setAllNodes([]);
+        setTargets([]);
       } finally {
-        setLoading(false);
-        setReloading(false);
+        if (isMountedRef.current) {
+          setLoading(false);
+          setReloading(false);
+        }
+        isLoadingDataRef.current = false;
       }
     },
     [diagramId]
   );
 
   useEffect(() => {
-    loadData(true);
+    if (hasFetchedRef.current) return;
+    hasFetchedRef.current = true;
+    void loadData(true);
   }, [loadData]);
 
-  const handleOpenCreateByClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!imageWrapperRef.current || !diagramId) return;
+  const handleOpenCreateByClick = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!imageWrapperRef.current || !diagramId) return;
 
-    const target = e.target as HTMLElement;
-    if (target.closest("[data-node-marker='true']") || target.closest("[data-hover-card='true']")) {
-      return;
-    }
+      const target = e.target as HTMLElement;
+      if (
+        target.closest("[data-node-marker='true']") ||
+        target.closest("[data-hover-card='true']")
+      ) {
+        return;
+      }
 
-    const rect = imageWrapperRef.current.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const clickY = e.clientY - rect.top;
+      const rect = imageWrapperRef.current.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const clickY = e.clientY - rect.top;
 
-    const xPercent = normalizePercentValue((clickX / rect.width) * 100);
-    const yPercent = normalizePercentValue((clickY / rect.height) * 100);
+      const xPercent = normalizePercentValue((clickX / rect.width) * 100);
+      const yPercent = normalizePercentValue((clickY / rect.height) * 100);
 
-    setDraftPosition({
-      x: xPercent,
-      y: yPercent,
-      width: 12,
-      height: 9,
-    });
+      setDraftPosition({
+        x: xPercent,
+        y: yPercent,
+        width: 12,
+        height: 9,
+      });
 
-    setSelectedNode(null);
-    setModalMode("create");
-    setModalOpen(true);
-  };
+      setSelectedNode(null);
+      setModalMode("create");
+      setModalOpen(true);
+    },
+    [diagramId]
+  );
 
-  const handleOpenEdit = async (nodeId: number) => {
+  const handleOpenEdit = useCallback(async (nodeId: number) => {
+    const requestId = ++editRequestIdRef.current;
+
     setModalMode("edit");
     setSelectedNode(null);
     setDraftPosition(null);
@@ -217,151 +396,188 @@ const DiagramNode: React.FC = () => {
 
     try {
       const node = await ListAppDiagramNodeByID(nodeId);
+
+      if (!isMountedRef.current) return;
+      if (requestId !== editRequestIdRef.current) return;
+
       if (!node) {
         message.error("ไม่สามารถโหลดข้อมูล node ได้");
         setModalOpen(false);
         return;
       }
+
       setSelectedNode(node);
       setHoverCard(null);
-    } finally {
-      setModalLoading(false);
-    }
-  };
+    } catch (err) {
+      console.error("handleOpenEdit error:", err);
 
-  const handleSubmit = async (values: DiagramNodeFormValues) => {
-    if (!diagramId || Number.isNaN(diagramId)) {
-      message.error("ไม่พบ DiagramID");
-      return;
-    }
+      if (!isMountedRef.current) return;
+      if (requestId !== editRequestIdRef.current) return;
 
-    setModalLoading(true);
-
-    try {
-      if (modalMode === "create") {
-        const payload: CreateAppDiagramNodeInput = {
-          diagram_id: diagramId,
-          task_id: values.task_id.trim(),
-          label: values.label.trim(),
-          description: values.description.trim(),
-          icon: values.icon.trim(),
-          x: normalizePercentValue(values.x),
-          y: normalizePercentValue(values.y),
-          width: normalizeSizePercent(values.width, 12),
-          height: normalizeSizePercent(values.height, 9),
-          z_index: toNumber(values.z_index, 0),
-        };
-
-        const res = await CreateAppDiagramNode(payload);
-        if (!res) {
-          message.error("สร้าง node ไม่สำเร็จ");
-          return;
-        }
-
-        message.success("create success");
-      } else {
-        if (!selectedNode?.id) {
-          message.error("ไม่พบ node ที่ต้องการแก้ไข");
-          return;
-        }
-
-        const payload: UpdateAppDiagramNodeInput = {
-          diagram_id: diagramId,
-          task_id: values.task_id.trim(),
-          label: values.label.trim(),
-          description: values.description.trim(),
-          icon: values.icon.trim(),
-          x: normalizePercentValue(values.x),
-          y: normalizePercentValue(values.y),
-          width: normalizeSizePercent(values.width, 12),
-          height: normalizeSizePercent(values.height, 9),
-          z_index: toNumber(values.z_index, 0),
-        };
-
-        const res = await UpdateAppDiagramNodeByID(selectedNode.id, payload);
-        if (!res) {
-          message.error("แก้ไข node ไม่สำเร็จ");
-          return;
-        }
-
-        message.success("update success");
-      }
-
+      message.error("ไม่สามารถโหลดข้อมูล node ได้");
       setModalOpen(false);
-      setSelectedNode(null);
-      setDraftPosition(null);
-      await loadData(false);
     } finally {
-      setModalLoading(false);
+      if (isMountedRef.current && requestId === editRequestIdRef.current) {
+        setModalLoading(false);
+      }
     }
-  };
+  }, []);
 
-  const handleDeleteImmediate = async (node: AppDiagramNodeResponse | null) => {
-    if (!node?.id) {
-      message.error("ไม่พบ node ที่ต้องการลบ");
-      return;
-    }
-
-    setModalLoading(true);
-    try {
-      const res = await DeleteAppDiagramNodeByID(node.id);
-      if (!res) {
-        message.error("ลบ node ไม่สำเร็จ");
+  const handleSubmit = useCallback(
+    async (values: DiagramNodeFormValues) => {
+      if (!diagramId || Number.isNaN(diagramId)) {
+        message.error("ไม่พบ DiagramID");
         return;
       }
 
-      message.success("delete success");
-      setModalOpen(false);
-      setSelectedNode(null);
-      setDraftPosition(null);
-      await loadData(false);
-    } finally {
-      setModalLoading(false);
-    }
-  };
+      setModalLoading(true);
 
-  const handleMarkerEnter = (
-    node: AppDiagramNodeResponse,
-    xPercent: number,
-    yPercent: number
-  ) => {
-    clearHoverLeaveTimer();
+      try {
+        if (modalMode === "create") {
+          const payload: CreateAppDiagramNodeInput = {
+            diagram_id: diagramId,
+            task_id: values.task_id.trim(),
+            label: values.label.trim(),
+            description: values.description.trim(),
+            icon: values.icon.trim(),
+            x: normalizePercentValue(values.x),
+            y: normalizePercentValue(values.y),
+            width: normalizeSizePercent(values.width, 12),
+            height: normalizeSizePercent(values.height, 9),
+            z_index: toNumber(values.z_index, 0),
+          };
 
-    const wrapper = imageWrapperRef.current;
-    if (!wrapper) return;
+          const res = await CreateAppDiagramNode(payload);
+          if (!res) {
+            message.error("สร้าง node ไม่สำเร็จ");
+            return;
+          }
 
-    const containerWidth = wrapper.clientWidth;
-    const containerHeight = wrapper.clientHeight;
+          message.success("create success");
+        } else {
+          if (!selectedNode?.id) {
+            message.error("ไม่พบ node ที่ต้องการแก้ไข");
+            return;
+          }
 
-    const markerX = (xPercent / 100) * containerWidth;
-    const markerY = (yPercent / 100) * containerHeight;
+          const payload: UpdateAppDiagramNodeInput = {
+            diagram_id: diagramId,
+            task_id: values.task_id.trim(),
+            label: values.label.trim(),
+            description: values.description.trim(),
+            icon: values.icon.trim(),
+            x: normalizePercentValue(values.x),
+            y: normalizePercentValue(values.y),
+            width: normalizeSizePercent(values.width, 12),
+            height: normalizeSizePercent(values.height, 9),
+            z_index: toNumber(values.z_index, 0),
+          };
 
-    let left = markerX - TOOLTIP_WIDTH / 2;
-    left = clamp(left, CONTAINER_PADDING, containerWidth - TOOLTIP_WIDTH - CONTAINER_PADDING);
+          const res = await UpdateAppDiagramNodeByID(selectedNode.id, payload);
+          if (!res) {
+            message.error("แก้ไข node ไม่สำเร็จ");
+            return;
+          }
 
-    const placeBelow =
-      markerY - TOOLTIP_ESTIMATED_HEIGHT - TOOLTIP_GAP < CONTAINER_PADDING;
+          message.success("update success");
+        }
 
-    let top = placeBelow
-      ? markerY + TOOLTIP_GAP
-      : markerY - TOOLTIP_ESTIMATED_HEIGHT - TOOLTIP_GAP;
+        if (!isMountedRef.current) return;
 
-    top = clamp(
-      top,
-      CONTAINER_PADDING,
-      containerHeight - TOOLTIP_ESTIMATED_HEIGHT - CONTAINER_PADDING
-    );
+        setModalOpen(false);
+        setSelectedNode(null);
+        setDraftPosition(null);
+        await loadData(false);
+      } catch (err) {
+        console.error("handleSubmit error:", err);
+      } finally {
+        if (isMountedRef.current) {
+          setModalLoading(false);
+        }
+      }
+    },
+    [diagramId, modalMode, selectedNode, loadData]
+  );
 
-    const arrowLeft = clamp(markerX - left, 18, TOOLTIP_WIDTH - 18);
+  const handleDeleteImmediate = useCallback(
+    async (node: AppDiagramNodeResponse | null) => {
+      if (!node?.id) {
+        message.error("ไม่พบ node ที่ต้องการลบ");
+        return;
+      }
 
-    setHoverCard({
-      node,
-      left,
-      top,
-      arrowLeft,
-      placeBelow,
-    });
-  };
+      setModalLoading(true);
+      try {
+        const res = await DeleteAppDiagramNodeByID(node.id);
+        if (!res) {
+          message.error("ลบ node ไม่สำเร็จ");
+          return;
+        }
+
+        message.success("delete success");
+
+        if (!isMountedRef.current) return;
+
+        setModalOpen(false);
+        setSelectedNode(null);
+        setDraftPosition(null);
+        await loadData(false);
+      } catch (err) {
+        console.error("handleDeleteImmediate error:", err);
+      } finally {
+        if (isMountedRef.current) {
+          setModalLoading(false);
+        }
+      }
+    },
+    [loadData]
+  );
+
+  const handleMarkerEnter = useCallback(
+    (node: AppDiagramNodeResponse, xPercent: number, yPercent: number) => {
+      clearHoverLeaveTimer();
+
+      const wrapper = imageWrapperRef.current;
+      if (!wrapper) return;
+
+      const containerWidth = wrapper.clientWidth;
+      const containerHeight = wrapper.clientHeight;
+
+      const markerX = (xPercent / 100) * containerWidth;
+      const markerY = (yPercent / 100) * containerHeight;
+
+      let left = markerX - TOOLTIP_WIDTH / 2;
+      left = clamp(
+        left,
+        CONTAINER_PADDING,
+        containerWidth - TOOLTIP_WIDTH - CONTAINER_PADDING
+      );
+
+      const placeBelow =
+        markerY - TOOLTIP_ESTIMATED_HEIGHT - TOOLTIP_GAP < CONTAINER_PADDING;
+
+      let top = placeBelow
+        ? markerY + TOOLTIP_GAP
+        : markerY - TOOLTIP_ESTIMATED_HEIGHT - TOOLTIP_GAP;
+
+      top = clamp(
+        top,
+        CONTAINER_PADDING,
+        containerHeight - TOOLTIP_ESTIMATED_HEIGHT - CONTAINER_PADDING
+      );
+
+      const arrowLeft = clamp(markerX - left, 18, TOOLTIP_WIDTH - 18);
+
+      setHoverCard({
+        node,
+        left,
+        top,
+        arrowLeft,
+        placeBelow,
+      });
+    },
+    [clearHoverLeaveTimer]
+  );
 
   const shell = [
     "relative overflow-hidden rounded-[18px]",
@@ -399,7 +615,7 @@ const DiagramNode: React.FC = () => {
         </div>
 
         <div className="relative z-10">
-          <div className="px-3 py-3 sm:px-4 sm:py-3.5 border-b border-gray-100 dark:border-white/10">
+          <div className="border-b border-gray-100 px-3 py-3 dark:border-white/10 sm:px-4 sm:py-3.5">
             <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
               <div className="min-w-0">
                 <div className="mb-2 flex flex-wrap items-center gap-1.5">
@@ -423,6 +639,14 @@ const DiagramNode: React.FC = () => {
                       {nodes.length} saved node{nodes.length > 1 ? "s" : ""}
                     </span>
                   </div>
+
+                  {reloading && (
+                    <div className={badgeCls}>
+                      <span className="truncate text-[9.5px] font-medium">
+                        Reloading...
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <h2 className="wrap-break-word text-[14px] font-semibold tracking-tight text-[#1f2240] dark:text-white/90 sm:text-[16px]">
@@ -515,7 +739,7 @@ const DiagramNode: React.FC = () => {
                         title={node.label || `Node ${node.id}`}
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleOpenEdit(node.id);
+                          void handleOpenEdit(node.id);
                         }}
                         onMouseEnter={() => handleMarkerEnter(node, x, y)}
                         onMouseLeave={scheduleHideHoverCard}
@@ -538,96 +762,182 @@ const DiagramNode: React.FC = () => {
                     );
                   })}
 
-                  {hoverCard && (
-                    <div
-                      data-hover-card="true"
-                      className="pointer-events-auto absolute z-999 w-65"
-                      style={{
-                        left: hoverCard.left,
-                        top: hoverCard.top,
-                      }}
-                      onMouseEnter={clearHoverLeaveTimer}
-                      onMouseLeave={scheduleHideHoverCard}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <div className="relative overflow-visible">
-                        <div className="overflow-hidden rounded-2xl border border-sky-100 bg-white shadow-[0_20px_40px_rgba(14,165,233,0.14)]">
-                          <div className="border-b border-sky-100 bg-linear-to-r from-sky-50 via-white to-cyan-50 px-3 py-2.5">
-                            <div className="flex items-center gap-2">
-                              <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-sky-500 text-white shadow-sm">
-                                <FiMapPin className="text-[14px]" />
-                              </span>
-                              <div className="min-w-0 text-left">
-                                <p className="text-[11px] font-semibold text-slate-800">
-                                  Node Detail
+                  {hoverCard && (() => {
+                    const matchedTarget = targetMap.get(
+                      String(hoverCard.node.task_id || "").trim()
+                    );
+
+                    const targetName = String(matchedTarget?.name || "").trim();
+                    const targetIP = String(matchedTarget?.ip || "").trim();
+                    const detectedDate = formatDetectedDateTime(
+                      matchedTarget?.detected_date
+                    );
+                    const riskScore = formatRiskScore(matchedTarget?.risk_score);
+                    const level = String(matchedTarget?.level || "").trim() || "-";
+                    const total = Number(matchedTarget?.total ?? 0);
+                    const severity = formatSeverity(matchedTarget?.severity);
+
+                    const targetDisplay =
+                      targetName || targetIP
+                        ? [targetName || "-", targetIP || "-"].join(" - ")
+                        : hoverCard.node.task_id || "-";
+
+                    const riskTone = getRiskScoreTone(matchedTarget?.risk_score);
+                    const levelTone = getLevelTone(matchedTarget?.level);
+
+                    return (
+                      <div
+                        data-hover-card="true"
+                        className="pointer-events-auto absolute z-999 w-75"
+                        style={{
+                          left: hoverCard.left,
+                          top: hoverCard.top,
+                        }}
+                        onMouseEnter={clearHoverLeaveTimer}
+                        onMouseLeave={scheduleHideHoverCard}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="relative overflow-visible">
+                          <div className="overflow-hidden rounded-2xl border border-sky-100 bg-white shadow-[0_20px_40px_rgba(14,165,233,0.14)]">
+                            <div className="border-b border-sky-100 bg-linear-to-r from-sky-50 via-white to-cyan-50 px-3 py-2.5">
+                              <div className="flex items-center gap-2">
+                                <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-sky-500 text-white shadow-sm">
+                                  <FiMapPin className="text-[14px]" />
+                                </span>
+                                <div className="min-w-0 text-left">
+                                  <p className="text-[11px] font-semibold text-slate-800">
+                                    Node Detail
+                                  </p>
+                                  <p className="text-[9.5px] text-slate-500">
+                                    Marker information
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="space-y-2 px-3 py-3 text-left">
+                              <div>
+                                <p className="mb-1 flex items-center gap-1.5 text-[9.5px] font-medium text-sky-700">
+                                  <FiType className="text-[10px] text-sky-500" />
+                                  Label
                                 </p>
-                                <p className="text-[9.5px] text-slate-500">
-                                  Marker information
+                                <p className="text-[11px] font-semibold text-slate-800 wrap-break-word">
+                                  {hoverCard.node.label || "-"}
                                 </p>
+                              </div>
+
+                              <div>
+                                <p className="mb-1 flex items-center gap-1.5 text-[9.5px] font-medium text-sky-700">
+                                  <FiAlignLeft className="text-[10px] text-sky-500" />
+                                  Description
+                                </p>
+                                <p className="text-[10.5px] leading-5 text-slate-600 wrap-break-word">
+                                  {hoverCard.node.description?.trim()
+                                    ? hoverCard.node.description
+                                    : "No description"}
+                                </p>
+                              </div>
+
+                              <div>
+                                <p className="mb-1 flex items-center gap-1.5 text-[9.5px] font-medium text-sky-700">
+                                  <FiCpu className="text-[10px] text-sky-500" />
+                                  Target
+                                </p>
+                                <p className="text-[10.5px] font-medium text-slate-800 wrap-break-word">
+                                  {targetDisplay}
+                                </p>
+                              </div>
+
+                              <div>
+                                <p className="mb-1 flex items-center gap-1.5 text-[9.5px] font-medium text-sky-700">
+                                  <FiCalendar className="text-[10px] text-sky-500" />
+                                  Detected
+                                </p>
+                                <p className="text-[10.5px] font-medium text-slate-800 wrap-break-word">
+                                  {detectedDate}
+                                </p>
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-2">
+                                <div
+                                  className={`rounded-xl border px-2.5 py-2 ${riskTone.box}`}
+                                >
+                                  <p
+                                    className={`mb-1 flex items-center gap-1.5 text-[9px] font-medium ${riskTone.label}`}
+                                  >
+                                    <span className={`h-1.5 w-1.5 rounded-full ${riskTone.dot}`} />
+                                    <FiBarChart2 className="text-[10px]" />
+                                    Risk Score
+                                  </p>
+                                  <p className={`text-[10.5px] font-semibold ${riskTone.value}`}>
+                                    {riskScore}
+                                  </p>
+                                </div>
+
+                                <div
+                                  className={`rounded-xl border px-2.5 py-2 ${levelTone.box}`}
+                                >
+                                  <p
+                                    className={`mb-1 flex items-center gap-1.5 text-[9px] font-medium ${levelTone.label}`}
+                                  >
+                                    <span className={`h-1.5 w-1.5 rounded-full ${levelTone.dot}`} />
+                                    <FiAlertTriangle className="text-[10px]" />
+                                    Level
+                                  </p>
+                                  <p className={`text-[10.5px] font-semibold ${levelTone.value}`}>
+                                    {level}
+                                  </p>
+                                </div>
+
+                                <div className="rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-2">
+                                  <p className="mb-1 flex items-center gap-1.5 text-[9px] font-medium text-sky-700">
+                                    <FiHash className="text-[10px] text-sky-500" />
+                                    Total
+                                  </p>
+                                  <p className="text-[10.5px] font-semibold text-slate-800">
+                                    {total}
+                                  </p>
+                                </div>
+
+                                <div className="rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-2">
+                                  <p className="mb-1 flex items-center gap-1.5 text-[9px] font-medium text-sky-700">
+                                    <FiActivity className="text-[10px] text-sky-500" />
+                                    Severity
+                                  </p>
+                                  <p className="text-[10.5px] font-semibold text-slate-800">
+                                    {severity}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="pt-1">
+                                <button
+                                  type="button"
+                                  className={editGradientBtn}
+                                  onClick={() => void handleOpenEdit(hoverCard.node.id)}
+                                >
+                                  <FiEdit2 className="text-[12px]" />
+                                  Edit Node
+                                </button>
                               </div>
                             </div>
                           </div>
 
-                          <div className="space-y-2 px-3 py-3 text-left">
-                            <div>
-                              <p className="mb-1 flex items-center gap-1.5 text-[9.5px] font-medium text-sky-700">
-                                <FiType className="text-[10px] text-sky-500" />
-                                Label
-                              </p>
-                              <p className="text-[11px] font-semibold text-slate-800 wrap-break-word">
-                                {hoverCard.node.label || "-"}
-                              </p>
-                            </div>
-
-                            <div>
-                              <p className="mb-1 flex items-center gap-1.5 text-[9.5px] font-medium text-sky-700">
-                                <FiAlignLeft className="text-[10px] text-sky-500" />
-                                Description
-                              </p>
-                              <p className="text-[10.5px] leading-5 text-slate-600 wrap-break-word">
-                                {hoverCard.node.description?.trim()
-                                  ? hoverCard.node.description
-                                  : "No description"}
-                              </p>
-                            </div>
-
-                            <div>
-                              <p className="mb-1 flex items-center gap-1.5 text-[9.5px] font-medium text-sky-700">
-                                <FiHash className="text-[10px] text-sky-500" />
-                                Task ID
-                              </p>
-                              <p className="text-[10.5px] font-medium text-slate-800 wrap-break-word">
-                                {hoverCard.node.task_id || "-"}
-                              </p>
-                            </div>
-
-                            <div className="pt-1">
-                              <button
-                                type="button"
-                                className={editGradientBtn}
-                                onClick={() => handleOpenEdit(hoverCard.node.id)}
-                              >
-                                <FiEdit2 className="text-[12px]" />
-                                Edit Node
-                              </button>
-                            </div>
-                          </div>
+                          <div
+                            className="absolute h-3 w-3 rotate-45 border-r border-b border-sky-100 bg-white"
+                            style={{
+                              left: hoverCard.arrowLeft,
+                              top: hoverCard.placeBelow ? -6 : undefined,
+                              bottom: hoverCard.placeBelow ? undefined : -6,
+                              transform: `translateX(-50%) ${
+                                hoverCard.placeBelow ? "rotate(225deg)" : "rotate(45deg)"
+                              }`,
+                            }}
+                          />
                         </div>
-
-                        <div
-                          className="absolute h-3 w-3 rotate-45 border-r border-b border-sky-100 bg-white"
-                          style={{
-                            left: hoverCard.arrowLeft,
-                            top: hoverCard.placeBelow ? -6 : undefined,
-                            bottom: hoverCard.placeBelow ? undefined : -6,
-                            transform: `translateX(-50%) ${
-                              hoverCard.placeBelow ? "rotate(225deg)" : "rotate(45deg)"
-                            }`,
-                          }}
-                        />
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
                 </div>
               </div>
             </div>

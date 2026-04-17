@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ResponsiveContainer,
   BarChart,
@@ -17,7 +17,6 @@ import {
 import {
   FiActivity,
   FiAlertTriangle,
-  FiBarChart2,
   FiPieChart,
   FiShield,
   FiTarget,
@@ -188,13 +187,10 @@ const getRiskTone = (score: number) => {
 
 const getMonthlyBarColor = (score: number) => {
   if (score >= 9) return "#dc2626";
-  if (score >= 8) return "#ea580c";
-  if (score >= 7) return "#f59e0b";
-  if (score >= 6) return "#eab308";
-  if (score >= 5) return "#84cc16";
-  if (score >= 4) return "#22c55e";
-  if (score >= 3) return "#14b8a6";
-  return "#0ea5e9";
+  if (score >= 7) return "#f97316";
+  if (score >= 4) return "#eab308";
+  if (score > 0) return "#22c55e";
+  return "#cbd5e1";
 };
 
 const RiskScoreLabel: React.FC<any> = (props) => {
@@ -329,7 +325,6 @@ const Conclusion: React.FC<ConclusionProps> = ({
     if (normalizedSelectedTaskIDs.length > 0) {
       return "filtered";
     }
-
     return taskMode;
   }, [normalizedSelectedTaskIDs, taskMode]);
 
@@ -337,7 +332,6 @@ const Conclusion: React.FC<ConclusionProps> = ({
     if (normalizedSelectedTaskIDs.length > 0) {
       return normalizedSelectedTaskIDs;
     }
-
     return queryTaskIDs;
   }, [normalizedSelectedTaskIDs, queryTaskIDs]);
 
@@ -345,55 +339,76 @@ const Conclusion: React.FC<ConclusionProps> = ({
     return new Set(effectiveTaskIDs.map((id) => normalizeTaskId(id)));
   }, [effectiveTaskIDs]);
 
+  const isMountedRef = useRef(false);
+  const isFetchingRef = useRef(false);
+  const lastFetchKeyRef = useRef("");
+
   useEffect(() => {
-    let alive = true;
-
-    onReady?.(false);
-
-    const loadData = async () => {
-      try {
-        setLoading(true);
-
-        const requestTaskIds =
-          effectiveTaskMode === "all" || effectiveTaskIDs.length === 0
-            ? undefined
-            : effectiveTaskIDs;
-
-        const [summaryResponse, deviceResponse, criticalResponse, monthlyResponse] =
-          await Promise.all([
-            ListTaskVulnSummaryForReport(requestTaskIds),
-            ListDeviceRiskForReport(requestTaskIds),
-            ListCriticalForReport(requestTaskIds, 50),
-            ListDataForReportVulnerabilityMonth(requestTaskIds),
-          ]);
-
-        if (!alive) return;
-
-        setSummaryRows(Array.isArray(summaryResponse) ? summaryResponse : []);
-        setDeviceRows(Array.isArray(deviceResponse) ? deviceResponse : []);
-        setCriticalRows(Array.isArray(criticalResponse) ? criticalResponse : []);
-        setMonthlyRows(Array.isArray(monthlyResponse) ? monthlyResponse : []);
-      } catch (error) {
-        console.error("Conclusion report load error:", error);
-
-        if (!alive) return;
-        setSummaryRows([]);
-        setDeviceRows([]);
-        setCriticalRows([]);
-        setMonthlyRows([]);
-      } finally {
-        if (!alive) return;
-        setLoading(false);
-        onReady?.(true);
-      }
-    };
-
-    loadData();
-
+    isMountedRef.current = true;
     return () => {
-      alive = false;
+      isMountedRef.current = false;
     };
-  }, [onReady, effectiveTaskIDs, effectiveTaskMode]);
+  }, []);
+
+  const fetchData = useCallback(async () => {
+    const fetchKey = JSON.stringify({
+      mode: effectiveTaskMode,
+      ids: effectiveTaskIDs,
+    });
+
+    if (isFetchingRef.current) return;
+    if (lastFetchKeyRef.current === fetchKey) return;
+
+    try {
+      isFetchingRef.current = true;
+      lastFetchKeyRef.current = fetchKey;
+
+      if (isMountedRef.current) {
+        setLoading(true);
+      }
+      onReady?.(false);
+
+      const requestTaskIds =
+        effectiveTaskMode === "all" || effectiveTaskIDs.length === 0
+          ? undefined
+          : effectiveTaskIDs;
+
+      const [summaryResponse, deviceResponse, criticalResponse, monthlyResponse] =
+        await Promise.all([
+          ListTaskVulnSummaryForReport(requestTaskIds),
+          ListDeviceRiskForReport(requestTaskIds),
+          ListCriticalForReport(requestTaskIds, 50),
+          ListDataForReportVulnerabilityMonth(requestTaskIds),
+        ]);
+
+      if (!isMountedRef.current) return;
+
+      setSummaryRows(Array.isArray(summaryResponse) ? summaryResponse : []);
+      setDeviceRows(Array.isArray(deviceResponse) ? deviceResponse : []);
+      setCriticalRows(Array.isArray(criticalResponse) ? criticalResponse : []);
+      setMonthlyRows(Array.isArray(monthlyResponse) ? monthlyResponse : []);
+    } catch (error) {
+      console.error("Conclusion report load error:", error);
+
+      if (!isMountedRef.current) return;
+
+      setSummaryRows([]);
+      setDeviceRows([]);
+      setCriticalRows([]);
+      setMonthlyRows([]);
+      lastFetchKeyRef.current = "";
+    } finally {
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
+      onReady?.(true);
+      isFetchingRef.current = false;
+    }
+  }, [effectiveTaskIDs, effectiveTaskMode, onReady]);
+
+  useEffect(() => {
+    void fetchData();
+  }, [fetchData]);
 
   const filteredSummaryRows = useMemo(() => {
     if (effectiveTaskMode === "all" || selectedTaskIdSet.size === 0) {
@@ -521,7 +536,7 @@ const Conclusion: React.FC<ConclusionProps> = ({
     return Number(highestRiskTarget?.riskScore || 0);
   }, [highestRiskTarget]);
 
-  const topCriticalObservations = useMemo(() => { //เเทนที่ 
+  const topCriticalObservations = useMemo(() => {
     return [...filteredCriticalRows]
       .filter((item) => normalizeText(item.vulnerability_name))
       .sort((a, b) => {
@@ -543,30 +558,51 @@ const Conclusion: React.FC<ConclusionProps> = ({
 
   const priorityTone = getRiskTone(highestRiskScore);
 
-  const monthlySummary = useMemo(() => {
-    const highest = monthlyChartData.length
-      ? Math.max(...monthlyChartData.map((item) => item.riskScore))
-      : 0;
-    const lowest = monthlyChartData.length
-      ? Math.min(...monthlyChartData.map((item) => item.riskScore))
-      : 0;
-    const totalVulnerabilities = monthlyChartData.reduce(
-      (sum, item) => sum + item.vulnerabilityCount,
-      0
-    );
-
-    return {
-      highest,
-      lowest,
-      totalVulnerabilities,
-    };
-  }, [monthlyChartData]);
-
   const severityTooltipFormatter = (
     value: number | string | undefined,
     name: string | undefined
   ): [string, string] => {
     return [Number(value ?? 0).toLocaleString("en-US"), name ?? ""];
+  };
+
+  const MonthlyTooltip = ({
+    active,
+    payload,
+  }: {
+    active?: boolean;
+    payload?: Array<{
+      payload: MonthlyRiskRow;
+      value: number;
+    }>;
+  }) => {
+    if (!active || !payload || payload.length === 0) return null;
+
+    const row = payload[0]?.payload;
+    if (!row) return null;
+
+    return (
+      <div className="min-w-56 rounded-md border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
+        <p className="text-[12px] font-semibold text-slate-900">
+          {row.month} {currentYear}
+        </p>
+
+        <div className="mt-2 space-y-1.5 text-[11px]">
+          <div>
+            <span className="font-medium text-slate-700">Vulnerabilities:</span>{" "}
+            <span className="text-slate-600">
+              {formatNumber(row.vulnerabilityCount)}
+            </span>
+          </div>
+
+          <div>
+            <span className="font-medium text-slate-700">AVG Risk Score:</span>{" "}
+            <span className="font-semibold text-slate-900">
+              {formatRiskScore(row.riskScore)}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   if (loading) {
@@ -601,15 +637,6 @@ const Conclusion: React.FC<ConclusionProps> = ({
             <p className="mt-1 max-w-full text-[9px] leading-normal text-slate-600">
               สรุปภาพรวมของรายงานทั้งหมดในหน้าเดียว โดยใช้กราฟรายเดือนสำหรับการเปรียบเทียบ
               และสรุปมุมมองระดับความรุนแรงร่วมกับแนวโน้ม Risk Score ของเป้าหมายสำคัญ
-            </p>
-          </div>
-
-          <div className="shrink-0 rounded-md border border-slate-300 bg-white px-3 py-2 text-right shadow-sm">
-            <p className="text-[7px] font-semibold uppercase tracking-normal text-slate-500">
-              Year now
-            </p>
-            <p className="mt-1 text-[14px] font-bold leading-none text-slate-900">
-              {currentYear}
             </p>
           </div>
         </div>
@@ -697,119 +724,55 @@ const Conclusion: React.FC<ConclusionProps> = ({
 
       <div className="px-4 py-3">
         <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-          <div className="border-b border-slate-200 bg-slate-50/80 px-3.5 py-2.5">
-            <div className="flex items-start justify-between gap-3">
+          <div className="px-3 py-3">
+            <div className="mb-2 flex items-center justify-between">
               <div>
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700">
-                    <FiBarChart2 className="text-[12px]" />
-                  </span>
-                  <div>
-                    <h4 className="text-[11px] font-semibold text-slate-900">
-                      Monthly Comparison Overview
-                    </h4>
-                    <p className="text-[8.5px] leading-[1.35] text-slate-600">
-                      เปรียบเทียบ Risk Score ตลอดปี {currentYear}
-                    </p>
-                  </div>
-                </div>
+                <h4 className="text-[11px] font-semibold text-slate-900">
+                  Monthly Comparison Overview
+                </h4>
+                <p className="text-[8.5px] leading-[1.35] text-slate-600">
+                  เปรียบเทียบ Risk Score ตลอดปี {currentYear}
+                </p>
               </div>
 
-              <div className="grid shrink-0 grid-cols-3 gap-1.5">
-                <div className="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-center">
-                  <p className="text-[6.5px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-                    Highest
-                  </p>
-                  <p className="mt-1 text-[11px] font-bold text-slate-900">
-                    {formatRiskScore(monthlySummary.highest)}
-                  </p>
-                </div>
-                <div className="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-center">
-                  <p className="text-[6.5px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-                    Lowest
-                  </p>
-                  <p className="mt-1 text-[11px] font-bold text-slate-900">
-                    {formatRiskScore(monthlySummary.lowest)}
-                  </p>
-                </div>
-                <div className="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-center">
-                  <p className="text-[6.5px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-                    Vulns
-                  </p>
-                  <p className="mt-1 text-[11px] font-bold text-slate-900">
-                    {formatNumber(monthlySummary.totalVulnerabilities)}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="px-3.5 pb-3 pt-2">
-            <div className="mb-1.5 flex items-center justify-between">
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[8px] text-slate-600">
-                <div className="flex items-center gap-1.5">
-                  <span className="h-2 w-3.5 rounded-full bg-red-600" />
-                  <span>Very High</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="h-2 w-3.5 rounded-full bg-orange-500" />
-                  <span>High</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="h-2 w-3.5 rounded-full bg-green-500" />
-                  <span>Lower</span>
-                </div>
-              </div>
-
-              <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[7px] font-medium text-slate-600">
-                {currentYear}
+              <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[9px] font-medium text-slate-600">
+                Year {currentYear}
               </span>
             </div>
 
-            <div className="h-37.5 w-full">
+            <div
+              className="h-44 w-full"
+              style={{
+                breakInside: "avoid-page",
+                pageBreakInside: "avoid",
+              }}
+            >
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={monthlyChartData}
-                  margin={{ top: 14, right: 6, left: -10, bottom: 0 }}
+                  margin={{ top: 18, right: 8, left: 2, bottom: 0 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis
                     dataKey="month"
-                    tick={{ fontSize: 8, fill: "#64748b" }}
+                    tick={{ fontSize: 9, fill: "#64748b" }}
                     tickLine={false}
                     axisLine={{ stroke: "#cbd5e1" }}
                   />
                   <YAxis
                     domain={[0, 10]}
-                    tick={{ fontSize: 8, fill: "#64748b" }}
+                    tick={{ fontSize: 9, fill: "#64748b" }}
                     tickLine={false}
                     axisLine={{ stroke: "#cbd5e1" }}
-                    width={26}
+                    width={34}
+                    tickMargin={6}
                   />
-                  <Tooltip
-                    formatter={(value, name, item) => {
-                      const row = item?.payload as MonthlyRiskRow | undefined;
-                      if (String(name) === "riskScore") {
-                        return [formatRiskScore(Number(value || 0)), "Risk Score"];
-                      }
-                      return [
-                        row ? formatNumber(row.vulnerabilityCount) : "0",
-                        "Vulnerabilities",
-                      ];
-                    }}
-                    labelFormatter={(label) => `${label} ${currentYear}`}
-                    contentStyle={{
-                      borderRadius: 8,
-                      borderColor: "#e2e8f0",
-                      boxShadow: "0 6px 20px rgba(15,23,42,0.08)",
-                      fontSize: "11px",
-                    }}
-                  />
-                  <Bar dataKey="riskScore" radius={[5, 5, 0, 0]} maxBarSize={18}>
+                  <Tooltip content={<MonthlyTooltip />} />
+                  <Bar dataKey="riskScore" radius={[4, 4, 0, 0]} maxBarSize={24}>
                     <LabelList dataKey="riskScore" content={<RiskScoreLabel />} />
                     {monthlyChartData.map((entry, index) => (
                       <Cell
-                        key={`monthly-${index}`}
+                        key={`cell-${entry.monthNo}-${index}`}
                         fill={getMonthlyBarColor(entry.riskScore)}
                       />
                     ))}
@@ -818,8 +781,8 @@ const Conclusion: React.FC<ConclusionProps> = ({
               </ResponsiveContainer>
             </div>
 
-            <p className="mt-1 text-[8px] leading-[1.35] text-slate-500">
-              แนวโน้ม Risk Score รายเดือนจากข้อมูลจริงของรายงานปัจจุบัน
+            <p className="mt-2 text-[10px] leading-4.5 text-slate-500">
+              Note: This section presents the monthly AVG risk score across the year 2026.
             </p>
           </div>
         </div>
@@ -1106,13 +1069,13 @@ const Conclusion: React.FC<ConclusionProps> = ({
                                   <span className="font-semibold text-slate-800">
                                     {item.detected_date
                                       ? new Intl.DateTimeFormat("en-GB", {
-                                        day: "2-digit",
-                                        month: "2-digit",
-                                        year: "numeric",
-                                        hour: "2-digit",
-                                        minute: "2-digit",
-                                        hour12: false,
-                                      }).format(new Date(item.detected_date))
+                                          day: "2-digit",
+                                          month: "2-digit",
+                                          year: "numeric",
+                                          hour: "2-digit",
+                                          minute: "2-digit",
+                                          hour12: false,
+                                        }).format(new Date(item.detected_date))
                                       : "-"}
                                   </span>
                                 </span>

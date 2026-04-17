@@ -28,6 +28,7 @@ export const getLinks = ({ isAdmin }: GetLinksParams): SidebarSection[] => {
         { name: "dashboard", icon: <FiGrid /> },
         { name: "vulnerability", icon: <FiEdit /> },
         { name: "target", icon: <FiEdit /> },
+        { name: "diagrams", icon: <FiEdit /> },
       ],
     },
   ];
@@ -36,8 +37,7 @@ export const getLinks = ({ isAdmin }: GetLinksParams): SidebarSection[] => {
     baseLinks.push({
       title: "Mangement",
       links: [
-        { name: "line notification", icon: <FiSettings  /> },
-        { name: "diagrams", icon: <FaCarSide  /> },
+        { name: "line notification", icon: <FiSettings /> },
         { name: "report", icon: <FaCarSide /> },
         { name: "user", icon: <FaCarSide /> },
       ],

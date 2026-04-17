@@ -1,4 +1,10 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   FiGrid,
   FiList,
@@ -52,6 +58,12 @@ const getImageSrc = (value?: string) => {
   return `data:image/png;base64,${trimmed}`;
 };
 
+const safeTime = (value?: string) => {
+  if (!value) return 0;
+  const t = new Date(value).getTime();
+  return Number.isNaN(t) ? 0 : t;
+};
+
 const Diagrams: React.FC = () => {
   const navigate = useNavigate();
 
@@ -75,6 +87,19 @@ const Diagrams: React.FC = () => {
 
   const sortRef = useRef<HTMLDivElement | null>(null);
 
+  const hasFetchedRef = useRef(false);
+  const isLoadingListRef = useRef(false);
+  const isMountedRef = useRef(false);
+  const editRequestIdRef = useRef(0);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   useEffect(() => {
     const onClickOutside = (e: MouseEvent) => {
       const target = e.target as Node;
@@ -87,40 +112,59 @@ const Diagrams: React.FC = () => {
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, []);
 
-  const loadDiagrams = async () => {
-    setLoading(true);
-    setError("");
+  const loadDiagrams = useCallback(async () => {
+    if (isLoadingListRef.current) return;
 
     try {
+      isLoadingListRef.current = true;
+
+      if (isMountedRef.current) {
+        setLoading(true);
+        setError("");
+      }
+
       const data = await ListDiagrams();
+
+      if (!isMountedRef.current) return;
+
       if (!data) {
         setError("ไม่สามารถโหลดข้อมูล Diagram ได้");
         setDiagrams([]);
         return;
       }
 
-      setDiagrams(data);
-    } catch {
+      setDiagrams(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("loadDiagrams error:", error);
+
+      if (!isMountedRef.current) return;
+
       setError("เกิดข้อผิดพลาดในการโหลดข้อมูล Diagram");
       setDiagrams([]);
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
+      isLoadingListRef.current = false;
     }
-  };
+  }, []);
 
   useEffect(() => {
-    loadDiagrams();
-  }, []);
+    if (hasFetchedRef.current) return;
+    hasFetchedRef.current = true;
+    void loadDiagrams();
+  }, [loadDiagrams]);
 
   const summary = useMemo(() => {
     const source = diagrams ?? [];
+    const now = new Date();
+
     return {
       total: source.length,
       withImage: source.filter((d) => !!d.image_base64?.trim()).length,
       updatedToday: source.filter((d) => {
         if (!d.updated_at) return false;
         const date = new Date(d.updated_at);
-        const now = new Date();
         return (
           date.getFullYear() === now.getFullYear() &&
           date.getMonth() === now.getMonth() &&
@@ -133,41 +177,38 @@ const Diagrams: React.FC = () => {
   const filteredItems = useMemo(() => {
     const q = query.trim().toLowerCase();
 
-    let items = [...diagrams];
-
-    if (q) {
-      items = items.filter((item) => {
-        const name = item.name?.toLowerCase() ?? "";
-        const description = item.description?.toLowerCase() ?? "";
-        const createdAt = item.created_at?.toLowerCase?.() ?? "";
-        const updatedAt = item.updated_at?.toLowerCase?.() ?? "";
+    const items = diagrams
+      .map((item) => ({
+        ...item,
+        _createdTime: safeTime(item.created_at),
+        _updatedTime: safeTime(item.updated_at ?? item.created_at),
+        _searchName: (item.name ?? "").toLowerCase(),
+        _searchDescription: (item.description ?? "").toLowerCase(),
+        _searchCreatedAt: String(item.created_at ?? "").toLowerCase(),
+        _searchUpdatedAt: String(item.updated_at ?? "").toLowerCase(),
+      }))
+      .filter((item) => {
+        if (!q) return true;
 
         return (
-          name.includes(q) ||
-          description.includes(q) ||
-          createdAt.includes(q) ||
-          updatedAt.includes(q)
+          item._searchName.includes(q) ||
+          item._searchDescription.includes(q) ||
+          item._searchCreatedAt.includes(q) ||
+          item._searchUpdatedAt.includes(q)
         );
       });
-    }
 
     items.sort((a, b) => {
       switch (sortMode) {
         case "oldest":
-          return (
-            new Date(a.created_at ?? 0).getTime() -
-            new Date(b.created_at ?? 0).getTime()
-          );
+          return a._createdTime - b._createdTime;
         case "name_asc":
           return (a.name ?? "").localeCompare(b.name ?? "");
         case "name_desc":
           return (b.name ?? "").localeCompare(a.name ?? "");
         case "latest":
         default:
-          return (
-            new Date(b.updated_at ?? b.created_at ?? 0).getTime() -
-            new Date(a.updated_at ?? a.created_at ?? 0).getTime()
-          );
+          return b._updatedTime - a._updatedTime;
       }
     });
 
@@ -188,48 +229,79 @@ const Diagrams: React.FC = () => {
     }
   }, [sortMode]);
 
-  const handleOpenCreate = () => {
+  const handleOpenCreate = useCallback(() => {
     setModalMode("create");
     setSelectedDiagram(null);
     setFormLoading(false);
     setOpenFormModal(true);
-  };
+  }, []);
 
-  const handleOpenEdit = async (diagramID: number) => {
+  const handleOpenEdit = useCallback(async (diagramID: number) => {
+    const requestId = ++editRequestIdRef.current;
+
     setModalMode("edit");
     setSelectedDiagram(null);
     setFormLoading(true);
     setOpenFormModal(true);
 
-    const data = await ListDiagramByID(diagramID);
-    if (!data) {
-      setFormLoading(false);
-      return;
+    try {
+      const data = await ListDiagramByID(diagramID);
+
+      if (!isMountedRef.current) return;
+      if (requestId !== editRequestIdRef.current) return;
+
+      if (!data) {
+        message.error("ไม่สามารถโหลดข้อมูล Diagram ได้");
+        setOpenFormModal(false);
+        return;
+      }
+
+      setSelectedDiagram(data);
+    } catch (error) {
+      console.error("handleOpenEdit error:", error);
+
+      if (!isMountedRef.current) return;
+      if (requestId !== editRequestIdRef.current) return;
+
+      message.error("เกิดข้อผิดพลาดในการโหลดข้อมูล Diagram");
+      setOpenFormModal(false);
+    } finally {
+      if (isMountedRef.current && requestId === editRequestIdRef.current) {
+        setFormLoading(false);
+      }
     }
+  }, []);
 
-    setSelectedDiagram(data);
-    setFormLoading(false);
-  };
+  const handleOpenDetail = useCallback(
+    (diagramID: number) => {
+      navigate(`/admin/diagram-node?diagramId=${diagramID}`);
+    },
+    [navigate]
+  );
 
-  const handleOpenDetail = (diagramID: number) => {
-    navigate(`/admin/diagram-node?diagramId=${diagramID}`);
-  };
-
-  const handleDeleteDiagram = async () => {
-    if (!deleteTarget?.id) return;
+  const handleDeleteDiagram = useCallback(async () => {
+    if (!deleteTarget?.id || deleting) return;
 
     setDeleting(true);
     try {
       const res = await DeleteDiagramByID(deleteTarget.id);
-      if (!res) return;
+      if (!res) {
+        message.error("delete failed");
+        return;
+      }
 
       message.success("delete success");
       setDeleteTarget(null);
       await loadDiagrams();
+    } catch (error) {
+      console.error("handleDeleteDiagram error:", error);
+      message.error("delete failed");
     } finally {
-      setDeleting(false);
+      if (isMountedRef.current) {
+        setDeleting(false);
+      }
     }
-  };
+  }, [deleteTarget, deleting, loadDiagrams]);
 
   const shell = [
     "relative overflow-hidden rounded-[18px]",

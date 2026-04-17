@@ -411,6 +411,9 @@ export type AllTargetDTO = {
   detected_date: string;
   aging_day: number;
   risk_score: number;
+  level: string;
+  total: number;
+  severity: number;
 };
 
 // =======================
@@ -421,8 +424,21 @@ export const ListALLTarget = async (): Promise<AllTargetDTO[] | null> => {
     const response = await vulnerabilityApi.get("/all-targets");
 
     if (response.status === 200) {
-      const data = response.data?.data ?? response.data;
-      return Array.isArray(data) ? (data as AllTargetDTO[]) : [];
+      const rawData = response.data?.data ?? response.data;
+
+      if (!Array.isArray(rawData)) return [];
+
+      return rawData.map((item: any): AllTargetDTO => ({
+        task_id: String(item?.task_id ?? ""),
+        name: String(item?.name ?? ""),
+        ip: String(item?.ip ?? ""),
+        detected_date: String(item?.detected_date ?? ""),
+        aging_day: Number(item?.aging_day ?? 0),
+        risk_score: Number(item?.risk_score ?? 0),
+        level: String(item?.level ?? ""),
+        total: Number(item?.total ?? 0),
+        severity: Number(item?.severity ?? 0),
+      }));
     }
 
     console.error("Unexpected status:", response.status);

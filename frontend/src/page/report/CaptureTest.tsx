@@ -11,6 +11,8 @@ import ReportFooter from "./ReportFooter";
 import {
   ListCriticalForReport,
   ListDeviceRiskForReport,
+  ListTaskVulnSummaryForReport,
+  type TaskVulnSummaryForReportResponse,
 } from "../../services/report";
 import type { DeviceRiskForReportDTO } from "../../services/report";
 
@@ -120,6 +122,9 @@ const CaptureTest: React.FC<CaptureTestProps> = ({
   refreshToken = 0,
   selectedTaskIDs = [],
 }) => {
+  const [prefetchedSummaryRows, setPrefetchedSummaryRows] = useState<
+    TaskVulnSummaryForReportResponse[]
+  >([]);
   const [prefetchedHighlights, setPrefetchedHighlights] = useState<
     CriticalForReportDTO[]
   >([]);
@@ -181,14 +186,22 @@ const CaptureTest: React.FC<CaptureTestProps> = ({
       try {
         setPrefetchLoading(true);
 
-        const [criticalResult, deviceResult] = await Promise.all([
-          effectiveTaskMode === "all"
-            ? ListCriticalForReport(undefined, 9999)
-            : ListCriticalForReport(effectiveTaskIDs, 9999),
+        const requestTaskIds =
+          effectiveTaskMode === "all" || effectiveTaskIDs.length === 0
+            ? undefined
+            : effectiveTaskIDs;
+
+        const [summaryResult, criticalResult, deviceResult] = await Promise.all([
+          ListTaskVulnSummaryForReport(requestTaskIds),
+          ListCriticalForReport(requestTaskIds, 9999),
           ListDeviceRiskForReport(),
         ]);
 
         if (!alive) return;
+
+        const summaryRows = Array.isArray(summaryResult)
+          ? (summaryResult as TaskVulnSummaryForReportResponse[])
+          : [];
 
         const criticalRows = Array.isArray(criticalResult)
           ? (criticalResult as CriticalForReportDTO[])
@@ -209,11 +222,13 @@ const CaptureTest: React.FC<CaptureTestProps> = ({
                 selectedTaskSet.has(String(item.task_id).trim())
               );
 
+        setPrefetchedSummaryRows(summaryRows);
         setPrefetchedHighlights(criticalRows);
         setPrefetchedDevices(filteredDevices);
       } catch (error) {
         console.error("CaptureTest preload data error:", error);
         if (!alive) return;
+        setPrefetchedSummaryRows([]);
         setPrefetchedHighlights([]);
         setPrefetchedDevices([]);
       } finally {
@@ -322,6 +337,7 @@ const CaptureTest: React.FC<CaptureTestProps> = ({
     totalPages,
     highlightPages,
     devicePages,
+    prefetchedSummaryRows,
     prefetchedHighlights,
     prefetchedDevices,
   ]);
@@ -408,6 +424,8 @@ const CaptureTest: React.FC<CaptureTestProps> = ({
             <ReportKPI
               onReady={setKpiReady}
               selectedTaskIDs={effectiveTaskIDs}
+              prefetchedRows={prefetchedSummaryRows}
+              prefetchedLoading={prefetchLoading}
             />
           </section>
 
@@ -426,6 +444,8 @@ const CaptureTest: React.FC<CaptureTestProps> = ({
             <SeveritySnapshot
               onReady={setSeverityReady}
               selectedTaskIDs={effectiveTaskIDs}
+              prefetchedRows={prefetchedSummaryRows}
+              prefetchedLoading={prefetchLoading}
             />
           </section>
         </main>
@@ -663,6 +683,7 @@ const CaptureTest: React.FC<CaptureTestProps> = ({
     prefetchLoading,
     pageDescriptors,
     effectiveTaskIDs,
+    prefetchedSummaryRows,
     prefetchedHighlights,
     prefetchedDevices,
     refreshToken,

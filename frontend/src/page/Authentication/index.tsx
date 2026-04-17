@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { message } from "antd";
 import { useNavigate } from "react-router-dom";
 import {
@@ -108,7 +108,7 @@ const Index: React.FC = () => {
 
   const [existingContacts, setExistingContacts] = useState<
     EmailAndPhoneNumberResponse[]
-  >([]);
+  >([]);//@ts-ignore
   const [loadingExistingContacts, setLoadingExistingContacts] = useState(false);
   const [duplicateErrors, setDuplicateErrors] = useState<DuplicateErrors>({
     email: "",
@@ -117,6 +117,10 @@ const Index: React.FC = () => {
   const [phoneValidationError, setPhoneValidationError] = useState("");
 
   const isSignUp = viewMode === "signup";
+
+  const hasFetchedContactsRef = useRef(false);
+  const isFetchingContactsRef = useRef(false);
+  const isMountedRef = useRef(false);
 
   const inputBase =
     "h-[40px] w-full rounded-xl border border-slate-200/90 bg-white/85 dark:bg-white/[0.06] dark:border-white/10 pl-10 pr-10 text-[12px] text-slate-700 dark:text-white/85 outline-none transition-all duration-300 placeholder:text-slate-400 dark:placeholder:text-white/30 focus:border-cyan-400 dark:focus:border-cyan-400 focus:ring-4 focus:ring-cyan-100/70 dark:focus:ring-cyan-500/15 shadow-sm dark:shadow-none";
@@ -139,10 +143,17 @@ const Index: React.FC = () => {
   const duplicateFieldClass =
     "mt-1 pl-1 text-[11px] font-medium text-red-600 dark:text-red-400";
 
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   const normalizeEmail = (value: string) => value.trim().toLowerCase();
   const normalizePhone = (value: string) => value.replace(/\D/g, "").trim();
 
-  const validateThaiPhoneNumber = (value: string) => {
+  const validateThaiPhoneNumber = useCallback((value: string) => {
     const phone = normalizePhone(value);
 
     if (!phone) return "";
@@ -150,78 +161,111 @@ const Index: React.FC = () => {
     if (phone.length > 10) return "เบอร์โทรต้องไม่เกิน 10 ตัว";
     if (phone.length < 10) return "เบอร์โทรต้องมี 10 ตัว";
     return "";
-  };
-
-  const loadExistingContacts = async () => {
-    try {
-      setLoadingExistingContacts(true);
-      const data = await ListEmailAndPhoneNumber();
-      setExistingContacts(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error("ListEmailAndPhoneNumber error:", error);
-      setExistingContacts([]);
-    } finally {
-      setLoadingExistingContacts(false);
-    }
-  };
-
-  useEffect(() => {
-    loadExistingContacts();
   }, []);
 
+  const checkDuplicateFields = useCallback(
+    (email: string, phoneNumber: string) => {
+      const normalizedEmail = normalizeEmail(email);
+      const normalizedPhone = normalizePhone(phoneNumber);
+
+      let emailError = "";
+      let phoneError = "";
+
+      if (normalizedEmail) {
+        const emailExists = existingContacts.some(
+          (item) => normalizeEmail(item.email) === normalizedEmail
+        );
+        if (emailExists) {
+          emailError = "อีเมลนี้ถูกใช้งานแล้ว";
+        }
+      }
+
+      if (normalizedPhone) {
+        const phoneExists = existingContacts.some(
+          (item) => normalizePhone(item.phone_number) === normalizedPhone
+        );
+        if (phoneExists) {
+          phoneError = "เบอร์โทรนี้ถูกใช้งานแล้ว";
+        }
+      }
+
+      return {
+        email: emailError,
+        phone_number: phoneError,
+      };
+    },
+    [existingContacts]
+  );
+
+  const loadExistingContacts = useCallback(
+    async (force = false) => {
+      if (isFetchingContactsRef.current) return existingContacts;
+      if (!force && hasFetchedContactsRef.current && existingContacts.length > 0) {
+        return existingContacts;
+      }
+
+      try {
+        isFetchingContactsRef.current = true;
+
+        if (isMountedRef.current) {
+          setLoadingExistingContacts(true);
+        }
+
+        const data = await ListEmailAndPhoneNumber();
+        const normalized = Array.isArray(data) ? data : [];
+
+        if (isMountedRef.current) {
+          setExistingContacts(normalized);
+        }
+
+        hasFetchedContactsRef.current = true;
+        return normalized;
+      } catch (error) {
+        console.error("ListEmailAndPhoneNumber error:", error);
+
+        if (isMountedRef.current) {
+          setExistingContacts([]);
+        }
+
+        return [];
+      } finally {
+        if (isMountedRef.current) {
+          setLoadingExistingContacts(false);
+        }
+        isFetchingContactsRef.current = false;
+      }
+    },
+    [existingContacts]
+  );
+
   useEffect(() => {
-    if (
-      viewMode === "signup" &&
-      existingContacts.length === 0 &&
-      !loadingExistingContacts
-    ) {
-      loadExistingContacts();
-    }
-  }, [viewMode]);
-
-  const checkDuplicateFields = (email: string, phoneNumber: string) => {
-    const normalizedEmail = normalizeEmail(email);
-    const normalizedPhone = normalizePhone(phoneNumber);
-
-    let emailError = "";
-    let phoneError = "";
-
-    if (normalizedEmail) {
-      const emailExists = existingContacts.some(
-        (item) => normalizeEmail(item.email) === normalizedEmail
-      );
-      if (emailExists) {
-        emailError = "อีเมลนี้ถูกใช้งานแล้ว";
-      }
-    }
-
-    if (normalizedPhone) {
-      const phoneExists = existingContacts.some(
-        (item) => normalizePhone(item.phone_number) === normalizedPhone
-      );
-      if (phoneExists) {
-        phoneError = "เบอร์โทรนี้ถูกใช้งานแล้ว";
-      }
-    }
-
-    return {
-      email: emailError,
-      phone_number: phoneError,
-    };
-  };
+    if (hasFetchedContactsRef.current) return;
+    void loadExistingContacts();
+  }, [loadExistingContacts]);
 
   useEffect(() => {
     if (viewMode !== "signup") return;
+    if (hasFetchedContactsRef.current) return;
+    void loadExistingContacts();
+  }, [viewMode, loadExistingContacts]);
 
-    const phoneError = validateThaiPhoneNumber(signupForm.phone_number);
-    setPhoneValidationError(phoneError);
+  const computedPhoneValidationError = useMemo(() => {
+    if (viewMode !== "signup") return "";
+    return validateThaiPhoneNumber(signupForm.phone_number);
+  }, [signupForm.phone_number, validateThaiPhoneNumber, viewMode]);
 
-    const result = checkDuplicateFields(
-      signupForm.email,
-      signupForm.phone_number
-    );
-    setDuplicateErrors(result);
-  }, [signupForm.email, signupForm.phone_number, existingContacts, viewMode]);
+  const computedDuplicateErrors = useMemo(() => {
+    if (viewMode !== "signup") {
+      return { email: "", phone_number: "" };
+    }
+
+    return checkDuplicateFields(signupForm.email, signupForm.phone_number);
+  }, [signupForm.email, signupForm.phone_number, checkDuplicateFields, viewMode]);
+
+  useEffect(() => {
+    setPhoneValidationError(computedPhoneValidationError);
+    setDuplicateErrors(computedDuplicateErrors);
+  }, [computedPhoneValidationError, computedDuplicateErrors]);
 
   const resetSignUpForm = () => {
     setSignupForm({
@@ -447,12 +491,6 @@ const Index: React.FC = () => {
         ...prev,
         phone_number: sanitizedPhone,
       }));
-
-      const phoneError = validateThaiPhoneNumber(sanitizedPhone);
-      setPhoneValidationError(phoneError);
-
-      const result = checkDuplicateFields(signupForm.email, sanitizedPhone);
-      setDuplicateErrors(result);
       return;
     }
 
@@ -460,11 +498,6 @@ const Index: React.FC = () => {
       ...prev,
       [name]: value,
     }));
-
-    if (name === "email") {
-      const result = checkDuplicateFields(value, signupForm.phone_number);
-      setDuplicateErrors(result);
-    }
   };
 
   const validateSignUpForm = () => {
@@ -484,7 +517,7 @@ const Index: React.FC = () => {
       message.error("รูปแบบ Email ไม่ถูกต้อง");
       return false;
     }
-    if (duplicateErrors.email) {
+    if (computedDuplicateErrors.email) {
       message.error("อีเมลนี้ถูกใช้งานแล้ว");
       return false;
     }
@@ -501,13 +534,12 @@ const Index: React.FC = () => {
       return false;
     }
 
-    const phoneError = validateThaiPhoneNumber(signupForm.phone_number);
-    if (phoneError) {
-      message.error(phoneError);
+    if (computedPhoneValidationError) {
+      message.error(computedPhoneValidationError);
       return false;
     }
 
-    if (duplicateErrors.phone_number) {
+    if (computedDuplicateErrors.phone_number) {
       message.error("เบอร์โทรนี้ถูกใช้งานแล้ว");
       return false;
     }
@@ -527,15 +559,37 @@ const Index: React.FC = () => {
   const handleSignUpSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    await loadExistingContacts();
-
+    const latestContacts = await loadExistingContacts(true);
     const latestPhoneError = validateThaiPhoneNumber(signupForm.phone_number);
-    setPhoneValidationError(latestPhoneError);
 
-    const latestDuplicateCheck = checkDuplicateFields(
-      signupForm.email,
-      signupForm.phone_number
-    );
+    const latestDuplicateCheck = (() => {
+      const normalizedEmail = normalizeEmail(signupForm.email);
+      const normalizedPhone = normalizePhone(signupForm.phone_number);
+
+      let emailError = "";
+      let phoneError = "";
+
+      if (normalizedEmail) {
+        const emailExists = latestContacts.some(
+          (item) => normalizeEmail(item.email) === normalizedEmail
+        );
+        if (emailExists) emailError = "อีเมลนี้ถูกใช้งานแล้ว";
+      }
+
+      if (normalizedPhone) {
+        const phoneExists = latestContacts.some(
+          (item) => normalizePhone(item.phone_number) === normalizedPhone
+        );
+        if (phoneExists) phoneError = "เบอร์โทรนี้ถูกใช้งานแล้ว";
+      }
+
+      return {
+        email: emailError,
+        phone_number: phoneError,
+      };
+    })();
+
+    setPhoneValidationError(latestPhoneError);
     setDuplicateErrors(latestDuplicateCheck);
 
     if (latestPhoneError) {
@@ -682,7 +736,7 @@ const Index: React.FC = () => {
               Network Security Scan
             </p>
             <h1 className="mt-2 text-[28px] font-extrabold leading-none">
-              Argus Sentinel
+              Argus
             </h1>
             <p className="mt-3 max-w-57.5 text-[11px] leading-5 text-slate-200/80">
               Secure access for scan operations, device visibility, and report review.
@@ -775,7 +829,7 @@ const Index: React.FC = () => {
 
   const renderErrorBox = (text: string) =>
     text ? (
-      <div className="mt-3 rounded-lg border border-red-200 bg-red-50 dark:bg-red-500/10 dark:border-red-400/20 px-3 py-2.5 text-[12px] text-red-600 dark:text-red-300">
+      <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-[12px] text-red-600 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300">
         {text}
       </div>
     ) : null;
@@ -826,7 +880,7 @@ const Index: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowLoginPassword((prev) => !prev)}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-white/40 transition hover:text-cyan-600 dark:hover:text-cyan-300"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-cyan-600 dark:text-white/40 dark:hover:text-cyan-300"
                 aria-label={showLoginPassword ? "Hide password" : "Show password"}
               >
                 {showLoginPassword ? (
@@ -840,7 +894,7 @@ const Index: React.FC = () => {
         </div>
 
         <div className="mt-2.5 flex items-center justify-between gap-2">
-          <div className="rounded-full bg-[#f2f8ff] dark:bg-white/8 px-2 py-0.5 text-[9px] font-medium text-slate-500 dark:text-white/55">
+          <div className="rounded-full bg-[#f2f8ff] px-2 py-0.5 text-[9px] font-medium text-slate-500 dark:bg-white/8 dark:text-white/55">
             Admin access only
           </div>
 
@@ -851,7 +905,7 @@ const Index: React.FC = () => {
               setForgotEmail(loginEmail.trim());
               setViewMode("forgot");
             }}
-            className="text-[10px] font-semibold text-slate-500 dark:text-white/55 transition hover:text-cyan-600 dark:hover:text-cyan-300"
+            className="text-[10px] font-semibold text-slate-500 transition hover:text-cyan-600 dark:text-white/55 dark:hover:text-cyan-300"
           >
             Forgot your password?
           </button>
@@ -883,7 +937,7 @@ const Index: React.FC = () => {
               setLoginError("");
               setViewMode("signup");
             }}
-            className="font-extrabold text-slate-900 dark:text-white transition hover:text-cyan-600 dark:hover:text-cyan-300"
+            className="font-extrabold text-slate-900 transition hover:text-cyan-600 dark:text-white dark:hover:text-cyan-300"
           >
             Sign Up
           </button>
@@ -924,7 +978,7 @@ const Index: React.FC = () => {
 
         <div className={`mt-3 ${subtleCardClass}`}>
           <div className="flex items-start gap-2">
-            <div className="mt-0.5 rounded-lg bg-[#e9f6ff] dark:bg-cyan-500/10 p-2 text-cyan-600 dark:text-cyan-300">
+            <div className="mt-0.5 rounded-lg bg-[#e9f6ff] p-2 text-cyan-600 dark:bg-cyan-500/10 dark:text-cyan-300">
               <FiRefreshCw className="text-[14px]" />
             </div>
 
@@ -955,7 +1009,7 @@ const Index: React.FC = () => {
           <button
             type="button"
             onClick={() => setViewMode("login")}
-            className="font-extrabold text-slate-900 dark:text-white transition hover:text-cyan-600 dark:hover:text-cyan-300"
+            className="font-extrabold text-slate-900 transition hover:text-cyan-600 dark:text-white dark:hover:text-cyan-300"
           >
             Sign In
           </button>
@@ -997,7 +1051,7 @@ const Index: React.FC = () => {
             <button
               type="button"
               onClick={() => setShowResetPassword((prev) => !prev)}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-white/40 transition hover:text-cyan-600 dark:hover:text-cyan-300"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-cyan-600 dark:text-white/40 dark:hover:text-cyan-300"
               aria-label={
                 showResetPassword ? "Hide new password" : "Show new password"
               }
@@ -1025,7 +1079,7 @@ const Index: React.FC = () => {
             <button
               type="button"
               onClick={() => setShowConfirmResetPassword((prev) => !prev)}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-white/40 transition hover:text-cyan-600 dark:hover:text-cyan-300"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-cyan-600 dark:text-white/40 dark:hover:text-cyan-300"
               aria-label={
                 showConfirmResetPassword
                   ? "Hide confirm password"
@@ -1043,7 +1097,7 @@ const Index: React.FC = () => {
 
         <div className={subtleCardClass}>
           <div className="flex items-start gap-2">
-            <div className="mt-0.5 rounded-lg bg-[#e9f6ff] dark:bg-cyan-500/10 p-2 text-cyan-600 dark:text-cyan-300">
+            <div className="mt-0.5 rounded-lg bg-[#e9f6ff] p-2 text-cyan-600 dark:bg-cyan-500/10 dark:text-cyan-300">
               <FiShield className="text-[14px]" />
             </div>
 
@@ -1092,7 +1146,7 @@ const Index: React.FC = () => {
           <button
             type="button"
             onClick={() => setViewMode("login")}
-            className="font-extrabold text-slate-900 dark:text-white transition hover:text-cyan-600 dark:hover:text-cyan-300"
+            className="font-extrabold text-slate-900 transition hover:text-cyan-600 dark:text-white dark:hover:text-cyan-300"
           >
             Sign In
           </button>
@@ -1206,7 +1260,7 @@ const Index: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowSignUpPassword((prev) => !prev)}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-white/40 transition hover:text-cyan-600 dark:hover:text-cyan-300"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-cyan-600 dark:text-white/40 dark:hover:text-cyan-300"
                   aria-label={showSignUpPassword ? "Hide password" : "Show password"}
                 >
                   {showSignUpPassword ? (
@@ -1272,7 +1326,7 @@ const Index: React.FC = () => {
           <button
             type="button"
             onClick={() => setViewMode("login")}
-            className="font-extrabold text-slate-900 dark:text-white transition hover:text-cyan-600 dark:hover:text-cyan-300"
+            className="font-extrabold text-slate-900 transition hover:text-cyan-600 dark:text-white dark:hover:text-cyan-300"
           >
             Sign In
           </button>
@@ -1348,19 +1402,19 @@ const Index: React.FC = () => {
     <>
       {renderMotionStyles()}
 
-      <div className="relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,#f8fbff_0%,#eef4fa_48%,#e9f1fb_100%)] dark:bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.14),transparent_24%),radial-gradient(circle_at_bottom_left,rgba(139,92,246,0.12),transparent_26%),linear-gradient(180deg,#020617_0%,#081120_45%,#0b1220_100%)] px-2 py-2.5 sm:px-3 lg:px-4">
+      <div className="relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,#f8fbff_0%,#eef4fa_48%,#e9f1fb_100%)] px-2 py-2.5 dark:bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.14),transparent_24%),radial-gradient(circle_at_bottom_left,rgba(139,92,246,0.12),transparent_26%),linear-gradient(180deg,#020617_0%,#081120_45%,#0b1220_100%)] sm:px-3 lg:px-4">
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute left-35 top-30 h-55 w-55 rounded-full bg-cyan-300/25 dark:bg-cyan-500/12 blur-3xl" />
-          <div className="absolute -right-25 top-22.5 h-45 w-45 rounded-full bg-sky-300/20 dark:bg-violet-500/12 blur-3xl" />
-          <div className="absolute -bottom-40 left-[12%] h-45 w-55 rounded-full bg-blue-200/25 dark:bg-blue-500/10 blur-3xl" />
-          <div className="absolute bottom-[4%] right-[8%] h-40 w-40 rounded-full bg-violet-200/20 dark:bg-cyan-400/10 blur-3xl" />
+          <div className="absolute left-35 top-30 h-55 w-55 rounded-full bg-cyan-300/25 blur-3xl dark:bg-cyan-500/12" />
+          <div className="absolute -right-25 top-22.5 h-45 w-45 rounded-full bg-sky-300/20 blur-3xl dark:bg-violet-500/12" />
+          <div className="absolute -bottom-40 left-[12%] h-45 w-55 rounded-full bg-blue-200/25 blur-3xl dark:bg-blue-500/10" />
+          <div className="absolute bottom-[4%] right-[8%] h-40 w-40 rounded-full bg-violet-200/20 blur-3xl dark:bg-cyan-400/10" />
           <div className="absolute inset-0 opacity-[0.25] dark:opacity-[0.08]">
-            <div className="h-full w-full bg-[linear-gradient(rgba(59,130,246,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.08)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-size-[28px_28px]" />
+            <div className="h-full w-full bg-[linear-gradient(rgba(59,130,246,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.08)_1px,transparent_1px)] bg-size-[28px_28px] dark:bg-[linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)]" />
           </div>
         </div>
 
         <div className="mx-auto flex min-h-[calc(100vh-1rem)] max-w-280 items-center justify-center">
-          <div className="relative w-full overflow-hidden rounded-[22px] border border-white/80 dark:border-white/10 bg-white/80 dark:bg-white/4 shadow-[0_18px_54px_rgba(15,23,42,0.08)] dark:shadow-[0_24px_80px_rgba(2,8,23,0.55)] backdrop-blur-xl">
+          <div className="relative w-full overflow-hidden rounded-[22px] border border-white/80 bg-white/80 shadow-[0_18px_54px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-white/4 dark:shadow-[0_24px_80px_rgba(2,8,23,0.55)]">
             {renderMobileHero()}
 
             <div className="hidden xl:block">
@@ -1368,7 +1422,7 @@ const Index: React.FC = () => {
                 <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.38)_0%,rgba(255,255,255,0.58)_100%)] dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.02)_0%,rgba(255,255,255,0.01)_100%)]" />
 
                 <div
-                  className="absolute top-0 left-0 h-full"
+                  className="absolute left-0 top-0 h-full"
                   style={{
                     width: isSignUp ? "56%" : "50%",
                     right: isSignUp ? "0" : "auto",
@@ -1379,9 +1433,9 @@ const Index: React.FC = () => {
                     zIndex: isSignUp ? 10 : 20,
                   }}
                 >
-                  <div className="relative h-full overflow-hidden bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_60%,#f6f3ff_100%)] dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.88)_0%,rgba(8,15,31,0.96)_58%,rgba(12,18,32,1)_100%)] px-6 py-5">
+                  <div className="relative h-full overflow-hidden bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_60%,#f6f3ff_100%)] px-6 py-5 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.88)_0%,rgba(8,15,31,0.96)_58%,rgba(12,18,32,1)_100%)]">
                     <div className="absolute inset-0 opacity-30 dark:opacity-10">
-                      <div className="h-full w-full bg-[linear-gradient(rgba(47,128,237,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(47,128,237,0.05)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-size-[20px_20px]" />
+                      <div className="h-full w-full bg-[linear-gradient(rgba(47,128,237,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(47,128,237,0.05)_1px,transparent_1px)] bg-size-[20px_20px] dark:bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)]" />
                     </div>
 
                     {renderTopWire()}
@@ -1462,7 +1516,7 @@ const Index: React.FC = () => {
                 </div>
 
                 <div
-                  className="absolute top-0 bottom-0 left-0 overflow-hidden"
+                  className="absolute bottom-0 left-0 top-0 overflow-hidden"
                   style={{
                     width: isSignUp ? "44%" : "50%",
                     transform: isSignUp
@@ -1494,8 +1548,8 @@ const Index: React.FC = () => {
               </div>
             </div>
 
-            <div className="xl:hidden px-3 pb-4 pt-4 sm:px-5">
-              <div className="rounded-[20px] border border-slate-200/80 dark:border-white/10 bg-white/85 dark:bg-white/3 p-4 sm:p-5 shadow-sm dark:shadow-none">
+            <div className="px-3 pb-4 pt-4 xl:hidden sm:px-5">
+              <div className="rounded-[20px] border border-slate-200/80 bg-white/85 p-4 shadow-sm dark:border-white/10 dark:bg-white/3 dark:shadow-none sm:p-5">
                 {viewMode === "login" && renderLoginForm()}
                 {viewMode === "forgot" && renderForgotForm()}
                 {viewMode === "reset" && renderResetForm()}

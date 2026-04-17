@@ -1,4 +1,10 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import ReactDOM from "react-dom";
 import { message } from "antd";
 import {
@@ -139,48 +145,79 @@ const EditReportModal: React.FC<EditReportModalProps> = ({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
+  const hasFetchedRef = useRef(false);
+  const isFetchingRef = useRef(false);
+  const isMountedRef = useRef(false);
+
   const companyPreview = useMemo(() => {
     return formData.company_name.trim() || "Company Name";
   }, [formData.company_name]);
 
   useEffect(() => {
-    if (!open) return;
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
-    const fetchLatestReport = async () => {
-      try {
+  const loadLatestReport = useCallback(async () => {
+    if (isFetchingRef.current) return;
+
+    try {
+      isFetchingRef.current = true;
+
+      if (isMountedRef.current) {
         setLoadingInitialData(true);
         setError("");
+      }
 
-        const res = await ListAppReport();
+      const res = await ListAppReport();
 
-        if (!res) {
-          setError("Load latest report data failed");
-          return;
-        }
+      if (!isMountedRef.current) return;
 
-        if ((res as any).error) {
-          setError((res as any).error);
-          return;
-        }
+      if (!res) {
+        setError("Load latest report data failed");
+        return;
+      }
 
-        setFormData({
-          company_name: (res as any).company_name || "",
-          logo: (res as any).logo || "",
-        });
-      } catch (err: any) {
-        console.error("ListAppReport error:", err);
-        setError(
-          err?.response?.data?.error ||
-            err?.message ||
-            "Something went wrong while loading latest report data"
-        );
-      } finally {
+      if ((res as any).error) {
+        setError((res as any).error);
+        return;
+      }
+
+      setFormData({
+        company_name: (res as any).company_name || "",
+        logo: (res as any).logo || "",
+      });
+    } catch (err: any) {
+      console.error("ListAppReport error:", err);
+
+      if (!isMountedRef.current) return;
+
+      setError(
+        err?.response?.data?.error ||
+          err?.message ||
+          "Something went wrong while loading latest report data"
+      );
+    } finally {
+      if (isMountedRef.current) {
         setLoadingInitialData(false);
       }
-    };
+      isFetchingRef.current = false;
+    }
+  }, []);
 
-    fetchLatestReport();
-  }, [open]);
+  useEffect(() => {
+    if (!open) {
+      hasFetchedRef.current = false;
+      return;
+    }
+
+    if (hasFetchedRef.current) return;
+    hasFetchedRef.current = true;
+
+    void loadLatestReport();
+  }, [open, loadLatestReport]);
 
   if (!open) return null;
 
@@ -209,6 +246,9 @@ const EditReportModal: React.FC<EditReportModalProps> = ({
       setError("");
 
       const base64 = await toBase64(file);
+
+      if (!isMountedRef.current) return;
+
       setFormData((prev) => ({
         ...prev,
         logo: base64,
@@ -218,7 +258,9 @@ const EditReportModal: React.FC<EditReportModalProps> = ({
       message.error("Upload image failed");
       e.target.value = "";
     } finally {
-      setUploadingImage(false);
+      if (isMountedRef.current) {
+        setUploadingImage(false);
+      }
     }
   };
 
@@ -269,7 +311,9 @@ const EditReportModal: React.FC<EditReportModalProps> = ({
           "Something went wrong while updating report"
       );
     } finally {
-      setSubmitting(false);
+      if (isMountedRef.current) {
+        setSubmitting(false);
+      }
     }
   };
 
@@ -426,51 +470,73 @@ const SendToLinePickerModal: React.FC<SendToLinePickerModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const hasFetchedRef = useRef(false);
+  const isFetchingRef = useRef(false);
+  const isMountedRef = useRef(false);
+
   useEffect(() => {
-    if (!open) return;
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
-    let alive = true;
+  const loadItems = useCallback(async () => {
+    if (isFetchingRef.current) return;
 
-    const loadItems = async () => {
-      try {
+    try {
+      isFetchingRef.current = true;
+
+      if (isMountedRef.current) {
         setLoading(true);
         setError("");
-
-        const res = await ListAppNotification();
-
-        if (!alive) return;
-
-        if (!res) {
-          setError("Load line targets failed");
-          setItems([]);
-          return;
-        }
-
-        const normalized = Array.isArray(res) ? res : [];
-        setItems(normalized);
-        setSelectedIDs(
-          normalized.filter((item) => item.alert).map((item) => Number(item.id))
-        );
-      } catch (err: any) {
-        console.error("ListAppNotification error:", err);
-        if (!alive) return;
-        setError(
-          err?.response?.data?.error ||
-            err?.message ||
-            "Something went wrong while loading line targets"
-        );
-        setItems([]);
-      } finally {
-        if (alive) setLoading(false);
       }
-    };
 
-    loadItems();
+      const res = await ListAppNotification();
 
-    return () => {
-      alive = false;
-    };
-  }, [open]);
+      if (!isMountedRef.current) return;
+
+      if (!res) {
+        setError("Load line targets failed");
+        setItems([]);
+        return;
+      }
+
+      const normalized = Array.isArray(res) ? res : [];
+      setItems(normalized);
+      setSelectedIDs(
+        normalized.filter((item) => item.alert).map((item) => Number(item.id))
+      );
+    } catch (err: any) {
+      console.error("ListAppNotification error:", err);
+
+      if (!isMountedRef.current) return;
+
+      setError(
+        err?.response?.data?.error ||
+          err?.message ||
+          "Something went wrong while loading line targets"
+      );
+      setItems([]);
+    } finally {
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
+      isFetchingRef.current = false;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!open) {
+      hasFetchedRef.current = false;
+      return;
+    }
+
+    if (hasFetchedRef.current) return;
+    hasFetchedRef.current = true;
+
+    void loadItems();
+  }, [open, loadItems]);
 
   if (!open) return null;
 
@@ -769,6 +835,18 @@ const ReportPreviewIndex: React.FC = () => {
   const downloadMenuRef = useRef<HTMLDivElement | null>(null);
   const deviceMenuRef = useRef<HTMLDivElement | null>(null);
 
+  const hasFetchedDevicesRef = useRef(false);
+  const isFetchingDevicesRef = useRef(false);
+  const isMountedRef = useRef(false);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
@@ -789,36 +867,43 @@ const ReportPreviewIndex: React.FC = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  useEffect(() => {
-    let alive = true;
+  const loadDevices = useCallback(async () => {
+    if (isFetchingDevicesRef.current) return;
 
-    const loadDevices = async () => {
-      try {
+    try {
+      isFetchingDevicesRef.current = true;
+
+      if (isMountedRef.current) {
         setLoadingDevices(true);
-
-        const res = await ListAssetRisk();
-
-        if (!alive) return;
-
-        const normalized = dedupeAssetRisk(Array.isArray(res) ? res : []);
-        setAssetRiskItems(normalized);
-      } catch (error) {
-        console.error("ListAssetRisk error:", error);
-        if (!alive) return;
-        setAssetRiskItems([]);
-      } finally {
-        if (alive) setLoadingDevices(false);
       }
-    };
 
-    loadDevices();
+      const res = await ListAssetRisk();
 
-    return () => {
-      alive = false;
-    };
+      if (!isMountedRef.current) return;
+
+      const normalized = dedupeAssetRisk(Array.isArray(res) ? res : []);
+      setAssetRiskItems(normalized);
+    } catch (error) {
+      console.error("ListAssetRisk error:", error);
+
+      if (!isMountedRef.current) return;
+
+      setAssetRiskItems([]);
+    } finally {
+      if (isMountedRef.current) {
+        setLoadingDevices(false);
+      }
+      isFetchingDevicesRef.current = false;
+    }
   }, []);
 
-  const handleToggleTask = (taskID: string) => {
+  useEffect(() => {
+    if (hasFetchedDevicesRef.current) return;
+    hasFetchedDevicesRef.current = true;
+    void loadDevices();
+  }, [loadDevices]);
+
+  const handleToggleTask = useCallback((taskID: string) => {
     const normalized = String(taskID).trim();
     if (!normalized) return;
 
@@ -827,59 +912,66 @@ const ReportPreviewIndex: React.FC = () => {
         ? prev.filter((item) => item !== normalized)
         : [...prev, normalized]
     );
-  };
+  }, []);
 
-  const handleClearTaskSelection = () => {
+  const handleClearTaskSelection = useCallback(() => {
     setSelectedTaskIDs([]);
-  };
+  }, []);
 
-  const handleSendToLine = async (selectedIDs: number[]) => {
-    try {
-      setSendingToLine(true);
-      setOpenSendToLineModal(false);
-      setOpenDownloadMenu(false);
+  const handleSendToLine = useCallback(
+    async (selectedIDs: number[]) => {
+      try {
+        setSendingToLine(true);
+        setOpenSendToLineModal(false);
+        setOpenDownloadMenu(false);
 
-      const res = (await SendPDFToLine(
-        undefined,
-        selectedIDs,
-        selectedTaskIDs
-      )) as SendPDFToLineResponse | null;
+        const res = (await SendPDFToLine(
+          undefined,
+          selectedIDs,
+          selectedTaskIDs
+        )) as SendPDFToLineResponse | null;
 
-      if (!res) {
+        if (!res) {
+          message.error("Send to LINE failed");
+          return;
+        }
+
+        if (res.error) {
+          message.error(res.error);
+          return;
+        }
+
+        setShowSuccess(true);
+
+        const successCount = (res.sent_notification_ids || []).length;
+        const failedCount = (res.failed_notification_ids || []).length;
+
+        if (failedCount > 0) {
+          message.success(
+            `sent to LINE successfully (${successCount} success, ${failedCount} failed)`
+          );
+        } else {
+          message.success("sent to LINE successfully");
+        }
+
+        window.setTimeout(() => {
+          if (isMountedRef.current) {
+            setShowSuccess(false);
+          }
+        }, 2500);
+      } catch (error) {
+        console.error("SendPDFToLine error:", error);
         message.error("Send to LINE failed");
-        return;
+      } finally {
+        if (isMountedRef.current) {
+          setSendingToLine(false);
+        }
       }
+    },
+    [selectedTaskIDs]
+  );
 
-      if (res.error) {
-        message.error(res.error);
-        return;
-      }
-
-      setShowSuccess(true);
-
-      const successCount = (res.sent_notification_ids || []).length;
-      const failedCount = (res.failed_notification_ids || []).length;
-
-      if (failedCount > 0) {
-        message.success(
-          `sent to LINE successfully (${successCount} success, ${failedCount} failed)`
-        );
-      } else {
-        message.success("sent to LINE successfully");
-      }
-
-      window.setTimeout(() => {
-        setShowSuccess(false);
-      }, 2500);
-    } catch (error) {
-      console.error("SendPDFToLine error:", error);
-      message.error("Send to LINE failed");
-    } finally {
-      setSendingToLine(false);
-    }
-  };
-
-  const handleSaveAsPDF = async () => {
+  const handleSaveAsPDF = useCallback(async () => {
     try {
       setSavingPdf(true);
       setOpenDownloadMenu(false);
@@ -894,13 +986,15 @@ const ReportPreviewIndex: React.FC = () => {
           "Download PDF failed"
       );
     } finally {
-      setSavingPdf(false);
+      if (isMountedRef.current) {
+        setSavingPdf(false);
+      }
     }
-  };
+  }, [selectedTaskIDs]);
 
-  const handleReportUpdated = () => {
+  const handleReportUpdated = useCallback(() => {
     setReportRefreshToken((prev) => prev + 1);
-  };
+  }, []);
 
   const actionBusy = sendingToLine || savingPdf;
 

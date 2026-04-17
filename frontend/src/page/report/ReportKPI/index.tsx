@@ -34,6 +34,8 @@ type MetricItem = {
 type ReportKPIProps = {
   onReady?: (ready: boolean) => void;
   selectedTaskIDs?: string[];
+  prefetchedRows?: TaskVulnSummaryForReportResponse[];
+  prefetchedLoading?: boolean;
 };
 
 const levelBadgeClassMap: Record<SeverityLevel, string> = {
@@ -94,6 +96,8 @@ const normalizeTaskIDs = (ids?: string[]): string[] => {
 const ReportKPI: React.FC<ReportKPIProps> = ({
   onReady,
   selectedTaskIDs = [],
+  prefetchedRows,
+  prefetchedLoading = false,
 }) => {
   const [rows, setRows] = useState<TaskVulnSummaryForReportResponse[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -105,6 +109,8 @@ const ReportKPI: React.FC<ReportKPIProps> = ({
     [selectedTaskIDs]
   );
 
+  const hasPrefetchedRows = Array.isArray(prefetchedRows);
+
   useEffect(() => {
     const parsed = readTaskIDsFromQuery();
     setQueryTaskIDs(parsed.ids);
@@ -112,6 +118,14 @@ const ReportKPI: React.FC<ReportKPIProps> = ({
   }, []);
 
   useEffect(() => {
+    if (hasPrefetchedRows) {
+      onReady?.(false);
+      setRows(prefetchedRows ?? []);
+      setLoading(Boolean(prefetchedLoading));
+      onReady?.(!prefetchedLoading);
+      return;
+    }
+
     let alive = true;
 
     onReady?.(false);
@@ -141,7 +155,7 @@ const ReportKPI: React.FC<ReportKPIProps> = ({
     return () => {
       alive = false;
     };
-  }, [onReady]);
+  }, [onReady, hasPrefetchedRows, prefetchedRows, prefetchedLoading]);
 
   const effectiveTaskMode = useMemo<"all" | "filtered">(() => {
     if (normalizedSelectedTaskIDs.length > 0) {
@@ -316,24 +330,37 @@ const ReportKPI: React.FC<ReportKPIProps> = ({
                     {item.icon}
                   </span>
 
-                  <span
-                    className={[
-                      "inline-flex shrink-0 items-center border px-2 py-0.75 text-[10px] font-extrabold uppercase tracking-[0.12em] leading-none",
-                      levelBadgeClassMap[item.level],
-                    ].join(" ")}
-                  >
-                    {levelTextMap[item.level]}
-                  </span>
+                  <div className="min-w-0">
+                    <p
+                      className={[
+                        "truncate text-[8px] font-semibold uppercase tracking-[0.12em]",
+                        item.labelClass,
+                      ].join(" ")}
+                    >
+                      {item.label}
+                    </p>
+                  </div>
                 </div>
+
+                <span
+                  className={[
+                    "inline-flex shrink-0 items-center border px-1.5 py-0.5 text-[7px] font-bold uppercase tracking-normal",
+                    levelBadgeClassMap[item.level],
+                  ].join(" ")}
+                >
+                  {levelTextMap[item.level]}
+                </span>
               </div>
 
-              <p className="mt-3 text-[18px] font-bold leading-none text-slate-900">
-                {item.value}
-              </p>
+              <div className="mt-3">
+                <p className="text-[22px] font-bold leading-none text-slate-900">
+                  {item.value}
+                </p>
 
-              <p className="mt-2 text-[9.5px] leading-[1.45] text-slate-600">
-                {item.hint}
-              </p>
+                <p className="mt-2 text-[9.5px] leading-normal text-slate-600">
+                  {item.hint}
+                </p>
+              </div>
             </div>
           );
         })}

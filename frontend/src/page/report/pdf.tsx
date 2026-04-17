@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   FiChevronLeft,
   FiChevronRight,
@@ -17,6 +17,8 @@ import ReportFooter from "./ReportFooter";
 import {
   ListCriticalForReport,
   ListDeviceRiskForReport,
+  ListTaskVulnSummaryForReport,
+  type TaskVulnSummaryForReportResponse,
 } from "../../services/report";
 import type { DeviceRiskForReportDTO } from "../../services/report";
 
@@ -132,9 +134,10 @@ const Pdf: React.FC<PdfProps> = ({
 }) => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [scale, setScale] = useState<number>(1);
-  const [highlightsCount, setHighlightsCount] = useState<number>(0);
-  const [deviceRiskCount, setDeviceRiskCount] = useState<number>(0);
 
+  const [prefetchedSummaryRows, setPrefetchedSummaryRows] = useState<
+    TaskVulnSummaryForReportResponse[]
+  >([]);
   const [prefetchedHighlights, setPrefetchedHighlights] = useState<
     CriticalForReportDTO[]
   >([]);
@@ -145,6 +148,10 @@ const Pdf: React.FC<PdfProps> = ({
 
   const previewFrameRef = useRef<HTMLDivElement | null>(null);
 
+  const isMountedRef = useRef(false);
+  const isPrefetchingRef = useRef(false);
+  const lastPrefetchKeyRef = useRef("");
+
   const normalizedSelectedTaskIDs = useMemo(
     () => normalizeTaskIDs(selectedTaskIDs),
     [selectedTaskIDs]
@@ -152,6 +159,14 @@ const Pdf: React.FC<PdfProps> = ({
 
   const [queryTaskIDs, setQueryTaskIDs] = useState<string[]>([]);
   const [taskMode, setTaskMode] = useState<"all" | "filtered">("all");
+
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     const parsed = readTaskIDsFromQuery();
@@ -172,6 +187,14 @@ const Pdf: React.FC<PdfProps> = ({
     }
     return queryTaskIDs;
   }, [normalizedSelectedTaskIDs, queryTaskIDs]);
+
+  const prefetchKey = useMemo(() => {
+    return JSON.stringify({
+      refreshToken,
+      mode: effectiveTaskMode,
+      ids: effectiveTaskIDs,
+    });
+  }, [refreshToken, effectiveTaskMode, effectiveTaskIDs]);
 
   useEffect(() => {
     const updateScale = () => {
@@ -204,67 +227,84 @@ const Pdf: React.FC<PdfProps> = ({
     };
   }, []);
 
-  useEffect(() => {
-    let alive = true;
+  const loadPrefetchData = useCallback(async () => {
+    if (isPrefetchingRef.current) return;
+    if (lastPrefetchKeyRef.current === prefetchKey) return;
 
-    const preloadData = async () => {
-      try {
+    try {
+      isPrefetchingRef.current = true;
+      lastPrefetchKeyRef.current = prefetchKey;
+
+      if (isMountedRef.current) {
         setPrefetchLoading(true);
+      }
 
-        const [criticalResult, deviceResult] = await Promise.all([
-          effectiveTaskMode === "all"
-            ? ListCriticalForReport(undefined, 9999)
-            : ListCriticalForReport(effectiveTaskIDs, 9999),
-          ListDeviceRiskForReport(),
-        ]);
+      const requestTaskIds =
+        effectiveTaskMode === "all" || effectiveTaskIDs.length === 0
+          ? undefined
+          : effectiveTaskIDs;
 
-        if (!alive) return;
+      const [summaryResult, criticalResult, deviceResult] = await Promise.all([
+        ListTaskVulnSummaryForReport(requestTaskIds),
+        ListCriticalForReport(requestTaskIds, 9999),
+        ListDeviceRiskForReport(),
+      ]);
 
-        const criticalRows = Array.isArray(criticalResult)
-          ? (criticalResult as CriticalForReportDTO[])
-          : [];
+      if (!isMountedRef.current) return;
 
-        const allDevices = Array.isArray(deviceResult)
-          ? (deviceResult as DeviceRiskForReportDTO[])
-          : [];
+      const summaryRows = Array.isArray(summaryResult)
+        ? (summaryResult as TaskVulnSummaryForReportResponse[])
+        : [];
 
-        const selectedTaskSet = new Set(
-          effectiveTaskIDs.map((id) => String(id).trim())
-        );
+      const criticalRows = Array.isArray(criticalResult)
+        ? (criticalResult as CriticalForReportDTO[])
+        : [];
 
-        const filteredDevices =
-          effectiveTaskMode === "all" || effectiveTaskIDs.length === 0
-            ? allDevices
-            : allDevices.filter((item) =>
-                selectedTaskSet.has(String(item.task_id).trim())
-              );
+      const allDevices = Array.isArray(deviceResult)
+        ? (deviceResult as DeviceRiskForReportDTO[])
+        : [];
 
-        setPrefetchedHighlights(criticalRows);
-        setPrefetchedDevices(filteredDevices);
-      } catch (error) {
-        console.error("Pdf preload data error:", error);
-        if (!alive) return;
-        setPrefetchedHighlights([]);
-        setPrefetchedDevices([]);
-      } finally {
-        if (!alive) return;
+      const selectedTaskSet = new Set(
+        effectiveTaskIDs.map((id) => String(id).trim())
+      );
+
+      const filteredDevices =
+        effectiveTaskMode === "all" || effectiveTaskIDs.length === 0
+          ? allDevices
+          : allDevices.filter((item) =>
+              selectedTaskSet.has(String(item.task_id).trim())
+            );
+
+      setPrefetchedSummaryRows(summaryRows);
+      setPrefetchedHighlights(criticalRows);
+      setPrefetchedDevices(filteredDevices);
+    } catch (error) {
+      console.error("Pdf preload data error:", error);
+
+      if (!isMountedRef.current) return;
+
+      setPrefetchedSummaryRows([]);
+      setPrefetchedHighlights([]);
+      setPrefetchedDevices([]);
+      lastPrefetchKeyRef.current = "";
+    } finally {
+      if (isMountedRef.current) {
         setPrefetchLoading(false);
       }
-    };
-
-    preloadData();
-
-    return () => {
-      alive = false;
-    };
-  }, [effectiveTaskMode, effectiveTaskIDs, refreshToken]);
+      isPrefetchingRef.current = false;
+    }
+  }, [effectiveTaskMode, effectiveTaskIDs, prefetchKey]);
 
   useEffect(() => {
-    setHighlightsCount(prefetchedHighlights.length);
+    void loadPrefetchData();
+  }, [loadPrefetchData]);
+
+  const highlightsCount = useMemo(() => {
+    return prefetchedHighlights.length;
   }, [prefetchedHighlights]);
 
-  useEffect(() => {
-    setDeviceRiskCount(prefetchedDevices.length);
+  const deviceRiskCount = useMemo(() => {
+    return prefetchedDevices.length;
   }, [prefetchedDevices]);
 
   const highlightPages = useMemo(() => {
@@ -395,7 +435,12 @@ const Pdf: React.FC<PdfProps> = ({
                   </p>
                 </div>
 
-                <ReportKPI onReady={noop} selectedTaskIDs={selectedTaskIDs} />
+                <ReportKPI
+                  onReady={noop}
+                  selectedTaskIDs={selectedTaskIDs}
+                  prefetchedRows={prefetchedSummaryRows}
+                  prefetchedLoading={prefetchLoading}
+                />
               </section>
 
               <section className="mt-5">
@@ -413,6 +458,8 @@ const Pdf: React.FC<PdfProps> = ({
                 <SeveritySnapshot
                   onReady={noop}
                   selectedTaskIDs={selectedTaskIDs}
+                  prefetchedRows={prefetchedSummaryRows}
+                  prefetchedLoading={prefetchLoading}
                 />
               </section>
             </main>
@@ -453,7 +500,7 @@ const Pdf: React.FC<PdfProps> = ({
                   pageIndex={descriptor.pageIndex}
                   pageSize={descriptor.pageSize}
                   showOuterHeader={true}
-                  onDataCountChange={setHighlightsCount}
+                  onDataCountChange={noop}
                   prefetchedRows={prefetchedHighlights}
                   prefetchedLoading={prefetchLoading}
                 />
@@ -499,7 +546,7 @@ const Pdf: React.FC<PdfProps> = ({
                   pageIndex={descriptor.pageIndex}
                   pageSize={descriptor.pageSize}
                   showOuterHeader={true}
-                  onDataCountChange={setDeviceRiskCount}
+                  onDataCountChange={noop}
                   prefetchedDevices={prefetchedDevices}
                   prefetchedLoading={prefetchLoading}
                 />

@@ -43,7 +43,7 @@ const emptyForm: FormState = {
   image_base64: "",
 };
 
-const MAX_IMAGE_SIZE_MB = 5;
+const MAX_IMAGE_SIZE_MB = 100;
 const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
 
 const ALLOWED_IMAGE_MIME_TYPES = [

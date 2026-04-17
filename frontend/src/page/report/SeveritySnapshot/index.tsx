@@ -21,6 +21,8 @@ type SeveritySnapshotProps = {
   totalLabel?: string;
   onReady?: (ready: boolean) => void;
   selectedTaskIDs?: string[];
+  prefetchedRows?: TaskVulnSummaryForReportResponse[];
+  prefetchedLoading?: boolean;
 };
 
 type SeverityKey = "Critical" | "High" | "Medium" | "Low" | "Info";
@@ -82,6 +84,8 @@ const SeveritySnapshot: React.FC<SeveritySnapshotProps> = ({
   totalLabel = "Total Findings",
   onReady,
   selectedTaskIDs = [],
+  prefetchedRows,
+  prefetchedLoading = false,
 }) => {
   const [rows, setRows] = useState<TaskVulnSummaryForReportResponse[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -93,6 +97,8 @@ const SeveritySnapshot: React.FC<SeveritySnapshotProps> = ({
     [selectedTaskIDs]
   );
 
+  const hasPrefetchedRows = Array.isArray(prefetchedRows);
+
   useEffect(() => {
     const parsed = readTaskIDsFromQuery();
     setQueryTaskIDs(parsed.ids);
@@ -100,6 +106,14 @@ const SeveritySnapshot: React.FC<SeveritySnapshotProps> = ({
   }, []);
 
   useEffect(() => {
+    if (hasPrefetchedRows) {
+      onReady?.(false);
+      setRows(prefetchedRows ?? []);
+      setLoading(Boolean(prefetchedLoading));
+      onReady?.(!prefetchedLoading);
+      return;
+    }
+
     let alive = true;
 
     onReady?.(false);
@@ -129,7 +143,7 @@ const SeveritySnapshot: React.FC<SeveritySnapshotProps> = ({
     return () => {
       alive = false;
     };
-  }, [onReady]);
+  }, [onReady, hasPrefetchedRows, prefetchedRows, prefetchedLoading]);
 
   const effectiveTaskMode = useMemo<"all" | "filtered">(() => {
     if (normalizedSelectedTaskIDs.length > 0) {
@@ -346,62 +360,34 @@ const SeveritySnapshot: React.FC<SeveritySnapshotProps> = ({
               </p>
             </div>
 
-            <div className="grid grid-cols-[1.5fr_1fr_1fr] bg-slate-100 px-3 py-2 text-[9px] font-semibold uppercase tracking-normal text-slate-600">
+            <div className="grid grid-cols-[1.5fr_1fr_1fr] bg-slate-100 px-3 py-2 text-[9px] font-semibold text-slate-700">
               <div>Severity</div>
-              <div className="text-right">Count</div>
+              <div className="text-right">Findings</div>
               <div className="text-right">Share</div>
             </div>
 
-            {loading ? (
-              <div className="px-3 py-4 text-[11px] text-slate-500">
-                Loading...
-              </div>
-            ) : chartData.length === 0 ? (
-              <div className="px-3 py-4 text-[11px] text-slate-500">
-                No Data
-              </div>
-            ) : (
-              chartData.map((item, index) => (
+            <div className="divide-y divide-slate-200">
+              {chartData.map((item) => (
                 <div
                   key={item.name}
-                  className={`grid grid-cols-[1.5fr_1fr_1fr] items-center px-3 py-2.5 ${
-                    index % 2 === 0 ? "bg-white" : "bg-slate-50/50"
-                  }`}
+                  className="grid grid-cols-[1.5fr_1fr_1fr] px-3 py-2 text-[10px] text-slate-700"
                 >
-                  <div className="flex items-center gap-2.5">
+                  <div className="flex items-center gap-2">
                     <span
-                      className="h-2.5 w-2.5 rounded-full"
+                      className="inline-block h-2.5 w-2.5 rounded-full"
                       style={{ backgroundColor: item.color }}
                     />
-                    <span className="text-[10.5px] text-slate-800">
-                      {item.name}
-                    </span>
+                    <span>{item.name}</span>
                   </div>
-
-                  <div className="text-right text-[10.5px] font-semibold text-slate-900">
+                  <div className="text-right font-medium">
                     {item.value.toLocaleString()}
                   </div>
-
-                  <div className="text-right text-[10px] text-slate-600">
-                    {item.share}%
+                  <div className="text-right text-slate-500">
+                    {item.share.toFixed(1)}%
                   </div>
                 </div>
-              ))
-            )}
-
-            {!loading && chartData.length > 0 && (
-              <div className="grid grid-cols-[1.5fr_1fr_1fr] border-t border-slate-200 bg-slate-100 px-3 py-2.5">
-                <div className="text-[10px] font-semibold uppercase tracking-normal text-slate-700">
-                  Total
-                </div>
-                <div className="text-right text-[10.5px] font-bold text-slate-900">
-                  {total.toLocaleString()}
-                </div>
-                <div className="text-right text-[10px] font-semibold text-slate-700">
-                  100%
-                </div>
-              </div>
-            )}
+              ))}
+            </div>
           </div>
         </div>
       </div>
