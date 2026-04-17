@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   FiMail,
   FiKey,
@@ -34,6 +34,19 @@ const Service: React.FC = () => {
     pass_app: "",
   });
 
+  // กัน useEffect ยิงซ้ำใน React StrictMode
+  const hasFetchedRef = useRef(false);
+  const isFetchingRef = useRef(false);
+  const isMountedRef = useRef(false);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   const hasChanged = useMemo(() => {
     if (!originalData) return false;
     return (
@@ -52,11 +65,17 @@ const Service: React.FC = () => {
   }, [isValidEmail, formData.pass_app]);
 
   const fetchSendEmail = async (mode: "initial" | "refresh" = "initial") => {
+    if (isFetchingRef.current) return;
+
     try {
-      if (mode === "initial") setLoading(true);
-      if (mode === "refresh") setRefreshing(true);
+      isFetchingRef.current = true;
+
+      if (mode === "initial" && isMountedRef.current) setLoading(true);
+      if (mode === "refresh" && isMountedRef.current) setRefreshing(true);
 
       const result = await ListSendEmails();
+
+      if (!isMountedRef.current) return;
 
       if (result && result.length > 0) {
         const item = result[0];
@@ -77,15 +96,24 @@ const Service: React.FC = () => {
       }
     } catch (error) {
       console.error("fetchSendEmail error:", error);
+
+      if (!isMountedRef.current) return;
+
       message.error("Failed to load send email configuration.");
     } finally {
-      if (mode === "initial") setLoading(false);
-      if (mode === "refresh") setRefreshing(false);
+      if (isMountedRef.current) {
+        if (mode === "initial") setLoading(false);
+        if (mode === "refresh") setRefreshing(false);
+      }
+
+      isFetchingRef.current = false;
     }
   };
 
   useEffect(() => {
-    fetchSendEmail("initial");
+    if (hasFetchedRef.current) return;
+    hasFetchedRef.current = true;
+    void fetchSendEmail("initial");
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -172,7 +200,6 @@ const Service: React.FC = () => {
           </div>
 
           <div className="relative z-10 flex min-h-[calc(100vh-40px)] flex-col">
-            {/* Header */}
             <div className="border-b border-gray-200/70 px-3.5 py-4 sm:px-4.5 md:px-5 dark:border-white/10">
               <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
                 <div className="flex items-start gap-3">
@@ -218,12 +245,9 @@ const Service: React.FC = () => {
               </div>
             </div>
 
-            {/* Body */}
             <div className="grid flex-1 grid-cols-1 gap-4 p-3.5 sm:p-4.5 md:p-5 xl:grid-cols-12">
-              {/* Left Summary */}
               <div className="xl:col-span-4">
                 <div className="flex h-full flex-col gap-3.5">
-                  {/* Config Status */}
                   <div className="rounded-3xl border border-gray-200/80 bg-white/80 p-3.5 shadow-sm dark:border-white/10 dark:bg-white/6">
                     <div className="mb-3.5 flex items-center gap-2.5">
                       <div className="inline-flex h-9.5 w-9.5 items-center justify-center rounded-2xl bg-[#eef3f8] text-gray-600 dark:bg-white/10 dark:text-white/70">
@@ -303,7 +327,6 @@ const Service: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Security Tips */}
                   <div className="rounded-3xl border border-gray-200/80 bg-white/80 p-3.5 shadow-sm dark:border-white/10 dark:bg-white/6">
                     <div className="mb-3.5 flex items-center gap-2.5">
                       <div className="inline-flex h-9.5 w-9.5 items-center justify-center rounded-2xl bg-[#eef3f8] text-gray-600 dark:bg-white/10 dark:text-white/70">
@@ -337,7 +360,6 @@ const Service: React.FC = () => {
                 </div>
               </div>
 
-              {/* Right Form */}
               <div className="xl:col-span-8">
                 <div className="flex h-full flex-col rounded-3xl border border-gray-200/80 bg-white/80 shadow-sm dark:border-white/10 dark:bg-white/6">
                   <div className="border-b border-gray-200/70 px-3.5 py-3.5 sm:px-4.5 dark:border-white/10">
@@ -391,7 +413,6 @@ const Service: React.FC = () => {
                       </div>
                     ) : (
                       <div className="grid h-full grid-cols-1 gap-4">
-                        {/* Email Field */}
                         <div className="rounded-3xl border border-gray-200 bg-[#f8fbff] p-3.5 dark:border-white/10 dark:bg-[#0b1425]/80 sm:p-4.5">
                           <label className="mb-3 flex items-center gap-2 text-[13px] font-semibold text-[#2b2f45] dark:text-white/85">
                             <span className="inline-flex h-8.5 w-8.5 items-center justify-center rounded-xl bg-cyan-50 text-cyan-700 dark:bg-cyan-500/10 dark:text-cyan-300">
@@ -437,7 +458,6 @@ const Service: React.FC = () => {
                           </div>
                         </div>
 
-                        {/* App Password Field */}
                         <div className="rounded-3xl border border-gray-200 bg-[#f8fbff] p-3.5 dark:border-white/10 dark:bg-[#0b1425]/80 sm:p-4.5">
                           <label className="mb-3 flex items-center gap-2 text-[13px] font-semibold text-[#2b2f45] dark:text-white/85">
                             <span className="inline-flex h-8.5 w-8.5 items-center justify-center rounded-xl bg-violet-50 text-violet-700 dark:bg-violet-500/10 dark:text-violet-300">
@@ -484,7 +504,6 @@ const Service: React.FC = () => {
                           </p>
                         </div>
 
-                        {/* Action Panel */}
                         <div className="rounded-3xl border border-gray-200 bg-white p-3.5 dark:border-white/10 dark:bg-white/5 sm:p-4.5">
                           <div className="flex flex-col gap-3.5 lg:flex-row lg:items-center lg:justify-between">
                             <div className="min-w-0">

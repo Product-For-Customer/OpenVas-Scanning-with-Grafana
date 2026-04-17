@@ -15,6 +15,7 @@ import {
   FiTarget,
   FiPlus,
   FiEdit2,
+  FiSlash,
 } from "react-icons/fi";
 import { type AllTargetDTO } from "../../../../services";
 import type { LocationFormState } from "../index";
@@ -28,6 +29,8 @@ type Props = {
   error: string;
   form: LocationFormState;
   targets: AllTargetDTO[];
+  usedTaskIds: string[];
+  currentTaskId?: string | null;
   onClose: () => void;
   onChange: React.Dispatch<React.SetStateAction<LocationFormState>>;
   onSubmit: (form: LocationFormState) => Promise<void>;
@@ -81,6 +84,8 @@ const ModalCreateAndUpdate: React.FC<Props> = ({
   error,
   form,
   targets,
+  usedTaskIds,
+  currentTaskId = null,
   onClose,
   onChange,
   onSubmit,
@@ -105,7 +110,7 @@ const ModalCreateAndUpdate: React.FC<Props> = ({
     } else {
       initialEditFormRef.current = null;
     }
-  }, [open, mode]);
+  }, [open, mode, form]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -121,11 +126,41 @@ const ModalCreateAndUpdate: React.FC<Props> = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const usedTaskIdSet = useMemo(() => {
+    const set = new Set<string>();
+
+    usedTaskIds.forEach((taskId) => {
+      const normalized = String(taskId || "").trim();
+      if (!normalized) return;
+
+      if (currentTaskId && normalized === String(currentTaskId).trim()) {
+        return;
+      }
+
+      set.add(normalized);
+    });
+
+    return set;
+  }, [usedTaskIds, currentTaskId]);
+
+  const availableTargets = useMemo(() => {
+    return targets.filter((target) => {
+      const taskId = String(target.task_id ?? "").trim();
+      if (!taskId) return false;
+
+      if (taskId === String(form.task_id ?? "").trim()) {
+        return true;
+      }
+
+      return !usedTaskIdSet.has(taskId);
+    });
+  }, [targets, usedTaskIdSet, form.task_id]);
+
   const filteredTargets = useMemo(() => {
     const keyword = targetSearch.trim().toLowerCase();
-    if (!keyword) return targets;
+    if (!keyword) return availableTargets;
 
-    return targets.filter((target) => {
+    return availableTargets.filter((target) => {
       const name = String(target.name ?? "").toLowerCase();
       const ip = String(target.ip ?? "").toLowerCase();
       const detectedDate = String(target.detected_date ?? "").toLowerCase();
@@ -138,7 +173,7 @@ const ModalCreateAndUpdate: React.FC<Props> = ({
         taskID.includes(keyword)
       );
     });
-  }, [targets, targetSearch]);
+  }, [availableTargets, targetSearch]);
 
   const selectedTarget = useMemo(() => {
     return targets.find((item) => item.task_id === form.task_id) ?? null;
@@ -165,6 +200,16 @@ const ModalCreateAndUpdate: React.FC<Props> = ({
   };
 
   const handleSelectTarget = (target: AllTargetDTO) => {
+    const taskId = String(target.task_id ?? "").trim();
+    if (!taskId) return;
+
+    if (
+      usedTaskIdSet.has(taskId) &&
+      taskId !== String(form.task_id ?? "").trim()
+    ) {
+      return;
+    }
+
     onChange((prev) => ({ ...prev, task_id: target.task_id }));
     setOpenTargetSelector(false);
     setTargetSearch("");
@@ -269,24 +314,24 @@ const ModalCreateAndUpdate: React.FC<Props> = ({
                   </div>
                 </div>
 
-                <div>
-                  <label className="mb-1.5 flex items-center gap-1.5 text-[9px] font-medium text-gray-600 dark:text-white/65">
-                    <FiHome className="text-[9.5px] text-cyan-600 dark:text-cyan-300" />
-                    Building
-                  </label>
-                  <div className="relative">
-                    <FiHome className="absolute left-3 top-1/2 -translate-y-1/2 text-[9.5px] text-gray-400 dark:text-white/35" />
-                    <input
-                      type="text"
-                      value={form.building}
-                      onChange={(e) => handleChange("building", e.target.value)}
-                      placeholder="Enter building"
-                      className={["pl-8", inputCls].join(" ")}
-                    />
-                  </div>
-                </div>
-
                 <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-1.5 flex items-center gap-1.5 text-[9px] font-medium text-gray-600 dark:text-white/65">
+                      <FiHome className="text-[9.5px] text-cyan-600 dark:text-cyan-300" />
+                      Building
+                    </label>
+                    <div className="relative">
+                      <FiHome className="absolute left-3 top-1/2 -translate-y-1/2 text-[9.5px] text-gray-400 dark:text-white/35" />
+                      <input
+                        type="text"
+                        value={form.building}
+                        onChange={(e) => handleChange("building", e.target.value)}
+                        placeholder="Enter building"
+                        className={["pl-8", inputCls].join(" ")}
+                      />
+                    </div>
+                  </div>
+
                   <div>
                     <label className="mb-1.5 flex items-center gap-1.5 text-[9px] font-medium text-gray-600 dark:text-white/65">
                       <FiLayers className="text-[9.5px] text-cyan-600 dark:text-cyan-300" />
@@ -302,139 +347,6 @@ const ModalCreateAndUpdate: React.FC<Props> = ({
                         className={["pl-8", inputCls].join(" ")}
                       />
                     </div>
-                  </div>
-
-                  <div className="relative" ref={selectorRef}>
-                    <label className="mb-1.5 flex items-center gap-1.5 text-[9px] font-medium text-gray-600 dark:text-white/65">
-                      <FiTarget className="text-[9.5px] text-cyan-600 dark:text-cyan-300" />
-                      Target
-                    </label>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!loadingTargets) {
-                          setOpenTargetSelector((prev) => !prev);
-                        }
-                      }}
-                      disabled={loadingTargets}
-                      className={selectorButtonCls}
-                    >
-                      <FiServer className="shrink-0 text-[11px]" />
-                      <span className="overflow-hidden text-ellipsis whitespace-nowrap text-[10px] font-medium">
-                        {selectedTarget
-                          ? selectedTarget.name?.trim()
-                            ? selectedTarget.name
-                            : selectedTarget.ip?.trim()
-                            ? selectedTarget.ip
-                            : "Selected target"
-                          : loadingTargets
-                          ? "Loading target..."
-                          : "Select target"}
-                      </span>
-                      <FiChevronDown
-                        className={`ml-auto text-[11px] transition-transform ${
-                          openTargetSelector ? "rotate-180" : ""
-                        }`}
-                      />
-                    </button>
-
-                    {openTargetSelector && (
-                      <div
-                        className={[
-                          "absolute bottom-full left-0 right-0 z-30 mb-2 overflow-hidden rounded-2xl",
-                          "border border-gray-200 bg-white shadow-xl",
-                          "dark:border-white/10 dark:bg-[#0B1220] dark:shadow-none",
-                        ].join(" ")}
-                      >
-                        <div className="border-b border-gray-100 p-2 dark:border-white/10">
-                          <div
-                            className={[
-                              "flex items-center gap-2 rounded-xl border px-2.5",
-                              "border-gray-200/80 bg-gray-50",
-                              "dark:border-white/10 dark:bg-white/5",
-                            ].join(" ")}
-                          >
-                            <FiSearch className="shrink-0 text-[10px] text-gray-400 dark:text-white/40" />
-                            <input
-                              value={targetSearch}
-                              onChange={(e) => setTargetSearch(e.target.value)}
-                              placeholder="Search target"
-                              className="h-7.5 w-full bg-transparent text-[10px] text-gray-700 outline-none placeholder:text-gray-400 dark:text-white/80 dark:placeholder:text-white/35"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="max-h-44 overflow-y-auto p-2">
-                          {loadingTargets ? (
-                            <div className="px-3 py-5 text-center text-[10px] text-gray-500 dark:text-white/50">
-                              Loading target...
-                            </div>
-                          ) : filteredTargets.length === 0 ? (
-                            <div className="px-3 py-5 text-center text-[10px] text-gray-500 dark:text-white/50">
-                              No matching target
-                            </div>
-                          ) : (
-                            <div className="space-y-1">
-                              {filteredTargets.map((target) => {
-                                const checked = form.task_id === target.task_id;
-
-                                return (
-                                  <button
-                                    key={`${target.task_id}-${target.ip}`}
-                                    type="button"
-                                    onClick={() => handleSelectTarget(target)}
-                                    className={[
-                                      "w-full flex items-start gap-2 rounded-xl px-2.5 py-2 text-left transition",
-                                      checked
-                                        ? "border border-cyan-200 bg-cyan-50 dark:border-cyan-400/20 dark:bg-cyan-500/10"
-                                        : "border border-transparent hover:bg-gray-50 dark:hover:bg-white/5",
-                                    ].join(" ")}
-                                  >
-                                    <span
-                                      className={[
-                                        "mt-0.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-md border transition",
-                                        checked
-                                          ? "border-cyan-500 bg-cyan-500 text-white"
-                                          : "border-gray-300 bg-white text-transparent dark:border-white/20 dark:bg-white/5",
-                                      ].join(" ")}
-                                    >
-                                      <FiCheck className="text-[9px]" />
-                                    </span>
-
-                                    <div className="min-w-0 flex-1">
-                                      <div className="flex items-center gap-2">
-                                        <span className="h-2 w-2 shrink-0 rounded-full bg-cyan-500" />
-                                        <span className="truncate text-[10px] font-medium text-gray-700 dark:text-white/80">
-                                          {target.name || "Unnamed Target"}
-                                        </span>
-                                      </div>
-
-                                      <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1">
-                                        <span className="inline-flex items-center gap-1 text-[9px] text-gray-500 dark:text-white/50">
-                                          <FiServer className="text-[9px]" />
-                                          {target.ip || "-"}
-                                        </span>
-                                        <span className="inline-flex items-center gap-1 text-[9px] text-gray-500 dark:text-white/50">
-                                          <FiCalendar className="text-[9px]" />
-                                          {formatDateTime(target.detected_date)}
-                                        </span>
-                                        <span className="inline-flex items-center gap-1 text-[9px] text-gray-500 dark:text-white/50">
-                                          <FiActivity className="text-[9px]" />
-                                          {typeof target.risk_score === "number"
-                                            ? target.risk_score.toFixed(2)
-                                            : "-"}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
                   </div>
                 </div>
 
@@ -476,6 +388,142 @@ const ModalCreateAndUpdate: React.FC<Props> = ({
                       />
                     </div>
                   </div>
+                </div>
+
+                <div className="relative" ref={selectorRef}>
+                  <label className="mb-1.5 flex items-center gap-1.5 text-[9px] font-medium text-gray-600 dark:text-white/65">
+                    <FiTarget className="text-[9.5px] text-cyan-600 dark:text-cyan-300" />
+                    Target
+                  </label>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!loadingTargets) {
+                        setOpenTargetSelector((prev) => !prev);
+                      }
+                    }}
+                    disabled={loadingTargets}
+                    className={selectorButtonCls}
+                  >
+                    <FiServer className="shrink-0 text-[11px]" />
+                    <span className="overflow-hidden text-ellipsis whitespace-nowrap text-[10px] font-medium">
+                      {selectedTarget
+                        ? selectedTarget.name?.trim()
+                          ? selectedTarget.name
+                          : selectedTarget.ip?.trim()
+                          ? selectedTarget.ip
+                          : "Selected target"
+                        : loadingTargets
+                        ? "Loading target..."
+                        : "Select target"}
+                    </span>
+                    <FiChevronDown
+                      className={`ml-auto text-[11px] transition-transform ${
+                        openTargetSelector ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {openTargetSelector && (
+                    <div
+                      className={[
+                        "absolute bottom-full left-0 right-0 z-30 mb-2 overflow-hidden rounded-2xl",
+                        "border border-gray-200 bg-white shadow-xl",
+                        "dark:border-white/10 dark:bg-[#0B1220] dark:shadow-none",
+                      ].join(" ")}
+                    >
+                      <div className="border-b border-gray-100 p-2 dark:border-white/10">
+                        <div
+                          className={[
+                            "flex items-center gap-2 rounded-xl border px-2.5",
+                            "border-gray-200/80 bg-gray-50",
+                            "dark:border-white/10 dark:bg-white/5",
+                          ].join(" ")}
+                        >
+                          <FiSearch className="shrink-0 text-[10px] text-gray-400 dark:text-white/40" />
+                          <input
+                            value={targetSearch}
+                            onChange={(e) => setTargetSearch(e.target.value)}
+                            placeholder="Search target"
+                            className="h-7.5 w-full bg-transparent text-[10px] text-gray-700 outline-none placeholder:text-gray-400 dark:text-white/80 dark:placeholder:text-white/35"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="max-h-44 overflow-y-auto p-2">
+                        {loadingTargets ? (
+                          <div className="px-3 py-5 text-center text-[10px] text-gray-500 dark:text-white/50">
+                            Loading target...
+                          </div>
+                        ) : filteredTargets.length === 0 ? (
+                          <div className="px-3 py-5 text-center text-[10px] text-gray-500 dark:text-white/50">
+                            <div className="flex flex-col items-center gap-2">
+                              <FiSlash className="text-[14px]" />
+                              <span>No available target</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-1">
+                            {filteredTargets.map((target) => {
+                              const checked = form.task_id === target.task_id;
+
+                              return (
+                                <button
+                                  key={`${target.task_id}-${target.ip}`}
+                                  type="button"
+                                  onClick={() => handleSelectTarget(target)}
+                                  className={[
+                                    "w-full flex items-start gap-2 rounded-xl px-2.5 py-2 text-left transition",
+                                    checked
+                                      ? "border border-cyan-200 bg-cyan-50 dark:border-cyan-400/20 dark:bg-cyan-500/10"
+                                      : "border border-transparent hover:bg-gray-50 dark:hover:bg-white/5",
+                                  ].join(" ")}
+                                >
+                                  <span
+                                    className={[
+                                      "mt-0.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-md border transition",
+                                      checked
+                                        ? "border-cyan-500 bg-cyan-500 text-white"
+                                        : "border-gray-300 bg-white text-transparent dark:border-white/20 dark:bg-white/5",
+                                    ].join(" ")}
+                                  >
+                                    <FiCheck className="text-[9px]" />
+                                  </span>
+
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-2">
+                                      <span className="h-2 w-2 shrink-0 rounded-full bg-cyan-500" />
+                                      <span className="truncate text-[10px] font-medium text-gray-700 dark:text-white/80">
+                                        {target.name || "Unnamed Target"}
+                                      </span>
+                                    </div>
+
+                                    <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                                      <span className="inline-flex items-center gap-1 text-[9px] text-gray-500 dark:text-white/50">
+                                        <FiServer className="text-[9px]" />
+                                        {target.ip || "-"}
+                                      </span>
+                                      <span className="inline-flex items-center gap-1 text-[9px] text-gray-500 dark:text-white/50">
+                                        <FiCalendar className="text-[9px]" />
+                                        {formatDateTime(target.detected_date)}
+                                      </span>
+                                      <span className="inline-flex items-center gap-1 text-[9px] text-gray-500 dark:text-white/50">
+                                        <FiActivity className="text-[9px]" />
+                                        {typeof target.risk_score === "number"
+                                          ? target.risk_score.toFixed(2)
+                                          : "-"}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

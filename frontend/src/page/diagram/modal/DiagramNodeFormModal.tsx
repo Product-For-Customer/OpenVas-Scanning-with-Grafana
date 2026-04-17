@@ -17,6 +17,7 @@ import {
   FiCalendar,
   FiActivity,
   FiServer,
+  FiSlash,
 } from "react-icons/fi";
 import type { AppDiagramNodeResponse } from "../../../services/diagram";
 import { ListALLTarget, type AllTargetDTO } from "../../../services";
@@ -47,6 +48,8 @@ type Props = {
     width: number;
     height: number;
   } | null;
+  allDiagramNodes?: AppDiagramNodeResponse[];
+  currentNodeId?: number | null;
   onClose: () => void;
   onSubmit: (values: DiagramNodeFormValues) => Promise<void> | void;
   onDelete?: () => void;
@@ -92,6 +95,8 @@ const DiagramNodeFormModal: React.FC<Props> = ({
   diagramName,
   initialData,
   draftPosition,
+  allDiagramNodes = [],
+  currentNodeId = null,
   onClose,
   onSubmit,
   onDelete,
@@ -195,25 +200,60 @@ const DiagramNodeFormModal: React.FC<Props> = ({
       : `Update selected node in ${diagramName || "diagram"}`;
   }, [mode, diagramName]);
 
+  const usedTaskIdSet = useMemo(() => {
+    const set = new Set<string>();
+
+    for (const node of allDiagramNodes) {
+      const nodeId = Number(node?.id ?? 0);
+      const taskId = String(node?.task_id ?? "").trim();
+
+      if (!taskId) continue;
+
+      if (currentNodeId && nodeId === currentNodeId) {
+        continue;
+      }
+
+      set.add(taskId);
+    }
+
+    return set;
+  }, [allDiagramNodes, currentNodeId]);
+
   const selectedTarget = useMemo(() => {
     return targets.find((item) => item.task_id === form.task_id) ?? null;
   }, [targets, form.task_id]);
 
+  const availableTargets = useMemo(() => {
+    return targets.filter((target) => {
+      const taskId = String(target.task_id ?? "").trim();
+      if (!taskId) return false;
+
+      if (taskId === String(form.task_id ?? "").trim()) {
+        return true;
+      }
+
+      return !usedTaskIdSet.has(taskId);
+    });
+  }, [targets, usedTaskIdSet, form.task_id]);
+
   const filteredTargets = useMemo(() => {
     const keyword = targetSearch.trim().toLowerCase();
-    if (!keyword) return targets;
+    if (!keyword) return availableTargets;
 
-    return targets.filter((target) => {
+    return availableTargets.filter((target) => {
       const name = String(target.name ?? "").toLowerCase();
       const ip = String(target.ip ?? "").toLowerCase();
       const detectedDate = String(target.detected_date ?? "").toLowerCase();
+      const taskId = String(target.task_id ?? "").toLowerCase();
+
       return (
         name.includes(keyword) ||
         ip.includes(keyword) ||
-        detectedDate.includes(keyword)
+        detectedDate.includes(keyword) ||
+        taskId.includes(keyword)
       );
     });
-  }, [targets, targetSearch]);
+  }, [availableTargets, targetSearch]);
 
   const targetButtonLabel = useMemo(() => {
     if (!selectedTarget) {
@@ -258,7 +298,14 @@ const DiagramNodeFormModal: React.FC<Props> = ({
   };
 
   const handleSelectTarget = (target: AllTargetDTO) => {
-    setField("task_id", target.task_id);
+    const taskId = String(target.task_id ?? "").trim();
+    if (!taskId) return;
+
+    if (usedTaskIdSet.has(taskId) && taskId !== String(form.task_id ?? "").trim()) {
+      return;
+    }
+
+    setField("task_id", taskId);
     setOpenTargetSelector(false);
     setTargetSearch("");
   };
@@ -272,6 +319,11 @@ const DiagramNodeFormModal: React.FC<Props> = ({
 
     if (!form.task_id.trim()) {
       nextErrors.task_id = "กรุณาเลือก Target";
+    } else if (
+      usedTaskIdSet.has(form.task_id.trim()) &&
+      form.task_id.trim() !== String(initialData?.task_id ?? "").trim()
+    ) {
+      nextErrors.task_id = "Target นี้ถูกใช้งานแล้ว";
     }
 
     setErrors(nextErrors);
@@ -504,7 +556,10 @@ const DiagramNodeFormModal: React.FC<Props> = ({
                             </div>
                           ) : filteredTargets.length === 0 ? (
                             <div className="px-3 py-5 text-center text-[10px] text-gray-500 dark:text-white/50">
-                              No matching target
+                              <div className="flex flex-col items-center gap-2">
+                                <FiSlash className="text-[14px]" />
+                                <span>No available target</span>
+                              </div>
                             </div>
                           ) : (
                             <div className="space-y-1">

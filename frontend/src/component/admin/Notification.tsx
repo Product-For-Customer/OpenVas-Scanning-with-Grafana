@@ -179,26 +179,56 @@ const Notification: React.FC = () => {
 
   const statusSelectorRef = useRef<HTMLDivElement | null>(null);
 
+  // กัน useEffect ยิงซ้ำใน dev/StrictMode
+  const hasFetchedRef = useRef(false);
+  const isFetchingRef = useRef(false);
+  const isMountedRef = useRef(false);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   useEffect(() => {
     if (isClicked?.notification) setOpen(true);
   }, [isClicked?.notification]);
 
   const loadHistory = async () => {
+    if (isFetchingRef.current) return;
+
     try {
-      setLoading(true);
-      setError("");
+      isFetchingRef.current = true;
+
+      if (isMountedRef.current) {
+        setLoading(true);
+        setError("");
+      }
+
       const res = await ListHistoryNotify();
+
+      if (!isMountedRef.current) return;
+
       setReports(Array.isArray(res) ? res : []);
     } catch (err) {
       console.error("loadHistory error:", err);
+
+      if (!isMountedRef.current) return;
+
       setReports([]);
       setError("Unable to load notifications.");
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
+      isFetchingRef.current = false;
     }
   };
 
   useEffect(() => {
+    if (hasFetchedRef.current) return;
+    hasFetchedRef.current = true;
     void loadHistory();
   }, []);
 
@@ -373,7 +403,7 @@ const Notification: React.FC = () => {
         </div>
       )}
 
-      <div className="relative z-300 px-3.5 pt-3.5 overflow-visible">
+      <div className="relative z-300 overflow-visible px-3.5 pt-3.5">
         <div className="grid grid-cols-1 gap-2 overflow-visible">
           <div
             className={[
@@ -400,17 +430,14 @@ const Notification: React.FC = () => {
             ) : null}
           </div>
 
-          <div
-            className="relative z-400"
-            ref={statusSelectorRef}
-          >
+          <div className="relative z-400" ref={statusSelectorRef}>
             <button
               type="button"
               onClick={() => setOpenStatusSelector((prev) => !prev)}
               className={selectorButtonCls}
             >
-              <FiFilter className="text-[10px] shrink-0" />
-              <span className="text-[10px] font-medium whitespace-nowrap overflow-hidden text-ellipsis">
+              <FiFilter className="shrink-0 text-[10px]" />
+              <span className="overflow-hidden text-ellipsis whitespace-nowrap text-[10px] font-medium">
                 {selectedStatusLabel}
               </span>
               <FiChevronDown
@@ -423,7 +450,7 @@ const Notification: React.FC = () => {
             {openStatusSelector && (
               <div
                 className={[
-                  "absolute left-0 right-0 top-full mt-2 z-9999 overflow-hidden rounded-2xl",
+                  "absolute left-0 right-0 top-full z-9999 mt-2 overflow-hidden rounded-2xl",
                   "border border-gray-200 bg-white shadow-[0_18px_40px_-12px_rgba(15,23,42,0.28)]",
                   "dark:border-white/10 dark:bg-[#0B1220] dark:shadow-[0_18px_40px_-12px_rgba(0,0,0,0.55)]",
                 ].join(" ")}
@@ -456,18 +483,18 @@ const Notification: React.FC = () => {
                           type="button"
                           onClick={() => toggleStatus(status)}
                           className={[
-                            "w-full flex items-center gap-2 rounded-xl px-2.5 py-2 text-left transition",
+                            "flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left transition",
                             checked
-                              ? "bg-cyan-50 border border-cyan-200 dark:bg-cyan-500/10 dark:border-cyan-400/20"
+                              ? "border border-cyan-200 bg-cyan-50 dark:border-cyan-400/20 dark:bg-cyan-500/10"
                               : "border border-transparent hover:bg-gray-50 dark:hover:bg-white/5",
                           ].join(" ")}
                         >
                           <span
                             className={[
-                              "h-3.5 w-3.5 rounded-md border flex items-center justify-center shrink-0 transition",
+                              "flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-md border transition",
                               checked
-                                ? "bg-cyan-500 border-cyan-500 text-white"
-                                : "bg-white border-gray-300 text-transparent dark:bg-white/5 dark:border-white/20",
+                                ? "border-cyan-500 bg-cyan-500 text-white"
+                                : "border-gray-300 bg-white text-transparent dark:border-white/20 dark:bg-white/5",
                             ].join(" ")}
                           >
                             <FiCheck className="text-[8px]" />

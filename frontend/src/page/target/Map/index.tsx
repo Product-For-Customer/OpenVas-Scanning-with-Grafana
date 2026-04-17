@@ -304,6 +304,12 @@ const MapDevice: React.FC = () => {
   const [editTarget, setEditTarget] = useState<Device | null>(null);
   const [editForm, setEditForm] = useState<LocationFormState>(emptyForm);
 
+  const usedTaskIds = useMemo(() => {
+    return rows
+      .map((item) => String(item.task_id || "").trim())
+      .filter((taskId) => !!taskId);
+  }, [rows]);
+
   const moveToDevice = (device: Device, zoom = 16) => {
     if (!isValidCoordinate(device.lat, device.lng)) return;
 
@@ -559,6 +565,10 @@ const MapDevice: React.FC = () => {
         setCreateError("กรุณาเลือก Task");
         return;
       }
+      if (usedTaskIds.includes(payload.task_id)) {
+        setCreateError("Target นี้ถูกใช้งานแล้ว");
+        return;
+      }
 
       const res = await CreateLocationService(payload);
 
@@ -664,6 +674,13 @@ const MapDevice: React.FC = () => {
       }
       if (!payload.task_id) {
         setEditError("กรุณาเลือก Task");
+        return;
+      }
+      if (
+        payload.task_id !== String(editTarget.task_id || "").trim() &&
+        usedTaskIds.includes(payload.task_id)
+      ) {
+        setEditError("Target นี้ถูกใช้งานแล้ว");
         return;
       }
 
@@ -991,6 +1008,8 @@ const MapDevice: React.FC = () => {
         error={createError}
         form={createForm}
         targets={targets}
+        usedTaskIds={usedTaskIds}
+        currentTaskId={null}
         onClose={closeCreateModal}
         onChange={setCreateForm}
         onSubmit={confirmCreate}
@@ -1004,6 +1023,8 @@ const MapDevice: React.FC = () => {
         error={editError}
         form={editForm}
         targets={targets}
+        usedTaskIds={usedTaskIds}
+        currentTaskId={editTarget?.task_id ?? null}
         onClose={closeEditModal}
         onChange={setEditForm}
         onSubmit={confirmEdit}

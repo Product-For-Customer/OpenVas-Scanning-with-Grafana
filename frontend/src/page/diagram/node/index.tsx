@@ -79,6 +79,7 @@ const DiagramNode: React.FC = () => {
 
   const [diagram, setDiagram] = useState<DiagramResponse | null>(null);
   const [nodes, setNodes] = useState<AppDiagramNodeResponse[]>([]);
+  const [allNodes, setAllNodes] = useState<AppDiagramNodeResponse[]>([]);
 
   const [loading, setLoading] = useState(true); //@ts-ignore
   const [reloading, setReloading] = useState(false);
@@ -136,7 +137,7 @@ const DiagramNode: React.FC = () => {
       setError("");
 
       try {
-        const [diagramData, allNodes] = await Promise.all([
+        const [diagramData, fetchedAllNodes] = await Promise.all([
           ListDiagramByID(diagramId),
           ListAppDiagramNodes(),
         ]);
@@ -145,10 +146,13 @@ const DiagramNode: React.FC = () => {
           setError("ไม่สามารถโหลดข้อมูล Diagram ได้");
           setDiagram(null);
           setNodes([]);
+          setAllNodes([]);
           return;
         }
 
-        const filteredNodes = (allNodes ?? [])
+        const safeAllNodes = Array.isArray(fetchedAllNodes) ? fetchedAllNodes : [];
+
+        const filteredNodes = safeAllNodes
           .filter((item) => Number(item.diagram_id) === diagramId)
           .sort((a, b) => {
             const zA = Number(a.z_index ?? 0);
@@ -158,11 +162,13 @@ const DiagramNode: React.FC = () => {
           });
 
         setDiagram(diagramData);
+        setAllNodes(safeAllNodes);
         setNodes(filteredNodes);
       } catch {
         setError("เกิดข้อผิดพลาดในการโหลดข้อมูล Diagram Node");
         setDiagram(null);
         setNodes([]);
+        setAllNodes([]);
       } finally {
         setLoading(false);
         setReloading(false);
@@ -636,6 +642,8 @@ const DiagramNode: React.FC = () => {
         diagramName={diagram?.name ?? ""}
         initialData={selectedNode}
         draftPosition={draftPosition}
+        allDiagramNodes={allNodes}
+        currentNodeId={selectedNode?.id ?? null}
         onClose={() => {
           if (modalLoading) return;
           setModalOpen(false);

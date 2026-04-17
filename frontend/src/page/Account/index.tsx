@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Setting from "./Setting";
 import Profile from "./Profile";
 import { ListUserByID, type UserResponse } from "../../services";
@@ -11,6 +11,18 @@ const Account: React.FC = () => {
   const [loadingUser, setLoadingUser] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [reloadKey, setReloadKey] = useState<number>(0);
+
+  const hasFetchedInitialRef = useRef(false);
+  const isFetchingRef = useRef(false);
+  const isMountedRef = useRef(false);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const currentUserId = useMemo(() => {
     return (
@@ -27,25 +39,37 @@ const Account: React.FC = () => {
   const isAdmin = auth?.isAdmin ?? false;
 
   const fetchUser = useCallback(async () => {
-    try {
-      setLoadingUser(true);
-      setError("");
+    if (isFetchingRef.current) return;
 
-      if (authLoading) return;
+    try {
+      isFetchingRef.current = true;
+
+      if (isMountedRef.current) {
+        setLoadingUser(true);
+        setError("");
+      }
+
+      if (authLoading) {
+        return;
+      }
 
       if (!isAdmin) {
+        if (!isMountedRef.current) return;
         setError("ไม่มีสิทธิ์เข้าถึงข้อมูลโปรไฟล์");
         setUser(null);
         return;
       }
 
       if (!currentUserId) {
+        if (!isMountedRef.current) return;
         setError("ไม่พบข้อมูลผู้ใช้งานจากระบบล็อกอิน");
         setUser(null);
         return;
       }
 
       const result = await ListUserByID(currentUserId);
+
+      if (!isMountedRef.current) return;
 
       if (!result) {
         setError("ไม่พบข้อมูลผู้ใช้งาน");
@@ -56,16 +80,29 @@ const Account: React.FC = () => {
       setUser(result);
     } catch (err) {
       console.error("Fetch user error:", err);
+
+      if (!isMountedRef.current) return;
+
       setError("เกิดข้อผิดพลาดในการดึงข้อมูลผู้ใช้งาน");
       setUser(null);
     } finally {
-      setLoadingUser(false);
+      if (isMountedRef.current) {
+        setLoadingUser(false);
+      }
+      isFetchingRef.current = false;
     }
   }, [authLoading, isAdmin, currentUserId]);
 
   useEffect(() => {
-    fetchUser();
-  }, [fetchUser, reloadKey]);
+    if (authLoading) return;
+
+    if (reloadKey === 0) {
+      if (hasFetchedInitialRef.current) return;
+      hasFetchedInitialRef.current = true;
+    }
+
+    void fetchUser();
+  }, [fetchUser, reloadKey, authLoading]);
 
   const handleProfileUpdated = () => {
     setReloadKey((prev) => prev + 1);
@@ -101,12 +138,12 @@ const Account: React.FC = () => {
 
   return (
     <div className="w-full">
-      <div className="grid grid-cols-1 gap-3.5 sm:gap-4 xl:grid-cols-12 items-stretch">
-        <div className="xl:col-span-8 h-full">
+      <div className="grid grid-cols-1 gap-3.5 items-stretch sm:gap-4 xl:grid-cols-12">
+        <div className="h-full xl:col-span-8">
           <Setting user={user} onUpdated={handleProfileUpdated} />
         </div>
 
-        <div className="xl:col-span-4 h-full">
+        <div className="h-full xl:col-span-4">
           <Profile user={user} />
         </div>
       </div>

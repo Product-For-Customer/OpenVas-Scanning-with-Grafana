@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { FiCheckCircle, FiSettings, FiShield } from "react-icons/fi";
 import { CameraOutlined } from "@ant-design/icons";
 import { message } from "antd";
@@ -68,6 +68,18 @@ const Setting: React.FC<SettingProps> = ({ user, onUpdated }) => {
   >([]);
   const [loadingContacts, setLoadingContacts] = useState(false);
 
+  const hasFetchedContactsRef = useRef(false);
+  const isFetchingContactsRef = useRef(false);
+  const isMountedRef = useRef(false);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   useEffect(() => {
     setForm(createInitialForm(user));
     setUploadFile(undefined);
@@ -83,20 +95,39 @@ const Setting: React.FC<SettingProps> = ({ user, onUpdated }) => {
   }, [user]);
 
   useEffect(() => {
+    if (hasFetchedContactsRef.current) return;
+    hasFetchedContactsRef.current = true;
+
     const loadContacts = async () => {
+      if (isFetchingContactsRef.current) return;
+
       try {
-        setLoadingContacts(true);
+        isFetchingContactsRef.current = true;
+
+        if (isMountedRef.current) {
+          setLoadingContacts(true);
+        }
+
         const data = await ListEmailAndPhoneNumber();
+
+        if (!isMountedRef.current) return;
+
         setExistingContacts(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error("ListEmailAndPhoneNumber error:", error);
+
+        if (!isMountedRef.current) return;
+
         setExistingContacts([]);
       } finally {
-        setLoadingContacts(false);
+        if (isMountedRef.current) {
+          setLoadingContacts(false);
+        }
+        isFetchingContactsRef.current = false;
       }
     };
 
-    loadContacts();
+    void loadContacts();
   }, []);
 
   const previewUrl = useMemo(() => {
@@ -395,7 +426,7 @@ const Setting: React.FC<SettingProps> = ({ user, onUpdated }) => {
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-600 dark:text-cyan-300">
                   Profile
                 </p>
-                <h2 className="truncate text-[18px] sm:text-[20px] font-semibold tracking-tight text-[#1f2240] dark:text-white/90">
+                <h2 className="truncate text-[18px] font-semibold tracking-tight text-[#1f2240] dark:text-white/90 sm:text-[20px]">
                   Account Settings
                 </h2>
               </div>
@@ -415,7 +446,7 @@ const Setting: React.FC<SettingProps> = ({ user, onUpdated }) => {
         </div>
       </div>
 
-      <form onSubmit={onSave} className="p-4 sm:p-5 flex-1 flex flex-col">
+      <form onSubmit={onSave} className="flex flex-1 flex-col p-4 sm:p-5">
         <div>
           <div className="mb-5 flex items-center justify-center">
             <div className="flex flex-col items-center gap-2.5">
@@ -437,7 +468,7 @@ const Setting: React.FC<SettingProps> = ({ user, onUpdated }) => {
                   <CameraOutlined className="text-[20px] text-[#7a67ea]" />
                 )}
 
-                <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors" />
+                <div className="absolute inset-0 bg-black/0 transition-colors hover:bg-black/10" />
               </label>
 
               <input
@@ -454,9 +485,9 @@ const Setting: React.FC<SettingProps> = ({ user, onUpdated }) => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+          <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
             <div>
-              <label className="block mb-1.5 text-[12px] font-medium text-[#374151] dark:text-white/65">
+              <label className="mb-1.5 block text-[12px] font-medium text-[#374151] dark:text-white/65">
                 First Name
               </label>
               <input
@@ -471,7 +502,7 @@ const Setting: React.FC<SettingProps> = ({ user, onUpdated }) => {
             </div>
 
             <div>
-              <label className="block mb-1.5 text-[12px] font-medium text-[#374151] dark:text-white/65">
+              <label className="mb-1.5 block text-[12px] font-medium text-[#374151] dark:text-white/65">
                 Last Name
               </label>
               <input
@@ -486,7 +517,7 @@ const Setting: React.FC<SettingProps> = ({ user, onUpdated }) => {
             </div>
 
             <div>
-              <label className="block mb-1.5 text-[12px] font-medium text-[#374151] dark:text-white/65">
+              <label className="mb-1.5 block text-[12px] font-medium text-[#374151] dark:text-white/65">
                 Email Address
               </label>
               <input
@@ -501,7 +532,7 @@ const Setting: React.FC<SettingProps> = ({ user, onUpdated }) => {
             </div>
 
             <div>
-              <label className="block mb-1.5 text-[12px] font-medium text-[#374151] dark:text-white/65">
+              <label className="mb-1.5 block text-[12px] font-medium text-[#374151] dark:text-white/65">
                 Phone No
               </label>
               <input
@@ -524,7 +555,7 @@ const Setting: React.FC<SettingProps> = ({ user, onUpdated }) => {
             </div>
 
             <div>
-              <label className="block mb-1.5 text-[12px] font-medium text-[#374151] dark:text-white/65">
+              <label className="mb-1.5 block text-[12px] font-medium text-[#374151] dark:text-white/65">
                 Location
               </label>
               <input
@@ -539,7 +570,7 @@ const Setting: React.FC<SettingProps> = ({ user, onUpdated }) => {
             </div>
 
             <div>
-              <label className="block mb-1.5 text-[12px] font-medium text-[#374151] dark:text-white/65">
+              <label className="mb-1.5 block text-[12px] font-medium text-[#374151] dark:text-white/65">
                 Position
               </label>
               <input
@@ -562,10 +593,10 @@ const Setting: React.FC<SettingProps> = ({ user, onUpdated }) => {
             disabled={!canSave}
             className={[
               "inline-flex items-center gap-2 rounded-[10px] px-3.5 py-2 transition-all",
-              "bg-linear-to-r from-cyan-400 via-sky-400 to-violet-400 text-white font-semibold text-[13px]",
+              "bg-linear-to-r from-cyan-400 via-sky-400 to-violet-400 text-[13px] font-semibold text-white",
               "shadow-[0_8px_20px_-12px_rgba(56,189,248,0.65)]",
               "hover:brightness-105",
-              !canSave ? "opacity-60 cursor-not-allowed hover:brightness-100" : "",
+              !canSave ? "cursor-not-allowed opacity-60 hover:brightness-100" : "",
             ].join(" ")}
           >
             <FiCheckCircle className="text-[14px]" />

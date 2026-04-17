@@ -3,7 +3,10 @@ package automation
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -48,6 +51,186 @@ var feedStatus = FeedUpdateStatus{
 	Updated:     false,
 }
 
+// =====================================================
+// LINE Push API
+// =====================================================
+
+type lineTextMessage struct {
+	Type string `json:"type"`
+	Text string `json:"text"`
+}
+
+type linePushRequest struct {
+	To       string            `json:"to"`
+	Messages []lineTextMessage `json:"messages"`
+}
+
+func sendLinePushTo(channelToken string, to string, message string) error {
+	if strings.TrimSpace(channelToken) == "" {
+		return fmt.Errorf("LINE token is empty")
+	}
+	if strings.TrimSpace(to) == "" {
+		return fmt.Errorf("LINE destination is empty")
+	}
+
+	url := "https://api.line.me/v2/bot/message/push"
+
+	payload := linePushRequest{
+		To: to,
+		Messages: []lineTextMessage{
+			{
+				Type: "text",
+				Text: message,
+			},
+		},
+	}
+
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("line marshal error: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return fmt.Errorf("line request create error: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+channelToken)
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("line send error: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("line send failed: status=%s response=%s", resp.Status, string(body))
+	}
+
+	log.Println("✅ LINE Sent:", resp.Status, "To:", to, "Response:", string(body))
+	return nil
+}
+
+func sendLinePushToAllNotifications(message string) error {
+	db := config.DB()
+	if db == nil {
+		return fmt.Errorf("database connection is nil")
+	}
+
+	var notifications []entity.AppNotification
+	if err := db.
+		Preload("AppLineMaster").
+		Where("alert = ?", true).
+		Find(&notifications).Error; err != nil {
+		return fmt.Errorf("failed to query AppNotification: %w", err)
+	}
+
+	if len(notifications) == 0 {
+		log.Println("ℹ️ no AppNotification with alert = true")
+		return nil
+	}
+
+	var failed []string
+	successCount := 0
+
+	for _, notify := range notifications {
+		sendID := strings.TrimSpace(notify.SendID)
+		if sendID == "" {
+			log.Printf("⚠️ skip notification id=%d because send_id is empty\n", notify.ID)
+			failed = append(failed, fmt.Sprintf("id=%d send_id empty", notify.ID))
+			continue
+		}
+
+		if notify.AppLineMaster == nil {
+			log.Printf("⚠️ skip notification id=%d because AppLineMaster is nil\n", notify.ID)
+			failed = append(failed, fmt.Sprintf("id=%d no AppLineMaster", notify.ID))
+			continue
+		}
+
+		token := strings.TrimSpace(notify.AppLineMaster.Token)
+		if token == "" {
+			log.Printf("⚠️ skip notification id=%d because token is empty\n", notify.ID)
+			failed = append(failed, fmt.Sprintf("id=%d token empty", notify.ID))
+			continue
+		}
+
+		if err := sendLinePushTo(token, sendID, message); err != nil {
+			log.Printf("❌ sendLinePushTo failed id=%d send_id=%s error=%v\n", notify.ID, sendID, err)
+			failed = append(failed, fmt.Sprintf("id=%d send_id=%s err=%v", notify.ID, sendID, err))
+			continue
+		}
+
+		successCount++
+	}
+
+	log.Printf("✅ LINE notify done: success=%d failed=%d\n", successCount, len(failed))
+
+	if len(failed) > 0 {
+		return fmt.Errorf("some notifications failed: %s", strings.Join(failed, " | "))
+	}
+
+	return nil
+}
+
+func buildFeedLineMessage(resultType, triggeredBy, source string, force bool, message string, output string) string {
+	statusText := humanizeFeedResultType(resultType)
+	summary := summarizeFeedOutput(resultType, message, output)
+
+	title := "OpenVAS Feed Update"
+	emoji := "ℹ️"
+
+	switch resultType {
+	case "server_error":
+		title = "OpenVAS Feed Update - Server Error"
+		emoji = "⚠️"
+	case "unauthorized":
+		title = "OpenVAS Feed Update - Unauthorized"
+		emoji = "⛔"
+	case "already_running":
+		title = "OpenVAS Feed Update - Already Running"
+		emoji = "⏳"
+	case "timeout":
+		title = "OpenVAS Feed Update - Timeout"
+		emoji = "⌛"
+	case "updated":
+		title = "OpenVAS Feed Update - Updated"
+		emoji = "✅"
+	case "no_update":
+		title = "OpenVAS Feed Update - No Update"
+		emoji = "📭"
+	case "failed":
+		title = "OpenVAS Feed Update - Failed"
+		emoji = "❌"
+	}
+
+	var b strings.Builder
+	b.WriteString(fmt.Sprintf("%s %s", emoji, title))
+	b.WriteString("\n")
+	b.WriteString("Status: " + statusText)
+	b.WriteString("\n")
+	b.WriteString("Triggered By: " + safeString(triggeredBy))
+	b.WriteString("\n")
+	b.WriteString("Source: " + safeString(source))
+	b.WriteString("\n")
+	b.WriteString(fmt.Sprintf("Force: %t", force))
+	b.WriteString("\n")
+	b.WriteString("Summary: " + summary)
+
+	return b.String()
+}
+
+func notifyFeedUpdateToAllNotifications(resultType, triggeredBy, source string, force bool, message string, output string) {
+	lineMessage := buildFeedLineMessage(resultType, triggeredBy, source, force, message, output)
+
+	if err := sendLinePushToAllNotifications(lineMessage); err != nil {
+		log.Println("⚠️ sendLinePushToAllNotifications error:", err)
+	}
+}
+
 func TriggerFeedUpdateHandler(c *gin.Context) {
 	requiredToken := os.Getenv("AUTOMATION_TOKEN")
 	gotToken := c.GetHeader("X-Automation-Token")
@@ -73,11 +256,12 @@ func TriggerFeedUpdateHandler(c *gin.Context) {
 	// =========================
 	if requiredToken == "" {
 		now := time.Now()
+		errMsg := "AUTOMATION_TOKEN is not configured in backend environment"
 
 		feedUpdateMu.Lock()
 		feedStatus.IsRunning = false
 		feedStatus.LastStatus = "server_error"
-		feedStatus.LastMessage = "AUTOMATION_TOKEN is not configured in backend environment"
+		feedStatus.LastMessage = errMsg
 		feedStatus.LastRunAt = now
 		feedStatus.UpdatedAt = now
 		feedStatus.ResultType = "server_error"
@@ -92,17 +276,26 @@ func TriggerFeedUpdateHandler(c *gin.Context) {
 				req.TriggeredBy,
 				req.Source,
 				req.Force,
-				"AUTOMATION_TOKEN is not configured in backend environment",
+				errMsg,
 				"",
 			),
+		)
+
+		notifyFeedUpdateToAllNotifications(
+			"server_error",
+			req.TriggeredBy,
+			req.Source,
+			req.Force,
+			errMsg,
+			"",
 		)
 
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success":      false,
 			"updated":      false,
 			"result_type":  "server_error",
-			"message":      "AUTOMATION_TOKEN is not configured in backend environment",
-			"error":        "AUTOMATION_TOKEN is not configured in backend environment",
+			"message":      errMsg,
+			"error":        errMsg,
 			"triggered_by": req.TriggeredBy,
 			"source":       req.Source,
 			"force":        req.Force,
@@ -116,11 +309,12 @@ func TriggerFeedUpdateHandler(c *gin.Context) {
 	// =========================
 	if gotToken == "" || gotToken != requiredToken {
 		now := time.Now()
+		errMsg := "invalid automation token"
 
 		feedUpdateMu.Lock()
 		feedStatus.IsRunning = false
 		feedStatus.LastStatus = "unauthorized"
-		feedStatus.LastMessage = "invalid automation token"
+		feedStatus.LastMessage = errMsg
 		feedStatus.LastRunAt = now
 		feedStatus.UpdatedAt = now
 		feedStatus.ResultType = "unauthorized"
@@ -135,17 +329,26 @@ func TriggerFeedUpdateHandler(c *gin.Context) {
 				req.TriggeredBy,
 				req.Source,
 				req.Force,
-				"invalid automation token",
+				errMsg,
 				"",
 			),
+		)
+
+		notifyFeedUpdateToAllNotifications(
+			"unauthorized",
+			req.TriggeredBy,
+			req.Source,
+			req.Force,
+			errMsg,
+			"",
 		)
 
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success":      false,
 			"updated":      false,
 			"result_type":  "unauthorized",
-			"message":      "invalid automation token",
-			"error":        "invalid automation token",
+			"message":      errMsg,
+			"error":        errMsg,
 			"triggered_by": req.TriggeredBy,
 			"source":       req.Source,
 			"force":        req.Force,
@@ -160,10 +363,11 @@ func TriggerFeedUpdateHandler(c *gin.Context) {
 	feedUpdateMu.Lock()
 	if isFeedUpdating {
 		now := time.Now()
+		errMsg := "feed update is already running"
 
 		feedStatus.IsRunning = true
 		feedStatus.LastStatus = "busy"
-		feedStatus.LastMessage = "feed update is already running"
+		feedStatus.LastMessage = errMsg
 		feedStatus.ResultType = "already_running"
 		feedStatus.Updated = false
 		feedStatus.UpdatedAt = now
@@ -177,17 +381,26 @@ func TriggerFeedUpdateHandler(c *gin.Context) {
 				req.TriggeredBy,
 				req.Source,
 				req.Force,
-				"feed update is already running",
+				errMsg,
 				"",
 			),
+		)
+
+		notifyFeedUpdateToAllNotifications(
+			"already_running",
+			req.TriggeredBy,
+			req.Source,
+			req.Force,
+			errMsg,
+			"",
 		)
 
 		c.JSON(http.StatusConflict, gin.H{
 			"success":      false,
 			"updated":      false,
 			"result_type":  "already_running",
-			"message":      "feed update is already running",
-			"error":        "feed update is already running",
+			"message":      errMsg,
+			"error":        errMsg,
 			"triggered_by": req.TriggeredBy,
 			"source":       req.Source,
 			"force":        req.Force,
@@ -261,9 +474,10 @@ func TriggerFeedUpdateHandler(c *gin.Context) {
 	// =========================
 	if ctx.Err() == context.DeadlineExceeded {
 		now := time.Now()
+		errMsg := "feed update timeout"
 
 		feedStatus.LastStatus = "timeout"
-		feedStatus.LastMessage = "feed update timeout"
+		feedStatus.LastMessage = errMsg
 		feedStatus.LastOutput = combinedOutput
 		feedStatus.ResultType = "timeout"
 		feedStatus.Updated = false
@@ -277,17 +491,26 @@ func TriggerFeedUpdateHandler(c *gin.Context) {
 				req.TriggeredBy,
 				req.Source,
 				req.Force,
-				"feed update timeout",
+				errMsg,
 				combinedOutput,
 			),
+		)
+
+		notifyFeedUpdateToAllNotifications(
+			"timeout",
+			req.TriggeredBy,
+			req.Source,
+			req.Force,
+			errMsg,
+			combinedOutput,
 		)
 
 		c.JSON(http.StatusGatewayTimeout, gin.H{
 			"success":      false,
 			"updated":      false,
 			"result_type":  "timeout",
-			"message":      "feed update timeout",
-			"error":        "feed update timeout",
+			"message":      errMsg,
+			"error":        errMsg,
 			"triggered_by": req.TriggeredBy,
 			"source":       req.Source,
 			"force":        req.Force,
@@ -302,13 +525,14 @@ func TriggerFeedUpdateHandler(c *gin.Context) {
 	// =========================
 	if err != nil {
 		now := time.Now()
+		errMsg := "feed update failed"
 
 		if parsedResultType == "" {
 			parsedResultType = "failed"
 		}
 
 		feedStatus.LastStatus = "failed"
-		feedStatus.LastMessage = "feed update failed: " + err.Error()
+		feedStatus.LastMessage = errMsg + ": " + err.Error()
 		feedStatus.LastOutput = combinedOutput
 		feedStatus.ResultType = parsedResultType
 		feedStatus.Updated = false
@@ -327,12 +551,21 @@ func TriggerFeedUpdateHandler(c *gin.Context) {
 			),
 		)
 
+		notifyFeedUpdateToAllNotifications(
+			parsedResultType,
+			req.TriggeredBy,
+			req.Source,
+			req.Force,
+			err.Error(),
+			combinedOutput,
+		)
+
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success":      false,
 			"updated":      false,
 			"result_type":  parsedResultType,
-			"message":      "feed update failed",
-			"error":        "feed update failed",
+			"message":      errMsg,
+			"error":        errMsg,
 			"detail":       err.Error(),
 			"triggered_by": req.TriggeredBy,
 			"source":       req.Source,
@@ -355,7 +588,9 @@ func TriggerFeedUpdateHandler(c *gin.Context) {
 
 	switch parsedResultType {
 	case "no_update":
-		feedStatus.LastMessage = "no new feed updates found"
+		successMsg := "no new feed updates found"
+
+		feedStatus.LastMessage = successMsg
 
 		saveFeedUpdateHistory(
 			"No Update",
@@ -365,16 +600,25 @@ func TriggerFeedUpdateHandler(c *gin.Context) {
 				req.TriggeredBy,
 				req.Source,
 				req.Force,
-				"no new feed updates found",
+				successMsg,
 				combinedOutput,
 			),
+		)
+
+		notifyFeedUpdateToAllNotifications(
+			"no_update",
+			req.TriggeredBy,
+			req.Source,
+			req.Force,
+			successMsg,
+			combinedOutput,
 		)
 
 		c.JSON(http.StatusOK, gin.H{
 			"success":      true,
 			"updated":      false,
 			"result_type":  "no_update",
-			"message":      "no new feed updates found",
+			"message":      successMsg,
 			"triggered_by": req.TriggeredBy,
 			"source":       req.Source,
 			"force":        req.Force,
@@ -384,7 +628,9 @@ func TriggerFeedUpdateHandler(c *gin.Context) {
 		return
 
 	case "updated":
-		feedStatus.LastMessage = "feed update completed successfully"
+		successMsg := "feed update completed successfully"
+
+		feedStatus.LastMessage = successMsg
 
 		saveFeedUpdateHistory(
 			"Update Completed",
@@ -394,16 +640,25 @@ func TriggerFeedUpdateHandler(c *gin.Context) {
 				req.TriggeredBy,
 				req.Source,
 				req.Force,
-				"feed update completed successfully",
+				successMsg,
 				combinedOutput,
 			),
+		)
+
+		notifyFeedUpdateToAllNotifications(
+			"updated",
+			req.TriggeredBy,
+			req.Source,
+			req.Force,
+			successMsg,
+			combinedOutput,
 		)
 
 		c.JSON(http.StatusOK, gin.H{
 			"success":      true,
 			"updated":      true,
 			"result_type":  "updated",
-			"message":      "feed update completed successfully",
+			"message":      successMsg,
 			"triggered_by": req.TriggeredBy,
 			"source":       req.Source,
 			"force":        req.Force,
@@ -413,6 +668,8 @@ func TriggerFeedUpdateHandler(c *gin.Context) {
 		return
 
 	default:
+		successMsg := "no new feed updates found"
+
 		feedStatus.LastMessage = "feed update finished with unknown result"
 
 		saveFeedUpdateHistory(
@@ -423,16 +680,25 @@ func TriggerFeedUpdateHandler(c *gin.Context) {
 				req.TriggeredBy,
 				req.Source,
 				req.Force,
-				"no new feed updates found",
+				successMsg,
 				combinedOutput,
 			),
+		)
+
+		notifyFeedUpdateToAllNotifications(
+			"no_update",
+			req.TriggeredBy,
+			req.Source,
+			req.Force,
+			successMsg,
+			combinedOutput,
 		)
 
 		c.JSON(http.StatusOK, gin.H{
 			"success":      true,
 			"updated":      false,
 			"result_type":  "no_update",
-			"message":      "no new feed updates found",
+			"message":      successMsg,
 			"triggered_by": req.TriggeredBy,
 			"source":       req.Source,
 			"force":        req.Force,
