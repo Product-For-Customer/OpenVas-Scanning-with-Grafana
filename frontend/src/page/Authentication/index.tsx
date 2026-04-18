@@ -28,6 +28,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import ModalOTPSignUp from "../../Model/ModalOTPSignUp";
 import ModalOTP from "../../Model/ModalOTP";
 import travelPhoto from "../../assets/login-photo.jpg";
+import LoginSuccessAnimation from "./animation/index";
 
 type SignUpFormData = {
   email: string;
@@ -71,6 +72,7 @@ const Index: React.FC = () => {
   const [loginPassword, setLoginPassword] = useState("");
   const [loginSubmitting, setLoginSubmitting] = useState(false);
   const [loginError, setLoginError] = useState("");
+  const [showLoginSuccessAnimation, setShowLoginSuccessAnimation] = useState(false);
 
   const [forgotEmail, setForgotEmail] = useState("");
   const [verifiedResetEmail, setVerifiedResetEmail] = useState("");
@@ -350,14 +352,12 @@ const Index: React.FC = () => {
         password: loginPassword,
       });
 
-      await refreshMe();
-
       const role = (res?.user?.role ?? "").toLowerCase();
 
       if (role === "admin") {
         message.success("login success");
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        navigate("/admin", { replace: true });
+        setShowLoginSuccessAnimation(true);
+        return;
       } else {
         setLoginError("บัญชีนี้ไม่มีสิทธิ์ Admin");
       }
@@ -704,6 +704,18 @@ const Index: React.FC = () => {
       </div>
     </div>
   );
+
+
+  const handleLoginSuccessAnimationFinished = async () => {
+    try {
+      await refreshMe();
+    } catch (error) {
+      console.error("refreshMe after login animation error:", error);
+    } finally {
+      setShowLoginSuccessAnimation(false);
+      navigate("/admin", { replace: true });
+    }
+  };
 
   const renderPhotoPanel = () => (
     <div className="relative h-full overflow-hidden bg-slate-950">
@@ -1397,6 +1409,15 @@ const Index: React.FC = () => {
       </div>
     </div>
   );
+
+  if (showLoginSuccessAnimation) {
+    return (
+      <LoginSuccessAnimation
+        duration={5000}
+        onFinished={handleLoginSuccessAnimationFinished}
+      />
+    );
+  }
 
   return (
     <>

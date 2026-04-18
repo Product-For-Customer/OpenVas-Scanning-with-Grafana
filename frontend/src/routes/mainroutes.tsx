@@ -26,6 +26,7 @@ const Loader = Loadable(lazy(() => import("../component/third-patry/Loader")));
 
 //====== Test Captuer ======
 const CaptureTest = Loadable(lazy(() => import("../page/report/CaptureTest")));
+const LogoAnimation = Loadable(lazy(() => import("../page/Authentication/animation/index")));
 // ======================= ROUTES =======================
 
 // Admin เห็นทุกหน้า
@@ -51,9 +52,10 @@ const AdminRoutes = (): RouteObject[] => [
       { path: "service", element: <Service /> },
       { path: "report", element: <Report /> },
       { path: "diagrams", element: <Diagram /> },
-      { path: "diagram-node", element: <DiagramNode /> }
+      { path: "diagram-node", element: <DiagramNode /> },
     ],
   },
+  { path: "logo-animation", element: <LogoAnimation/> },
   { path: "*", element: <Navigate to="/admin" replace /> },
 ];
 

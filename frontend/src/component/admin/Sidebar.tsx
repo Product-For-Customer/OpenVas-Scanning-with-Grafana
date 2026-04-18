@@ -6,7 +6,7 @@ import { FiLogOut } from "react-icons/fi";
 import { getLinks, type SidebarSection } from "./dummy";
 import { useStateContext } from "../../contexts/ContextProvider";
 import { useAuth } from "../../contexts/AuthContext";
-import logo from "../../assets/Logo_Sidebar_GetOn-Photoroom.png";
+import logo from "../../assets/argus-logo-real.png";
 import { message } from "antd";
 
 type SidebarLink = {
@@ -57,7 +57,6 @@ const Sidebar: React.FC = () => {
           (link) => location.pathname === `/admin/${link.name}`
         );
 
-        // เปิดเฉพาะ section ที่มี active child
         nextOpen[section.title] = !!hasActiveChild;
       });
       setOpenSections(nextOpen);
@@ -141,8 +140,9 @@ const Sidebar: React.FC = () => {
   return (
     <>
       <div
-        className={`fixed inset-0 z-30 transition-opacity md:hidden ${activeMenu ? "opacity-100" : "pointer-events-none opacity-0"
-          } bg-[#020817]/35 dark:bg-black/45`}
+        className={`fixed inset-0 z-30 transition-opacity md:hidden ${
+          activeMenu ? "opacity-100" : "pointer-events-none opacity-0"
+        } bg-[#020817]/35 dark:bg-black/45`}
         onClick={handleCloseSideBar}
       />
 
@@ -177,25 +177,27 @@ const Sidebar: React.FC = () => {
 
           {/* Header */}
           <div
-            className={`relative z-10 flex items-center ${isExpanded
-              ? "justify-between px-3.5 pb-3.5 pt-5"
-              : "justify-center px-2 pb-3.5 pt-4.5"
-              }`}
+            className={`relative z-10 flex items-center ${
+              isExpanded
+                ? "justify-between px-3.5 pb-3.5 pt-5"
+                : "justify-center px-2 pb-3.5 pt-4.5"
+            }`}
           >
             <Link
               to="/admin"
               onClick={handleCloseSideBar}
-              className={`select-none ${isExpanded
-                ? "flex items-center gap-3"
-                : "flex justify-center items-center"
-                }`}
+              className={`select-none ${
+                isExpanded
+                  ? "flex items-center gap-3.5"
+                  : "flex items-center justify-center"
+              }`}
               aria-label="Go to dashboard"
             >
-              <div className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden">
+              <div className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden">
                 <img
                   src={logo}
                   alt="Logo"
-                  className="h-20 w-20 object-contain"
+                  className="h-28 w-28 object-contain"
                 />
               </div>
 
@@ -205,7 +207,7 @@ const Sidebar: React.FC = () => {
                     Argus Scanning
                   </span>
                   <span className="block text-[10.5px] text-gray-500 dark:text-white/45">
-                    Network Security Panel
+                    Network Monitoring Panel
                   </span>
                 </div>
               )}
@@ -231,10 +233,11 @@ const Sidebar: React.FC = () => {
 
           {/* Menu Body */}
           <nav
-            className={`relative z-10 flex-1 ${isExpanded
-              ? "overflow-y-auto px-2.5 pb-3.5"
-              : "overflow-visible px-2 pb-3"
-              }`}
+            className={`relative z-10 flex-1 ${
+              isExpanded
+                ? "overflow-y-auto px-2.5 pb-3.5"
+                : "overflow-visible px-2 pb-3"
+            }`}
           >
             <div className={isExpanded ? "space-y-1.5" : "space-y-2.5"}>
               {menuLinks.map((section) => {
@@ -295,10 +298,11 @@ const Sidebar: React.FC = () => {
                       </button>
 
                       <div
-                        className={`overflow-hidden transition-all duration-200 ${isOpen
-                          ? "max-h-150 pb-1 pt-1.5 opacity-100"
-                          : "max-h-0 opacity-0"
-                          }`}
+                        className={`overflow-hidden transition-all duration-200 ${
+                          isOpen
+                            ? "max-h-150 pb-1 pt-1.5 opacity-100"
+                            : "max-h-0 opacity-0"
+                        }`}
                       >
                         <div className="space-y-1 pl-6.5 pr-2">
                           {section.links?.map((link: SidebarLink) => {
@@ -447,10 +451,11 @@ const Sidebar: React.FC = () => {
 
           {/* Footer - Logout */}
           <div
-            className={`${isExpanded
-              ? "relative z-10 px-2.5 pb-3.5 pt-1.5"
-              : "relative z-10 px-2 pb-3.5 pt-1"
-              }`}
+            className={`${
+              isExpanded
+                ? "relative z-10 px-2.5 pb-3.5 pt-1.5"
+                : "relative z-10 px-2 pb-3.5 pt-1"
+            }`}
           >
             {isExpanded ? (
               <button
