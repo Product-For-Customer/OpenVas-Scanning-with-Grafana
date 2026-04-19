@@ -6,7 +6,7 @@ type Props = {
   duration?: number;
 };
 
-const Index: React.FC<Props> = ({ onFinished, duration = 3500 }) => {
+const Index: React.FC<Props> = ({ onFinished, duration = 1000 }) => {
   const [start, setStart] = useState(false);
   const [progress, setProgress] = useState(0);
 

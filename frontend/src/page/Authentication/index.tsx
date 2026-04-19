@@ -683,6 +683,42 @@ const Index: React.FC = () => {
         50% { opacity: 0.8; }
         100% { transform: translateX(20px); opacity: 0.2; }
       }
+      @keyframes compactCardIntro {
+        0% {
+          opacity: 0;
+          transform: translateY(24px) scale(0.975);
+          filter: blur(10px);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+          filter: blur(0);
+        }
+      }
+      @keyframes compactContentReveal {
+        0% {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @keyframes compactOrbFloat {
+        0%, 100% { transform: translate3d(0,0,0); }
+        50% { transform: translate3d(0,-10px,0); }
+      }
+      @keyframes compactGlowPulse {
+        0%, 100% { opacity: 0.55; transform: scale(1); }
+        50% { opacity: 1; transform: scale(1.08); }
+      }
+      @keyframes compactBorderScan {
+        0% { transform: translateX(-120%); opacity: 0; }
+        20% { opacity: 1; }
+        80% { opacity: 1; }
+        100% { transform: translateX(120%); opacity: 0; }
+      }
     `}</style>
   );
 
@@ -846,69 +882,122 @@ const Index: React.FC = () => {
       </div>
     ) : null;
 
-  const renderLoginForm = () => (
-    <div className="w-full max-w-77.5">
+  const renderLoginForm = (compact = false) => (
+    <div className={compact ? "w-full max-w-170" : "w-full max-w-77.5"}>
       <div className="text-center">
-        {renderSectionBadge("Scan Access")}
-        <h2 className={`${panelTitleClass} text-[30px] tracking-[-0.04em]`}>
+        
+        <h2
+          className={`${panelTitleClass} ${
+            compact ? "text-[34px] sm:text-[38px]" : "text-[30px]"
+          } tracking-[-0.04em]`}
+        >
           Welcome
         </h2>
-        <p className="mt-1.5 text-[11px] text-slate-500 dark:text-white/55">
+        <p
+          className={`mt-1.5 ${
+            compact ? "text-[12px] sm:text-[13px]" : "text-[11px]"
+          } text-slate-500 dark:text-white/55`}
+        >
           Sign in to the security scan console
         </p>
       </div>
 
       {renderErrorBox(loginError)}
 
-      <form onSubmit={handleLoginSubmit} className="mt-5">
-        <div className="space-y-3">
+      <form onSubmit={handleLoginSubmit} className={compact ? "mt-6" : "mt-5"}>
+        <div className={compact ? "space-y-4" : "space-y-3"}>
           <div>
-            <label className={labelBase}>Email Address</label>
+            <label
+              className={
+                compact
+                  ? "mb-1.5 block pl-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-white/45"
+                  : labelBase
+              }
+            >
+              Email Address
+            </label>
             <div className="relative">
-              <FiMail className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-cyan-600 dark:text-cyan-300" />
+              <FiMail
+                className={`pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 ${
+                  compact ? "text-[15px]" : "text-[13px]"
+                } text-cyan-600 dark:text-cyan-300`}
+              />
               <input
                 type="email"
                 value={loginEmail}
                 onChange={(e) => setLoginEmail(e.target.value)}
                 placeholder="admin@network.local"
                 autoComplete="email"
-                className={inputBase}
+                className={
+                  compact
+                    ? "h-12.5 sm:h-14 w-full rounded-2xl border border-slate-200/90 bg-white/92 dark:bg-white/6 dark:border-white/10 pl-11 pr-11 text-[13px] sm:text-[15px] text-slate-700 dark:text-white/85 outline-none transition-all duration-300 placeholder:text-slate-400 dark:placeholder:text-white/30 focus:border-cyan-400 dark:focus:border-cyan-400 focus:ring-4 focus:ring-cyan-100/75 dark:focus:ring-cyan-500/15 shadow-[0_10px_24px_rgba(15,23,42,0.04)] dark:shadow-none"
+                    : inputBase
+                }
               />
             </div>
           </div>
 
           <div>
-            <label className={labelBase}>Password</label>
+            <label
+              className={
+                compact
+                  ? "mb-1.5 block pl-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-white/45"
+                  : labelBase
+              }
+            >
+              Password
+            </label>
             <div className="relative">
-              <FiLock className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-cyan-600 dark:text-cyan-300" />
+              <FiLock
+                className={`pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 ${
+                  compact ? "text-[15px]" : "text-[13px]"
+                } text-cyan-600 dark:text-cyan-300`}
+              />
               <input
                 type={showLoginPassword ? "text" : "password"}
                 value={loginPassword}
                 onChange={(e) => setLoginPassword(e.target.value)}
                 placeholder="Enter secure password"
                 autoComplete="current-password"
-                className={inputBase}
+                className={
+                  compact
+                    ? "h-12.5 sm:h-14 w-full rounded-2xl border border-slate-200/90 bg-white/92 dark:bg-white/6 dark:border-white/10 pl-11 pr-11 text-[13px] sm:text-[15px] text-slate-700 dark:text-white/85 outline-none transition-all duration-300 placeholder:text-slate-400 dark:placeholder:text-white/30 focus:border-cyan-400 dark:focus:border-cyan-400 focus:ring-4 focus:ring-cyan-100/75 dark:focus:ring-cyan-500/15 shadow-[0_10px_24px_rgba(15,23,42,0.04)] dark:shadow-none"
+                    : inputBase
+                }
               />
               <button
                 type="button"
                 onClick={() => setShowLoginPassword((prev) => !prev)}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-cyan-600 dark:text-white/40 dark:hover:text-cyan-300"
+                className={`absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-cyan-600 dark:text-white/40 dark:hover:text-cyan-300`}
                 aria-label={showLoginPassword ? "Hide password" : "Show password"}
               >
                 {showLoginPassword ? (
-                  <FiEyeOff className="text-[14px]" />
+                  <FiEyeOff className={compact ? "text-[16px]" : "text-[14px]"} />
                 ) : (
-                  <FiEye className="text-[14px]" />
+                  <FiEye className={compact ? "text-[16px]" : "text-[14px]"} />
                 )}
               </button>
             </div>
           </div>
         </div>
 
-        <div className="mt-2.5 flex items-center justify-between gap-2">
-          <div className="rounded-full bg-[#f2f8ff] px-2 py-0.5 text-[9px] font-medium text-slate-500 dark:bg-white/8 dark:text-white/55">
-            Admin access only
-          </div>
+        <div className="mt-3.5 flex items-center justify-between gap-2">
+          {compact ? (
+            <button
+              type="button"
+              onClick={() => {
+                setLoginError("");
+                setViewMode("signup");
+              }}
+              className="rounded-full bg-[#f2f8ff] px-2.5 py-0.5 text-[10px] font-semibold text-slate-600 transition hover:text-cyan-600 dark:bg-white/8 dark:text-white/65 dark:hover:text-cyan-300"
+            >
+              Sign Up
+            </button>
+          ) : (
+            <div className="rounded-full bg-[#f2f8ff] px-2 py-0.5 text-[9px] font-medium text-slate-500 dark:bg-white/8 dark:text-white/55">
+              Admin access only
+            </div>
+          )}
 
           <button
             type="button"
@@ -917,43 +1006,55 @@ const Index: React.FC = () => {
               setForgotEmail(loginEmail.trim());
               setViewMode("forgot");
             }}
-            className="text-[10px] font-semibold text-slate-500 transition hover:text-cyan-600 dark:text-white/55 dark:hover:text-cyan-300"
+            className={
+              compact
+                ? "text-[11px] font-semibold text-slate-500 transition hover:text-cyan-600 dark:text-white/55 dark:hover:text-cyan-300"
+                : "text-[10px] font-semibold text-slate-500 transition hover:text-cyan-600 dark:text-white/55 dark:hover:text-cyan-300"
+            }
           >
             Forgot your password?
           </button>
         </div>
 
-        <div className="mt-5 flex justify-center">
+        <div className="mt-6 flex justify-center">
           <button
             type="submit"
             disabled={loginSubmitting}
-            className={primaryButtonClass}
+            className={
+              compact
+                ? "inline-flex h-11 min-w-42.5 items-center justify-center rounded-2xl bg-linear-to-r from-cyan-500 via-sky-500 to-violet-500 text-[15px] text-white shadow-[0_18px_34px_rgba(47,128,237,0.28)] transition-all duration-300 hover:translate-y-px hover:shadow-[0_20px_36px_rgba(47,128,237,0.34)] disabled:cursor-not-allowed disabled:opacity-70"
+                : primaryButtonClass
+            }
           >
             {loginSubmitting ? "Logging In..." : "Login"}
           </button>
         </div>
 
-        <div className="mt-5 flex items-center gap-2">
-          <div className="h-px flex-1 bg-[#d7e6fb] dark:bg-white/10" />
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 dark:text-white/30">
-            OR
-          </span>
-          <div className="h-px flex-1 bg-[#d7e6fb] dark:bg-white/10" />
-        </div>
+        {!compact && (
+          <>
+            <div className="mt-6 flex items-center gap-2">
+              <div className="h-px flex-1 bg-[#d7e6fb] dark:bg-white/10" />
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 dark:text-white/30">
+                OR
+              </span>
+              <div className="h-px flex-1 bg-[#d7e6fb] dark:bg-white/10" />
+            </div>
 
-        <div className="mt-4 text-center text-[12px] text-slate-600 dark:text-white/65">
-          Don&apos;t have an account?{" "}
-          <button
-            type="button"
-            onClick={() => {
-              setLoginError("");
-              setViewMode("signup");
-            }}
-            className="font-extrabold text-slate-900 transition hover:text-cyan-600 dark:text-white dark:hover:text-cyan-300"
-          >
-            Sign Up
-          </button>
-        </div>
+            <div className="mt-4 text-center text-[12px] text-slate-600 dark:text-white/65">
+              Don&apos;t have an account?{" "}
+              <button
+                type="button"
+                onClick={() => {
+                  setLoginError("");
+                  setViewMode("signup");
+                }}
+                className="font-extrabold text-slate-900 transition hover:text-cyan-600 dark:text-white dark:hover:text-cyan-300"
+              >
+                Sign Up
+              </button>
+            </div>
+          </>
+        )}
       </form>
     </div>
   );
@@ -1347,63 +1448,53 @@ const Index: React.FC = () => {
     </div>
   );
 
-  const renderMobileHero = () => (
+  const renderCompactPanel = () => (
     <div className="xl:hidden">
-      <div className="relative h-41.25 overflow-hidden rounded-t-[22px]">
-        <img
-          src={travelPhoto}
-          alt="Network Security"
-          className="absolute inset-0 h-full w-full object-cover"
-        />
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,17,31,0.42)_0%,rgba(7,17,31,0.74)_100%)]" />
-        <div className="absolute inset-0 opacity-15">
-          <div className="h-full w-full bg-[linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-size-[16px_16px]" />
-        </div>
+      <div className="mx-auto flex min-h-[calc(100vh-1rem)] w-full max-w-125 items-center justify-center py-4 sm:max-w-300 sm:py-5 lg:max-w-7xl">
+        <div className="relative w-full max-w-115 px-3 sm:max-w-260 sm:px-8 lg:max-w-295">
+          <div
+            className="pointer-events-none absolute -left-6 top-8 h-24 w-24 rounded-full bg-cyan-200/55 blur-3xl dark:bg-cyan-500/15 sm:h-32 sm:w-32"
+            style={{ animation: "compactOrbFloat 5.4s ease-in-out infinite" }}
+          />
+          <div
+            className="pointer-events-none absolute -right-8 bottom-8 h-24 w-24 rounded-full bg-violet-200/55 blur-3xl dark:bg-violet-500/16 sm:h-32 sm:w-32"
+            style={{ animation: "compactOrbFloat 6.2s ease-in-out infinite 0.6s" }}
+          />
+          <div
+            className="pointer-events-none absolute left-1/2 top-0 h-20 w-20 -translate-x-1/2 rounded-full bg-sky-200/40 blur-3xl dark:bg-sky-500/10"
+            style={{ animation: "compactGlowPulse 3s ease-in-out infinite" }}
+          />
 
-        <div className="absolute inset-x-0 top-0 px-3 pt-3 text-white">
-          <div className="flex items-center justify-between gap-2">
-            <div>
-              <p className="text-[9px] font-semibold uppercase tracking-[0.20em] text-cyan-300">
-                Network Security Scan
-              </p>
-              <h1 className="mt-1 text-[22px] font-extrabold leading-none">
-                Argus Sentinel
-              </h1>
-              <p className="mt-2 text-[10px] text-white/80">
-                Secure access for scan operations and reporting.
-              </p>
+          <div
+            className="relative overflow-hidden rounded-[26px] border border-white/80 bg-white/92 px-5 py-5 shadow-[0_20px_55px_rgba(15,23,42,0.10)] backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-[0_24px_80px_rgba(2,8,23,0.45)] sm:px-16 sm:py-6 lg:px-20 lg:py-6"
+            style={{ animation: `compactCardIntro 620ms ${ANIM_EASE}` }}
+          >
+            <div className="pointer-events-none absolute inset-0 opacity-[0.18] dark:opacity-[0.08]">
+              <div className="h-full w-full bg-[linear-gradient(rgba(59,130,246,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.06)_1px,transparent_1px)] bg-size-[24px_24px]" />
+            </div>
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-cyan-300 to-transparent opacity-80 dark:via-cyan-400/70" />
+            <div
+              className="pointer-events-none absolute left-0 top-0 h-px w-28 bg-linear-to-r from-transparent via-cyan-300 to-transparent opacity-80"
+              style={{ animation: "compactBorderScan 4.8s linear infinite" }}
+            />
+            <div className="pointer-events-none absolute inset-x-4 bottom-0 h-px bg-linear-to-r from-transparent via-violet-200 to-transparent opacity-80 dark:via-violet-400/40" />
+
+            <div className="pointer-events-none absolute left-6 top-6 flex items-center gap-2">
+              <span className="h-2.5 w-2.5 rounded-full bg-cyan-400 shadow-[0_0_12px_rgba(34,211,238,0.45)]" />
+              <span className="h-px w-12 bg-linear-to-r from-cyan-300 via-sky-300 to-violet-300" />
+              <span className="h-2.5 w-2.5 rounded-full bg-violet-400 shadow-[0_0_12px_rgba(167,139,250,0.45)]" />
             </div>
 
-            <div className="rounded-full border border-white/10 bg-white/10 px-2.5 py-1.5 backdrop-blur-md">
-              <div className="flex items-center gap-1 text-[9px] font-semibold text-white/90">
-                <FiShield className="text-cyan-300" />
-                Protected
-              </div>
+            <div
+              key={viewMode}
+              className="relative flex min-h-125 items-center justify-center sm:min-h-117.5"
+              style={{ animation: `compactContentReveal 420ms ${ANIM_EASE}` }}
+            >
+              {viewMode === "login" && renderLoginForm(true)}
+              {viewMode === "forgot" && renderForgotForm()}
+              {viewMode === "reset" && renderResetForm()}
+              {viewMode === "signup" && renderSignUpForm()}
             </div>
-          </div>
-        </div>
-
-        <div className="absolute bottom-3 left-3 right-3">
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              { icon: <FiServer className="text-[13px]" />, label: "Switch" },
-              { icon: <FaNetworkWired className="text-[13px]" />, label: "Router" },
-              { icon: <FiWifi className="text-[13px]" />, label: "Wireless" },
-            ].map((item) => (
-              <div
-                key={item.label}
-                className="rounded-xl border border-white/10 bg-slate-900/40 px-2 py-1.5 backdrop-blur-md"
-              >
-                <div className="flex items-center gap-2 text-white">
-                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-white/10 text-cyan-300">
-                    {item.icon}
-                  </span>
-                  <span className="truncate text-[10px] font-medium">
-                    {item.label}
-                  </span>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       </div>
@@ -1423,7 +1514,7 @@ const Index: React.FC = () => {
     <>
       {renderMotionStyles()}
 
-      <div className="relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,#f8fbff_0%,#eef4fa_48%,#e9f1fb_100%)] px-2 py-2.5 dark:bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.14),transparent_24%),radial-gradient(circle_at_bottom_left,rgba(139,92,246,0.12),transparent_26%),linear-gradient(180deg,#020617_0%,#081120_45%,#0b1220_100%)] sm:px-3 lg:px-4">
+      <div className="relative min-h-screen overflow-x-hidden bg-[linear-gradient(180deg,#f8fbff_0%,#eef4fa_48%,#e9f1fb_100%)] px-2 py-2.5 dark:bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.14),transparent_24%),radial-gradient(circle_at_bottom_left,rgba(139,92,246,0.12),transparent_26%),linear-gradient(180deg,#020617_0%,#081120_45%,#0b1220_100%)] sm:px-3 lg:px-4">
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="absolute left-35 top-30 h-55 w-55 rounded-full bg-cyan-300/25 blur-3xl dark:bg-cyan-500/12" />
           <div className="absolute -right-25 top-22.5 h-45 w-45 rounded-full bg-sky-300/20 blur-3xl dark:bg-violet-500/12" />
@@ -1435,146 +1526,135 @@ const Index: React.FC = () => {
         </div>
 
         <div className="mx-auto flex min-h-[calc(100vh-1rem)] max-w-280 items-center justify-center">
-          <div className="relative w-full overflow-hidden rounded-[22px] border border-white/80 bg-white/80 shadow-[0_18px_54px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-white/4 dark:shadow-[0_24px_80px_rgba(2,8,23,0.55)]">
-            {renderMobileHero()}
+          {renderCompactPanel()}
 
-            <div className="hidden xl:block">
-              <div className="relative h-140 overflow-hidden">
-                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.38)_0%,rgba(255,255,255,0.58)_100%)] dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.02)_0%,rgba(255,255,255,0.01)_100%)]" />
+          <div className="hidden xl:block relative w-full overflow-hidden rounded-[22px] border border-white/80 bg-white/80 shadow-[0_18px_54px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-white/4 dark:shadow-[0_24px_80px_rgba(2,8,23,0.55)]">
+            <div className="relative h-140 overflow-hidden">
+              <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.38)_0%,rgba(255,255,255,0.58)_100%)] dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.02)_0%,rgba(255,255,255,0.01)_100%)]" />
 
-                <div
-                  className="absolute left-0 top-0 h-full"
-                  style={{
-                    width: isSignUp ? "56%" : "50%",
-                    right: isSignUp ? "0" : "auto",
-                    left: isSignUp ? "0" : "0",
-                    transform: isSignUp ? "translateX(0%)" : "translateX(100%)",
-                    transition: `transform ${ANIM_DURATION} ${ANIM_EASE}, width ${ANIM_DURATION} ${ANIM_EASE}`,
-                    willChange: "transform, width",
-                    zIndex: isSignUp ? 10 : 20,
-                  }}
-                >
-                  <div className="relative h-full overflow-hidden bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_60%,#f6f3ff_100%)] px-6 py-5 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.88)_0%,rgba(8,15,31,0.96)_58%,rgba(12,18,32,1)_100%)]">
-                    <div className="absolute inset-0 opacity-30 dark:opacity-10">
-                      <div className="h-full w-full bg-[linear-gradient(rgba(47,128,237,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(47,128,237,0.05)_1px,transparent_1px)] bg-size-[20px_20px] dark:bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)]" />
-                    </div>
-
-                    {renderTopWire()}
-                    {renderDeviceDecoration()}
-
-                    <div className="relative flex h-full w-full items-center justify-center">
-                      <div
-                        className="absolute inset-0 flex items-center justify-center"
-                        style={{
-                          opacity: viewMode === "login" ? 1 : 0,
-                          transform:
-                            viewMode === "login"
-                              ? "translateX(0px) scale(1)"
-                              : "translateX(22px) scale(0.96)",
-                          filter:
-                            viewMode === "login" ? "blur(0px)" : "blur(3px)",
-                          transition: `opacity 620ms ${ANIM_EASE}, transform 760ms ${ANIM_EASE}, filter 760ms ${ANIM_EASE}`,
-                          pointerEvents: viewMode === "login" ? "auto" : "none",
-                        }}
-                      >
-                        {renderLoginForm()}
-                      </div>
-
-                      <div
-                        className="absolute inset-0 flex items-center justify-center"
-                        style={{
-                          opacity: viewMode === "forgot" ? 1 : 0,
-                          transform:
-                            viewMode === "forgot"
-                              ? "translateX(0px) scale(1)"
-                              : "translateX(22px) scale(0.96)",
-                          filter:
-                            viewMode === "forgot" ? "blur(0px)" : "blur(3px)",
-                          transition: `opacity 620ms ${ANIM_EASE}, transform 760ms ${ANIM_EASE}, filter 760ms ${ANIM_EASE}`,
-                          pointerEvents: viewMode === "forgot" ? "auto" : "none",
-                        }}
-                      >
-                        {renderForgotForm()}
-                      </div>
-
-                      <div
-                        className="absolute inset-0 flex items-center justify-center"
-                        style={{
-                          opacity: viewMode === "reset" ? 1 : 0,
-                          transform:
-                            viewMode === "reset"
-                              ? "translateX(0px) scale(1)"
-                              : "translateX(18px) scale(0.96)",
-                          filter:
-                            viewMode === "reset" ? "blur(0px)" : "blur(3px)",
-                          transition: `opacity 620ms ${ANIM_EASE}, transform 760ms ${ANIM_EASE}, filter 760ms ${ANIM_EASE}`,
-                          transitionDelay: viewMode === "reset" ? "80ms" : "0ms",
-                          pointerEvents: viewMode === "reset" ? "auto" : "none",
-                        }}
-                      >
-                        {renderResetForm()}
-                      </div>
-
-                      <div
-                        className="absolute inset-0 flex items-center justify-center"
-                        style={{
-                          opacity: viewMode === "signup" ? 1 : 0,
-                          transform:
-                            viewMode === "signup"
-                              ? "translateX(0px) scale(1)"
-                              : "translateX(-28px) scale(0.95)",
-                          filter:
-                            viewMode === "signup" ? "blur(0px)" : "blur(3px)",
-                          transition: `opacity 620ms ${ANIM_EASE}, transform 760ms ${ANIM_EASE}, filter 760ms ${ANIM_EASE}`,
-                          transitionDelay: viewMode === "signup" ? "100ms" : "0ms",
-                          pointerEvents: viewMode === "signup" ? "auto" : "none",
-                        }}
-                      >
-                        {renderSignUpForm()}
-                      </div>
-                    </div>
+              <div
+                className="absolute left-0 top-0 h-full"
+                style={{
+                  width: isSignUp ? "56%" : "50%",
+                  right: isSignUp ? "0" : "auto",
+                  left: isSignUp ? "0" : "0",
+                  transform: isSignUp ? "translateX(0%)" : "translateX(100%)",
+                  transition: `transform ${ANIM_DURATION} ${ANIM_EASE}, width ${ANIM_DURATION} ${ANIM_EASE}`,
+                  willChange: "transform, width",
+                  zIndex: isSignUp ? 10 : 20,
+                }}
+              >
+                <div className="relative h-full overflow-hidden bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_60%,#f6f3ff_100%)] px-6 py-5 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.88)_0%,rgba(8,15,31,0.96)_58%,rgba(12,18,32,1)_100%)]">
+                  <div className="absolute inset-0 opacity-30 dark:opacity-10">
+                    <div className="h-full w-full bg-[linear-gradient(rgba(47,128,237,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(47,128,237,0.05)_1px,transparent_1px)] bg-size-[20px_20px] dark:bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)]" />
                   </div>
-                </div>
 
-                <div
-                  className="absolute bottom-0 left-0 top-0 overflow-hidden"
-                  style={{
-                    width: isSignUp ? "44%" : "50%",
-                    transform: isSignUp
-                      ? "translateX(127.2727%) translateY(0px)"
-                      : "translateX(0%) translateY(0px)",
-                    transition: `transform ${ANIM_DURATION} ${ANIM_EASE}, width ${ANIM_DURATION} ${ANIM_EASE}, box-shadow ${ANIM_DURATION} ${ANIM_EASE}`,
-                    willChange: "transform, width",
-                    zIndex: isSignUp ? 30 : 10,
-                  }}
-                >
-                  <div
-                    style={{
-                      transform: isSignUp
-                        ? "scale(1.04) rotate(0.35deg)"
-                        : "scale(1) rotate(0deg)",
-                      filter: isSignUp
-                        ? "saturate(1.1) brightness(1.05)"
-                        : "saturate(1) brightness(1)",
-                      boxShadow: isSignUp
-                        ? "0 24px 60px rgba(14,165,233,0.18)"
-                        : "0 12px 34px rgba(15,23,42,0.12)",
-                      transition: `transform ${ANIM_DURATION} ${ANIM_EASE}, filter ${ANIM_DURATION} ${ANIM_EASE}, box-shadow ${ANIM_DURATION} ${ANIM_EASE}`,
-                    }}
-                    className="h-full"
-                  >
-                    {renderPhotoPanel()}
+                  {renderTopWire()}
+                  {renderDeviceDecoration()}
+
+                  <div className="relative flex h-full w-full items-center justify-center">
+                    <div
+                      className="absolute inset-0 flex items-center justify-center"
+                      style={{
+                        opacity: viewMode === "login" ? 1 : 0,
+                        transform:
+                          viewMode === "login"
+                            ? "translateX(0px) scale(1)"
+                            : "translateX(22px) scale(0.96)",
+                        filter:
+                          viewMode === "login" ? "blur(0px)" : "blur(3px)",
+                        transition: `opacity 620ms ${ANIM_EASE}, transform 760ms ${ANIM_EASE}, filter 760ms ${ANIM_EASE}`,
+                        pointerEvents: viewMode === "login" ? "auto" : "none",
+                      }}
+                    >
+                      {renderLoginForm()}
+                    </div>
+
+                    <div
+                      className="absolute inset-0 flex items-center justify-center"
+                      style={{
+                        opacity: viewMode === "forgot" ? 1 : 0,
+                        transform:
+                          viewMode === "forgot"
+                            ? "translateX(0px) scale(1)"
+                            : "translateX(22px) scale(0.96)",
+                        filter:
+                          viewMode === "forgot" ? "blur(0px)" : "blur(3px)",
+                        transition: `opacity 620ms ${ANIM_EASE}, transform 760ms ${ANIM_EASE}, filter 760ms ${ANIM_EASE}`,
+                        pointerEvents: viewMode === "forgot" ? "auto" : "none",
+                      }}
+                    >
+                      {renderForgotForm()}
+                    </div>
+
+                    <div
+                      className="absolute inset-0 flex items-center justify-center"
+                      style={{
+                        opacity: viewMode === "reset" ? 1 : 0,
+                        transform:
+                          viewMode === "reset"
+                            ? "translateX(0px) scale(1)"
+                            : "translateX(18px) scale(0.96)",
+                        filter:
+                          viewMode === "reset" ? "blur(0px)" : "blur(3px)",
+                        transition: `opacity 620ms ${ANIM_EASE}, transform 760ms ${ANIM_EASE}, filter 760ms ${ANIM_EASE}`,
+                        transitionDelay: viewMode === "reset" ? "80ms" : "0ms",
+                        pointerEvents: viewMode === "reset" ? "auto" : "none",
+                      }}
+                    >
+                      {renderResetForm()}
+                    </div>
+
+                    <div
+                      className="absolute inset-0 flex items-center justify-center"
+                      style={{
+                        opacity: viewMode === "signup" ? 1 : 0,
+                        transform:
+                          viewMode === "signup"
+                            ? "translateX(0px) scale(1)"
+                            : "translateX(-28px) scale(0.95)",
+                        filter:
+                          viewMode === "signup" ? "blur(0px)" : "blur(3px)",
+                        transition: `opacity 620ms ${ANIM_EASE}, transform 760ms ${ANIM_EASE}, filter 760ms ${ANIM_EASE}`,
+                        transitionDelay: viewMode === "signup" ? "100ms" : "0ms",
+                        pointerEvents: viewMode === "signup" ? "auto" : "none",
+                      }}
+                    >
+                      {renderSignUpForm()}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <div className="px-3 pb-4 pt-4 xl:hidden sm:px-5">
-              <div className="rounded-[20px] border border-slate-200/80 bg-white/85 p-4 shadow-sm dark:border-white/10 dark:bg-white/3 dark:shadow-none sm:p-5">
-                {viewMode === "login" && renderLoginForm()}
-                {viewMode === "forgot" && renderForgotForm()}
-                {viewMode === "reset" && renderResetForm()}
-                {viewMode === "signup" && renderSignUpForm()}
+              <div
+                className="absolute bottom-0 left-0 top-0 overflow-hidden"
+                style={{
+                  width: isSignUp ? "44%" : "50%",
+                  transform: isSignUp
+                    ? "translateX(127.2727%) translateY(0px)"
+                    : "translateX(0%) translateY(0px)",
+                  transition: `transform ${ANIM_DURATION} ${ANIM_EASE}, width ${ANIM_DURATION} ${ANIM_EASE}, box-shadow ${ANIM_DURATION} ${ANIM_EASE}`,
+                  willChange: "transform, width",
+                  zIndex: isSignUp ? 30 : 10,
+                }}
+              >
+                <div
+                  style={{
+                    transform: isSignUp
+                      ? "scale(1.04) rotate(0.35deg)"
+                      : "scale(1) rotate(0deg)",
+                    filter: isSignUp
+                      ? "saturate(1.1) brightness(1.05)"
+                      : "saturate(1) brightness(1)",
+                    boxShadow: isSignUp
+                      ? "0 24px 60px rgba(14,165,233,0.18)"
+                      : "0 12px 34px rgba(15,23,42,0.12)",
+                    transition: `transform ${ANIM_DURATION} ${ANIM_EASE}, filter ${ANIM_DURATION} ${ANIM_EASE}, box-shadow ${ANIM_DURATION} ${ANIM_EASE}`,
+                  }}
+                  className="h-full"
+                >
+                  {renderPhotoPanel()}
+                </div>
               </div>
             </div>
           </div>

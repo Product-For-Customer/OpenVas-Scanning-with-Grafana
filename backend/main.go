@@ -161,6 +161,11 @@ func CORSMiddleware() gin.HandlerFunc {
 			"http://127.0.0.1:3000":           true,
 			"http://frontend":                 true,
 			"https://openvaswebv1.vercel.app": true,
+
+			// เพิ่มของเครื่องในวง LAN
+			"http://192.168.0.134:5173":        true,
+			"http://192.168.0.134:5174":        true,
+			"http://192.168.0.134:3000":        true,
 		}
 
 		if allowedOrigins[origin] {

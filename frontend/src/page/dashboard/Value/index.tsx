@@ -83,7 +83,8 @@ const Value: React.FC<ValueProps> = ({
     const map = new Map<string, SummaryRow>();
 
     for (const item of vulnerabilityData) {
-      const taskName = String((item as any)?.task_name ?? "").trim() || "Unknown";
+      const taskName =
+        String((item as any)?.task_name ?? "").trim() || "Unknown";
 
       const taskID = String((item as any)?.task_id ?? "").trim();
 
@@ -464,7 +465,7 @@ const Value: React.FC<ValueProps> = ({
       </div>
 
       <div className="relative z-10 flex flex-col gap-2.5">
-        <div className="flex flex-col gap-2.5 xl:flex-row xl:items-center xl:justify-between">
+        <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             <span className="inline-flex items-center gap-2 rounded-full border border-cyan-200/80 bg-cyan-50 px-3 py-1 text-[10px] font-medium text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-300">
               <FiRadio className="text-[12px]" />
@@ -479,7 +480,7 @@ const Value: React.FC<ValueProps> = ({
             </span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 lg:justify-end">
             <span className="inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-white px-3 py-1 text-[10px] font-medium text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-white/70">
               <FiLayers className="text-[12px]" />
               {selectedScopeLabel}
@@ -500,8 +501,7 @@ const Value: React.FC<ValueProps> = ({
                   {targetButtonLabel}
                 </span>
                 <FiChevronDown
-                  className={`ml-auto text-[12px] transition-transform ${openTargetQuery ? "rotate-180" : ""
-                    }`}
+                  className={`ml-auto text-[12px] transition-transform ${openTargetQuery ? "rotate-180" : ""}`}
                 />
               </button>
 
@@ -605,18 +605,18 @@ const Value: React.FC<ValueProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2 xl:grid-cols-5">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-5 xl:grid-cols-5">
           {stats.map((item) => {
             const rawNumber =
               item.title === "Critical"
                 ? totals.critical
                 : item.title === "High"
-                  ? totals.high
-                  : item.title === "Medium"
-                    ? totals.medium
-                    : item.title === "Low"
-                      ? totals.low
-                      : totals.info;
+                ? totals.high
+                : item.title === "Medium"
+                ? totals.medium
+                : item.title === "Low"
+                ? totals.low
+                : totals.info;
 
             const w = barWidth(rawNumber);
 
@@ -626,7 +626,7 @@ const Value: React.FC<ValueProps> = ({
                 type="button"
                 onClick={() => handleNavigateByLevel(item.title)}
                 className={[
-                  "group relative overflow-hidden rounded-[20px] p-4 text-left transition-all duration-300",
+                  "group relative overflow-hidden rounded-[20px] p-4 md:p-4 xl:p-4 text-left transition-all duration-300 min-w-0",
                   item.bg,
                   item.ring,
                   item.glow,
@@ -634,11 +634,11 @@ const Value: React.FC<ValueProps> = ({
                 ].join(" ")}
               >
                 <div className="relative z-10">
-                  <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-start gap-2">
                     <div className="flex min-w-0 items-center gap-2.5">
                       <div
                         className={[
-                          "flex h-7 w-7 shrink-0 items-center justify-center rounded-[14px] text-[13px]",
+                          "flex h-8 w-8 md:h-8 md:w-8 xl:h-7 xl:w-7 shrink-0 items-center justify-center rounded-[14px] text-[13px]",
                           item.iconBox,
                         ].join(" ")}
                       >
@@ -648,12 +648,12 @@ const Value: React.FC<ValueProps> = ({
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
                           <span className={`h-1.5 w-1.5 rounded-full ${item.dot}`} />
-                          <h3 className="min-w-0 truncate text-[10px] font-semibold leading-[1.1] tracking-wide sm:text-[10.5px] dark:text-white">
+                          <h3 className="min-w-0 truncate text-[10px] md:text-[10.5px] xl:text-[10px] font-semibold leading-[1.1] tracking-wide dark:text-white">
                             {item.title}
                           </h3>
                         </div>
 
-                        <p className="mt-0.5 truncate text-[8.5px] text-slate-700/80 dark:text-white/75">
+                        <p className="mt-0.5 truncate text-[8px] md:text-[8.5px] xl:text-[8.5px] text-slate-700/80 dark:text-white/75">
                           Network scan severity
                         </p>
                       </div>
@@ -661,8 +661,8 @@ const Value: React.FC<ValueProps> = ({
 
                     <span
                       className={[
-                        "inline-flex h-4.5 shrink-0 items-center justify-center rounded-full px-1.5",
-                        "border text-[8px] font-medium backdrop-blur",
+                        "hidden xl:inline-flex h-4.5 shrink-0 items-center justify-center rounded-full px-1.5",
+                        "border text-[8px] font-medium backdrop-blur ml-auto",
                         item.pill,
                       ].join(" ")}
                     >
@@ -672,18 +672,18 @@ const Value: React.FC<ValueProps> = ({
 
                   <div className="mt-4">
                     <div className="flex items-end justify-between gap-2">
-                      <div>
-                        <div className="text-[18px] font-semibold tracking-tight text-slate-900 dark:text-white">
+                      <div className="min-w-0">
+                        <div className="text-[20px] md:text-[19px] xl:text-[18px] font-semibold tracking-tight text-slate-900 dark:text-white">
                           {item.value}
                         </div>
-                        <p className="mt-1 text-[10px] text-slate-600 dark:text-white/60">
+                        <p className="hidden xl:block mt-1 text-[10px] text-slate-600 dark:text-white/60">
                           {item.subtitle}
                         </p>
                       </div>
 
                       <span
                         className={[
-                          "inline-flex items-center rounded-full border px-2 py-0.5 text-[9px] font-medium",
+                          "hidden xl:inline-flex items-center rounded-full border px-2 py-0.5 text-[9px] font-medium",
                           rawNumber === 0
                             ? "bg-white/70 text-slate-500 border-slate-200/80 dark:bg-white/8 dark:border-white/10 dark:text-white/45"
                             : item.chip,
@@ -695,16 +695,16 @@ const Value: React.FC<ValueProps> = ({
                   </div>
 
                   <div className="mt-5">
-                    <div className="mb-1.5 flex items-center justify-between text-[9px] text-slate-600 dark:text-white/55">
+                    <div className="mb-1.5 flex items-center justify-between text-[9px] md:text-[9.5px] xl:text-[9px] text-slate-600 dark:text-white/55">
                       <span>Scan intensity</span>
                       <span>
                         {loading ? "..." : `${percent(rawNumber).toFixed(2)}%`}
                       </span>
                     </div>
 
-                    <div className="h-2 rounded-full bg-white/55 ring-1 ring-black/5 dark:bg-white/10 dark:ring-white/8">
+                    <div className="h-2.5 md:h-2.5 xl:h-2 rounded-full bg-white/55 ring-1 ring-black/5 dark:bg-white/10 dark:ring-white/8">
                       <div
-                        className={`h-2 rounded-full ${item.bar}`}
+                        className={`h-2.5 md:h-2.5 xl:h-2 rounded-full ${item.bar}`}
                         style={{ width: w }}
                       />
                     </div>
