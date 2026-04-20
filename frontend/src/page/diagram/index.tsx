@@ -30,6 +30,7 @@ import DiagramFormModal from "./modal/DiagramFormModal";
 import DiagramDeleteModal from "./modal/DiagramDeleteModal";
 import message from "antd/es/message";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
 
 type ViewMode = "list" | "grid";
 type SortMode = "latest" | "oldest" | "name_asc" | "name_desc";
@@ -66,6 +67,20 @@ const safeTime = (value?: string) => {
 
 const Diagrams: React.FC = () => {
   const navigate = useNavigate();
+  const auth = useAuth() as any;
+
+  const roleName = String(
+    auth?.user?.role ??
+      auth?.me?.role ??
+      auth?.profile?.role ??
+      auth?.currentUser?.role ??
+      auth?.authUser?.role ??
+      ""
+  )
+    .trim()
+    .toLowerCase();
+
+  const isUserRole = roleName === "user";
 
   const [diagrams, setDiagrams] = useState<DiagramResponse[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -230,47 +245,54 @@ const Diagrams: React.FC = () => {
   }, [sortMode]);
 
   const handleOpenCreate = useCallback(() => {
+    if (isUserRole) return;
+
     setModalMode("create");
     setSelectedDiagram(null);
     setFormLoading(false);
     setOpenFormModal(true);
-  }, []);
+  }, [isUserRole]);
 
-  const handleOpenEdit = useCallback(async (diagramID: number) => {
-    const requestId = ++editRequestIdRef.current;
+  const handleOpenEdit = useCallback(
+    async (diagramID: number) => {
+      if (isUserRole) return;
 
-    setModalMode("edit");
-    setSelectedDiagram(null);
-    setFormLoading(true);
-    setOpenFormModal(true);
+      const requestId = ++editRequestIdRef.current;
 
-    try {
-      const data = await ListDiagramByID(diagramID);
+      setModalMode("edit");
+      setSelectedDiagram(null);
+      setFormLoading(true);
+      setOpenFormModal(true);
 
-      if (!isMountedRef.current) return;
-      if (requestId !== editRequestIdRef.current) return;
+      try {
+        const data = await ListDiagramByID(diagramID);
 
-      if (!data) {
-        message.error("ไม่สามารถโหลดข้อมูล Diagram ได้");
+        if (!isMountedRef.current) return;
+        if (requestId !== editRequestIdRef.current) return;
+
+        if (!data) {
+          message.error("ไม่สามารถโหลดข้อมูล Diagram ได้");
+          setOpenFormModal(false);
+          return;
+        }
+
+        setSelectedDiagram(data);
+      } catch (error) {
+        console.error("handleOpenEdit error:", error);
+
+        if (!isMountedRef.current) return;
+        if (requestId !== editRequestIdRef.current) return;
+
+        message.error("เกิดข้อผิดพลาดในการโหลดข้อมูล Diagram");
         setOpenFormModal(false);
-        return;
+      } finally {
+        if (isMountedRef.current && requestId === editRequestIdRef.current) {
+          setFormLoading(false);
+        }
       }
-
-      setSelectedDiagram(data);
-    } catch (error) {
-      console.error("handleOpenEdit error:", error);
-
-      if (!isMountedRef.current) return;
-      if (requestId !== editRequestIdRef.current) return;
-
-      message.error("เกิดข้อผิดพลาดในการโหลดข้อมูล Diagram");
-      setOpenFormModal(false);
-    } finally {
-      if (isMountedRef.current && requestId === editRequestIdRef.current) {
-        setFormLoading(false);
-      }
-    }
-  }, []);
+    },
+    [isUserRole]
+  );
 
   const handleOpenDetail = useCallback(
     (diagramID: number) => {
@@ -280,6 +302,7 @@ const Diagrams: React.FC = () => {
   );
 
   const handleDeleteDiagram = useCallback(async () => {
+    if (isUserRole) return;
     if (!deleteTarget?.id || deleting) return;
 
     setDeleting(true);
@@ -301,7 +324,7 @@ const Diagrams: React.FC = () => {
         setDeleting(false);
       }
     }
-  }, [deleteTarget, deleting, loadDiagrams]);
+  }, [deleteTarget, deleting, loadDiagrams, isUserRole]);
 
   const shell = [
     "relative overflow-hidden rounded-[18px]",
@@ -463,14 +486,16 @@ const Diagrams: React.FC = () => {
                     )}
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={handleOpenCreate}
-                    className={primaryGradientBtn}
-                  >
-                    <FiPlus className="text-[12px]" />
-                    <span className="text-[11px] font-medium">Add Diagram</span>
-                  </button>
+                  {!isUserRole && (
+                    <button
+                      type="button"
+                      onClick={handleOpenCreate}
+                      className={primaryGradientBtn}
+                    >
+                      <FiPlus className="text-[12px]" />
+                      <span className="text-[11px] font-medium">Add Diagram</span>
+                    </button>
+                  )}
 
                   <div className="flex shrink-0 items-center gap-1">
                     <button
@@ -603,23 +628,31 @@ const Diagrams: React.FC = () => {
                                 Detail
                               </button>
 
-                              <button
-                                type="button"
-                                className={editGradientBtn}
-                                onClick={() => handleOpenEdit(item.id)}
-                              >
-                                <FiEdit2 className="text-[12px]" />
-                                <span className="text-[11px] font-medium">Edit</span>
-                              </button>
+                              {!isUserRole && (
+                                <>
+                                  <button
+                                    type="button"
+                                    className={editGradientBtn}
+                                    onClick={() => handleOpenEdit(item.id)}
+                                  >
+                                    <FiEdit2 className="text-[12px]" />
+                                    <span className="text-[11px] font-medium">
+                                      Edit
+                                    </span>
+                                  </button>
 
-                              <button
-                                type="button"
-                                className={deleteGradientBtn}
-                                onClick={() => setDeleteTarget(item)}
-                              >
-                                <FiTrash2 className="text-[12px]" />
-                                <span className="text-[11px] font-medium">Delete</span>
-                              </button>
+                                  <button
+                                    type="button"
+                                    className={deleteGradientBtn}
+                                    onClick={() => setDeleteTarget(item)}
+                                  >
+                                    <FiTrash2 className="text-[12px]" />
+                                    <span className="text-[11px] font-medium">
+                                      Delete
+                                    </span>
+                                  </button>
+                                </>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -685,7 +718,12 @@ const Diagrams: React.FC = () => {
                                 </p>
                               </div>
 
-                              <div className="mt-3 grid grid-cols-3 gap-2">
+                              <div
+                                className={[
+                                  "mt-3 grid gap-2",
+                                  isUserRole ? "grid-cols-1" : "grid-cols-3",
+                                ].join(" ")}
+                              >
                                 <button
                                   type="button"
                                   className={[secondaryBtn, "w-full"].join(" ")}
@@ -695,23 +733,31 @@ const Diagrams: React.FC = () => {
                                   Detail
                                 </button>
 
-                                <button
-                                  type="button"
-                                  className={[editGradientBtn, "w-full"].join(" ")}
-                                  onClick={() => handleOpenEdit(item.id)}
-                                >
-                                  <FiEdit2 className="text-[12px]" />
-                                  Edit
-                                </button>
+                                {!isUserRole && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      className={[editGradientBtn, "w-full"].join(
+                                        " "
+                                      )}
+                                      onClick={() => handleOpenEdit(item.id)}
+                                    >
+                                      <FiEdit2 className="text-[12px]" />
+                                      Edit
+                                    </button>
 
-                                <button
-                                  type="button"
-                                  className={[deleteGradientBtn, "w-full"].join(" ")}
-                                  onClick={() => setDeleteTarget(item)}
-                                >
-                                  <FiTrash2 className="text-[12px]" />
-                                  Delete
-                                </button>
+                                    <button
+                                      type="button"
+                                      className={[deleteGradientBtn, "w-full"].join(
+                                        " "
+                                      )}
+                                      onClick={() => setDeleteTarget(item)}
+                                    >
+                                      <FiTrash2 className="text-[12px]" />
+                                      Delete
+                                    </button>
+                                  </>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -726,29 +772,33 @@ const Diagrams: React.FC = () => {
         </div>
       </section>
 
-      <DiagramFormModal
-        open={openFormModal}
-        mode={modalMode}
-        loading={formLoading}
-        initialData={selectedDiagram}
-        onClose={() => {
-          if (!formLoading) setOpenFormModal(false);
-        }}
-        onSuccess={async () => {
-          setOpenFormModal(false);
-          await loadDiagrams();
-        }}
-      />
+      {!isUserRole && (
+        <>
+          <DiagramFormModal
+            open={openFormModal}
+            mode={modalMode}
+            loading={formLoading}
+            initialData={selectedDiagram}
+            onClose={() => {
+              if (!formLoading) setOpenFormModal(false);
+            }}
+            onSuccess={async () => {
+              setOpenFormModal(false);
+              await loadDiagrams();
+            }}
+          />
 
-      <DiagramDeleteModal
-        open={!!deleteTarget}
-        data={deleteTarget}
-        deleting={deleting}
-        onClose={() => {
-          if (!deleting) setDeleteTarget(null);
-        }}
-        onConfirm={handleDeleteDiagram}
-      />
+          <DiagramDeleteModal
+            open={!!deleteTarget}
+            data={deleteTarget}
+            deleting={deleting}
+            onClose={() => {
+              if (!deleting) setDeleteTarget(null);
+            }}
+            onConfirm={handleDeleteDiagram}
+          />
+        </>
+      )}
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import { MdOutlineCancel } from "react-icons/md";
 import { useNavigate } from "react-router-dom";
-import { type JSX, useState, useEffect } from "react";
+import { type JSX, useState, useEffect, useMemo } from "react";
 import { useStateContext } from "../../contexts/ContextProvider";
 import {
   FiSettings,
@@ -31,35 +31,6 @@ type UserProfileProps = {
   logout: () => Promise<void>;
 };
 
-const userProfileData: UserProfileItem[] = [
-  {
-    icon: <FiSettings />,
-    title: "Settings",
-    desc: "ตั้งค่าระบบ / integrations",
-    iconColor: "#06b6d4",
-    iconBg: "#ecfeff",
-    link: "/admin/profile",
-    action: "navigate",
-  },
-  {
-    icon: <FiServer />,
-    title: "Service",
-    desc: "จัดการ service ของระบบ",
-    iconColor: "#7c3aed",
-    iconBg: "#f5f3ff",
-    link: "/admin/service",
-    action: "navigate",
-  },
-  {
-    icon: <FiLogOut />,
-    title: "Logout",
-    desc: "ออกจากระบบ",
-    iconColor: "#dc2626",
-    iconBg: "#fff1f2",
-    action: "logout",
-  },
-];
-
 const UserProfile: React.FC<UserProfileProps> = ({
   profileSrc,
   avatarFallback,
@@ -85,6 +56,46 @@ const UserProfile: React.FC<UserProfileProps> = ({
   useEffect(() => {
     setImageError(false);
   }, [profileSrc]);
+
+  const normalizedRole = String(roleName || "").trim().toLowerCase();
+  const isUserRole = normalizedRole === "user";
+
+  const userProfileData: UserProfileItem[] = useMemo(() => {
+    const items: UserProfileItem[] = [
+      {
+        icon: <FiSettings />,
+        title: "Settings",
+        desc: "ตั้งค่าระบบ / integrations",
+        iconColor: "#06b6d4",
+        iconBg: "#ecfeff",
+        link: "/admin/profile",
+        action: "navigate",
+      },
+      {
+        icon: <FiServer />,
+        title: "Service",
+        desc: "จัดการ service ของระบบ",
+        iconColor: "#7c3aed",
+        iconBg: "#f5f3ff",
+        link: "/admin/service",
+        action: "navigate",
+      },
+      {
+        icon: <FiLogOut />,
+        title: "Logout",
+        desc: "ออกจากระบบ",
+        iconColor: "#dc2626",
+        iconBg: "#fff1f2",
+        action: "logout",
+      },
+    ];
+
+    if (isUserRole) {
+      return items.filter((item) => item.title !== "Service");
+    }
+
+    return items;
+  }, [isUserRole]);
 
   const close = () => {
     if (typeof setIsClicked === "function") {

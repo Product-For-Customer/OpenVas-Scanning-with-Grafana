@@ -34,6 +34,7 @@ import {
 } from "../../../services";
 import ModalCreateAndUpdate from "./modal/ModalCreateAndUpdate";
 import ModalDelete from "./modal/ModalDelete";
+import { useAuth } from "../../../contexts/AuthContext";
 
 export type DeviceStatus = "online" | "offline" | "warning";
 
@@ -278,6 +279,10 @@ const MapPopupCard: React.FC<{
 
 const MapDevice: React.FC = () => {
   const mapRef = useRef<MapRef | null>(null);
+  const { user } = useAuth();
+
+  const roleName = String(user?.role || "").trim().toLowerCase();
+  const isUserRole = roleName === "user";
 
   const [search, setSearch] = useState("");
   const [rows, setRows] = useState<Device[]>([]);
@@ -510,6 +515,7 @@ const MapDevice: React.FC = () => {
   }, [filteredDevices, selectedDevice]);
 
   const openDeleteModal = (device: Device) => {
+    if (isUserRole) return;
     setDeleteError("");
     setDeleteTarget(device);
   };
@@ -521,7 +527,7 @@ const MapDevice: React.FC = () => {
   };
 
   const confirmDelete = async () => {
-    if (!deleteTarget) return;
+    if (!deleteTarget || isUserRole) return;
 
     try {
       setDeleting(true);
@@ -553,6 +559,8 @@ const MapDevice: React.FC = () => {
   };
 
   const handleOpenCreateModal = async () => {
+    if (isUserRole) return;
+
     setCreateError("");
     setCreateForm(emptyForm);
     setOpenCreateModal(true);
@@ -567,6 +575,8 @@ const MapDevice: React.FC = () => {
   };
 
   const confirmCreate = async (form: LocationFormState) => {
+    if (isUserRole) return;
+
     try {
       setCreating(true);
       setCreateError("");
@@ -644,6 +654,8 @@ const MapDevice: React.FC = () => {
   };
 
   const handleOpenEditModal = async (device: Device) => {
+    if (isUserRole) return;
+
     setEditError("");
     setEditTarget(device);
     setEditForm({
@@ -667,7 +679,7 @@ const MapDevice: React.FC = () => {
   };
 
   const confirmEdit = async (form: LocationFormState) => {
-    if (!editTarget) return;
+    if (!editTarget || isUserRole) return;
 
     try {
       setEditing(true);
@@ -837,16 +849,18 @@ const MapDevice: React.FC = () => {
                       </span>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={handleOpenCreateModal}
-                      className="inline-flex h-8 items-center justify-center gap-2 rounded-full bg-linear-to-r from-cyan-500 via-sky-500 to-blue-600 px-3.5 text-white transition hover:from-cyan-600 hover:via-sky-600 hover:to-blue-700"
-                    >
-                      <FiPlus className="text-[12px]" />
-                      <span className="text-[11px] font-medium">
-                        Create Location
-                      </span>
-                    </button>
+                    {!isUserRole && (
+                      <button
+                        type="button"
+                        onClick={handleOpenCreateModal}
+                        className="inline-flex h-8 items-center justify-center gap-2 rounded-full bg-linear-to-r from-cyan-500 via-sky-500 to-blue-600 px-3.5 text-white transition hover:from-cyan-600 hover:via-sky-600 hover:to-blue-700"
+                      >
+                        <FiPlus className="text-[12px]" />
+                        <span className="text-[11px] font-medium">
+                          Create Location
+                        </span>
+                      </button>
+                    )}
                   </div>
 
                   <h2 className="text-[17px] font-semibold tracking-tight text-slate-900 dark:text-white sm:text-[19px]">
@@ -970,27 +984,29 @@ const MapDevice: React.FC = () => {
                           </div>
                         </button>
 
-                        <div className="mt-2.5 flex items-center justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={() => handleOpenEditModal(device)}
-                            className={editGradientIconBtn}
-                            title="Edit"
-                            aria-label="Edit"
-                          >
-                            <FiEdit2 className="text-[13px]" />
-                          </button>
+                        {!isUserRole && (
+                          <div className="mt-2.5 flex items-center justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditModal(device)}
+                              className={editGradientIconBtn}
+                              title="Edit"
+                              aria-label="Edit"
+                            >
+                              <FiEdit2 className="text-[13px]" />
+                            </button>
 
-                          <button
-                            type="button"
-                            onClick={() => openDeleteModal(device)}
-                            className={deleteGradientIconBtn}
-                            title="Delete"
-                            aria-label="Delete"
-                          >
-                            <FiTrash2 className="text-[13px]" />
-                          </button>
-                        </div>
+                            <button
+                              type="button"
+                              onClick={() => openDeleteModal(device)}
+                              className={deleteGradientIconBtn}
+                              title="Delete"
+                              aria-label="Delete"
+                            >
+                              <FiTrash2 className="text-[13px]" />
+                            </button>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -1042,44 +1058,48 @@ const MapDevice: React.FC = () => {
         </div>
       </section>
 
-      <ModalCreateAndUpdate
-        open={openCreateModal}
-        mode="create"
-        loading={creating}
-        loadingTargets={loadingTargets}
-        error={createError}
-        form={createForm}
-        targets={targets}
-        usedTaskIds={usedTaskIds}
-        currentTaskId={null}
-        onClose={closeCreateModal}
-        onChange={setCreateForm}
-        onSubmit={confirmCreate}
-      />
+      {!isUserRole && (
+        <>
+          <ModalCreateAndUpdate
+            open={openCreateModal}
+            mode="create"
+            loading={creating}
+            loadingTargets={loadingTargets}
+            error={createError}
+            form={createForm}
+            targets={targets}
+            usedTaskIds={usedTaskIds}
+            currentTaskId={null}
+            onClose={closeCreateModal}
+            onChange={setCreateForm}
+            onSubmit={confirmCreate}
+          />
 
-      <ModalCreateAndUpdate
-        open={openEditModal}
-        mode="edit"
-        loading={editing}
-        loadingTargets={loadingTargets}
-        error={editError}
-        form={editForm}
-        targets={targets}
-        usedTaskIds={usedTaskIds}
-        currentTaskId={editTarget?.task_id ?? null}
-        onClose={closeEditModal}
-        onChange={setEditForm}
-        onSubmit={confirmEdit}
-      />
+          <ModalCreateAndUpdate
+            open={openEditModal}
+            mode="edit"
+            loading={editing}
+            loadingTargets={loadingTargets}
+            error={editError}
+            form={editForm}
+            targets={targets}
+            usedTaskIds={usedTaskIds}
+            currentTaskId={editTarget?.task_id ?? null}
+            onClose={closeEditModal}
+            onChange={setEditForm}
+            onSubmit={confirmEdit}
+          />
 
-      <ModalDelete
-        open={!!deleteTarget}
-        loading={deleting}
-        error={deleteError}
-        target={deleteTarget}
-        onClose={closeDeleteModal}
-        onConfirm={confirmDelete}
-      />
+          <ModalDelete
+            open={!!deleteTarget}
+            loading={deleting}
+            error={deleteError}
+            target={deleteTarget}
+            onClose={closeDeleteModal}
+            onConfirm={confirmDelete}
+          />
+        </>
+      )}
     </>
   );
 };

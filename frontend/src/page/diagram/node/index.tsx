@@ -34,6 +34,7 @@ import DiagramNodeFormModal, {
   type DiagramNodeFormValues,
   type DiagramNodeModalMode,
 } from "../modal/DiagramNodeFormModal";
+import { useAuth } from "../../../contexts/AuthContext";
 
 const getImageSrc = (value?: string) => {
   if (!value) return "";
@@ -184,6 +185,20 @@ const CONTAINER_PADDING = 12;
 const DiagramNode: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const auth = useAuth() as any;
+
+  const roleName = String(
+    auth?.user?.role ??
+      auth?.me?.role ??
+      auth?.profile?.role ??
+      auth?.currentUser?.role ??
+      auth?.authUser?.role ??
+      ""
+  )
+    .trim()
+    .toLowerCase();
+
+  const isUserRole = roleName === "user";
 
   const diagramIdParam = searchParams.get("diagramId");
   const diagramId = Number(diagramIdParam);
@@ -354,6 +369,7 @@ const DiagramNode: React.FC = () => {
 
   const handleOpenCreateByClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
+      if (isUserRole) return;
       if (!imageWrapperRef.current || !diagramId) return;
 
       const target = e.target as HTMLElement;
@@ -382,46 +398,51 @@ const DiagramNode: React.FC = () => {
       setModalMode("create");
       setModalOpen(true);
     },
-    [diagramId]
+    [diagramId, isUserRole]
   );
 
-  const handleOpenEdit = useCallback(async (nodeId: number) => {
-    const requestId = ++editRequestIdRef.current;
+  const handleOpenEdit = useCallback(
+    async (nodeId: number) => {
+      if (isUserRole) return;
 
-    setModalMode("edit");
-    setSelectedNode(null);
-    setDraftPosition(null);
-    setModalOpen(true);
-    setModalLoading(true);
+      const requestId = ++editRequestIdRef.current;
 
-    try {
-      const node = await ListAppDiagramNodeByID(nodeId);
+      setModalMode("edit");
+      setSelectedNode(null);
+      setDraftPosition(null);
+      setModalOpen(true);
+      setModalLoading(true);
 
-      if (!isMountedRef.current) return;
-      if (requestId !== editRequestIdRef.current) return;
+      try {
+        const node = await ListAppDiagramNodeByID(nodeId);
 
-      if (!node) {
+        if (!isMountedRef.current) return;
+        if (requestId !== editRequestIdRef.current) return;
+
+        if (!node) {
+          message.error("ไม่สามารถโหลดข้อมูล node ได้");
+          setModalOpen(false);
+          return;
+        }
+
+        setSelectedNode(node);
+        setHoverCard(null);
+      } catch (err) {
+        console.error("handleOpenEdit error:", err);
+
+        if (!isMountedRef.current) return;
+        if (requestId !== editRequestIdRef.current) return;
+
         message.error("ไม่สามารถโหลดข้อมูล node ได้");
         setModalOpen(false);
-        return;
+      } finally {
+        if (isMountedRef.current && requestId === editRequestIdRef.current) {
+          setModalLoading(false);
+        }
       }
-
-      setSelectedNode(node);
-      setHoverCard(null);
-    } catch (err) {
-      console.error("handleOpenEdit error:", err);
-
-      if (!isMountedRef.current) return;
-      if (requestId !== editRequestIdRef.current) return;
-
-      message.error("ไม่สามารถโหลดข้อมูล node ได้");
-      setModalOpen(false);
-    } finally {
-      if (isMountedRef.current && requestId === editRequestIdRef.current) {
-        setModalLoading(false);
-      }
-    }
-  }, []);
+    },
+    [isUserRole]
+  );
 
   const handleSubmit = useCallback(
     async (values: DiagramNodeFormValues) => {
@@ -501,6 +522,7 @@ const DiagramNode: React.FC = () => {
 
   const handleDeleteImmediate = useCallback(
     async (node: AppDiagramNodeResponse | null) => {
+      if (isUserRole) return;
       if (!node?.id) {
         message.error("ไม่พบ node ที่ต้องการลบ");
         return;
@@ -530,7 +552,7 @@ const DiagramNode: React.FC = () => {
         }
       }
     },
-    [loadData]
+    [loadData, isUserRole]
   );
 
   const handleMarkerEnter = useCallback(
@@ -626,12 +648,14 @@ const DiagramNode: React.FC = () => {
                     </span>
                   </div>
 
-                  <div className={badgeCls}>
-                    <FiCrosshair className="shrink-0 text-[10px] text-violet-500" />
-                    <span className="truncate text-[9.5px] font-medium">
-                      Click image to create node
-                    </span>
-                  </div>
+                  {!isUserRole && (
+                    <div className={badgeCls}>
+                      <FiCrosshair className="shrink-0 text-[10px] text-violet-500" />
+                      <span className="truncate text-[9.5px] font-medium">
+                        Click image to create node
+                      </span>
+                    </div>
+                  )}
 
                   <div className={badgeCls}>
                     <FiMapPin className="shrink-0 text-[10px] text-red-500" />
@@ -691,7 +715,9 @@ const DiagramNode: React.FC = () => {
                       Interactive Diagram
                     </h3>
                     <p className="mt-1 text-[10.5px] text-gray-500 dark:text-white/55">
-                      กดบนรูปเพื่อสร้าง node ใหม่ และกด icon พิกัดเพื่อแก้ไข / ลบ
+                      {isUserRole
+                        ? "เลื่อนเมาส์เหนือ marker เพื่อดูรายละเอียด"
+                        : "กดบนรูปเพื่อสร้าง node ใหม่ และกด icon พิกัดเพื่อแก้ไข / ลบ"}
                     </p>
                   </div>
 
@@ -705,7 +731,10 @@ const DiagramNode: React.FC = () => {
 
                 <div
                   ref={imageWrapperRef}
-                  className="relative w-full overflow-hidden rounded-2xl border border-gray-200/80 bg-slate-50 dark:bg-white/5 dark:border-white/10 cursor-crosshair"
+                  className={[
+                    "relative w-full overflow-hidden rounded-2xl border border-gray-200/80 bg-slate-50 dark:bg-white/5 dark:border-white/10",
+                    isUserRole ? "cursor-default" : "cursor-crosshair",
+                  ].join(" ")}
                   onClick={handleOpenCreateByClick}
                   onMouseLeave={scheduleHideHoverCard}
                   onMouseEnter={clearHoverLeaveTimer}
@@ -739,6 +768,7 @@ const DiagramNode: React.FC = () => {
                         title={node.label || `Node ${node.id}`}
                         onClick={(e) => {
                           e.stopPropagation();
+                          if (isUserRole) return;
                           void handleOpenEdit(node.id);
                         }}
                         onMouseEnter={() => handleMarkerEnter(node, x, y)}
@@ -910,16 +940,18 @@ const DiagramNode: React.FC = () => {
                                 </div>
                               </div>
 
-                              <div className="pt-1">
-                                <button
-                                  type="button"
-                                  className={editGradientBtn}
-                                  onClick={() => void handleOpenEdit(hoverCard.node.id)}
-                                >
-                                  <FiEdit2 className="text-[12px]" />
-                                  Edit Node
-                                </button>
-                              </div>
+                              {!isUserRole && (
+                                <div className="pt-1">
+                                  <button
+                                    type="button"
+                                    className={editGradientBtn}
+                                    onClick={() => void handleOpenEdit(hoverCard.node.id)}
+                                  >
+                                    <FiEdit2 className="text-[12px]" />
+                                    Edit Node
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           </div>
 
@@ -945,28 +977,30 @@ const DiagramNode: React.FC = () => {
         </div>
       </section>
 
-      <DiagramNodeFormModal
-        open={modalOpen}
-        mode={modalMode}
-        loading={modalLoading}
-        diagramName={diagram?.name ?? ""}
-        initialData={selectedNode}
-        draftPosition={draftPosition}
-        allDiagramNodes={allNodes}
-        currentNodeId={selectedNode?.id ?? null}
-        onClose={() => {
-          if (modalLoading) return;
-          setModalOpen(false);
-          setSelectedNode(null);
-          setDraftPosition(null);
-        }}
-        onSubmit={handleSubmit}
-        onDelete={
-          modalMode === "edit" && selectedNode
-            ? () => handleDeleteImmediate(selectedNode)
-            : undefined
-        }
-      />
+      {!isUserRole && (
+        <DiagramNodeFormModal
+          open={modalOpen}
+          mode={modalMode}
+          loading={modalLoading}
+          diagramName={diagram?.name ?? ""}
+          initialData={selectedNode}
+          draftPosition={draftPosition}
+          allDiagramNodes={allNodes}
+          currentNodeId={selectedNode?.id ?? null}
+          onClose={() => {
+            if (modalLoading) return;
+            setModalOpen(false);
+            setSelectedNode(null);
+            setDraftPosition(null);
+          }}
+          onSubmit={handleSubmit}
+          onDelete={
+            modalMode === "edit" && selectedNode
+              ? () => handleDeleteImmediate(selectedNode)
+              : undefined
+          }
+        />
+      )}
     </div>
   );
 };

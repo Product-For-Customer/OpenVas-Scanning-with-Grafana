@@ -140,6 +140,21 @@ const normalizeString = (value: string) => value.trim();
 const normalizeEmail = (value: string) => value.trim().toLowerCase();
 const normalizePhone = (value: string) => value.replace(/\D/g, "").trim();
 
+const validatePassword = (value: string) => {
+  const password = value || "";
+
+  if (!password.trim()) return "";
+  if (password.length < 8) return "Password must be at least 8 characters";
+  if (!/[A-Z]/.test(password))
+    return "Password must contain at least 1 uppercase letter";
+  if (!/[a-z]/.test(password))
+    return "Password must contain at least 1 lowercase letter";
+  if (!/[^A-Za-z0-9]/.test(password))
+    return "Password must contain at least 1 special character";
+
+  return "";
+};
+
 const ModalCreateandUpdateUser: React.FC<ModalCreateandUpdateUserProps> = ({
   open,
   user,
@@ -168,6 +183,7 @@ const ModalCreateandUpdateUser: React.FC<ModalCreateandUpdateUserProps> = ({
   const [emailDuplicateError, setEmailDuplicateError] = useState("");
   const [phoneDuplicateError, setPhoneDuplicateError] = useState("");
   const [phoneValidationError, setPhoneValidationError] = useState("");
+  const [passwordValidationError, setPasswordValidationError] = useState("");
 
   const fullName = useMemo(() => {
     return `${formData.first_name} ${formData.last_name}`.trim() || "User";
@@ -302,6 +318,7 @@ const ModalCreateandUpdateUser: React.FC<ModalCreateandUpdateUserProps> = ({
     setEmailDuplicateError("");
     setPhoneDuplicateError("");
     setPhoneValidationError("");
+    setPasswordValidationError("");
   }, [open, isEditMode, user, roles]);
 
   useEffect(() => {
@@ -326,7 +343,18 @@ const ModalCreateandUpdateUser: React.FC<ModalCreateandUpdateUserProps> = ({
     setEmailDuplicateError(checkDuplicateEmail(formData.email));
     setPhoneDuplicateError(checkDuplicatePhone(formData.phone_number));
     setPhoneValidationError(validateThaiPhoneNumber(formData.phone_number));
-  }, [formData.email, formData.phone_number, existingContacts, open]);
+
+    if (!isEditMode) {
+      setPasswordValidationError(validatePassword(formData.password));
+    }
+  }, [
+    formData.email,
+    formData.phone_number,
+    formData.password,
+    existingContacts,
+    open,
+    isEditMode,
+  ]);
 
   const originalEditForm = useMemo<Payload>(() => {
     if (!isEditMode || !user) return EMPTY_FORM;
@@ -399,6 +427,18 @@ const ModalCreateandUpdateUser: React.FC<ModalCreateandUpdateUserProps> = ({
       return;
     }
 
+    if (name === "password") {
+      setFormData((prev) => ({
+        ...prev,
+        password: value,
+      }));
+
+      if (!isEditMode) {
+        setPasswordValidationError(validatePassword(value));
+      }
+      return;
+    }
+
     setFormData((prev) => ({
       ...prev,
       [name]: name === "app_role_id" ? (value ? Number(value) : "") : value,
@@ -453,6 +493,11 @@ const ModalCreateandUpdateUser: React.FC<ModalCreateandUpdateUserProps> = ({
       return "Please enter password";
     }
 
+    if (!isEditMode) {
+      const passwordError = validatePassword(formData.password);
+      if (passwordError) return passwordError;
+    }
+
     if (!formData.phone_number.trim()) return "Please enter phone number";
 
     const phoneError = validateThaiPhoneNumber(formData.phone_number);
@@ -487,10 +532,14 @@ const ModalCreateandUpdateUser: React.FC<ModalCreateandUpdateUserProps> = ({
     const latestPhoneValidationError = validateThaiPhoneNumber(
       formData.phone_number
     );
+    const latestPasswordValidationError = !isEditMode
+      ? validatePassword(formData.password)
+      : "";
 
     setEmailDuplicateError(latestEmailDuplicateError);
     setPhoneDuplicateError(latestPhoneDuplicateError);
     setPhoneValidationError(latestPhoneValidationError);
+    setPasswordValidationError(latestPasswordValidationError);
 
     const validationError = validateForm();
     if (validationError) {
@@ -758,6 +807,17 @@ const ModalCreateandUpdateUser: React.FC<ModalCreateandUpdateUserProps> = ({
                             className={["pl-8", inputCls].join(" ")}
                           />
                         </div>
+
+                        {passwordValidationError ? (
+                          <div className="mt-1 pl-1 text-[9px] font-medium text-red-600 dark:text-red-400">
+                            {passwordValidationError}
+                          </div>
+                        ) : (
+                          <div className="mt-1 pl-1 text-[8.5px] text-gray-500 dark:text-white/45">
+                            Password must be at least 8 characters and include
+                            uppercase, lowercase, and special character.
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -1008,6 +1068,7 @@ const ModalCreateandUpdateUser: React.FC<ModalCreateandUpdateUserProps> = ({
                 !!emailDuplicateError ||
                 !!phoneDuplicateError ||
                 !!phoneValidationError ||
+                (!isEditMode && !!passwordValidationError) ||
                 (isEditMode && !hasFormChanged)
               }
               className={primaryBlueButtonCls}

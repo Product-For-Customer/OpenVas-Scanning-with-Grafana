@@ -11,6 +11,7 @@ import {
 } from "react-icons/fi";
 import { Link } from "react-router-dom";
 import type { UserResponse } from "../../../services/user";
+import profileBanner from "../../../assets/background_profile.jpg";
 
 type ProfileProps = {
   user: UserResponse;
@@ -34,19 +35,25 @@ const Profile: React.FC<ProfileProps> = ({ user }) => {
   return (
     <aside
       className={[
-        "h-full rounded-[18px] border shadow-sm overflow-hidden flex flex-col",
+        "h-full rounded-[18px] border shadow-sm flex flex-col overflow-hidden",
         "border-gray-200/80 bg-[#f7f7f8]",
         "dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:ring-1 dark:ring-white/10",
       ].join(" ")}
     >
-      <div className="relative h-28 sm:h-32 bg-linear-to-r from-pink-100 via-purple-100 to-indigo-100 dark:from-white/10 dark:via-white/5 dark:to-white/10">
-        <div className="absolute inset-0 opacity-80">
-          <div className="absolute left-7 top-7 h-16 w-24 rounded-xl bg-pink-200/60 blur-[2px] dark:bg-white/10" />
-          <div className="absolute right-8 top-5 h-20 w-28 rounded-2xl bg-indigo-300/30 blur-[2px] dark:bg-white/8" />
-          <div className="absolute left-1/3 top-8 h-12 w-12 rounded-full bg-purple-300/40 dark:bg-white/10" />
+      <div className="relative h-28 sm:h-32">
+        <div className="absolute inset-0 overflow-hidden">
+          <img
+            src={profileBanner}
+            alt="Profile banner"
+            className="absolute inset-0 h-full w-full scale-[1.03] object-cover object-center"
+          />
+
+          <div className="absolute inset-0 bg-black/10 dark:bg-slate-950/20" />
+
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.04)_0%,rgba(255,255,255,0.02)_45%,rgba(255,255,255,0.08)_100%)] dark:bg-[linear-gradient(180deg,rgba(2,6,23,0.04)_0%,rgba(2,6,23,0.12)_50%,rgba(2,6,23,0.22)_100%)]" />
         </div>
 
-        <div className="absolute left-1/2 bottom-0 -translate-x-1/2 translate-y-1/2">
+        <div className="absolute left-1/2 bottom-0 z-10 -translate-x-1/2 translate-y-1/2">
           <div className="relative">
             <div
               className={[
@@ -93,7 +100,7 @@ const Profile: React.FC<ProfileProps> = ({ user }) => {
 
       <div className="px-4 sm:px-5 pb-5 space-y-4 flex-1">
         <div className="border-t border-gray-200/80 pt-4 dark:border-white/10">
-          <div className="flex items-center justify-between mb-3">
+          <div className="mb-3 flex items-center justify-between">
             <h4 className="text-[14px] font-semibold text-[#1f2240] dark:text-white/85">
               About
             </h4>
@@ -134,7 +141,7 @@ const Profile: React.FC<ProfileProps> = ({ user }) => {
         </div>
 
         <div className="border-t border-gray-200/80 pt-4 dark:border-white/10">
-          <div className="flex items-center justify-between mb-3">
+          <div className="mb-3 flex items-center justify-between">
             <h4 className="text-[14px] font-semibold text-[#1f2240] dark:text-white/85">
               Other
             </h4>

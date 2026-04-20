@@ -35,6 +35,9 @@ interface StateContextType {
   handleClick: (clicked: keyof InitialState) => void;
 
   toggleMode: () => void;
+
+  userRefreshTrigger: number;
+  triggerUserRefresh: () => void;
 }
 
 const initialState: InitialState = {
@@ -53,7 +56,6 @@ interface ContextProviderProps {
 const STORAGE_KEY_MODE = "themeMode";
 const STORAGE_KEY_COLOR = "colorMode";
 
-/* ✅ สลับ Syncfusion theme โดยเปลี่ยน href ของ <link id="ej2-theme"> */
 const applySyncfusionTheme = (mode: ThemeMode) => {
   const link = document.getElementById("ej2-theme") as HTMLLinkElement | null;
   if (!link) return;
@@ -64,9 +66,8 @@ const applySyncfusionTheme = (mode: ThemeMode) => {
   link.href = mode === "Dark" ? darkHref : lightHref;
 };
 
-/* ✅ สลับ Tailwind dark + Syncfusion theme พร้อมกัน */
 const applyTheme = (mode: ThemeMode) => {
-  const root = document.documentElement; // <html>
+  const root = document.documentElement;
   if (mode === "Dark") root.classList.add("dark");
   else root.classList.remove("dark");
 
@@ -85,8 +86,8 @@ export const ContextProvider: React.FC<ContextProviderProps> = ({ children }) =>
   const [themeSettings, setThemeSettings] = useState<boolean>(false);
   const [activeMenu, setActiveMenu] = useState<boolean>(true);
   const [isClicked, setIsClicked] = useState<InitialState>(initialState);
+  const [userRefreshTrigger, setUserRefreshTrigger] = useState<number>(0);
 
-  // ✅ โหลดค่าครั้งแรก (localStorage > system) + apply ให้ html + syncfusion
   useEffect(() => {
     const savedMode = localStorage.getItem(STORAGE_KEY_MODE);
     const savedColor = localStorage.getItem(STORAGE_KEY_COLOR);
@@ -101,17 +102,14 @@ export const ContextProvider: React.FC<ContextProviderProps> = ({ children }) =>
 
     if (savedColor) setCurrentColor(savedColor);
 
-    // ✅ สำคัญ: apply ทันทีตอน mount
     applyTheme(initMode);
   }, []);
 
-  // ✅ ทุกครั้งที่ currentMode เปลี่ยน => apply + save
   useEffect(() => {
     applyTheme(currentMode);
     localStorage.setItem(STORAGE_KEY_MODE, currentMode);
   }, [currentMode]);
 
-  // ✅ (optional) sync ข้ามแท็บ
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
       if (e.key !== STORAGE_KEY_MODE) return;
@@ -140,6 +138,10 @@ export const ContextProvider: React.FC<ContextProviderProps> = ({ children }) =>
   const handleClick = (clicked: keyof InitialState) =>
     setIsClicked({ ...initialState, [clicked]: true });
 
+  const triggerUserRefresh = () => {
+    setUserRefreshTrigger((prev) => prev + 1);
+  };
+
   const value = useMemo<StateContextType>(
     () => ({
       currentColor,
@@ -159,8 +161,18 @@ export const ContextProvider: React.FC<ContextProviderProps> = ({ children }) =>
       themeSettings,
       setThemeSettings,
       toggleMode,
+      userRefreshTrigger,
+      triggerUserRefresh,
     }),
-    [currentColor, currentMode, activeMenu, screenSize, isClicked, themeSettings]
+    [
+      currentColor,
+      currentMode,
+      activeMenu,
+      screenSize,
+      isClicked,
+      themeSettings,
+      userRefreshTrigger,
+    ]
   );
 
   return <StateContext.Provider value={value}>{children}</StateContext.Provider>;

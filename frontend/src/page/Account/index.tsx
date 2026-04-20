@@ -36,7 +36,6 @@ const Account: React.FC = () => {
   }, [auth]);
 
   const authLoading = auth?.isLoading ?? false;
-  const isAdmin = auth?.isAdmin ?? false;
 
   const fetchUser = useCallback(async () => {
     if (isFetchingRef.current) return;
@@ -50,13 +49,6 @@ const Account: React.FC = () => {
       }
 
       if (authLoading) {
-        return;
-      }
-
-      if (!isAdmin) {
-        if (!isMountedRef.current) return;
-        setError("ไม่มีสิทธิ์เข้าถึงข้อมูลโปรไฟล์");
-        setUser(null);
         return;
       }
 
@@ -91,7 +83,7 @@ const Account: React.FC = () => {
       }
       isFetchingRef.current = false;
     }
-  }, [authLoading, isAdmin, currentUserId]);
+  }, [authLoading, currentUserId]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -138,13 +130,13 @@ const Account: React.FC = () => {
 
   return (
     <div className="w-full">
-      <div className="grid grid-cols-1 gap-3.5 items-stretch sm:gap-4 xl:grid-cols-12">
-        <div className="h-full xl:col-span-8">
-          <Setting user={user} onUpdated={handleProfileUpdated} />
+      <div className="grid grid-cols-1 items-stretch gap-3.5 sm:gap-4 xl:grid-cols-12">
+        <div className="order-1 h-full xl:order-2 xl:col-span-4">
+          <Profile user={user} />
         </div>
 
-        <div className="h-full xl:col-span-4">
-          <Profile user={user} />
+        <div className="order-2 h-full xl:order-1 xl:col-span-8">
+          <Setting user={user} onUpdated={handleProfileUpdated} />
         </div>
       </div>
     </div>

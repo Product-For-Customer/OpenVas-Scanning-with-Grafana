@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AiOutlineMenu } from "react-icons/ai";
 import { RiNotification3Line } from "react-icons/ri";
 import { MdKeyboardArrowDown } from "react-icons/md";
@@ -10,6 +10,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { FiSearch } from "react-icons/fi";
 import { HiOutlineMoon, HiOutlineSun } from "react-icons/hi2";
 import greenboneIcon from "../../assets/logo-light.svg";
+import { ListUserByID, type UserResponse } from "../../services";
 
 type NavBtnProps = {
   title: string;
@@ -72,12 +73,25 @@ const Navbar: React.FC = () => {
     screenSize,
     currentMode,
     toggleMode,
+    userRefreshTrigger,
   } = useStateContext();
 
   const { user, logout } = useAuth();
 
+  const [navbarUser, setNavbarUser] = useState<UserResponse | null>(null);
   const [profileError, setProfileError] = useState(false);
   const [search, setSearch] = useState("");
+
+  const isMountedRef = useRef(false);
+  const isFetchingUserRef = useRef(false);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     const onResize = () => setScreenSize(window.innerWidth);
@@ -92,9 +106,51 @@ const Navbar: React.FC = () => {
     }
   }, [screenSize, setActiveMenu]);
 
+  const currentUserId = useMemo(() => {
+    return user?.id ?? null;
+  }, [user?.id]);
+
+  const fetchNavbarUser = useCallback(async () => {
+    if (isFetchingUserRef.current) return;
+    if (!currentUserId) {
+      if (isMountedRef.current) {
+        setNavbarUser(null);
+      }
+      return;
+    }
+
+    try {
+      isFetchingUserRef.current = true;
+      const result = await ListUserByID(currentUserId);
+
+      if (!isMountedRef.current) return;
+
+      if (result) {
+        setNavbarUser(result);
+      }
+    } catch (error) {
+      console.error("Navbar fetch user error:", error);
+    } finally {
+      isFetchingUserRef.current = false;
+    }
+  }, [currentUserId]);
+
+  useEffect(() => {
+    if (user) {
+      setNavbarUser(user as UserResponse);
+    } else {
+      setNavbarUser(null);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (!currentUserId) return;
+    void fetchNavbarUser();
+  }, [currentUserId, userRefreshTrigger, fetchNavbarUser]);
+
   useEffect(() => {
     setProfileError(false);
-  }, [user?.profile]);
+  }, [navbarUser?.profile]);
 
   const handleActiveMenu = () => {
     setActiveMenu((prev) => !prev);
@@ -125,12 +181,16 @@ const Navbar: React.FC = () => {
     []
   );
 
-  const profileSrc =
-    !profileError && user?.profile?.trim() ? user.profile : avatarFallback;
+  const effectiveUser = navbarUser ?? (user as UserResponse | null);
 
-  const fullName = `${user?.first_name || "Guest"} ${user?.last_name || "User"}`.trim();
-  const roleName = user?.role || "Viewer";
-  const email = user?.email || "guest@example.com";
+  const profileSrc =
+    !profileError && effectiveUser?.profile?.trim()
+      ? effectiveUser.profile
+      : avatarFallback;
+
+  const fullName = `${effectiveUser?.first_name || "Guest"} ${effectiveUser?.last_name || "User"}`.trim();
+  const roleName = effectiveUser?.role || "Viewer";
+  const email = effectiveUser?.email || "guest@example.com";
 
   return (
     <header

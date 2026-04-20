@@ -77,11 +77,8 @@ const UserRoutes = (): RouteObject[] => [
       { path: "vulnerability-by-device", element: <VulnerabilityByDevice /> },
       { path: "vulnerability-detail", element: <VulnerabilityDetail /> },
       { path: "vulnerability-by-level", element: <VulnerabilityByLevel /> },
-      { path: "service", element: <Service /> },
-
-      // กัน user เข้าหน้าที่ไม่อนุญาต
-      { path: "line notification", element: <Navigate to="/admin" replace /> },
-      { path: "user", element: <Navigate to="/admin" replace /> },
+      { path: "diagrams", element: <Diagram /> },
+      { path: "diagram-node", element: <DiagramNode /> },
     ],
   },
   { path: "*", element: <Navigate to="/admin" replace /> },

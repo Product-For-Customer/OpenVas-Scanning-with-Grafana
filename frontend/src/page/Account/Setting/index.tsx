@@ -8,6 +8,7 @@ import {
   type UpdateUserInput,
 } from "../../../services/user";
 import { ListEmailAndPhoneNumber } from "../../../services";
+import { useStateContext } from "../../../contexts/ContextProvider";
 
 type SettingProps = {
   user: UserResponse;
@@ -39,6 +40,8 @@ type EmailAndPhoneNumberResponse = {
 };
 
 const Setting: React.FC<SettingProps> = ({ user, onUpdated }) => {
+  const { triggerUserRefresh } = useStateContext();
+
   const createInitialForm = (userData: UserResponse): SettingForm => ({
     firstName: userData.first_name || "",
     lastName: userData.last_name || "",
@@ -354,6 +357,7 @@ const Setting: React.FC<SettingProps> = ({ user, onUpdated }) => {
 
       message.success("Save success");
       onUpdated();
+      triggerUserRefresh();
     } catch (err: any) {
       console.error("Update profile error:", err);
       const msg =

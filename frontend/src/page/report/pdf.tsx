@@ -700,8 +700,8 @@ const Pdf: React.FC<PdfProps> = ({
               </p>
             </div>
 
-            <div className="flex w-full flex-col gap-2 xl:w-auto xl:items-end">
-              <div className="flex flex-wrap items-center gap-2">
+            <div className="flex w-full flex-col gap-2 lg:flex-row lg:items-center lg:justify-between xl:w-auto xl:justify-end">
+              <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap">
                 <button
                   type="button"
                   onClick={goToPrevPage}

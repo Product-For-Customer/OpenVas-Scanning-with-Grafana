@@ -354,12 +354,12 @@ const Index: React.FC = () => {
 
       const role = (res?.user?.role ?? "").toLowerCase();
 
-      if (role === "admin") {
+      if (role === "admin" || role === "user") {
         message.success("login success");
         setShowLoginSuccessAnimation(true);
         return;
       } else {
-        setLoginError("บัญชีนี้ไม่มีสิทธิ์ Admin");
+        setLoginError("บัญชีนี้ไม่มีสิทธิ์เข้าใช้งาน");
       }
     } catch (err: any) {
       const msg =
@@ -406,8 +406,8 @@ const Index: React.FC = () => {
       console.error("CheckUserEmail error:", err);
       setForgotError(
         err?.response?.data?.error ||
-          err?.message ||
-          "เกิดข้อผิดพลาดระหว่างตรวจสอบอีเมล"
+        err?.message ||
+        "เกิดข้อผิดพลาดระหว่างตรวจสอบอีเมล"
       );
     } finally {
       setForgotSubmitting(false);
@@ -464,8 +464,8 @@ const Index: React.FC = () => {
       console.error("Send OTP error:", err);
       setResetError(
         err?.response?.data?.error ||
-          err?.message ||
-          "เกิดข้อผิดพลาดระหว่างส่ง OTP"
+        err?.message ||
+        "เกิดข้อผิดพลาดระหว่างส่ง OTP"
       );
     } finally {
       setResetSubmitting(false);
@@ -644,8 +644,8 @@ const Index: React.FC = () => {
       console.error("Send OTP error:", error);
       message.error(
         error?.response?.data?.error ||
-          error?.message ||
-          "เกิดข้อผิดพลาดในการส่ง OTP"
+        error?.message ||
+        "เกิดข้อผิดพลาดในการส่ง OTP"
       );
     } finally {
       setSignupSubmitting(false);
@@ -885,18 +885,16 @@ const Index: React.FC = () => {
   const renderLoginForm = (compact = false) => (
     <div className={compact ? "w-full max-w-170" : "w-full max-w-77.5"}>
       <div className="text-center">
-        
+
         <h2
-          className={`${panelTitleClass} ${
-            compact ? "text-[34px] sm:text-[38px]" : "text-[30px]"
-          } tracking-[-0.04em]`}
+          className={`${panelTitleClass} ${compact ? "text-[34px] sm:text-[38px]" : "text-[30px]"
+            } tracking-[-0.04em]`}
         >
           Welcome
         </h2>
         <p
-          className={`mt-1.5 ${
-            compact ? "text-[12px] sm:text-[13px]" : "text-[11px]"
-          } text-slate-500 dark:text-white/55`}
+          className={`mt-1.5 ${compact ? "text-[12px] sm:text-[13px]" : "text-[11px]"
+            } text-slate-500 dark:text-white/55`}
         >
           Sign in to the security scan console
         </p>
@@ -918,9 +916,8 @@ const Index: React.FC = () => {
             </label>
             <div className="relative">
               <FiMail
-                className={`pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 ${
-                  compact ? "text-[15px]" : "text-[13px]"
-                } text-cyan-600 dark:text-cyan-300`}
+                className={`pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 ${compact ? "text-[15px]" : "text-[13px]"
+                  } text-cyan-600 dark:text-cyan-300`}
               />
               <input
                 type="email"
@@ -949,9 +946,8 @@ const Index: React.FC = () => {
             </label>
             <div className="relative">
               <FiLock
-                className={`pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 ${
-                  compact ? "text-[15px]" : "text-[13px]"
-                } text-cyan-600 dark:text-cyan-300`}
+                className={`pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 ${compact ? "text-[15px]" : "text-[13px]"
+                  } text-cyan-600 dark:text-cyan-300`}
               />
               <input
                 type={showLoginPassword ? "text" : "password"}
