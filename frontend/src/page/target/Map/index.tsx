@@ -779,7 +779,7 @@ const MapDevice: React.FC = () => {
   ].join(" ");
 
   return (
-    <>
+    <div className="relative w-full">
       <section
         className={[
           "relative overflow-hidden rounded-[22px]",
@@ -1100,7 +1100,7 @@ const MapDevice: React.FC = () => {
           />
         </>
       )}
-    </>
+    </div>
   );
 };
 

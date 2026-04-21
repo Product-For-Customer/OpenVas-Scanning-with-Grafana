@@ -22,7 +22,7 @@ const ModalDelete: React.FC<Props> = ({
   if (!open || !target) return null;
 
   return (
-    <div className="fixed inset-0 z-300 flex items-center justify-center bg-slate-900/55 p-4 backdrop-blur-[2px]">
+    <div className="absolute inset-0 z-300 flex items-center justify-center bg-slate-900/0 p-4">
       <div className="w-full max-w-md rounded-3xl bg-white p-5 shadow-2xl dark:bg-[#0B1220]">
         <div className="mx-auto flex h-13 w-13 items-center justify-center rounded-full bg-[#f8dedd] text-[#ff5a3c]">
           <FiAlertTriangle className="text-[22px]" />

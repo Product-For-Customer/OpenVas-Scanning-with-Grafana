@@ -177,6 +177,11 @@ type HoverCardState = {
   placeBelow: boolean;
 };
 
+type ModalAnchorPoint = {
+  clientX: number;
+  clientY: number;
+};
+
 const TOOLTIP_WIDTH = 300;
 const TOOLTIP_ESTIMATED_HEIGHT = 420;
 const TOOLTIP_GAP = 14;
@@ -232,6 +237,9 @@ const DiagramNode: React.FC = () => {
     width: number;
     height: number;
   } | null>(null);
+  const [modalAnchorPoint, setModalAnchorPoint] = useState<ModalAnchorPoint | null>(
+    null
+  );
 
   const [hoverCard, setHoverCard] = useState<HoverCardState | null>(null);
 
@@ -394,6 +402,11 @@ const DiagramNode: React.FC = () => {
         height: 9,
       });
 
+      setModalAnchorPoint({
+        clientX: e.clientX,
+        clientY: e.clientY,
+      });
+
       setSelectedNode(null);
       setModalMode("create");
       setModalOpen(true);
@@ -402,11 +415,17 @@ const DiagramNode: React.FC = () => {
   );
 
   const handleOpenEdit = useCallback(
-    async (nodeId: number) => {
+    async (nodeId: number, anchorPoint?: ModalAnchorPoint) => {
       if (isUserRole) return;
 
       const requestId = ++editRequestIdRef.current;
 
+      setModalAnchorPoint(
+        anchorPoint ?? {
+          clientX: window.innerWidth / 2,
+          clientY: window.innerHeight / 2,
+        }
+      );
       setModalMode("edit");
       setSelectedNode(null);
       setDraftPosition(null);
@@ -508,6 +527,7 @@ const DiagramNode: React.FC = () => {
         setModalOpen(false);
         setSelectedNode(null);
         setDraftPosition(null);
+        setModalAnchorPoint(null);
         await loadData(false);
       } catch (err) {
         console.error("handleSubmit error:", err);
@@ -543,6 +563,7 @@ const DiagramNode: React.FC = () => {
         setModalOpen(false);
         setSelectedNode(null);
         setDraftPosition(null);
+        setModalAnchorPoint(null);
         await loadData(false);
       } catch (err) {
         console.error("handleDeleteImmediate error:", err);
@@ -769,7 +790,10 @@ const DiagramNode: React.FC = () => {
                         onClick={(e) => {
                           e.stopPropagation();
                           if (isUserRole) return;
-                          void handleOpenEdit(node.id);
+                          void handleOpenEdit(node.id, {
+                            clientX: e.clientX,
+                            clientY: e.clientY,
+                          });
                         }}
                         onMouseEnter={() => handleMarkerEnter(node, x, y)}
                         onMouseLeave={scheduleHideHoverCard}
@@ -945,7 +969,12 @@ const DiagramNode: React.FC = () => {
                                   <button
                                     type="button"
                                     className={editGradientBtn}
-                                    onClick={() => void handleOpenEdit(hoverCard.node.id)}
+                                    onClick={(e) =>
+                                      void handleOpenEdit(hoverCard.node.id, {
+                                        clientX: e.clientX,
+                                        clientY: e.clientY,
+                                      })
+                                    }
                                   >
                                     <FiEdit2 className="text-[12px]" />
                                     Edit Node
@@ -987,11 +1016,13 @@ const DiagramNode: React.FC = () => {
           draftPosition={draftPosition}
           allDiagramNodes={allNodes}
           currentNodeId={selectedNode?.id ?? null}
+          anchorPoint={modalAnchorPoint}
           onClose={() => {
             if (modalLoading) return;
             setModalOpen(false);
             setSelectedNode(null);
             setDraftPosition(null);
+            setModalAnchorPoint(null);
           }}
           onSubmit={handleSubmit}
           onDelete={

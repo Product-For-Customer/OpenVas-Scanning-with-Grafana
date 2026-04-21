@@ -234,7 +234,7 @@ const ModalCreateAndUpdate: React.FC<Props> = ({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-300 flex items-center justify-center bg-slate-950/60 backdrop-blur-[3px] p-3 sm:p-4">
+    <div className="absolute inset-0 z-300 flex items-center justify-center bg-slate-950/0 p-3 sm:p-4">
       <div className="w-full max-w-xl overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-2xl dark:border-white/10 dark:bg-[#0B1220] dark:shadow-none">
         <div className="relative border-b border-gray-100 bg-white px-3.5 py-3 dark:border-white/10 dark:bg-[#0B1220]">
           <div className="pointer-events-none absolute inset-x-0 top-0 h-full bg-linear-to-r from-cyan-500/8 via-transparent to-violet-500/8 dark:from-cyan-500/10 dark:via-transparent dark:to-violet-500/10" />

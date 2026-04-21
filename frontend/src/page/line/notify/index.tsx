@@ -290,7 +290,7 @@ const labelClass =
   "mb-1.5 block text-[11px] font-medium text-slate-700 dark:text-white/75";
 
 const modalBackdropClass =
-  "fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/45 px-4 py-6 backdrop-blur-[2px]";
+  "absolute inset-0 z-[300] flex items-center justify-center bg-slate-900/0 p-4";
 
 const modalCardClass =
   "relative w-full overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_24px_80px_-32px_rgba(15,23,42,0.38)] dark:border-white/10 dark:bg-[#08111f]";
@@ -1702,7 +1702,7 @@ const Notify: React.FC = () => {
   };
 
   return (
-    <>
+    <div className="relative">
       <section className={cardGlowClass}>
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="absolute -top-12 right-6 h-24 w-24 rounded-full bg-cyan-400/10 blur-3xl" />
@@ -2445,7 +2445,7 @@ const Notify: React.FC = () => {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 };
 
