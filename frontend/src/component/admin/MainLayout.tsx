@@ -53,10 +53,10 @@ const MainLayout: React.FC = () => {
   };
 
   return (
-    <div>
+    <div className="min-h-dvh">
       <div
         className={[
-          "relative min-h-screen overflow-x-hidden",
+          "relative min-h-dvh overflow-x-hidden",
           "bg-[#f3f7fb]",
           "dark:bg-linear-to-br dark:from-[#070A12] dark:via-[#0A1020] dark:to-[#070A12]",
         ].join(" ")}
@@ -80,7 +80,7 @@ const MainLayout: React.FC = () => {
 
         <div
           className={[
-            "relative min-h-screen",
+            "relative min-h-dvh",
             "transform-gpu",
             "transition-[margin-left] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
             "will-change-[margin-left]",

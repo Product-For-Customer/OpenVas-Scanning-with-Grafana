@@ -1068,14 +1068,36 @@ const Conclusion: React.FC<ConclusionProps> = ({
                                   Detected:{" "}
                                   <span className="font-semibold text-slate-800">
                                     {item.detected_date
-                                      ? new Intl.DateTimeFormat("en-GB", {
-                                        day: "2-digit",
-                                        month: "2-digit",
-                                        year: "numeric",
-                                        hour: "2-digit",
-                                        minute: "2-digit",
-                                        hour12: false,
-                                      }).format(new Date(item.detected_date))
+                                      ? (() => {
+                                        const raw = String(item.detected_date ?? "").trim();
+                                        if (!raw) return "-";
+
+                                        let d: Date | null = null;
+
+                                        if (/^\d+$/.test(raw)) {
+                                          const num = Number(raw);
+                                          d = new Date(num < 1e12 ? num * 1000 : num);
+                                        } else {
+                                          d = new Date(raw);
+                                          if (Number.isNaN(d.getTime())) {
+                                            d = new Date(raw.replace(" ", "T"));
+                                          }
+                                        }
+
+                                        if (!d || Number.isNaN(d.getTime())) return raw;
+
+                                        const bangkokTime = new Date(d.getTime() + 7 * 60 * 60 * 1000);
+
+                                        return new Intl.DateTimeFormat("en-GB", {
+                                          day: "2-digit",
+                                          month: "2-digit",
+                                          year: "numeric",
+                                          hour: "2-digit",
+                                          minute: "2-digit",
+                                          second: "2-digit",
+                                          hour12: false,
+                                        }).format(bangkokTime);
+                                      })()
                                       : "-"}
                                   </span>
                                 </span>

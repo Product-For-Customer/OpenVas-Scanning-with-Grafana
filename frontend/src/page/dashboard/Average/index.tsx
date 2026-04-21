@@ -324,7 +324,7 @@ const CustomTooltip = ({
 
         <div className="grid grid-cols-1 gap-1.5">
           <div className="flex items-center justify-between gap-3 text-gray-600 dark:text-white/68">
-            <span>Task Name</span>
+            <span>Target Name</span>
             <span className="wrap-break-word text-right font-medium">
               {item.task_name || "-"}
             </span>

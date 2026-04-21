@@ -19,6 +19,8 @@ type SidebarLink = {
 const EXPANDED_WIDTH = 272;
 const COLLAPSED_WIDTH = 76;
 const DESKTOP_BREAKPOINT = 900;
+const TABLET_MIN = 768;
+const TABLET_MAX = 1024;
 
 const Sidebar: React.FC = () => {
   const navigate = useNavigate();
@@ -34,9 +36,11 @@ const Sidebar: React.FC = () => {
 
   const hoverCloseTimer = useRef<number | null>(null);
 
-  const isDesktop =
-    typeof screenSize === "number" ? screenSize > DESKTOP_BREAKPOINT : true;
+  const currentScreen =
+    typeof screenSize === "number" ? screenSize : window.innerWidth;
 
+  const isDesktop = currentScreen > DESKTOP_BREAKPOINT;
+  const isTablet = currentScreen >= TABLET_MIN && currentScreen <= TABLET_MAX;
   const isExpanded = !!activeMenu;
 
   const sidebarWidth = useMemo(() => {
@@ -291,23 +295,28 @@ const Sidebar: React.FC = () => {
 
       <aside
         className={[
-          "fixed inset-y-0 left-0 z-40 h-screen",
+          "fixed inset-y-0 left-0 z-40 h-dvh",
           "bg-transparent dark:bg-transparent",
           "transform-gpu will-change-[width,transform]",
           "transition-[width,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
         ].join(" ")}
         style={{
           width: sidebarWidth,
+          height: "100dvh",
+          maxHeight: "100dvh",
           maxWidth: isDesktop ? undefined : "320px",
-          padding: isDesktop ? "10px" : "14px",
-          paddingTop: "max(env(safe-area-inset-top), 12px)",
+          padding: isDesktop ? "10px" : isTablet ? "10px 8px 8px 8px" : "14px",
+          paddingTop: isTablet
+            ? "max(env(safe-area-inset-top), 8px)"
+            : "max(env(safe-area-inset-top), 12px)",
           backfaceVisibility: "hidden",
           transform: "translateZ(0)",
         }}
       >
         <div
           className={[
-            "relative flex h-full min-h-0 flex-col overflow-visible rounded-[28px]",
+            "relative flex h-full max-h-full min-h-0 flex-col rounded-[28px]",
+            "overflow-hidden",
             "border border-gray-200/80 bg-white/92 shadow-[0_18px_44px_-24px_rgba(15,23,42,0.35)] backdrop-blur",
             "dark:border-white/10 dark:bg-[#08111f]/88 dark:ring-1 dark:ring-cyan-400/10 dark:shadow-none",
           ].join(" ")}
@@ -320,9 +329,11 @@ const Sidebar: React.FC = () => {
           </div>
 
           <div
-            className={`relative z-10 flex items-center ${
+            className={`relative z-10 flex shrink-0 items-center ${
               isExpanded
-                ? "justify-between px-3.5 pb-3 pt-4.5"
+                ? isTablet
+                  ? "justify-between px-3 pb-2 pt-3"
+                  : "justify-between px-3.5 pb-3 pt-4.5"
                 : "justify-center px-2 pb-3 pt-4.5"
             }`}
           >
@@ -331,12 +342,16 @@ const Sidebar: React.FC = () => {
               onClick={handleCloseSideBar}
               className={`select-none ${
                 isExpanded
-                  ? "flex items-center gap-3.5"
+                  ? "flex items-center gap-3"
                   : "flex items-center justify-center"
               }`}
               aria-label="Go to dashboard"
             >
-              <div className="group relative flex h-16 w-16 shrink-0 items-center justify-center overflow-visible">
+              <div
+                className={`group relative flex shrink-0 items-center justify-center overflow-visible ${
+                  isTablet ? "h-13 w-13" : "h-16 w-16"
+                }`}
+              >
                 <span
                   className="pointer-events-none absolute inset-2 rounded-full bg-cyan-400/15 blur-lg dark:bg-cyan-400/20"
                   style={{
@@ -366,14 +381,18 @@ const Sidebar: React.FC = () => {
                 />
 
                 <span
-                  className="pointer-events-none absolute left-1/2 top-1/2 h-11 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-linear-to-b from-transparent via-cyan-300/45 to-transparent blur-[5px]"
+                  className={`pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-linear-to-b from-transparent via-cyan-300/45 to-transparent blur-[5px] ${
+                    isTablet ? "h-9 w-2.5" : "h-11 w-3"
+                  }`}
                   style={{
                     animation: "argusScanLine 2.4s ease-in-out infinite",
                   }}
                 />
 
                 <span
-                  className="pointer-events-none absolute left-1/2 top-1/2 h-0.5 w-11 -translate-x-1/2 -translate-y-1/2 rounded-full bg-linear-to-r from-transparent via-cyan-300/34 to-transparent blur-[1px]"
+                  className={`pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-linear-to-r from-transparent via-cyan-300/34 to-transparent blur-[1px] ${
+                    isTablet ? "h-0.5 w-9" : "h-0.5 w-11"
+                  }`}
                   style={{
                     animation: "argusHorizontalBeam 2.8s ease-in-out infinite",
                   }}
@@ -395,7 +414,9 @@ const Sidebar: React.FC = () => {
                 />
 
                 <div
-                  className="relative z-10 flex h-16 w-16 items-center justify-center transition-transform duration-300 group-hover:scale-[1.04] group-hover:rotate-3"
+                  className={`relative z-10 flex items-center justify-center transition-transform duration-300 group-hover:scale-[1.04] group-hover:rotate-3 ${
+                    isTablet ? "h-13 w-13" : "h-16 w-16"
+                  }`}
                   style={{
                     animation: "argusLogoFloat 4.2s ease-in-out infinite",
                     willChange: "transform",
@@ -404,17 +425,27 @@ const Sidebar: React.FC = () => {
                   <img
                     src={logo}
                     alt="Logo"
-                    className="h-24 w-24 object-contain drop-shadow-[0_8px_18px_rgba(34,211,238,0.14)] transition-all duration-300 group-hover:drop-shadow-[0_10px_22px_rgba(34,211,238,0.22)]"
+                    className={`object-contain drop-shadow-[0_8px_18px_rgba(34,211,238,0.14)] transition-all duration-300 group-hover:drop-shadow-[0_10px_22px_rgba(34,211,238,0.22)] ${
+                      isTablet ? "h-18 w-18" : "h-24 w-24"
+                    }`}
                   />
                 </div>
               </div>
 
               {isExpanded && (
                 <div className="min-w-0">
-                  <span className="block bg-linear-to-r from-[#1f2240] via-[#174966] to-[#4b4ca6] bg-clip-text text-[16px] font-semibold tracking-tight text-transparent dark:from-white dark:via-cyan-100 dark:to-violet-200">
+                  <span
+                    className={`block bg-linear-to-r from-[#1f2240] via-[#174966] to-[#4b4ca6] bg-clip-text font-semibold tracking-tight text-transparent dark:from-white dark:via-cyan-100 dark:to-violet-200 ${
+                      isTablet ? "text-[15px]" : "text-[16px]"
+                    }`}
+                  >
                     Argus
                   </span>
-                  <span className="block text-[10.5px] text-gray-500 dark:text-white/45">
+                  <span
+                    className={`block text-gray-500 dark:text-white/45 ${
+                      isTablet ? "text-[10px]" : "text-[10.5px]"
+                    }`}
+                  >
                     Network Monitoring Panel
                   </span>
                 </div>
@@ -427,13 +458,16 @@ const Sidebar: React.FC = () => {
                   type="button"
                   onClick={() => setActiveMenu(false)}
                   className={[
-                    "rounded-xl p-2 transition-colors",
+                    isTablet ? "rounded-xl p-1.5" : "rounded-xl p-2",
+                    "transition-colors",
                     "text-gray-600 hover:bg-gray-200/70 active:bg-gray-300/70",
                     "dark:text-white/70 dark:hover:bg-white/10 dark:active:bg-white/15",
                   ].join(" ")}
                   aria-label="Close menu"
                 >
-                  <MdOutlineCancel className="text-xl" />
+                  <MdOutlineCancel
+                    className={isTablet ? "text-[20px]" : "text-xl"}
+                  />
                 </button>
               </TooltipComponent>
             )}
@@ -442,11 +476,17 @@ const Sidebar: React.FC = () => {
           <nav
             className={`relative z-10 min-h-0 flex-1 ${
               isExpanded
-                ? "overflow-y-auto overflow-x-hidden px-2.5 pb-2"
+                ? isTablet
+                  ? "overflow-y-auto overflow-x-hidden px-2 pb-1"
+                  : "overflow-y-auto overflow-x-hidden px-2.5 pb-2"
                 : "overflow-visible px-2 pb-2"
             }`}
           >
-            <div className={isExpanded ? "space-y-1.5" : "space-y-2.5"}>
+            <div
+              className={
+                isExpanded ? (isTablet ? "space-y-1" : "space-y-1.5") : "space-y-2.5"
+              }
+            >
               {menuLinks.map((section) => {
                 const isOpen = !!openSections[section.title];
                 const hasActiveChild =
@@ -454,7 +494,9 @@ const Sidebar: React.FC = () => {
                     isLinkActive(link.name)
                   ) ?? false;
 
-                const sectionIcon = section.icon ?? (
+                const sectionIcon = (section as SidebarSection & {
+                  icon?: React.ReactNode;
+                }).icon ?? (
                   <span className="h-2.5 w-2.5 rounded-full bg-current opacity-70" />
                 );
 
@@ -465,7 +507,8 @@ const Sidebar: React.FC = () => {
                         type="button"
                         onClick={() => toggleSection(section.title)}
                         className={[
-                          "flex w-full items-center justify-between rounded-2xl px-3.5 py-2.75 text-left transition-all duration-200",
+                          "flex w-full items-center justify-between rounded-2xl text-left transition-all duration-200",
+                          isTablet ? "px-3 py-2" : "px-3.5 py-2.75",
                           isOpen
                             ? "bg-linear-to-r from-cyan-500 via-sky-500 to-violet-500 text-white shadow-[0_12px_24px_-18px_rgba(56,189,248,0.88)]"
                             : hasActiveChild
@@ -477,7 +520,10 @@ const Sidebar: React.FC = () => {
                         <div className="min-w-0 flex items-center gap-3">
                           <span
                             className={[
-                              "inline-flex h-8 w-8 items-center justify-center rounded-xl text-[15px] transition-all duration-200",
+                              "inline-flex items-center justify-center rounded-xl transition-all duration-200",
+                              isTablet
+                                ? "h-7 w-7 text-[14px]"
+                                : "h-8 w-8 text-[15px]",
                               isOpen
                                 ? "bg-white/18 text-white ring-1 ring-white/18"
                                 : hasActiveChild
@@ -489,12 +535,17 @@ const Sidebar: React.FC = () => {
                           </span>
 
                           <div className="min-w-0">
-                            <span className="block truncate text-[14px] font-medium">
+                            <span
+                              className={`block truncate font-medium ${
+                                isTablet ? "text-[13px]" : "text-[14px]"
+                              }`}
+                            >
                               {formatLabel(section.title)}
                             </span>
                             <span
                               className={[
-                                "block truncate text-[10px]",
+                                "block truncate",
+                                isTablet ? "text-[9.5px]" : "text-[10px]",
                                 isOpen
                                   ? "text-white/70"
                                   : "text-slate-400 dark:text-white/34",
@@ -507,7 +558,8 @@ const Sidebar: React.FC = () => {
 
                         <MdKeyboardArrowDown
                           className={[
-                            "text-[19px] transition-transform",
+                            "transition-transform",
+                            isTablet ? "text-[18px]" : "text-[19px]",
                             isOpen ? "rotate-0" : "-rotate-90",
                             isOpen
                               ? "text-white"
@@ -519,11 +571,17 @@ const Sidebar: React.FC = () => {
                       <div
                         className={`overflow-hidden transition-all duration-200 ${
                           isOpen
-                            ? "max-h-55 pb-0.5 pt-1 opacity-100"
+                            ? isTablet
+                              ? "max-h-44 pb-0.5 pt-1 opacity-100"
+                              : "max-h-55 pb-0.5 pt-1 opacity-100"
                             : "max-h-0 opacity-0"
                         }`}
                       >
-                        <div className="space-y-1 pl-5.5 pr-2">
+                        <div
+                          className={
+                            isTablet ? "space-y-1 pl-5 pr-1.5" : "space-y-1 pl-5.5 pr-2"
+                          }
+                        >
                           {section.links?.map((link: SidebarLink) => {
                             const active = isLinkActive(link.name);
 
@@ -533,7 +591,8 @@ const Sidebar: React.FC = () => {
                                 key={`${section.title}-${link.name}`}
                                 onClick={handleCloseSideBar}
                                 className={[
-                                  "group relative flex items-center justify-between gap-2 overflow-hidden rounded-xl px-3 py-2.25 transition-all duration-200",
+                                  "group relative flex items-center justify-between gap-2 overflow-hidden rounded-xl transition-all duration-200",
+                                  isTablet ? "px-2.5 py-1.75" : "px-3 py-2.25",
                                   active
                                     ? "bg-cyan-50 font-semibold text-cyan-700 ring-1 ring-cyan-100 dark:bg-cyan-500/10 dark:text-cyan-300 dark:ring-cyan-400/10"
                                     : "text-[#585b6b] hover:bg-white hover:text-[#2b2f45] dark:text-white/60 dark:hover:bg-white/8 dark:hover:text-white/85",
@@ -543,10 +602,13 @@ const Sidebar: React.FC = () => {
                                   <span className="absolute inset-y-1.5 left-0 w-1 rounded-full bg-linear-to-b from-cyan-500 to-violet-500" />
                                 )}
 
-                                <div className="min-w-0 flex items-center gap-3">
+                                <div className="min-w-0 flex items-center gap-2.5">
                                   <span
                                     className={[
-                                      "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[14px] transition-all duration-200",
+                                      "inline-flex shrink-0 items-center justify-center rounded-lg transition-all duration-200",
+                                      isTablet
+                                        ? "h-6.5 w-6.5 text-[13px]"
+                                        : "h-7 w-7 text-[14px]",
                                       active
                                         ? "bg-white text-cyan-600 shadow-sm dark:bg-white/10 dark:text-cyan-300"
                                         : "bg-slate-100 text-slate-500 group-hover:bg-slate-200 dark:bg-white/6 dark:text-white/55 dark:group-hover:bg-white/10",
@@ -557,13 +619,25 @@ const Sidebar: React.FC = () => {
                                     )}
                                   </span>
 
-                                  <span className="truncate text-[13px]">
+                                  <span
+                                    className={
+                                      isTablet
+                                        ? "truncate text-[12.5px]"
+                                        : "truncate text-[13px]"
+                                    }
+                                  >
                                     {formatLabel(link.name)}
                                   </span>
                                 </div>
 
                                 {link.badge && (
-                                  <span className="ml-2 shrink-0 rounded-full bg-linear-to-r from-cyan-500 to-violet-500 px-2.5 py-0.5 text-[10px] font-semibold text-white shadow-[0_8px_18px_-14px_rgba(59,130,246,0.95)]">
+                                  <span
+                                    className={`ml-2 shrink-0 rounded-full bg-linear-to-r from-cyan-500 to-violet-500 font-semibold text-white shadow-[0_8px_18px_-14px_rgba(59,130,246,0.95)] ${
+                                      isTablet
+                                        ? "px-2 py-0.5 text-[9px]"
+                                        : "px-2.5 py-0.5 text-[10px]"
+                                    }`}
+                                  >
                                     {link.badge}
                                   </span>
                                 )}
@@ -694,10 +768,12 @@ const Sidebar: React.FC = () => {
           </nav>
 
           <div
-            className={`${
+            className={`relative z-10 shrink-0 ${
               isExpanded
-                ? "relative z-10 px-2.5 pb-3 pt-1"
-                : "relative z-10 px-2 pb-3 pt-1"
+                ? isTablet
+                  ? "px-2 pb-2 pt-1"
+                  : "px-2.5 pb-3 pt-1"
+                : "px-2 pb-3 pt-1"
             }`}
           >
             {isExpanded ? (
@@ -707,7 +783,8 @@ const Sidebar: React.FC = () => {
                   onClick={() => void handleLogout()}
                   disabled={loggingOut}
                   className={[
-                    "group relative flex w-full items-center justify-between overflow-hidden rounded-[15px] px-3 py-2.25 transition-all duration-300",
+                    "group relative flex w-full items-center justify-between overflow-hidden rounded-[15px] transition-all duration-300",
+                    isTablet ? "px-2.5 py-2" : "px-3 py-2.25",
                     "bg-white text-[#303446] hover:bg-slate-50 dark:bg-[#0b1322] dark:text-white/82 dark:hover:bg-[#101a2d]",
                     loggingOut ? "cursor-not-allowed opacity-70" : "",
                   ].join(" ")}
@@ -722,22 +799,44 @@ const Sidebar: React.FC = () => {
                     }}
                   />
 
-                  <div className="relative z-10 flex items-center gap-2.5">
-                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-linear-to-br from-cyan-500 to-violet-500 text-white shadow-[0_10px_18px_-14px_rgba(59,130,246,0.85)] transition-transform duration-300 group-hover:scale-[1.03]">
-                      <RiDoorOpenLine className="text-[15px]" />
+                  <div
+                    className={`relative z-10 flex items-center ${
+                      isTablet ? "gap-2" : "gap-2.5"
+                    }`}
+                  >
+                    <span
+                      className={`inline-flex items-center justify-center rounded-xl bg-linear-to-br from-cyan-500 to-violet-500 text-white shadow-[0_10px_18px_-14px_rgba(59,130,246,0.85)] transition-transform duration-300 group-hover:scale-[1.03] ${
+                        isTablet ? "h-7 w-7" : "h-8 w-8"
+                      }`}
+                    >
+                      <RiDoorOpenLine
+                        className={isTablet ? "text-[14px]" : "text-[15px]"}
+                      />
                     </span>
 
                     <div className="text-left leading-tight">
-                      <span className="block text-[12.5px] font-semibold">
+                      <span
+                        className={`block font-semibold ${
+                          isTablet ? "text-[11.5px]" : "text-[12.5px]"
+                        }`}
+                      >
                         {loggingOut ? "Logging out..." : "Logout"}
                       </span>
-                      <span className="block text-[9.5px] text-slate-500 dark:text-white/45">
+                      <span
+                        className={`block text-slate-500 dark:text-white/45 ${
+                          isTablet ? "text-[8.5px]" : "text-[9.5px]"
+                        }`}
+                      >
                         End session
                       </span>
                     </div>
                   </div>
 
-                  <FiLogOut className="relative z-10 text-[14px] text-slate-400 transition-colors duration-300 group-hover:text-cyan-600 dark:text-white/45 dark:group-hover:text-cyan-300" />
+                  <FiLogOut
+                    className={`relative z-10 text-slate-400 transition-colors duration-300 group-hover:text-cyan-600 dark:text-white/45 dark:group-hover:text-cyan-300 ${
+                      isTablet ? "text-[13px]" : "text-[14px]"
+                    }`}
+                  />
                 </button>
               </div>
             ) : (
