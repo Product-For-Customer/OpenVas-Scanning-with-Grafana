@@ -31,6 +31,58 @@ type UserProfileProps = {
   logout: () => Promise<void>;
 };
 
+const USER_PROFILE_AVATAR_SIZE = 60;
+
+const createCoverThumbnail = async (
+  imageSrc: string,
+  size: number
+): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const img = new window.Image();
+    img.crossOrigin = "anonymous";
+    img.decoding = "async";
+
+    img.onload = () => {
+      try {
+        const dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
+        const canvas = document.createElement("canvas");
+        const targetSize = Math.round(size * dpr);
+
+        canvas.width = targetSize;
+        canvas.height = targetSize;
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("Canvas context not available"));
+          return;
+        }
+
+        ctx.clearRect(0, 0, targetSize, targetSize);
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+
+        const sw = img.naturalWidth;
+        const sh = img.naturalHeight;
+
+        const scale = Math.max(targetSize / sw, targetSize / sh);
+        const drawW = sw * scale;
+        const drawH = sh * scale;
+        const dx = (targetSize - drawW) / 2;
+        const dy = (targetSize - drawH) / 2;
+
+        ctx.drawImage(img, dx, dy, drawW, drawH);
+
+        resolve(canvas.toDataURL("image/png"));
+      } catch (error) {
+        reject(error);
+      }
+    };
+
+    img.onerror = () => reject(new Error("Failed to load image"));
+    img.src = imageSrc;
+  });
+};
+
 const UserProfile: React.FC<UserProfileProps> = ({
   profileSrc,
   avatarFallback,
@@ -48,6 +100,8 @@ const UserProfile: React.FC<UserProfileProps> = ({
   const [open, setOpen] = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [profileThumbSrc, setProfileThumbSrc] = useState("");
+  const [thumbLoading, setThumbLoading] = useState(false);
 
   useEffect(() => {
     if (isClicked?.userProfile) setOpen(true);
@@ -105,6 +159,49 @@ const UserProfile: React.FC<UserProfileProps> = ({
   };
 
   const finalProfileSrc = !imageError && profileSrc ? profileSrc : avatarFallback;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const buildThumbnail = async () => {
+      if (!finalProfileSrc) {
+        setProfileThumbSrc("");
+        return;
+      }
+
+      if (finalProfileSrc.startsWith("data:image/svg+xml")) {
+        setProfileThumbSrc(finalProfileSrc);
+        return;
+      }
+
+      try {
+        setThumbLoading(true);
+        const dataUrl = await createCoverThumbnail(
+          finalProfileSrc,
+          USER_PROFILE_AVATAR_SIZE
+        );
+
+        if (!cancelled) {
+          setProfileThumbSrc(dataUrl);
+        }
+      } catch (error) {
+        console.error("Failed to create user profile thumbnail:", error);
+        if (!cancelled) {
+          setProfileThumbSrc(finalProfileSrc);
+        }
+      } finally {
+        if (!cancelled) {
+          setThumbLoading(false);
+        }
+      }
+    };
+
+    void buildThumbnail();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [finalProfileSrc]);
 
   const handleLogout = async () => {
     try {
@@ -188,9 +285,13 @@ const UserProfile: React.FC<UserProfileProps> = ({
           <div className="relative flex items-center gap-3">
             <div className="relative shrink-0">
               <img
-                className="h-15 w-15 rounded-[20px] bg-white object-cover ring-1 ring-gray-200 dark:bg-white/10 dark:ring-white/10"
-                src={finalProfileSrc}
+                className={[
+                  "h-15 w-15 rounded-[20px] bg-white object-cover ring-1 ring-gray-200 dark:bg-white/10 dark:ring-white/10",
+                  thumbLoading ? "opacity-90" : "opacity-100",
+                ].join(" ")}
+                src={profileThumbSrc || finalProfileSrc}
                 alt="user-profile"
+                draggable={false}
                 onError={() => setImageError(true)}
               />
               <span className="absolute -right-1 -bottom-1 h-3.5 w-3.5 rounded-full bg-cyan-400 ring-2 ring-white dark:ring-[#08111f]" />

@@ -405,8 +405,8 @@ const CustomTooltip = ({
               isUp
                 ? "bg-rose-100 text-rose-700 dark:bg-rose-400/15 dark:text-rose-300"
                 : isDown
-                ? "bg-cyan-100 text-cyan-700 dark:bg-cyan-400/15 dark:text-cyan-300"
-                : "bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-white/70",
+                  ? "bg-cyan-100 text-cyan-700 dark:bg-cyan-400/15 dark:text-cyan-300"
+                  : "bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-white/70",
             ].join(" ")}
           >
             {isUp ? (
@@ -744,8 +744,8 @@ const AverageEnrollment: React.FC = () => {
       const rawRows = Array.isArray(res)
         ? res
         : Array.isArray((res as any)?.data)
-        ? (res as any).data
-        : [];
+          ? (res as any).data
+          : [];
 
       const mapped: DetailRow[] = rawRows
         .map((item: any, index: number) => {
@@ -840,9 +840,22 @@ const AverageEnrollment: React.FC = () => {
         rawPreviousCreationTime !== "" &&
         !Number.isNaN(Number(rawPreviousCreationTime));
 
-      const isIncrease = hasPreviousRecord && latestRisk > previousRisk;
+      const isSingleNonZero =
+        hasPreviousRecord &&
+        ((previousRisk > 0 && latestRisk === 0) ||
+          (latestRisk > 0 && previousRisk === 0));
+
+      const isIncrease =
+        hasPreviousRecord &&
+        latestRisk > previousRisk &&
+        !isSingleNonZero;
+
       const isEqual = hasPreviousRecord && latestRisk === previousRisk;
-      const isEqualOrLower = !hasPreviousRecord || latestRisk <= previousRisk;
+
+      const isEqualOrLower =
+        !hasPreviousRecord ||
+        latestRisk <= previousRisk ||
+        isSingleNonZero;
 
       const diffRisk = hasPreviousRecord ? latestRisk - previousRisk : 0;
 
@@ -853,7 +866,7 @@ const AverageEnrollment: React.FC = () => {
         axis_key: `${shortenTaskName(taskName)}__AXIS__${host}__${index}`,
         latest_task_id:
           (item as any).latest_task_id !== null &&
-          (item as any).latest_task_id !== undefined
+            (item as any).latest_task_id !== undefined
             ? String((item as any).latest_task_id)
             : "-",
 
@@ -872,14 +885,29 @@ const AverageEnrollment: React.FC = () => {
         has_previous_record: hasPreviousRecord,
 
         previous_for_increase: isIncrease ? previousRisk : 0,
+
         previous_for_nonincrease:
-          hasPreviousRecord && !isIncrease && !isEqual ? previousRisk : 0,
-        latest_overlay_equal_or_lower: isEqualOrLower ? latestRisk : 0,
+          hasPreviousRecord && !isIncrease && !isEqual && !isSingleNonZero
+            ? previousRisk
+            : 0,
+
+        latest_overlay_equal_or_lower: isSingleNonZero
+          ? Math.max(previousRisk, latestRisk)
+          : isEqualOrLower
+            ? latestRisk
+            : 0,
+
         latest_positive_diff: isIncrease ? latestRisk - previousRisk : 0,
         overlay_top_value: Math.max(previousRisk, latestRisk),
 
         latest_increase_label: isIncrease ? latestRisk : null,
-        latest_equal_or_lower_label: isEqualOrLower ? latestRisk : null,
+
+        latest_equal_or_lower_label:
+          isSingleNonZero
+            ? Math.max(previousRisk, latestRisk)
+            : isEqualOrLower
+              ? latestRisk
+              : null,
       };
     });
   }, [rows]);
@@ -972,10 +1000,10 @@ const AverageEnrollment: React.FC = () => {
     const avgLatestRisk =
       totalAssets > 0
         ? filteredMappedRows.reduce(
-            (sum: number, item: ChartRow) =>
-              sum + Number(item.latest_risk_score || 0),
-            0
-          ) / totalAssets
+          (sum: number, item: ChartRow) =>
+            sum + Number(item.latest_risk_score || 0),
+          0
+        ) / totalAssets
         : 0;
 
     const increasedCount = filteredMappedRows.filter(
@@ -1126,9 +1154,8 @@ const AverageEnrollment: React.FC = () => {
                 <div className="min-w-0">
                   <h2 className="text-[17px] font-semibold tracking-tight text-[#1f2240] dark:text-white/92 sm:text-[19px]">
                     {detailMode
-                      ? `Risk Score Timeline${
-                          detailTaskName ? ` • ${detailTaskName}` : ""
-                        }`
+                      ? `Risk Score Timeline${detailTaskName ? ` • ${detailTaskName}` : ""
+                      }`
                       : "Target Risk Comparison"}
                   </h2>
                   <p className="text-[11px] text-gray-500 dark:text-white/55 sm:text-[12px]">
@@ -1164,9 +1191,8 @@ const AverageEnrollment: React.FC = () => {
                         </span>
                       )}
                       <FiChevronDown
-                        className={`text-[14px] transition-transform ${
-                          open ? "rotate-180" : ""
-                        }`}
+                        className={`text-[14px] transition-transform ${open ? "rotate-180" : ""
+                          }`}
                       />
                     </div>
                   </button>
@@ -1270,9 +1296,8 @@ const AverageEnrollment: React.FC = () => {
                   >
                     <span className="truncate">{sortButtonLabel}</span>
                     <FiChevronDown
-                      className={`text-[14px] transition-transform ${
-                        sortOpen ? "rotate-180" : ""
-                      }`}
+                      className={`text-[14px] transition-transform ${sortOpen ? "rotate-180" : ""
+                        }`}
                     />
                   </button>
 

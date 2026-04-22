@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { Image } from "antd";
 import {
   FiEdit2,
   FiHome,
@@ -17,7 +18,64 @@ type ProfileProps = {
   user: UserResponse;
 };
 
+const AVATAR_SIZE_MOBILE = 64;
+const AVATAR_SIZE_DESKTOP = 80;
+
+const createCoverThumbnail = async (
+  imageSrc: string,
+  size: number
+): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const img = new window.Image();
+    img.crossOrigin = "anonymous";
+    img.decoding = "async";
+
+    img.onload = () => {
+      try {
+        const dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
+        const canvas = document.createElement("canvas");
+        const targetSize = Math.round(size * dpr);
+
+        canvas.width = targetSize;
+        canvas.height = targetSize;
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("Canvas context not available"));
+          return;
+        }
+
+        ctx.clearRect(0, 0, targetSize, targetSize);
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+
+        const sw = img.naturalWidth;
+        const sh = img.naturalHeight;
+
+        const scale = Math.max(targetSize / sw, targetSize / sh);
+        const drawW = sw * scale;
+        const drawH = sh * scale;
+        const dx = (targetSize - drawW) / 2;
+        const dy = (targetSize - drawH) / 2;
+
+        ctx.drawImage(img, dx, dy, drawW, drawH);
+
+        resolve(canvas.toDataURL("image/png"));
+      } catch (error) {
+        reject(error);
+      }
+    };
+
+    img.onerror = () => reject(new Error("Failed to load profile image"));
+    img.src = imageSrc;
+  });
+};
+
 const Profile: React.FC<ProfileProps> = ({ user }) => {
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [thumbSrc, setThumbSrc] = useState<string>("");
+  const [thumbLoading, setThumbLoading] = useState(false);
+
   const fullName =
     `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim() || "Unknown User";
 
@@ -31,6 +89,56 @@ const Profile: React.FC<ProfileProps> = ({ user }) => {
     "text-[#1f2240] hover:text-[#6f5be8]",
     "dark:text-white/70 dark:hover:text-[#a99cff]",
   ].join(" ");
+
+  const profileSrc = useMemo(() => {
+    return user.profile?.trim() ? user.profile : "";
+  }, [user.profile]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const buildThumbnail = async () => {
+      if (!profileSrc) {
+        setThumbSrc("");
+        return;
+      }
+
+      try {
+        setThumbLoading(true);
+
+        const size =
+          window.innerWidth >= 640 ? AVATAR_SIZE_DESKTOP : AVATAR_SIZE_MOBILE;
+
+        const dataUrl = await createCoverThumbnail(profileSrc, size);
+
+        if (!cancelled) {
+          setThumbSrc(dataUrl);
+        }
+      } catch (error) {
+        console.error("Failed to create avatar thumbnail:", error);
+        if (!cancelled) {
+          setThumbSrc(profileSrc);
+        }
+      } finally {
+        if (!cancelled) {
+          setThumbLoading(false);
+        }
+      }
+    };
+
+    buildThumbnail();
+
+    const handleResize = () => {
+      buildThumbnail();
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [profileSrc]);
 
   return (
     <aside
@@ -62,12 +170,40 @@ const Profile: React.FC<ProfileProps> = ({ user }) => {
                 "dark:bg-white/10 dark:ring-4 dark:ring-white/5 dark:shadow-none",
               ].join(" ")}
             >
-              {user.profile ? (
-                <img
-                  src={user.profile}
-                  alt={fullName}
-                  className="h-full w-full object-cover"
-                />
+              {profileSrc ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewOpen(true)}
+                    aria-label={`Preview ${fullName} profile image`}
+                    className="block h-full w-full overflow-hidden rounded-[14px] cursor-pointer"
+                  >
+                    <img
+                      src={thumbSrc || profileSrc}
+                      alt={fullName}
+                      draggable={false}
+                      className={[
+                        "block h-full w-full object-cover",
+                        thumbLoading ? "opacity-90" : "opacity-100",
+                      ].join(" ")}
+                      style={{
+                        objectFit: "cover",
+                        objectPosition: "center",
+                      }}
+                    />
+                  </button>
+
+                  <div className="hidden">
+                    <Image
+                      src={profileSrc}
+                      alt={fullName}
+                      preview={{
+                        visible: previewOpen,
+                        onVisibleChange: (visible) => setPreviewOpen(visible),
+                      }}
+                    />
+                  </div>
+                </>
               ) : (
                 <span className="text-[34px]">🧑🏻‍💻</span>
               )}

@@ -2,7 +2,6 @@ import React from "react";
 import {
   FiShield,
   FiTarget,
-  FiGitBranch,
   FiBell,
   FiFileText,
   FiUsers,
@@ -12,6 +11,7 @@ import { AiOutlineUser } from "react-icons/ai";
 import { RiCustomerService2Line } from "react-icons/ri";
 import type { JSX } from "react/jsx-dev-runtime";
 import { MdSpaceDashboard, MdDashboardCustomize } from "react-icons/md";
+import { FaProjectDiagram } from "react-icons/fa";
 
 export type SidebarLink = {
   name: string;
@@ -38,7 +38,7 @@ export const getLinks = ({ isAdmin }: GetLinksParams): SidebarSection[] => {
         { name: "dashboard", icon: <MdSpaceDashboard /> },
         { name: "vulnerability", icon: <FiShield /> },
         { name: "target", icon: <FiTarget /> },
-        { name: "diagrams", icon: <FiGitBranch /> },
+        { name: "diagrams", icon: <FaProjectDiagram  /> },
       ],
     },
   ];

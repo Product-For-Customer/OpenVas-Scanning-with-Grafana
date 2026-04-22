@@ -446,7 +446,7 @@ const Sidebar: React.FC = () => {
                       isTablet ? "text-[10px]" : "text-[10.5px]"
                     }`}
                   >
-                    Network Monitoring Panel
+                    Vulnerability Monitoring
                   </span>
                 </div>
               )}

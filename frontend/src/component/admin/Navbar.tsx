@@ -23,6 +23,57 @@ type NavBtnProps = {
 };
 
 const DESKTOP_BREAKPOINT = 900;
+const NAV_AVATAR_SIZE = 36;
+
+const createCoverThumbnail = async (
+  imageSrc: string,
+  size: number
+): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const img = new window.Image();
+    img.crossOrigin = "anonymous";
+    img.decoding = "async";
+
+    img.onload = () => {
+      try {
+        const dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
+        const canvas = document.createElement("canvas");
+        const targetSize = Math.round(size * dpr);
+
+        canvas.width = targetSize;
+        canvas.height = targetSize;
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("Canvas context not available"));
+          return;
+        }
+
+        ctx.clearRect(0, 0, targetSize, targetSize);
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+
+        const sw = img.naturalWidth;
+        const sh = img.naturalHeight;
+
+        const scale = Math.max(targetSize / sw, targetSize / sh);
+        const drawW = sw * scale;
+        const drawH = sh * scale;
+        const dx = (targetSize - drawW) / 2;
+        const dy = (targetSize - drawH) / 2;
+
+        ctx.drawImage(img, dx, dy, drawW, drawH);
+
+        resolve(canvas.toDataURL("image/png"));
+      } catch (error) {
+        reject(error);
+      }
+    };
+
+    img.onerror = () => reject(new Error("Failed to load image"));
+    img.src = imageSrc;
+  });
+};
 
 const NavButton: React.FC<NavBtnProps> = ({
   title,
@@ -81,6 +132,8 @@ const Navbar: React.FC = () => {
   const [navbarUser, setNavbarUser] = useState<UserResponse | null>(null);
   const [profileError, setProfileError] = useState(false);
   const [search, setSearch] = useState("");
+  const [profileThumbSrc, setProfileThumbSrc] = useState("");
+  const [thumbLoading, setThumbLoading] = useState(false);
 
   const isMountedRef = useRef(false);
   const isFetchingUserRef = useRef(false);
@@ -188,6 +241,46 @@ const Navbar: React.FC = () => {
       ? effectiveUser.profile
       : avatarFallback;
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const buildThumbnail = async () => {
+      if (!profileSrc) {
+        setProfileThumbSrc("");
+        return;
+      }
+
+      if (profileSrc.startsWith("data:image/svg+xml")) {
+        setProfileThumbSrc(profileSrc);
+        return;
+      }
+
+      try {
+        setThumbLoading(true);
+        const dataUrl = await createCoverThumbnail(profileSrc, NAV_AVATAR_SIZE);
+
+        if (!cancelled) {
+          setProfileThumbSrc(dataUrl);
+        }
+      } catch (error) {
+        console.error("Failed to create navbar avatar thumbnail:", error);
+        if (!cancelled) {
+          setProfileThumbSrc(profileSrc);
+        }
+      } finally {
+        if (!cancelled) {
+          setThumbLoading(false);
+        }
+      }
+    };
+
+    void buildThumbnail();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [profileSrc]);
+
   const fullName = `${effectiveUser?.first_name || "Guest"} ${effectiveUser?.last_name || "User"}`.trim();
   const roleName = effectiveUser?.role || "Viewer";
   const email = effectiveUser?.email || "guest@example.com";
@@ -258,8 +351,8 @@ const Navbar: React.FC = () => {
           <div className="relative z-10 flex h-full shrink-0 items-center">
             <div className="flex items-center gap-1 px-2 sm:px-3">
               <NavButton
-                title="Open Greenbone"
-                aria-label="Open Greenbone"
+                title="Go to OpenVAS"
+                aria-label="Go to OpenVAS"
                 onClick={openGreenbone}
                 icon={
                   <img
@@ -305,9 +398,13 @@ const Navbar: React.FC = () => {
                 >
                   <div className="relative shrink-0">
                     <img
-                      src={profileSrc}
+                      src={profileThumbSrc || profileSrc}
                       alt="profile"
-                      className="h-9 w-9 rounded-full bg-white object-cover ring-1 ring-gray-200 dark:bg-white/10 dark:ring-white/15"
+                      draggable={false}
+                      className={[
+                        "h-9 w-9 rounded-full bg-white object-cover ring-1 ring-gray-200 dark:bg-white/10 dark:ring-white/15",
+                        thumbLoading ? "opacity-90" : "opacity-100",
+                      ].join(" ")}
                       onError={() => setProfileError(true)}
                     />
                     <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-cyan-400 ring-2 ring-white dark:ring-[#08111f]" />

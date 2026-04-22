@@ -39,6 +39,58 @@ type EmailAndPhoneNumberResponse = {
   phone_number: string;
 };
 
+const PREVIEW_SIZE = 88;
+
+const createCoverThumbnail = async (
+  imageSrc: string,
+  size: number
+): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const img = new window.Image();
+    img.crossOrigin = "anonymous";
+    img.decoding = "async";
+
+    img.onload = () => {
+      try {
+        const dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
+        const canvas = document.createElement("canvas");
+        const targetSize = Math.round(size * dpr);
+
+        canvas.width = targetSize;
+        canvas.height = targetSize;
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("Canvas context not available"));
+          return;
+        }
+
+        ctx.clearRect(0, 0, targetSize, targetSize);
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+
+        const sw = img.naturalWidth;
+        const sh = img.naturalHeight;
+
+        const scale = Math.max(targetSize / sw, targetSize / sh);
+        const drawW = sw * scale;
+        const drawH = sh * scale;
+        const dx = (targetSize - drawW) / 2;
+        const dy = (targetSize - drawH) / 2;
+
+        ctx.drawImage(img, dx, dy, drawW, drawH);
+
+        resolve(canvas.toDataURL("image/png"));
+      } catch (error) {
+        reject(error);
+      }
+    };
+
+    img.onerror = () => reject(new Error("Failed to load image"));
+    img.src = imageSrc;
+  });
+};
+
 const Setting: React.FC<SettingProps> = ({ user, onUpdated }) => {
   const { triggerUserRefresh } = useStateContext();
 
@@ -52,11 +104,14 @@ const Setting: React.FC<SettingProps> = ({ user, onUpdated }) => {
   });
 
   const [form, setForm] = useState<SettingForm>(createInitialForm(user));
-  const [submitting, setSubmitting] = useState<boolean>(false); //@ts-ignore
+  const [submitting, setSubmitting] = useState<boolean>(false);//@ts-ignore
   const [uploadFile, setUploadFile] = useState<File | undefined>(undefined);
   const [profileBase64, setProfileBase64] = useState<string | undefined>(
     undefined
   );
+  const [thumbSrc, setThumbSrc] = useState("");
+  const [thumbLoading, setThumbLoading] = useState(false);
+
   const [touched, setTouched] = useState<TouchedField>({
     firstName: false,
     lastName: false,
@@ -138,6 +193,41 @@ const Setting: React.FC<SettingProps> = ({ user, onUpdated }) => {
     if (user.profile) return user.profile;
     return "";
   }, [profileBase64, user.profile]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const buildThumbnail = async () => {
+      if (!previewUrl) {
+        setThumbSrc("");
+        return;
+      }
+
+      try {
+        setThumbLoading(true);
+        const dataUrl = await createCoverThumbnail(previewUrl, PREVIEW_SIZE);
+
+        if (!cancelled) {
+          setThumbSrc(dataUrl);
+        }
+      } catch (error) {
+        console.error("Failed to create setting thumbnail:", error);
+        if (!cancelled) {
+          setThumbSrc(previewUrl);
+        }
+      } finally {
+        if (!cancelled) {
+          setThumbLoading(false);
+        }
+      }
+    };
+
+    void buildThumbnail();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [previewUrl]);
 
   const normalize = (value: string) => value.trim();
   const normalizeEmail = (value: string) => value.trim().toLowerCase();
@@ -464,15 +554,23 @@ const Setting: React.FC<SettingProps> = ({ user, onUpdated }) => {
               >
                 {previewUrl ? (
                   <img
-                    src={previewUrl}
+                    src={thumbSrc || previewUrl}
                     alt="profile preview"
-                    className="h-full w-full object-cover"
+                    draggable={false}
+                    className={[
+                      "block h-full w-full object-cover",
+                      thumbLoading ? "opacity-90" : "opacity-100",
+                    ].join(" ")}
+                    style={{
+                      objectFit: "cover",
+                      objectPosition: "center",
+                    }}
                   />
                 ) : (
                   <CameraOutlined className="text-[20px] text-[#7a67ea]" />
                 )}
 
-                <div className="absolute inset-0 bg-black/0 transition-colors hover:bg-black/10" />
+                <div className="pointer-events-none absolute inset-0 bg-black/0 transition-colors hover:bg-black/10" />
               </label>
 
               <input

@@ -29,6 +29,7 @@ import ModalOTPSignUp from "../../Model/ModalOTPSignUp";
 import ModalOTP from "../../Model/ModalOTP";
 import travelPhoto from "../../assets/login-photo.jpg";
 import LoginSuccessAnimation from "./animation/index";
+import greenboneIcon from "../../assets/logo-light.svg";
 
 type SignUpFormData = {
   email: string;
@@ -97,6 +98,10 @@ const Index: React.FC = () => {
     location: "",
     position: "",
   });
+
+  const openGreenbone = () => {
+    window.open("http://localhost:9392", "_blank", "noopener,noreferrer");
+  };
 
   const [signupForm, setSignupForm] = useState<SignUpFormData>({
     email: "",
@@ -818,9 +823,9 @@ const Index: React.FC = () => {
       <div className="absolute bottom-16 left-5 right-5">
         <div className="grid grid-cols-3 gap-2">
           {[
-            { icon: <FiServer className="text-[15px]" />, label: "Switch", delay: "0s" },
-            { icon: <FaNetworkWired className="text-[15px]" />, label: "Router", delay: "0.45s" },
-            { icon: <FiWifi className="text-[15px]" />, label: "Wireless", delay: "0.9s" },
+            { icon: <FaNetworkWired className="text-[15px]" />, label: "Network", delay: "0s" },
+            { icon: <FiWifi className="text-[15px]" />, label: "Wireless", delay: "0.45s" },
+            { icon: <FiServer className="text-[15px]" />, label: "Access Type", delay: "0.9s" },
           ].map((item) => (
             <div
               key={item.label}
@@ -847,12 +852,18 @@ const Index: React.FC = () => {
 
       <div className="absolute bottom-5 left-5 right-5">
         <div className="flex items-center gap-2">
-          <div className="rounded-full border border-cyan-400/20 bg-slate-900/55 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-cyan-200 backdrop-blur-md">
-            Live Scan
-          </div>
-          <div className="rounded-full border border-violet-400/20 bg-slate-900/55 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-violet-200 backdrop-blur-md">
-            Threat View
-          </div>
+          <button
+            type="button"
+            onClick={openGreenbone}
+            className="inline-flex items-center gap-2 rounded-full border border-emerald-300/30 bg-white/12 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-100 backdrop-blur-md transition-all duration-200 hover:-translate-y-px hover:border-emerald-200/45 hover:bg-white/18 hover:text-white active:translate-y-0"
+          >
+            <img
+              src={greenboneIcon}
+              alt="Greenbone"
+              className="h-4 w-4 object-contain"
+            />
+            <span>Live Scan</span>
+          </button>
         </div>
       </div>
     </div>
@@ -991,7 +1002,7 @@ const Index: React.FC = () => {
             </button>
           ) : (
             <div className="rounded-full bg-[#f2f8ff] px-2 py-0.5 text-[9px] font-medium text-slate-500 dark:bg-white/8 dark:text-white/55">
-              Admin access only
+              Authorized access
             </div>
           )}
 
@@ -1288,7 +1299,7 @@ const Index: React.FC = () => {
                   name="first_name"
                   value={signupForm.first_name}
                   onChange={handleSignupChange}
-                  placeholder="Mohammed"
+                  placeholder="Argus"
                   className={inputBase}
                 />
               </div>
@@ -1303,7 +1314,7 @@ const Index: React.FC = () => {
                   name="last_name"
                   value={signupForm.last_name}
                   onChange={handleSignupChange}
-                  placeholder="Jawed"
+                  placeholder="Scanner"
                   className={inputBase}
                 />
               </div>
