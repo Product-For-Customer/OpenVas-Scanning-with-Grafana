@@ -100,7 +100,7 @@ const Index: React.FC = () => {
   });
 
   const openGreenbone = () => {
-    window.open("http://localhost:9392", "_blank", "noopener,noreferrer");
+    window.open("http://10.10.20.169:9392", "_blank", "noopener,noreferrer");
   };
 
   const [signupForm, setSignupForm] = useState<SignUpFormData>({

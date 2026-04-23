@@ -374,7 +374,7 @@ func SeedDatabase() {
 					AppRoleID:   adminRole.ID,
 				},
 				{
-					Email:       "user@gmail.com",
+					Email:       "user@got.co.th",
 					Password:    userPassword,
 					FirstName:   "Guest",
 					LastName:    "User",
