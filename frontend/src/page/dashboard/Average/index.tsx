@@ -1369,7 +1369,7 @@ const AverageEnrollment: React.FC = () => {
                 Average Risk
               </div>
               <div className="text-[20px] font-semibold text-[#1f2240] dark:text-white/92">
-                {formatRisk(detailMode ? detailAvgRisk : summary.avgLatestRisk)}
+                {formatRisk(detailMode ? detailAvgRisk : summary.avgLatestRisk)} / 10.00
               </div>
             </div>
 
