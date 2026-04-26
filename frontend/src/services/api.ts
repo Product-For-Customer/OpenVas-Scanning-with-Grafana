@@ -1,11 +1,28 @@
 import axios from "axios";
-// test api : http://192.168.0.134:9000 , http://10.10.20.169:9000
-export const pathOpenVas = "http://10.10.40.250:9392"; 
-export const apiUrl = "http://10.10.40.250:9000"; // เปลี่ยนเป็น URL ของ API ของคุณ http://localhost:9000 and https://bayleigh-fendered-uncaustically.ngrok-free.dev
+
+const envBackendUrl = import.meta.env.VITE_BACKEND_URL;
+const envOpenVasUrl = import.meta.env.VITE_OPENVAS_URL;
+
+export const apiUrl: string = envBackendUrl || "http://localhost:9000";
+
+export const pathOpenVas: string =
+  envOpenVasUrl || "http://localhost:9392";
+
 export const defaultHeaders = {
   "Content-Type": "application/json",
   "ngrok-skip-browser-warning": "true",
 };
+
+console.groupCollapsed("API CONFIG DEBUG");
+console.log("MODE:", import.meta.env.MODE);
+console.log("DEV:", import.meta.env.DEV);
+console.log("PROD:", import.meta.env.PROD);
+console.log("VITE_BACKEND_URL from env:", envBackendUrl);
+console.log("VITE_OPENVAS_URL from env:", envOpenVasUrl);
+console.log("Final apiUrl:", apiUrl);
+console.log("Final pathOpenVas:", pathOpenVas);
+console.log("All import.meta.env:", import.meta.env);
+console.groupEnd();
 
 export const baseApi = axios.create({
   baseURL: apiUrl,

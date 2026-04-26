@@ -1,25 +1,25 @@
-# ===== Stage 1: Build (Vite) =====
-FROM node:20-alpine AS build
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# ติดตั้ง dependency
-COPY package*.json ./
-RUN npm ci
+ARG VITE_BACKEND_URL
+ARG VITE_OPENVAS_URL
 
-# copy source แล้ว build
+ENV VITE_BACKEND_URL=${VITE_BACKEND_URL}
+ENV VITE_OPENVAS_URL=${VITE_OPENVAS_URL}
+
+COPY package*.json ./
+RUN npm install
+
 COPY . .
 RUN npm run build
 
-
-# ===== Stage 2: Serve with Nginx =====
 FROM nginx:alpine
 
-# เอาไฟล์ build ไปไว้ใน nginx
-COPY --from=build /app/dist /usr/share/nginx/html
+COPY --from=builder /app/dist /usr/share/nginx/html
 
-# ใช้ nginx config ของเรา (รองรับ SPA refresh)
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
+
 CMD ["nginx", "-g", "daemon off;"]

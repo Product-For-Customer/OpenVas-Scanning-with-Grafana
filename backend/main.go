@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/Tawunchai/openvas/config"
 	"github.com/Tawunchai/openvas/controller/auth"
@@ -18,8 +19,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-const PORT = "9000"
-
 func main() {
 	config.ConnectDB()
 	config.SetupDatabase()
@@ -27,11 +26,16 @@ func main() {
 
 	go line.StartLineStatusListener()
 
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "9000"
+	}
+
 	r := gin.Default()
 	r.Use(CORSMiddleware())
 
 	r.GET("/", func(c *gin.Context) {
-		c.String(http.StatusOK, "API RUNNING... PORT: %s", PORT)
+		c.String(http.StatusOK, "API RUNNING... PORT: %s", port)
 	})
 
 	// ==== Public Auth Routes ====
@@ -135,9 +139,9 @@ func main() {
 		authorized.DELETE("/delete-diagram-nodes/:id", diagram.DeleteAppDiagramNodeByID)
 	}
 
-	log.Printf("✅ Server starting on port %s\n", PORT)
+	log.Printf("✅ Server starting on port %s\n", port)
 
-	if err := r.Run(":" + PORT); err != nil {
+	if err := r.Run(":" + port); err != nil {
 		log.Fatalf("❌ Failed to run server: %v", err)
 	}
 }
@@ -151,12 +155,10 @@ func CORSMiddleware() gin.HandlerFunc {
 			"http://localhost:5173":           true,
 			"http://frontend":                 true,
 			"https://openvaswebv1.vercel.app": true,
-
-			// เพิ่มของเครื่องในวง LAN
-			"http://10.10.20.169:5173": true,
-			"http://10.10.20.169:5174": true,
-			"http://10.10.40.250:5173": true,
-			"http://10.10.40.250:5174": true,
+			"http://192.168.0.134:5173":        true,
+			"http://192.168.0.134:5174":        true,		
+			"http://10.10.40.250:5173":        true,
+			"http://10.10.40.250:5174":        true,
 		}
 
 		if allowedOrigins[origin] {

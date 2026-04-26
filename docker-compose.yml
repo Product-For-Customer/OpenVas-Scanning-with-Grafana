@@ -324,12 +324,17 @@ services:
       - REPORT_OUTPUT_DIR=${REPORT_OUTPUT_DIR}
       - REPORT_PUBLIC_BASE_URL=${REPORT_PUBLIC_BASE_URL}
       - CHROME_PATH=${CHROME_PATH}
+      - PATH_API_URL=${PATH_API_URL}
       - TZ=${TZ}
     depends_on:
       - pg-gvm
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        VITE_BACKEND_URL: ${VITE_BACKEND_URL}
+        VITE_OPENVAS_URL: ${VITE_OPENVAS_URL}
     container_name: frontend
     restart: unless-stopped
     ports:

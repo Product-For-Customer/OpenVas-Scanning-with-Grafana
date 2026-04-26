@@ -23,7 +23,6 @@ import (
 )
 
 const (
-	fixedPublicBase  = "https://bayleigh-fendered-uncaustically.ngrok-free.dev"
 	fixedReportsDir  = "./tmp/reports"
 	defaultPDFPrefix = "report_capture"
 
@@ -77,7 +76,7 @@ func sanitizeBaseName(name string) string {
 }
 
 func buildPublicPDFURL(filePath string) string {
-	base := strings.TrimRight(fixedPublicBase, "/")
+	base := strings.TrimRight(os.Getenv("PATH_API_URL"), "/")
 	fileName := filepath.Base(filePath)
 	return fmt.Sprintf("%s/public/reports/%s", base, fileName)
 }
