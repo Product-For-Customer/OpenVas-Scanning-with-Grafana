@@ -419,7 +419,7 @@ const ComparisonReport: React.FC<ComparisonReportProps> = ({
         </div>
 
         <p className="mt-2 text-[10.5px] leading-5 text-slate-500">
-          หมายเหตุ: แสดงเฉพาะ Top 10 เป้าหมายที่มีค่า Latest Risk สูงที่สุด และเรียงจากมากไปน้อย
+          Note: Only the Top 10 targets with the highest Latest Risk are displayed, sorted in descending order.
         </p>
       </div>
     </section>

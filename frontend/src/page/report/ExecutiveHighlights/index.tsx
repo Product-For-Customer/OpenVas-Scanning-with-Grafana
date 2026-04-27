@@ -327,7 +327,7 @@ const ExecutiveHighlights: React.FC<ExecutiveHighlightsProps> = ({
                 <h3 className="mt-1 text-[15px] font-bold leading-[1.2] text-slate-900">
                   Key Critical Findings at a Glance
                 </h3>
-                <p className="mt-1 text-[10px] leading-[1.6] text-slate-600">
+                <p className="mt-1 text-[10.5px] leading-[1.6] text-slate-600">
                   Highlighting the most critical vulnerabilities detected in the
                   latest scan, including business impact, affected scope, and
                   recommended remediation actions.

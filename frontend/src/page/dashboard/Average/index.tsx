@@ -1365,8 +1365,8 @@ const AverageEnrollment: React.FC = () => {
 
             <div className="rounded-[22px] border border-gray-200/80 bg-white px-4 py-3 shadow-sm dark:border-white/10 dark:bg-white/6">
               <div className="mb-2 flex items-center gap-2 text-[12px] font-medium text-gray-500 dark:text-white/55">
-                <FiActivity className="text-[13px] text-violet-500" />
-                Average Risk
+                <FiActivity className="text-[12px] text-violet-500" />
+                Average Risk Score / Max CVSS
               </div>
               <div className="text-[20px] font-semibold text-[#1f2240] dark:text-white/92">
                 {formatRisk(detailMode ? detailAvgRisk : summary.avgLatestRisk)} / 10.00

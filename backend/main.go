@@ -155,8 +155,8 @@ func CORSMiddleware() gin.HandlerFunc {
 			"http://localhost:5173":           true,
 			"http://frontend":                 true,
 			"https://openvaswebv1.vercel.app": true,
-			"http://192.168.0.134:5173":        true,
-			"http://192.168.0.134:5174":        true,		
+			"http://10.10.20.87:5173":        true,
+			"http://10.10.20.87:5174":        true,		
 			"http://10.10.40.250:5173":        true,
 			"http://10.10.40.250:5174":        true,
 		}

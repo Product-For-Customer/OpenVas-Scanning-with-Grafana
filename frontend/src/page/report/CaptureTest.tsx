@@ -16,8 +16,6 @@ import {
 } from "../../services/report";
 import type { DeviceRiskForReportDTO } from "../../services/report";
 
-const sectionLabelClass =
-  "text-[8.5px] font-semibold uppercase tracking-normal text-slate-500";
 const sectionHeadingClass =
   "mt-1 text-[16px] font-bold leading-[1.2] text-slate-900";
 const sectionDescClass =
@@ -53,38 +51,38 @@ type CriticalForReportDTO = {
 
 type PageDescriptor =
   | {
-      key: string;
-      type: "overview";
-      title: string;
-    }
+    key: string;
+    type: "overview";
+    title: string;
+  }
   | {
-      key: string;
-      type: "highlights";
-      title: string;
-      pageIndex: number;
-      pageSize: number;
-      pageNumberInSection: number;
-      totalPagesInSection: number;
-    }
+    key: string;
+    type: "highlights";
+    title: string;
+    pageIndex: number;
+    pageSize: number;
+    pageNumberInSection: number;
+    totalPagesInSection: number;
+  }
   | {
-      key: string;
-      type: "device-risk";
-      title: string;
-      pageIndex: number;
-      pageSize: number;
-      pageNumberInSection: number;
-      totalPagesInSection: number;
-    }
+    key: string;
+    type: "device-risk";
+    title: string;
+    pageIndex: number;
+    pageSize: number;
+    pageNumberInSection: number;
+    totalPagesInSection: number;
+  }
   | {
-      key: string;
-      type: "comparison-monthly";
-      title: string;
-    }
+    key: string;
+    type: "comparison-monthly";
+    title: string;
+  }
   | {
-      key: string;
-      type: "conclusion";
-      title: string;
-    };
+    key: string;
+    type: "conclusion";
+    title: string;
+  };
 
 const readTaskIDsFromQuery = (): { mode: "all" | "filtered"; ids: string[] } => {
   if (typeof window === "undefined") {
@@ -219,8 +217,8 @@ const CaptureTest: React.FC<CaptureTestProps> = ({
           effectiveTaskMode === "all" || effectiveTaskIDs.length === 0
             ? allDevices
             : allDevices.filter((item) =>
-                selectedTaskSet.has(String(item.task_id).trim())
-              );
+              selectedTaskSet.has(String(item.task_id).trim())
+            );
 
         setPrefetchedSummaryRows(summaryRows);
         setPrefetchedHighlights(criticalRows);
@@ -413,11 +411,10 @@ const CaptureTest: React.FC<CaptureTestProps> = ({
         <main className="px-8 pt-6 pb-24">
           <section className="mt-0">
             <div className="mb-3 border-b border-slate-200 pb-2.5">
-              <p className={sectionLabelClass}>Section 1</p>
-              <h2 className={sectionHeadingClass}>Total Severity</h2>
-              <p className={sectionDescClass}>
-                สรุปภาพรวมผลการสแกนล่าสุด โดยแสดงตัวชี้วัดสำคัญของการประเมิน
-                พร้อมจำนวนช่องโหว่ในแต่ละระดับความรุนแรง
+              <h1 className={sectionHeadingClass}>Total Severity</h1>
+              <p className={`${sectionDescClass} text-base md:text-[12.5px] leading-relaxed`}>
+                แสดงสรุปผลการสแกนล่าสุด พร้อมจำนวนช่องโหว่ที่พบ
+                แยกตามระดับความรุนแรง
               </p>
             </div>
 
@@ -431,13 +428,11 @@ const CaptureTest: React.FC<CaptureTestProps> = ({
 
           <section className="mt-5">
             <div className="mb-3 border-b border-slate-200 pb-2.5">
-              <p className={sectionLabelClass}>Section 2</p>
               <h2 className={sectionHeadingClass}>
                 Severity Distribution Overview
               </h2>
-              <p className={sectionDescClass}>
-                แสดงภาพรวมการกระจายของช่องโหว่ตามระดับความรุนแรงในรูปแบบย่อ
-                เพื่อให้เหมาะกับการจัดวางในรายงาน PDF แบบหน้าเดียว
+              <p className={`${sectionDescClass} text-base md:text-[12.5px] leading-relaxed`}>
+                แสดงจำนวนช่องโหว่ในแต่ละระดับความรุนแรงในรูปแบบกราฟ
               </p>
             </div>
 
@@ -472,12 +467,10 @@ const CaptureTest: React.FC<CaptureTestProps> = ({
             <div className="mb-3 border-b border-slate-200 pb-2.5">
               <div className="flex items-end justify-between gap-4">
                 <div>
-                  <p className={sectionLabelClass}>Section 3</p>
-                  <h2 className={sectionHeadingClass}>Critical Highlights</h2>
-                  <p className={sectionDescClass}>
-                    สรุปประเด็นสำคัญของช่องโหว่ระดับวิกฤตที่ควรได้รับการติดตามก่อน
-                    โดยแสดงชื่อช่องโหว่ , ผลกระทบ , รายละเอียด
-                    และข้อมูลเชิงลึกรวมถึงวิธีการแก้ไขเพื่อใช้ประกอบการตัดสินใจ
+                  <h1 className={sectionHeadingClass}>Critical Highlights</h1>
+                  <p className={`${sectionDescClass} text-base md:text-[12.5px] leading-relaxed`}>
+                    สรุปช่องโหว่ระดับวิกฤตที่ควรติดตามก่อน
+                    พร้อมผลกระทบ รายละเอียด และแนวทางแก้ไข
                   </p>
                 </div>
 
@@ -491,12 +484,12 @@ const CaptureTest: React.FC<CaptureTestProps> = ({
             </div>
 
             <ExecutiveHighlights
-              onReady={() => {}}
+              onReady={() => { }}
               selectedTaskIDs={effectiveTaskIDs}
               pageIndex={descriptor.pageIndex}
               pageSize={descriptor.pageSize}
               showOuterHeader={true}
-              onDataCountChange={() => {}}
+              onDataCountChange={() => { }}
               prefetchedRows={prefetchedHighlights}
               prefetchedLoading={prefetchLoading}
             />
@@ -525,13 +518,11 @@ const CaptureTest: React.FC<CaptureTestProps> = ({
             <div className="mb-3 border-b border-slate-200 pb-2.5">
               <div className="flex items-end justify-between gap-4">
                 <div>
-                  <p className={sectionLabelClass}>Section 4</p>
-                  <h2 className={sectionHeadingClass}>Top Device Risk Report</h2>
-                  <p className={sectionDescClass}>
+                  <h1 className={sectionHeadingClass}>Top Device Risk Report</h1>
+                  <p className={`${sectionDescClass} text-base md:text-[12.5px] leading-relaxed`}>
                     แสดงรายการอุปกรณ์ที่มีความเสี่ยงสูงจากผลการประเมินล่าสุด
                     โดยเรียงลำดับตามค่า Risk Score
                     เพื่อช่วยให้ติดตามอุปกรณ์ที่ควรได้รับการจัดการก่อน
-                    ในรูปแบบที่เหมาะกับการอ่านบนรายงาน PDF
                   </p>
                 </div>
 
@@ -545,12 +536,12 @@ const CaptureTest: React.FC<CaptureTestProps> = ({
             </div>
 
             <TopDeviceRiskReport
-              onReady={() => {}}
+              onReady={() => { }}
               selectedTaskIDs={effectiveTaskIDs}
               pageIndex={descriptor.pageIndex}
               pageSize={descriptor.pageSize}
               showOuterHeader={true}
-              onDataCountChange={() => {}}
+              onDataCountChange={() => { }}
               prefetchedDevices={prefetchedDevices}
               prefetchedLoading={prefetchLoading}
             />
@@ -576,11 +567,10 @@ const CaptureTest: React.FC<CaptureTestProps> = ({
         <main className="px-8 pt-7 pb-24">
           <section className="mt-0">
             <div className="mb-3 border-b border-slate-200 pb-2.5">
-              <p className={sectionLabelClass}>Section 5</p>
-              <h2 className={sectionHeadingClass}>
+              <h1 className={sectionHeadingClass}>
                 Top 10 Risk Score Comparison
-              </h2>
-              <p className={sectionDescClass}>
+              </h1>
+              <p className={`${sectionDescClass} text-base md:text-[12.5px] leading-relaxed`} >
                 เปรียบเทียบค่า Latest Risk และ Previous Risk ของแต่ละเป้าหมาย
                 เพื่อให้เห็นแนวโน้มความเสี่ยงล่าสุด
               </p>
@@ -594,14 +584,12 @@ const CaptureTest: React.FC<CaptureTestProps> = ({
 
           <section className="mt-5">
             <div className="mb-3 border-b border-slate-200 pb-2.5">
-              <p className={sectionLabelClass}>Section 6</p>
               <h2 className={sectionHeadingClass}>
                 Monthly Risk Score Overview
               </h2>
-              <p className={sectionDescClass}>
-                This section presents mock monthly vulnerability counts and risk
-                scores for the current year, together with a compact summary
-                table for report review.
+              <p className={`${sectionDescClass} text-base md:text-[12.5px] leading-relaxed`}>
+                แสดงจำนวนช่องโหว่และค่า Risk Score รายเดือนของปีปัจจุบัน
+                พร้อมตารางสรุปสำหรับใช้ตรวจสอบรายงาน
               </p>
             </div>
 
@@ -629,11 +617,10 @@ const CaptureTest: React.FC<CaptureTestProps> = ({
         <main className="px-8 pt-7 pb-24">
           <section className="mt-0">
             <div className="mb-3 border-b border-slate-200 pb-2.5">
-              <p className={sectionLabelClass}>Section 7</p>
-              <h2 className={sectionHeadingClass}>
+              <h1 className={sectionHeadingClass}>
                 Final Conclusion and Executive Summary
-              </h2>
-              <p className={sectionDescClass}>
+              </h1>
+              <p className={`${sectionDescClass} text-base md:text-[12.5px] leading-relaxed`}>
                 สรุปภาพรวมของรายงานทั้งหมดในหน้าเดียว
                 โดยรวบรวมตัวเลขสำคัญ การกระจายความรุนแรง
                 ความเสี่ยงของเป้าหมายหลัก และข้อสังเกตสำหรับการตัดสินใจเชิงปฏิบัติการ

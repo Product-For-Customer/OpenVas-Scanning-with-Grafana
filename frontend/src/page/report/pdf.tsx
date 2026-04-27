@@ -22,8 +22,6 @@ import {
 } from "../../services/report";
 import type { DeviceRiskForReportDTO } from "../../services/report";
 
-const sectionLabelClass =
-  "text-[8.5px] font-semibold uppercase tracking-normal text-slate-500";
 const sectionHeadingClass =
   "mt-1 text-[16px] font-bold leading-[1.2] text-slate-900";
 const sectionDescClass =
@@ -34,7 +32,7 @@ const PAGE_HEIGHT = 1620;
 
 const pageShellClass = "flex h-[1620px] flex-col bg-white text-slate-900";
 
-const noop = () => {};
+const noop = () => { };
 
 const HIGHLIGHTS_PAGE_SIZE = 2;
 const DEVICE_PAGE_SIZE = 18;
@@ -63,38 +61,38 @@ type CriticalForReportDTO = {
 
 type PageDescriptor =
   | {
-      key: string;
-      type: "overview";
-      title: string;
-    }
+    key: string;
+    type: "overview";
+    title: string;
+  }
   | {
-      key: string;
-      type: "highlights";
-      title: string;
-      pageIndex: number;
-      pageSize: number;
-      pageNumberInSection: number;
-      totalPagesInSection: number;
-    }
+    key: string;
+    type: "highlights";
+    title: string;
+    pageIndex: number;
+    pageSize: number;
+    pageNumberInSection: number;
+    totalPagesInSection: number;
+  }
   | {
-      key: string;
-      type: "device-risk";
-      title: string;
-      pageIndex: number;
-      pageSize: number;
-      pageNumberInSection: number;
-      totalPagesInSection: number;
-    }
+    key: string;
+    type: "device-risk";
+    title: string;
+    pageIndex: number;
+    pageSize: number;
+    pageNumberInSection: number;
+    totalPagesInSection: number;
+  }
   | {
-      key: string;
-      type: "comparison-monthly";
-      title: string;
-    }
+    key: string;
+    type: "comparison-monthly";
+    title: string;
+  }
   | {
-      key: string;
-      type: "conclusion";
-      title: string;
-    };
+    key: string;
+    type: "conclusion";
+    title: string;
+  };
 
 type ViewportMode = "mobile" | "tablet" | "desktop";
 
@@ -329,8 +327,8 @@ const Pdf: React.FC<PdfProps> = ({
         effectiveTaskMode === "all" || effectiveTaskIDs.length === 0
           ? allDevices
           : allDevices.filter((item) =>
-              selectedTaskSet.has(String(item.task_id).trim())
-            );
+            selectedTaskSet.has(String(item.task_id).trim())
+          );
 
       setPrefetchedSummaryRows(summaryRows);
       setPrefetchedHighlights(criticalRows);
@@ -491,11 +489,10 @@ const Pdf: React.FC<PdfProps> = ({
             <main className="flex-1 px-8 pt-6 pb-8">
               <section className="mt-0">
                 <div className="mb-3 border-b border-slate-200 pb-2.5">
-                  <p className={sectionLabelClass}>Section 1</p>
-                  <h2 className={sectionHeadingClass}>Total Severity</h2>
-                  <p className={sectionDescClass}>
-                    สรุปภาพรวมผลการสแกนล่าสุด โดยแสดงตัวชี้วัดสำคัญของการประเมิน
-                    พร้อมจำนวนช่องโหว่ในแต่ละระดับความรุนแรง
+                  <h1 className={sectionHeadingClass}>Total Severity</h1>
+                  <p className={`${sectionDescClass} text-base md:text-[12.5px] leading-relaxed`}>
+                    แสดงสรุปผลการสแกนล่าสุด พร้อมจำนวนช่องโหว่ที่พบ
+                    แยกตามระดับความรุนแรง
                   </p>
                 </div>
 
@@ -509,13 +506,11 @@ const Pdf: React.FC<PdfProps> = ({
 
               <section className="mt-5">
                 <div className="mb-3 border-b border-slate-200 pb-2.5">
-                  <p className={sectionLabelClass}>Section 2</p>
-                  <h2 className={sectionHeadingClass}>
+                  <h1 className={sectionHeadingClass}>
                     Severity Distribution Overview
-                  </h2>
-                  <p className={sectionDescClass}>
-                    แสดงภาพรวมการกระจายของช่องโหว่ตามระดับความรุนแรงในรูปแบบย่อ
-                    เพื่อให้เหมาะกับการจัดวางในรายงาน PDF แบบหน้าเดียว
+                  </h1>
+                  <p className={`${sectionDescClass} text-base md:text-[12.5px] leading-relaxed`}>
+                    แสดงจำนวนช่องโหว่ในแต่ละระดับความรุนแรงในรูปแบบกราฟ
                   </p>
                 </div>
 
@@ -540,12 +535,10 @@ const Pdf: React.FC<PdfProps> = ({
                 <div className="mb-3 border-b border-slate-200 pb-2.5">
                   <div className="flex items-end justify-between gap-4">
                     <div>
-                      <p className={sectionLabelClass}>Section 3</p>
-                      <h2 className={sectionHeadingClass}>Critical Highlights</h2>
-                      <p className={sectionDescClass}>
-                        สรุปประเด็นสำคัญของช่องโหว่ระดับวิกฤตที่ควรได้รับการติดตามก่อน
-                        โดยแสดงชื่อช่องโหว่ , ผลกระทบ , รายละเอียด
-                        และข้อมูลเชิงลึกรวมถึงวิธีการแก้ไขเพื่อใช้ประกอบการตัดสินใจ
+                      <h1 className={sectionHeadingClass}>Critical Highlights</h1>
+                      <p className={`${sectionDescClass} text-base md:text-[12.5px] leading-relaxed`}>
+                        สรุปช่องโหว่ระดับวิกฤตที่ควรติดตามก่อน
+                        พร้อมผลกระทบ รายละเอียด และแนวทางแก้ไข
                       </p>
                     </div>
 
@@ -583,15 +576,12 @@ const Pdf: React.FC<PdfProps> = ({
                 <div className="mb-3 border-b border-slate-200 pb-2.5">
                   <div className="flex items-end justify-between gap-4">
                     <div>
-                      <p className={sectionLabelClass}>Section 4</p>
-                      <h2 className={sectionHeadingClass}>
+                      <h1 className={sectionHeadingClass}>
                         Top Device Risk Report
-                      </h2>
-                      <p className={sectionDescClass}>
+                      </h1>
+                      <p className={`${sectionDescClass} text-base md:text-[12.5px] leading-relaxed`}>
                         แสดงรายการอุปกรณ์ที่มีความเสี่ยงสูงจากผลการประเมินล่าสุด
-                        โดยเรียงลำดับตามค่า Risk Score
-                        เพื่อช่วยให้ติดตามอุปกรณ์ที่ควรได้รับการจัดการก่อน
-                        ในรูปแบบที่เหมาะกับการอ่านบนรายงาน PDF
+                        โดยเรียงตามค่า Risk Score เพื่อช่วยติดตามอุปกรณ์ที่ควรจัดการก่อน
                       </p>
                     </div>
 
@@ -633,9 +623,8 @@ const Pdf: React.FC<PdfProps> = ({
                 }}
               >
                 <div className="mb-3 border-b border-slate-200 pb-2.5">
-                  <p className={sectionLabelClass}>Section 5</p>
-                  <h2 className={sectionHeadingClass}>Top 10 Risk Score Comparison</h2>
-                  <p className={sectionDescClass}>
+                  <h1 className={sectionHeadingClass}>Top 10 Risk Score Comparison</h1>
+                  <p className={`${sectionDescClass} text-base md:text-[12.5px] leading-relaxed`} >
                     เปรียบเทียบค่า Latest Risk และ Previous Risk ของแต่ละเป้าหมาย
                     เพื่อให้เห็นแนวโน้มความเสี่ยงล่าสุด
                   </p>
@@ -655,14 +644,12 @@ const Pdf: React.FC<PdfProps> = ({
                 }}
               >
                 <div className="mb-3 border-b border-slate-200 pb-2.5">
-                  <p className={sectionLabelClass}>Section 6</p>
-                  <h2 className={sectionHeadingClass}>
+                  <h1 className={sectionHeadingClass}>
                     Monthly Risk Score Overview
-                  </h2>
-                  <p className={sectionDescClass}>
-                    This section presents mock monthly vulnerability counts and
-                    risk scores for the current year, together with a compact
-                    summary table for report review.
+                  </h1>
+                  <p className={`${sectionDescClass} text-base md:text-[12.5px] leading-relaxed`}>
+                    แสดงจำนวนช่องโหว่และค่า Risk Score รายเดือนของปี
+                    พร้อมตารางสรุปสำหรับใช้ตรวจสอบรายงาน
                   </p>
                 </div>
 
@@ -689,11 +676,10 @@ const Pdf: React.FC<PdfProps> = ({
                 }}
               >
                 <div className="mb-3 border-b border-slate-200 pb-2.5">
-                  <p className={sectionLabelClass}>Section 7</p>
-                  <h2 className={sectionHeadingClass}>
+                  <h1 className={sectionHeadingClass}>
                     Final Conclusion and Executive Summary
-                  </h2>
-                  <p className={sectionDescClass}>
+                  </h1>
+                  <p className={`${sectionDescClass} text-base md:text-[12.5px] leading-relaxed`}>
                     สรุปภาพรวมของรายงานทั้งหมดในหน้าเดียว
                     โดยรวบรวมตัวเลขสำคัญ การกระจายความรุนแรง
                     ความเสี่ยงของเป้าหมายหลัก และข้อสังเกตสำหรับการตัดสินใจเชิงปฏิบัติการ
@@ -847,8 +833,8 @@ const Pdf: React.FC<PdfProps> = ({
                               prefetchLoading
                                 ? "cursor-not-allowed text-slate-400 dark:text-white/30"
                                 : active
-                                ? "bg-slate-900 text-white dark:bg-cyan-400 dark:text-slate-950"
-                                : "text-slate-700 hover:bg-slate-50 dark:text-white/78 dark:hover:bg-[#162238]",
+                                  ? "bg-slate-900 text-white dark:bg-cyan-400 dark:text-slate-950"
+                                  : "text-slate-700 hover:bg-slate-50 dark:text-white/78 dark:hover:bg-[#162238]",
                             ].join(" ")}
                             title={descriptor?.title ?? `Page ${page}`}
                           >
@@ -904,8 +890,8 @@ const Pdf: React.FC<PdfProps> = ({
               isMobile
                 ? "overflow-x-auto overflow-y-hidden px-1.5 py-2"
                 : isTablet
-                ? "overflow-y-auto overflow-x-hidden px-2 py-3 sm:px-3 sm:py-4"
-                : "overflow-hidden p-4",
+                  ? "overflow-y-auto overflow-x-hidden px-2 py-3 sm:px-3 sm:py-4"
+                  : "overflow-hidden p-4",
             ].join(" ")}
           >
             <div

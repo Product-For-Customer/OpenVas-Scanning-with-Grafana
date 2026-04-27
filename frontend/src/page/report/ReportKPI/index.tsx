@@ -289,15 +289,15 @@ const ReportKPI: React.FC<ReportKPIProps> = ({
       <div className="border-b border-slate-300 px-5 py-3.5">
         <div className="flex items-end justify-between gap-4">
           <div>
-            <p className="text-[9px] font-semibold uppercase tracking-normal text-slate-500">
+            <p className="text-[10px] font-semibold uppercase tracking-normal text-slate-500">
               Security Risk Summary
             </p>
-            <h3 className="mt-1 text-[15px] font-bold leading-tight text-slate-900">
+            <h3 className="mt-1 text-[16px] font-bold leading-tight text-slate-900">
               Vulnerability Severity Overview
             </h3>
           </div>
 
-          <div className="text-right text-[9.5px] leading-[1.45] text-slate-500">
+          <div className="text-right text-[10.5px] leading-[1.45] text-slate-500">
             {effectiveTaskMode === "all"
               ? "Consolidated findings by severity level"
               : `Filtered by ${summary.taskCount.toLocaleString()} selected task(s)`}
@@ -333,7 +333,7 @@ const ReportKPI: React.FC<ReportKPIProps> = ({
                   <div className="min-w-0">
                     <p
                       className={[
-                        "truncate text-[8px] font-semibold uppercase tracking-[0.12em]",
+                        "truncate text-[9px] font-semibold uppercase tracking-[0.12em]",
                         item.labelClass,
                       ].join(" ")}
                     >
@@ -344,7 +344,7 @@ const ReportKPI: React.FC<ReportKPIProps> = ({
 
                 <span
                   className={[
-                    "inline-flex shrink-0 items-center border px-1.5 py-0.5 text-[7px] font-bold uppercase tracking-normal",
+                    "inline-flex shrink-0 items-center border px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-normal",
                     levelBadgeClassMap[item.level],
                   ].join(" ")}
                 >
@@ -357,7 +357,7 @@ const ReportKPI: React.FC<ReportKPIProps> = ({
                   {item.value}
                 </p>
 
-                <p className="mt-2 text-[9.5px] leading-normal text-slate-600">
+                <p className="mt-2 text-[10.5px] leading-normal text-slate-600">
                   {item.hint}
                 </p>
               </div>
