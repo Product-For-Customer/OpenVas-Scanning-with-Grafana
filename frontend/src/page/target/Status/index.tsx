@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
+  FiArrowUpRight,
   FiCheckCircle,
   FiPlayCircle,
   FiPauseCircle,
@@ -39,6 +41,8 @@ const normalizeStatus = (s: string): StatusKey => {
 };
 
 const StatusTarget: React.FC = () => {
+  const navigate = useNavigate();
+
   const [rows, setRows] = useState<TaskStatusDTO[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -137,6 +141,7 @@ const StatusTarget: React.FC = () => {
       borderLight: string;
       borderDark: string;
       glow: string;
+      focus: string;
     }
   > = useMemo(
     () => ({
@@ -155,6 +160,7 @@ const StatusTarget: React.FC = () => {
         borderLight: "border-blue-100/80",
         borderDark: "dark:border-blue-400/10",
         glow: "shadow-[0_10px_26px_-20px_rgba(59,130,246,0.42)]",
+        focus: "focus-visible:ring-blue-400/35",
       },
       Running: {
         accent: "#10b981",
@@ -171,6 +177,7 @@ const StatusTarget: React.FC = () => {
         borderLight: "border-emerald-100/80",
         borderDark: "dark:border-emerald-400/10",
         glow: "shadow-[0_10px_26px_-20px_rgba(16,185,129,0.40)]",
+        focus: "focus-visible:ring-emerald-400/35",
       },
       New: {
         accent: "#f59e0b",
@@ -187,6 +194,7 @@ const StatusTarget: React.FC = () => {
         borderLight: "border-amber-100/80",
         borderDark: "dark:border-amber-400/10",
         glow: "shadow-[0_10px_26px_-20px_rgba(245,158,11,0.34)]",
+        focus: "focus-visible:ring-amber-400/35",
       },
       Stopped: {
         accent: "#f43f5e",
@@ -203,6 +211,7 @@ const StatusTarget: React.FC = () => {
         borderLight: "border-rose-100/80",
         borderDark: "dark:border-rose-400/10",
         glow: "shadow-[0_10px_26px_-20px_rgba(244,63,94,0.36)]",
+        focus: "focus-visible:ring-rose-400/35",
       },
     }),
     []
@@ -265,6 +274,30 @@ const StatusTarget: React.FC = () => {
     });
   }, []);
 
+  const handleStatusClick = (status: StatusKey) => {
+    if (loading) return;
+
+    const selectedRows = rows.filter(
+      (item) => normalizeStatus(item.status) === status
+    );
+
+    navigate(
+      {
+        pathname: "/admin/status-target-data",
+        search: `?status=${encodeURIComponent(status)}`,
+      },
+      {
+        state: {
+          status,
+          rows: selectedRows,
+          allRows: rows,
+          totalTasks: rows.length,
+          generatedAt: new Date().toISOString(),
+        },
+      }
+    );
+  };
+
   return (
     <section className="w-full">
       <div
@@ -284,7 +317,7 @@ const StatusTarget: React.FC = () => {
             </h2>
 
             <p className="mt-1.5 text-[11px] text-white/70 sm:text-[12px]">
-              OpenVAS task summary
+              Click a status card to view matching target details
             </p>
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -321,9 +354,23 @@ const StatusTarget: React.FC = () => {
             return (
               <div
                 key={s.id}
+                role="button"
+                tabIndex={0}
+                title={loading ? "Loading..." : `View ${s.title} targets`}
+                aria-label={`View ${s.title} targets`}
+                onClick={() => handleStatusClick(s.title)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    handleStatusClick(s.title);
+                  }
+                }}
                 className={[
-                  "relative overflow-hidden rounded-[22px] border p-3 transition-all duration-300 sm:p-3.5",
+                  "group relative overflow-hidden rounded-[22px] border p-3 transition-all duration-300 sm:p-3.5",
+                  "focus-visible:outline-none focus-visible:ring-4",
                   "hover:-translate-y-0.5 hover:shadow-lg",
+                  loading ? "cursor-wait" : "cursor-pointer",
+                  theme.focus,
                   theme.panelLight,
                   theme.panelDark,
                   theme.borderLight,
@@ -346,9 +393,16 @@ const StatusTarget: React.FC = () => {
                 <div className="relative">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-[12px] font-semibold text-slate-900 dark:text-white/90">
-                        {s.title}
-                      </p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-[12px] font-semibold text-slate-900 dark:text-white/90">
+                          {s.title}
+                        </p>
+
+                        {!loading && (
+                          <FiArrowUpRight className="text-[12px] text-slate-400 opacity-70 transition-all duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:opacity-100 dark:text-white/45" />
+                        )}
+                      </div>
+
                       <p className="mt-0.5 text-[10.5px] text-slate-600 dark:text-white/55">
                         {s.subtitle}
                       </p>
@@ -356,7 +410,7 @@ const StatusTarget: React.FC = () => {
 
                     <div
                       className={[
-                        "flex h-9 w-9 shrink-0 items-center justify-center rounded-[14px] text-[16px] shadow-sm",
+                        "flex h-9 w-9 shrink-0 items-center justify-center rounded-[14px] text-[16px] shadow-sm transition-transform duration-300 group-hover:scale-105",
                         theme.iconWrap,
                         theme.iconColor,
                       ].join(" ")}
@@ -397,6 +451,14 @@ const StatusTarget: React.FC = () => {
                         style={{ width: `${percent}%` }}
                       />
                     </div>
+                  </div>
+
+                  <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-2.5 dark:border-white/10">
+                    <span className="text-[10px] font-medium text-slate-500 dark:text-white/45">
+                      Click to view targets
+                    </span>
+
+                    <FiArrowUpRight className="text-[12px] text-slate-400 transition-all duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-slate-600 dark:text-white/40 dark:group-hover:text-white/70" />
                   </div>
                 </div>
               </div>

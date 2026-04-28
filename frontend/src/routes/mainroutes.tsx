@@ -7,6 +7,7 @@ import { useAuth } from "../contexts/AuthContext";
 const Dashboard = Loadable(lazy(() => import("../page/dashboard/index")));
 const Account = Loadable(lazy(() => import("../page/Account/index")));
 const Target = Loadable(lazy(() => import("../page/target/index")));
+const StatusTargetData = Loadable(lazy(() => import("../page/target/Status/data/index")));
 const LineNotification = Loadable(lazy(() => import("../page/line/index")));
 const User = Loadable(lazy(() => import("../page/user/index")));
 const MainLayout = Loadable(lazy(() => import("../component/admin/MainLayout")));
@@ -53,6 +54,7 @@ const AdminRoutes = (): RouteObject[] => [
       { path: "report", element: <Report /> },
       { path: "diagrams", element: <Diagram /> },
       { path: "diagram-node", element: <DiagramNode /> },
+      { path: "status-target-data", element: <StatusTargetData /> },
     ],
   },
   { path: "logo-animation", element: <LogoAnimation/> },
@@ -73,6 +75,7 @@ const UserRoutes = (): RouteObject[] => [
       { path: "dashboard", element: <Dashboard /> },
       { path: "profile", element: <Account /> },
       { path: "target", element: <Target /> },
+      { path: "status-target-data", element: <StatusTargetData /> },
       { path: "vulnerability", element: <Vulnerability /> },
       { path: "vulnerability-by-device", element: <VulnerabilityByDevice /> },
       { path: "vulnerability-detail", element: <VulnerabilityDetail /> },

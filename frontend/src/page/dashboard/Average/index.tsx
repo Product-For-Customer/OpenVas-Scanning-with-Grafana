@@ -22,6 +22,7 @@ import {
   FiSearch,
   FiX,
   FiArrowLeft,
+  FiCalendar,
 } from "react-icons/fi";
 import {
   ListTargetDiffer,
@@ -29,13 +30,23 @@ import {
   type TargetDifferDTO,
 } from "../../../services";
 
-type SortType = "Latest Updated" | "Highest Latest Risk" | "Biggest Change";
+type SortType = "Latest Updated" | "Highest Latest Risk";
+
+type ViewMode = "By Page" | "Summary";
+
+type RangeKey =
+  | "Today"
+  | "This Week"
+  | "This Month"
+  | "This Year"
+  | "Custom Range";
 
 type ChartRow = {
   host: string;
   task_name: string;
   asset_label: string;
   axis_key: string;
+  date: string;
   latest_task_id: string;
 
   latest_risk_score: number;
@@ -86,10 +97,23 @@ type DetailRow = {
   high: number;
 };
 
-const SORT_OPTIONS: SortType[] = [
-  "Latest Updated",
-  "Highest Latest Risk",
-  "Biggest Change",
+type TooltipPositionProps = {
+  coordinate?: { x?: number; y?: number };
+  viewBox?: { x?: number; y?: number; width?: number; height?: number };
+  tooltipWidth?: number;
+  tooltipHeight?: number;
+};
+
+const SORT_OPTIONS: SortType[] = ["Latest Updated", "Highest Latest Risk"];
+
+const VIEW_MODE_OPTIONS: ViewMode[] = ["By Page", "Summary"];
+
+const RANGE_OPTIONS: RangeKey[] = [
+  "Today",
+  "This Week",
+  "This Month",
+  "This Year",
+  "Custom Range",
 ];
 
 const COLORS = {
@@ -110,7 +134,43 @@ const MOBILE_BREAKPOINT = 640;
 const IPAD_BREAKPOINT = 1280;
 const LARGE_DESKTOP_BREAKPOINT = 1680;
 
+const pad2 = (n: number) => String(n).padStart(2, "0");
+
 const formatRisk = (value: number) => Number(value || 0).toFixed(2);
+
+const formatDateToYMD = (date: Date) => {
+  const y = date.getFullYear();
+  const m = pad2(date.getMonth() + 1);
+  const d = pad2(date.getDate());
+  return `${y}-${m}-${d}`;
+};
+
+const formatUnixToYMD = (unix?: number | null) => {
+  if (!unix) return "";
+  return formatDateToYMD(new Date(unix * 1000));
+};
+
+const getStartOfWeek = (date: Date) => {
+  const copied = new Date(date);
+  const day = copied.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+
+  copied.setDate(copied.getDate() + diff);
+  copied.setHours(0, 0, 0, 0);
+
+  return copied;
+};
+
+const addDays = (date: Date, days: number) => {
+  const copied = new Date(date);
+  copied.setDate(copied.getDate() + days);
+  return copied;
+};
+
+const isDateBetween = (targetYMD: string, startYMD: string, endYMD: string) => {
+  if (!targetYMD || !startYMD || !endYMD) return false;
+  return targetYMD >= startYMD && targetYMD <= endYMD;
+};
 
 const shortenTaskName = (taskName: string) => {
   if (!taskName) return "-";
@@ -120,7 +180,9 @@ const shortenTaskName = (taskName: string) => {
 
 const formatUnixThai = (unix?: number | null) => {
   if (!unix) return "-";
+
   const date = new Date(unix * 1000);
+
   return new Intl.DateTimeFormat("th-TH", {
     year: "numeric",
     month: "short",
@@ -133,6 +195,77 @@ const formatUnixThai = (unix?: number | null) => {
 const isDarkMode = () => {
   if (typeof document === "undefined") return false;
   return document.documentElement.classList.contains("dark");
+};
+
+const getSafeTooltipTransform = ({
+  coordinate,
+  viewBox,
+  tooltipWidth = 320,
+  tooltipHeight = 292,
+}: TooltipPositionProps) => {
+  const gap = 14;
+
+  const currentX = Number(coordinate?.x ?? 0);
+  const currentY = Number(coordinate?.y ?? 0);
+
+  const chartLeft = Number(viewBox?.x ?? 0);
+  const chartTop = Number(viewBox?.y ?? 0);
+  const chartWidth = Number(viewBox?.width ?? 0);
+  const chartHeight = Number(viewBox?.height ?? 0);
+
+  const chartRight = chartLeft + chartWidth;
+  const chartBottom = chartTop + chartHeight;
+
+  const wouldOverflowRight = currentX + tooltipWidth + gap > chartRight;
+  const wouldOverflowLeft = currentX - tooltipWidth - gap < chartLeft;
+  const wouldOverflowTop = currentY - tooltipHeight - gap < chartTop;
+  const wouldOverflowBottom = currentY + tooltipHeight + gap > chartBottom;
+
+  let xTransform = `${gap}px`;
+  let yTransform = `calc(-100% - ${gap}px)`;
+
+  if (wouldOverflowRight && !wouldOverflowLeft) {
+    xTransform = `calc(-100% - ${gap}px)`;
+  }
+
+  if (wouldOverflowTop) {
+    yTransform = `${gap}px`;
+  } else if (wouldOverflowBottom) {
+    yTransform = `calc(-100% - ${gap}px)`;
+  }
+
+  return `translate(${xTransform}, ${yTransform})`;
+};
+
+const getSummaryChartWidth = ({
+  screenWidth,
+  chartDataLength,
+  summaryMode,
+}: {
+  screenWidth: number;
+  chartDataLength: number;
+  summaryMode: boolean;
+}) => {
+  if (!summaryMode) return "100%";
+
+  const safeWidth = Number.isFinite(screenWidth) ? screenWidth : 1440;
+  const total = Math.max(1, chartDataLength);
+
+  const perTargetWidth =
+    safeWidth < MOBILE_BREAKPOINT
+      ? 96
+      : safeWidth < IPAD_BREAKPOINT
+        ? 112
+        : safeWidth < LARGE_DESKTOP_BREAKPOINT
+          ? 128
+          : 140;
+
+  const minVisibleWidth =
+    safeWidth < MOBILE_BREAKPOINT
+      ? Math.max(680, safeWidth - 48)
+      : Math.max(920, safeWidth - 120);
+
+  return Math.max(minVisibleWidth, total * perTargetWidth);
 };
 
 const toDate = (value: unknown): Date | null => {
@@ -159,6 +292,7 @@ const toDate = (value: unknown): Date | null => {
 
   if (/^\d+$/.test(str)) {
     const num = Number(str);
+
     if (!Number.isFinite(num)) return null;
 
     if (num < 1e12) {
@@ -176,7 +310,9 @@ const toDate = (value: unknown): Date | null => {
 
 const formatDetectedDateLabel = (value: unknown) => {
   const date = toDate(value);
+
   if (!date) return "-";
+
   return new Intl.DateTimeFormat("en-GB", {
     day: "2-digit",
     month: "short",
@@ -188,7 +324,9 @@ const formatDetectedDateLabel = (value: unknown) => {
 
 const formatDetectedTickDate = (value: unknown) => {
   const date = toDate(value);
+
   if (!date) return "-";
+
   return new Intl.DateTimeFormat("en-GB", {
     day: "2-digit",
     month: "short",
@@ -197,7 +335,9 @@ const formatDetectedTickDate = (value: unknown) => {
 
 const formatDetectedTimeLabel = (value: unknown) => {
   const date = toDate(value);
+
   if (!date) return "-";
+
   return new Intl.DateTimeFormat("en-GB", {
     hour: "2-digit",
     minute: "2-digit",
@@ -223,6 +363,7 @@ const rgbToHex = (r: number, g: number, b: number) => {
     Math.max(0, Math.min(255, Math.round(v)))
       .toString(16)
       .padStart(2, "0");
+
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 };
 
@@ -265,6 +406,7 @@ const getVisibleTickIndexSet = (
   maxLabels: number
 ): Set<number> => {
   if (length <= 0) return new Set<number>();
+
   if (length <= maxLabels) {
     return new Set(Array.from({ length }, (_, i) => i));
   }
@@ -282,11 +424,13 @@ const getVisibleTickIndexSet = (
 
 const buildPageNumbers = (currentPage: number, totalPages: number): number[] => {
   if (totalPages <= 1) return [1];
+
   if (totalPages <= 5) {
     return Array.from({ length: totalPages }, (_, i) => i + 1);
   }
 
   if (currentPage <= 3) return [1, 2, 3, 4, 5];
+
   if (currentPage >= totalPages - 2) {
     return [
       totalPages - 4,
@@ -306,12 +450,18 @@ const buildPageNumbers = (currentPage: number, totalPages: number): number[] => 
   ];
 };
 
-const CustomTooltip = ({
-  active,
-  payload,
-}: {
+type CustomTooltipProps = {
   active?: boolean;
   payload?: Array<{ payload: ChartRow }>;
+  coordinate?: { x?: number; y?: number };
+  viewBox?: { x?: number; y?: number; width?: number; height?: number };
+};
+
+const CustomTooltip: React.FC<CustomTooltipProps> = ({
+  active,
+  payload,
+  coordinate,
+  viewBox,
 }) => {
   if (!active || !payload || payload.length === 0) return null;
 
@@ -322,12 +472,23 @@ const CustomTooltip = ({
   const isUp = item.has_previous_record && diff > 0;
   const isDown = item.has_previous_record && diff < 0;
 
+  const tooltipTransform = getSafeTooltipTransform({
+    coordinate,
+    viewBox,
+    tooltipWidth: 320,
+    tooltipHeight: 322,
+  });
+
   return (
-    <div className="min-w-62.5 max-w-[320px] rounded-[18px] border border-gray-200/90 bg-white/96 px-3 py-2.5 shadow-[0_14px_32px_rgba(15,23,42,0.14)] backdrop-blur dark:border-white/10 dark:bg-[#0B1220]/96 dark:shadow-[0_14px_28px_rgba(0,0,0,0.32)]">
+    <div
+      style={{ transform: tooltipTransform }}
+      className="pointer-events-none min-w-62.5 max-w-[320px] rounded-[18px] border border-gray-200/90 bg-white/96 px-3 py-2.5 shadow-[0_14px_32px_rgba(15,23,42,0.14)] backdrop-blur dark:border-white/10 dark:bg-[#0B1220]/96 dark:shadow-[0_14px_28px_rgba(0,0,0,0.32)]"
+    >
       <div className="mb-2">
         <p className="wrap-break-word text-[13px] font-semibold text-[#1f2240] dark:text-white/92">
           {item.task_name || "Unknown Task"}
         </p>
+
         <p className="mt-0.5 break-all text-[11px] text-gray-500 dark:text-white/45">
           Host: {item.host || "-"}
         </p>
@@ -337,7 +498,9 @@ const CustomTooltip = ({
         <div className="flex items-center justify-between gap-3">
           <span className="text-[#8B7CFF]">Previous Risk</span>
           <span className="font-semibold text-[#1f2240] dark:text-white/92">
-            {item.has_previous_record ? formatRisk(item.previous_risk_score) : "-"}
+            {item.has_previous_record
+              ? formatRisk(item.previous_risk_score)
+              : "-"}
           </span>
         </div>
 
@@ -425,24 +588,41 @@ const CustomTooltip = ({
   );
 };
 
-const DetailTooltip = ({
-  active,
-  payload,
-}: {
+type DetailTooltipProps = {
   active?: boolean;
   payload?: Array<{ payload: DetailRow }>;
+  coordinate?: { x?: number; y?: number };
+  viewBox?: { x?: number; y?: number; width?: number; height?: number };
+};
+
+const DetailTooltip: React.FC<DetailTooltipProps> = ({
+  active,
+  payload,
+  coordinate,
+  viewBox,
 }) => {
   if (!active || !payload || payload.length === 0) return null;
 
   const item = payload[0]?.payload;
   if (!item) return null;
 
+  const tooltipTransform = getSafeTooltipTransform({
+    coordinate,
+    viewBox,
+    tooltipWidth: 340,
+    tooltipHeight: 235,
+  });
+
   return (
-    <div className="min-w-62.5 max-w-85 rounded-[18px] border border-gray-200/90 bg-white/96 px-3 py-2.5 shadow-[0_14px_32px_rgba(15,23,42,0.14)] backdrop-blur dark:border-white/10 dark:bg-[#0B1220]/96 dark:shadow-[0_14px_28px_rgba(0,0,0,0.32)]">
+    <div
+      style={{ transform: tooltipTransform }}
+      className="pointer-events-none min-w-62.5 max-w-85 rounded-[18px] border border-gray-200/90 bg-white/96 px-3 py-2.5 shadow-[0_14px_32px_rgba(15,23,42,0.14)] backdrop-blur dark:border-white/10 dark:bg-[#0B1220]/96 dark:shadow-[0_14px_28px_rgba(0,0,0,0.32)]"
+    >
       <div className="mb-2">
         <p className="wrap-break-word text-[13px] font-semibold text-[#1f2240] dark:text-white/92">
           {item.task_name || "-"}
         </p>
+
         <p className="mt-0.5 text-[11px] text-gray-500 dark:text-white/45">
           Date-Time: {item.detected_date_label || "-"}
         </p>
@@ -631,7 +811,10 @@ const CustomLegend = ({ detailMode = false }: { detailMode?: boolean }) => {
 
 const AverageEnrollment: React.FC = () => {
   const [sortBy, setSortBy] = useState<SortType>("Latest Updated");
-  const [loading, setLoading] = useState<boolean>(true); //@ts-ignore
+  const [viewMode, setViewMode] = useState<ViewMode>("Summary");
+  const [range, setRange] = useState<RangeKey>("This Year");
+
+  const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [rows, setRows] = useState<TargetDifferDTO[]>([]);
 
@@ -645,8 +828,23 @@ const AverageEnrollment: React.FC = () => {
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
+  const [viewModeOpen, setViewModeOpen] = useState(false);
+  const viewModeDropdownRef = useRef<HTMLDivElement | null>(null);
+
   const [sortOpen, setSortOpen] = useState(false);
   const sortDropdownRef = useRef<HTMLDivElement | null>(null);
+
+  const [rangeOpen, setRangeOpen] = useState(false);
+  const rangeDropdownRef = useRef<HTMLDivElement | null>(null);
+
+  const todayYMD = useMemo(() => formatDateToYMD(new Date()), []);
+  const sevenDaysAgoYMD = useMemo(
+    () => formatDateToYMD(addDays(new Date(), -6)),
+    []
+  );
+
+  const [startDate, setStartDate] = useState<string>(sevenDaysAgoYMD);
+  const [endDate, setEndDate] = useState<string>(todayYMD);
 
   const [screenWidth, setScreenWidth] = useState<number>(() => {
     if (typeof window === "undefined") return 1440;
@@ -660,6 +858,7 @@ const AverageEnrollment: React.FC = () => {
   const isMountedRef = useRef(false);
 
   const detailMode = detailTaskID !== "";
+  const summaryMode = viewMode === "Summary";
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -683,26 +882,54 @@ const AverageEnrollment: React.FC = () => {
   }, []);
 
   const isMobile = screenWidth < MOBILE_BREAKPOINT;
-  const isIPad = screenWidth >= MOBILE_BREAKPOINT && screenWidth < IPAD_BREAKPOINT;
+
+  const isIPad =
+    screenWidth >= MOBILE_BREAKPOINT && screenWidth < IPAD_BREAKPOINT;
+
   const isLargeDesktop = screenWidth >= LARGE_DESKTOP_BREAKPOINT;
 
   const overviewPageSize = useMemo(() => {
-    if (isMobile) return 5;
+    if (summaryMode) return Number.MAX_SAFE_INTEGER;
+    if (isMobile) return 3;
+    if (isIPad) return 5;
     if (isLargeDesktop) return 15;
     return 10;
-  }, [isMobile, isLargeDesktop]);
+  }, [summaryMode, isMobile, isIPad, isLargeDesktop]);
 
   const overviewMaxVisibleLabels = useMemo(() => {
+    if (summaryMode) return Number.MAX_SAFE_INTEGER;
     if (isMobile) return 3;
     if (isIPad) return 5;
     return Number.MAX_SAFE_INTEGER;
-  }, [isMobile, isIPad]);
+  }, [summaryMode, isMobile, isIPad]);
 
   const detailMaxVisibleLabels = useMemo(() => {
     if (isMobile) return 3;
     if (isIPad) return 5;
     return Number.MAX_SAFE_INTEGER;
   }, [isMobile, isIPad]);
+
+  const chartPixelWidth = useMemo(() => {
+    return getSummaryChartWidth({
+      screenWidth,
+      chartDataLength: summaryMode ? rows.length : 0,
+      summaryMode,
+    });
+  }, [screenWidth, rows.length, summaryMode]);
+
+  const customRangeError = useMemo(() => {
+    if (range !== "Custom Range") return "";
+
+    if (!startDate || !endDate) {
+      return "Please select both a start date and an end date.";
+    }
+
+    if (startDate > endDate) {
+      return "The start date cannot be later than the end date.";
+    }
+
+    return "";
+  }, [range, startDate, endDate]);
 
   const fetchData = async (mode: "initial" | "refresh" = "initial") => {
     if (isFetchingRef.current) return;
@@ -729,6 +956,7 @@ const AverageEnrollment: React.FC = () => {
         if (mode === "initial") setLoading(false);
         if (mode === "refresh") setRefreshing(false);
       }
+
       isFetchingRef.current = false;
     }
   };
@@ -799,6 +1027,7 @@ const AverageEnrollment: React.FC = () => {
   useEffect(() => {
     if (hasFetchedRef.current) return;
     hasFetchedRef.current = true;
+
     void fetchData("initial");
   }, []);
 
@@ -812,14 +1041,29 @@ const AverageEnrollment: React.FC = () => {
       }
 
       if (
+        viewModeDropdownRef.current &&
+        !viewModeDropdownRef.current.contains(e.target as Node)
+      ) {
+        setViewModeOpen(false);
+      }
+
+      if (
         sortDropdownRef.current &&
         !sortDropdownRef.current.contains(e.target as Node)
       ) {
         setSortOpen(false);
       }
+
+      if (
+        rangeDropdownRef.current &&
+        !rangeDropdownRef.current.contains(e.target as Node)
+      ) {
+        setRangeOpen(false);
+      }
     };
 
     document.addEventListener("mousedown", onClickOutside);
+
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, []);
 
@@ -858,15 +1102,17 @@ const AverageEnrollment: React.FC = () => {
         isSingleNonZero;
 
       const diffRisk = hasPreviousRecord ? latestRisk - previousRisk : 0;
+      const latestCreationTime = (item as any).latest_creation_time ?? null;
 
       return {
         host,
         task_name: taskName,
         asset_label: shortenTaskName(taskName),
         axis_key: `${shortenTaskName(taskName)}__AXIS__${host}__${index}`,
+        date: formatUnixToYMD(latestCreationTime),
         latest_task_id:
           (item as any).latest_task_id !== null &&
-            (item as any).latest_task_id !== undefined
+          (item as any).latest_task_id !== undefined
             ? String((item as any).latest_task_id)
             : "-",
 
@@ -877,7 +1123,7 @@ const AverageEnrollment: React.FC = () => {
         latest_total: Number((item as any).latest_total ?? 0),
         previous_total: hasPreviousRecord ? rawPreviousTotal : 0,
         previous_version_status: (item as any).previous_version_status || "-",
-        latest_creation_time: (item as any).latest_creation_time ?? null,
+        latest_creation_time: latestCreationTime,
         previous_creation_time: hasPreviousRecord
           ? Number(rawPreviousCreationTime)
           : null,
@@ -902,12 +1148,11 @@ const AverageEnrollment: React.FC = () => {
 
         latest_increase_label: isIncrease ? latestRisk : null,
 
-        latest_equal_or_lower_label:
-          isSingleNonZero
-            ? Math.max(previousRisk, latestRisk)
-            : isEqualOrLower
-              ? latestRisk
-              : null,
+        latest_equal_or_lower_label: isSingleNonZero
+          ? Math.max(previousRisk, latestRisk)
+          : isEqualOrLower
+            ? latestRisk
+            : null,
       };
     });
   }, [rows]);
@@ -918,7 +1163,9 @@ const AverageEnrollment: React.FC = () => {
 
     for (const row of mappedRows) {
       const key = `${row.task_name}__${row.host}`;
+
       if (seen.has(key)) continue;
+
       seen.add(key);
 
       options.push({
@@ -930,11 +1177,13 @@ const AverageEnrollment: React.FC = () => {
     options.sort((a: FilterOption, b: FilterOption) =>
       a.label.localeCompare(b.label)
     );
+
     return options;
   }, [mappedRows]);
 
   const filteredOptions = useMemo(() => {
     const keyword = searchQuery.trim().toLowerCase();
+
     if (!keyword) return filterOptions;
 
     return filterOptions.filter((opt: FilterOption) =>
@@ -942,26 +1191,75 @@ const AverageEnrollment: React.FC = () => {
     );
   }, [filterOptions, searchQuery]);
 
-  const filteredMappedRows = useMemo(() => {
+  const selectedFilteredRows = useMemo(() => {
     if (selectedKeys.length === 0) return mappedRows;
 
     const selectedSet = new Set(selectedKeys);
+
     return mappedRows.filter((row: ChartRow) =>
       selectedSet.has(`${row.task_name}__${row.host}`)
     );
   }, [mappedRows, selectedKeys]);
 
+  const rangeFilteredRows = useMemo<ChartRow[]>(() => {
+    const now = new Date();
+    const today = formatDateToYMD(now);
+
+    let filtered = [...selectedFilteredRows];
+
+    switch (range) {
+      case "Today": {
+        filtered = filtered.filter((row) => row.date === today);
+        break;
+      }
+
+      case "This Week": {
+        const start = formatDateToYMD(getStartOfWeek(now));
+        const end = formatDateToYMD(now);
+
+        filtered = filtered.filter((row) => isDateBetween(row.date, start, end));
+        break;
+      }
+
+      case "This Month": {
+        const start = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-01`;
+        const end = formatDateToYMD(now);
+
+        filtered = filtered.filter((row) => isDateBetween(row.date, start, end));
+        break;
+      }
+
+      case "This Year": {
+        const start = `${now.getFullYear()}-01-01`;
+        const end = formatDateToYMD(now);
+
+        filtered = filtered.filter((row) => isDateBetween(row.date, start, end));
+        break;
+      }
+
+      case "Custom Range": {
+        if (!startDate || !endDate || startDate > endDate) return [];
+
+        filtered = filtered.filter((row) =>
+          isDateBetween(row.date, startDate, endDate)
+        );
+        break;
+      }
+
+      default:
+        break;
+    }
+
+    return filtered;
+  }, [selectedFilteredRows, range, startDate, endDate]);
+
   const sortedChartRows = useMemo<ChartRow[]>(() => {
-    const sorted = [...filteredMappedRows];
+    const sorted = [...rangeFilteredRows];
 
     if (sortBy === "Highest Latest Risk") {
       sorted.sort(
-        (a: ChartRow, b: ChartRow) => b.latest_risk_score - a.latest_risk_score
-      );
-    } else if (sortBy === "Biggest Change") {
-      sorted.sort(
         (a: ChartRow, b: ChartRow) =>
-          Math.abs(b.diff_risk_score || 0) - Math.abs(a.diff_risk_score || 0)
+          b.latest_risk_score - a.latest_risk_score
       );
     } else {
       sorted.sort(
@@ -971,22 +1269,35 @@ const AverageEnrollment: React.FC = () => {
     }
 
     return sorted;
-  }, [filteredMappedRows, sortBy]);
+  }, [rangeFilteredRows, sortBy]);
 
   const totalPages = useMemo(() => {
+    if (summaryMode) return 1;
+
     const total = Math.ceil(sortedChartRows.length / overviewPageSize);
     return Math.max(1, total);
-  }, [sortedChartRows.length, overviewPageSize]);
+  }, [summaryMode, sortedChartRows.length, overviewPageSize]);
 
-  const paginatedChartData = useMemo<ChartRow[]>(() => {
+  const chartData = useMemo<ChartRow[]>(() => {
+    if (summaryMode) return sortedChartRows;
+
     const start = (currentPage - 1) * overviewPageSize;
     const end = start + overviewPageSize;
+
     return sortedChartRows.slice(start, end);
-  }, [sortedChartRows, currentPage, overviewPageSize]);
+  }, [summaryMode, sortedChartRows, currentPage, overviewPageSize]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [sortBy, selectedKeys, overviewPageSize]);
+  }, [
+    sortBy,
+    viewMode,
+    selectedKeys,
+    range,
+    startDate,
+    endDate,
+    overviewPageSize,
+  ]);
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -995,22 +1306,22 @@ const AverageEnrollment: React.FC = () => {
   }, [currentPage, totalPages]);
 
   const summary = useMemo(() => {
-    const totalAssets = filteredMappedRows.length;
+    const totalAssets = rangeFilteredRows.length;
 
     const avgLatestRisk =
       totalAssets > 0
-        ? filteredMappedRows.reduce(
-          (sum: number, item: ChartRow) =>
-            sum + Number(item.latest_risk_score || 0),
-          0
-        ) / totalAssets
+        ? rangeFilteredRows.reduce(
+            (sum: number, item: ChartRow) =>
+              sum + Number(item.latest_risk_score || 0),
+            0
+          ) / totalAssets
         : 0;
 
-    const increasedCount = filteredMappedRows.filter(
+    const increasedCount = rangeFilteredRows.filter(
       (item: ChartRow) => item.has_previous_record && item.diff_risk_score > 0
     ).length;
 
-    const decreasedCount = filteredMappedRows.filter(
+    const decreasedCount = rangeFilteredRows.filter(
       (item: ChartRow) => item.has_previous_record && item.diff_risk_score < 0
     ).length;
 
@@ -1020,10 +1331,11 @@ const AverageEnrollment: React.FC = () => {
       increasedCount,
       decreasedCount,
     };
-  }, [filteredMappedRows]);
+  }, [rangeFilteredRows]);
 
   const detailAvgRisk = useMemo(() => {
     if (detailRows.length === 0) return 0;
+
     return (
       detailRows.reduce(
         (sum: number, item: DetailRow) => sum + Number(item.risk_score || 0),
@@ -1033,16 +1345,14 @@ const AverageEnrollment: React.FC = () => {
   }, [detailRows]);
 
   const maxRisk = useMemo(() => {
-    if (detailMode) {
-      return 10;
-    }
+    if (detailMode) return 10;
 
-    const values = paginatedChartData.map(
-      (item: ChartRow) => item.overlay_top_value || 0
-    );
+    const values = chartData.map((item: ChartRow) => item.overlay_top_value || 0);
+
     const rawMax = Math.max(...values, 0);
+
     return Math.max(6, Math.ceil(rawMax + 1));
-  }, [paginatedChartData, detailMode]);
+  }, [chartData, detailMode]);
 
   const yTicks = useMemo(() => {
     if (detailMode) {
@@ -1057,15 +1367,13 @@ const AverageEnrollment: React.FC = () => {
     }
 
     if (ticks[ticks.length - 1] !== maxRisk) ticks.push(maxRisk);
+
     return ticks;
   }, [maxRisk, detailMode]);
 
   const overviewVisibleTickIndexSet = useMemo(() => {
-    return getVisibleTickIndexSet(
-      paginatedChartData.length,
-      overviewMaxVisibleLabels
-    );
-  }, [paginatedChartData.length, overviewMaxVisibleLabels]);
+    return getVisibleTickIndexSet(chartData.length, overviewMaxVisibleLabels);
+  }, [chartData.length, overviewMaxVisibleLabels]);
 
   const detailVisibleTickIndexSet = useMemo(() => {
     return getVisibleTickIndexSet(detailRows.length, detailMaxVisibleLabels);
@@ -1075,12 +1383,15 @@ const AverageEnrollment: React.FC = () => {
 
   const dropdownButtonLabel = useMemo(() => {
     if (selectedCount === 0) return "Filter Device";
+
     if (selectedCount === 1) {
       const found = filterOptions.find(
         (x: FilterOption) => x.key === selectedKeys[0]
       );
+
       return found?.label || "1 selected";
     }
+
     return `${selectedCount} selected`;
   }, [selectedCount, filterOptions, selectedKeys]);
 
@@ -1120,12 +1431,15 @@ const AverageEnrollment: React.FC = () => {
 
   const allVisibleSelected =
     filteredOptions.length > 0 &&
-    filteredOptions.every((opt: FilterOption) => selectedKeys.includes(opt.key));
+    filteredOptions.every((opt: FilterOption) =>
+      selectedKeys.includes(opt.key)
+    );
 
-  const sortButtonLabel = sortBy;
+  const handleOverviewBarClick = (payload?: any) => {
+    const row = (payload?.payload ?? payload) as ChartRow | undefined;
 
-  const handleOverviewBarClick = (row?: ChartRow) => {
     if (!row?.latest_task_id || row.latest_task_id === "-") return;
+
     void fetchDetailByTaskID(row.latest_task_id, row.task_name);
   };
 
@@ -1154,14 +1468,18 @@ const AverageEnrollment: React.FC = () => {
                 <div className="min-w-0">
                   <h2 className="text-[17px] font-semibold tracking-tight text-[#1f2240] dark:text-white/92 sm:text-[19px]">
                     {detailMode
-                      ? `Risk Score Timeline${detailTaskName ? ` • ${detailTaskName}` : ""
-                      }`
+                      ? `Risk Score Timeline${
+                          detailTaskName ? ` • ${detailTaskName}` : ""
+                        }`
                       : "Target Risk Comparison"}
                   </h2>
+
                   <p className="text-[11px] text-gray-500 dark:text-white/55 sm:text-[12px]">
                     {detailMode
                       ? "แสดง Risk Score ของ task ที่เลือกตาม Date-Time"
-                      : "เปรียบเทียบ Previous Risk Score กับ Latest Risk Score ของแต่ละ Targets"}
+                      : summaryMode
+                        ? "เปรียบเทียบ Previous Risk Score กับ Latest Risk Score ของแต่ละ Targets"
+                        : "เปรียบเทียบ Previous Risk Score กับ Latest Risk Score ของแต่ละ Targets"}
                   </p>
                 </div>
               </div>
@@ -1190,9 +1508,11 @@ const AverageEnrollment: React.FC = () => {
                           {selectedCount}
                         </span>
                       )}
+
                       <FiChevronDown
-                        className={`text-[14px] transition-transform ${open ? "rotate-180" : ""
-                          }`}
+                        className={`text-[14px] transition-transform ${
+                          open ? "rotate-180" : ""
+                        }`}
                       />
                     </div>
                   </button>
@@ -1202,12 +1522,14 @@ const AverageEnrollment: React.FC = () => {
                       <div className="border-b border-gray-100 p-3 dark:border-white/10">
                         <div className="relative">
                           <FiSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-gray-400 dark:text-white/35" />
+
                           <input
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Search device..."
                             className="h-10 w-full rounded-xl border border-gray-200 bg-white pl-9 pr-9 text-[12px] text-gray-700 outline-none focus:border-cyan-300 dark:border-white/10 dark:bg-white/5 dark:text-white/85"
                           />
+
                           {searchQuery && (
                             <button
                               type="button"
@@ -1282,6 +1604,66 @@ const AverageEnrollment: React.FC = () => {
                 </div>
 
                 <div
+                  className="relative min-w-full sm:min-w-40"
+                  ref={viewModeDropdownRef}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setViewModeOpen((prev) => !prev)}
+                    className={[
+                      "inline-flex min-h-9 w-full items-center justify-between gap-3 rounded-2xl px-3.5 text-left transition",
+                      "border border-gray-200/80 bg-white text-[12px] font-medium text-gray-600 hover:bg-gray-50",
+                      "dark:border-white/10 dark:bg-white/6 dark:text-white/75 dark:hover:bg-white/10",
+                    ].join(" ")}
+                  >
+                    <span className="truncate">{viewMode}</span>
+
+                    <FiChevronDown
+                      className={`text-[14px] transition-transform ${
+                        viewModeOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {viewModeOpen && (
+                    <div className="absolute right-0 z-30 mt-2 w-full overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.12)] dark:border-white/10 dark:bg-[#0B1220]">
+                      <div className="p-2">
+                        {VIEW_MODE_OPTIONS.map((option) => {
+                          const checked = viewMode === option;
+
+                          return (
+                            <button
+                              key={option}
+                              type="button"
+                              onClick={() => {
+                                setViewMode(option);
+                                setViewModeOpen(false);
+                              }}
+                              className="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-white/6"
+                            >
+                              <span className="text-[12px] font-medium text-gray-700 dark:text-white/85">
+                                {option}
+                              </span>
+
+                              <div
+                                className={[
+                                  "flex h-5 w-5 items-center justify-center rounded-md border",
+                                  checked
+                                    ? "border-cyan-400 bg-cyan-500 text-white"
+                                    : "border-gray-300 bg-white text-transparent dark:border-white/15 dark:bg-white/5",
+                                ].join(" ")}
+                              >
+                                <FiCheck className="text-[11px]" />
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div
                   className="relative min-w-full sm:min-w-55"
                   ref={sortDropdownRef}
                 >
@@ -1294,10 +1676,12 @@ const AverageEnrollment: React.FC = () => {
                       "dark:border-white/10 dark:bg-white/6 dark:text-white/75 dark:hover:bg-white/10",
                     ].join(" ")}
                   >
-                    <span className="truncate">{sortButtonLabel}</span>
+                    <span className="truncate">{sortBy}</span>
+
                     <FiChevronDown
-                      className={`text-[14px] transition-transform ${sortOpen ? "rotate-180" : ""
-                        }`}
+                      className={`text-[14px] transition-transform ${
+                        sortOpen ? "rotate-180" : ""
+                      }`}
                     />
                   </button>
 
@@ -1306,6 +1690,7 @@ const AverageEnrollment: React.FC = () => {
                       <div className="p-2">
                         {SORT_OPTIONS.map((option) => {
                           const checked = sortBy === option;
+
                           return (
                             <button
                               key={option}
@@ -1337,6 +1722,124 @@ const AverageEnrollment: React.FC = () => {
                     </div>
                   )}
                 </div>
+
+                <div
+                  className="relative min-w-full sm:min-w-45"
+                  ref={rangeDropdownRef}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setRangeOpen((prev) => !prev)}
+                    className={[
+                      "inline-flex min-h-9 w-full items-center justify-between gap-3 rounded-2xl px-3.5 text-left transition",
+                      "border border-gray-200/80 bg-white text-[12px] font-medium text-gray-600 hover:bg-gray-50",
+                      "dark:border-white/10 dark:bg-white/6 dark:text-white/75 dark:hover:bg-white/10",
+                    ].join(" ")}
+                  >
+                    <span className="inline-flex min-w-0 items-center gap-2 truncate">
+                      <FiCalendar className="shrink-0 text-[13px] text-cyan-500" />
+                      <span className="truncate">{range}</span>
+                    </span>
+
+                    <FiChevronDown
+                      className={`shrink-0 text-[14px] transition-transform ${
+                        rangeOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {rangeOpen && (
+                    <div className="absolute right-0 z-30 mt-2 w-full min-w-65 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.12)] dark:border-white/10 dark:bg-[#0B1220]">
+                      <div className="p-2">
+                        {RANGE_OPTIONS.map((option) => {
+                          const checked = range === option;
+
+                          return (
+                            <button
+                              key={option}
+                              type="button"
+                              onClick={() => {
+                                setRange(option);
+
+                                if (option !== "Custom Range") {
+                                  setRangeOpen(false);
+                                }
+                              }}
+                              className="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-white/6"
+                            >
+                              <span className="text-[12px] font-medium text-gray-700 dark:text-white/85">
+                                {option}
+                              </span>
+
+                              <div
+                                className={[
+                                  "flex h-5 w-5 items-center justify-center rounded-md border",
+                                  checked
+                                    ? "border-cyan-400 bg-cyan-500 text-white"
+                                    : "border-gray-300 bg-white text-transparent dark:border-white/15 dark:bg-white/5",
+                                ].join(" ")}
+                              >
+                                <FiCheck className="text-[11px]" />
+                              </div>
+                            </button>
+                          );
+                        })}
+
+                        {range === "Custom Range" && (
+                          <div className="mt-2 border-t border-gray-100 p-2 dark:border-white/10">
+                            <div className="grid grid-cols-1 gap-2">
+                              <label className="text-[10px] font-semibold text-gray-500 dark:text-white/45">
+                                Start Date
+                                <input
+                                  type="date"
+                                  value={startDate}
+                                  onChange={(e) => setStartDate(e.target.value)}
+                                  className="mt-1 h-8 w-full rounded-xl border border-gray-200 bg-white px-2 text-[11px] text-gray-700 outline-none focus:border-cyan-300 dark:border-white/10 dark:bg-white/5 dark:text-white/85"
+                                />
+                              </label>
+
+                              <label className="text-[10px] font-semibold text-gray-500 dark:text-white/45">
+                                End Date
+                                <input
+                                  type="date"
+                                  value={endDate}
+                                  onChange={(e) => setEndDate(e.target.value)}
+                                  className="mt-1 h-8 w-full rounded-xl border border-gray-200 bg-white px-2 text-[11px] text-gray-700 outline-none focus:border-cyan-300 dark:border-white/10 dark:bg-white/5 dark:text-white/85"
+                                />
+                              </label>
+
+                              {customRangeError && (
+                                <p className="text-[10px] font-medium text-rose-500 dark:text-rose-300">
+                                  {customRangeError}
+                                </p>
+                              )}
+
+                              <button
+                                type="button"
+                                disabled={Boolean(customRangeError)}
+                                onClick={() => setRangeOpen(false)}
+                                className={[
+                                  "h-8 rounded-xl text-[11px] font-semibold transition",
+                                  customRangeError
+                                    ? "cursor-not-allowed bg-gray-100 text-gray-400 dark:bg-white/5 dark:text-white/30"
+                                    : "bg-cyan-500 text-white hover:bg-cyan-600",
+                                ].join(" ")}
+                              >
+                                Apply
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {refreshing && (
+                  <div className="text-right text-[10px] font-medium text-cyan-600 dark:text-cyan-300">
+                    Refreshing...
+                  </div>
+                )}
               </div>
             ) : (
               <div className="flex justify-end">
@@ -1375,7 +1878,8 @@ const AverageEnrollment: React.FC = () => {
               </div>
 
               <div className="text-[20px] font-semibold text-[#1f2240] dark:text-white/92">
-                {formatRisk(detailMode ? detailAvgRisk : summary.avgLatestRisk)} / 10.00
+                {formatRisk(detailMode ? detailAvgRisk : summary.avgLatestRisk)}{" "}
+                / 10.00
               </div>
             </div>
 
@@ -1428,7 +1932,9 @@ const AverageEnrollment: React.FC = () => {
                   <XAxis
                     dataKey="axis_key"
                     tick={
-                      <DetailXAxisTick visibleIndexSet={detailVisibleTickIndexSet} />
+                      <DetailXAxisTick
+                        visibleIndexSet={detailVisibleTickIndexSet}
+                      />
                     }
                     axisLine={false}
                     tickLine={false}
@@ -1459,7 +1965,9 @@ const AverageEnrollment: React.FC = () => {
 
                   <ReferenceLine
                     y={Number(detailAvgRisk.toFixed(2))}
-                    stroke={isDarkMode() ? COLORS.avgLineDark : COLORS.avgLineLight}
+                    stroke={
+                      isDarkMode() ? COLORS.avgLineDark : COLORS.avgLineLight
+                    }
                     strokeDasharray="5 5"
                     ifOverflow="extendDomain"
                   />
@@ -1482,7 +1990,9 @@ const AverageEnrollment: React.FC = () => {
                       position="top"
                       formatter={(value: any) => formatRisk(Number(value ?? 0))}
                       style={{
-                        fill: isDarkMode() ? "rgba(255,255,255,0.86)" : "#475467",
+                        fill: isDarkMode()
+                          ? "rgba(255,255,255,0.86)"
+                          : "#475467",
                         fontSize: 10,
                         fontWeight: 700,
                       }}
@@ -1491,160 +2001,190 @@ const AverageEnrollment: React.FC = () => {
                 </BarChart>
               </ResponsiveContainer>
             )
-          ) : paginatedChartData.length === 0 ? (
+          ) : chartData.length === 0 ? (
             <div className="flex h-105 items-center justify-center text-[13px] text-gray-500 dark:text-white/55">
               No Data
             </div>
           ) : (
             <>
-              <ResponsiveContainer width="100%" height={420} minWidth={0}>
-                <BarChart
-                  data={paginatedChartData}
-                  margin={{ top: 18, right: 8, left: -12, bottom: 6 }}
-                  barCategoryGap="14%"
-                  barGap="-100%"
+              <div
+                className={[
+                  "w-full",
+                  summaryMode
+                    ? "overflow-x-auto overflow-y-hidden pb-2"
+                    : "overflow-hidden",
+                ].join(" ")}
+              >
+                <div
+                  style={{
+                    width: summaryMode ? chartPixelWidth : "100%",
+                    minWidth: summaryMode ? chartPixelWidth : "100%",
+                  }}
                 >
-                  <CartesianGrid
-                    stroke={isDarkMode() ? COLORS.gridDark : COLORS.gridLight}
-                    strokeDasharray="3 3"
-                    vertical={false}
-                  />
+                  <ResponsiveContainer width="100%" height={420} minWidth={0}>
+                    <BarChart
+                      data={chartData}
+                      margin={{ top: 18, right: 8, left: -12, bottom: 6 }}
+                      barCategoryGap="14%"
+                      barGap="-100%"
+                    >
+                      <CartesianGrid
+                        stroke={
+                          isDarkMode() ? COLORS.gridDark : COLORS.gridLight
+                        }
+                        strokeDasharray="3 3"
+                        vertical={false}
+                      />
 
-                  <XAxis
-                    dataKey="axis_key"
-                    tick={
-                      <CustomXAxisTick visibleIndexSet={overviewVisibleTickIndexSet} />
-                    }
-                    axisLine={false}
-                    tickLine={false}
-                    interval={0}
-                    height={42}
-                  />
+                      <XAxis
+                        dataKey="axis_key"
+                        tick={
+                          <CustomXAxisTick
+                            visibleIndexSet={overviewVisibleTickIndexSet}
+                          />
+                        }
+                        axisLine={false}
+                        tickLine={false}
+                        interval={0}
+                        height={42}
+                      />
 
-                  <YAxis
-                    tick={{
-                      fill: isDarkMode() ? COLORS.axisDark : COLORS.axisLight,
-                      fontSize: 11,
-                    }}
-                    axisLine={false}
-                    tickLine={false}
-                    width={38}
-                    domain={[0, maxRisk]}
-                    ticks={yTicks}
-                  />
+                      <YAxis
+                        tick={{
+                          fill: isDarkMode()
+                            ? COLORS.axisDark
+                            : COLORS.axisLight,
+                          fontSize: 11,
+                        }}
+                        axisLine={false}
+                        tickLine={false}
+                        width={38}
+                        domain={[0, maxRisk]}
+                        ticks={yTicks}
+                      />
 
-                  <Tooltip
-                    content={<CustomTooltip />}
-                    cursor={{
-                      fill: isDarkMode()
-                        ? "rgba(255,255,255,0.04)"
-                        : "rgba(148,163,184,0.08)",
-                    }}
-                  />
+                      <Tooltip
+                        content={<CustomTooltip />}
+                        cursor={{
+                          fill: isDarkMode()
+                            ? "rgba(255,255,255,0.04)"
+                            : "rgba(148,163,184,0.08)",
+                        }}
+                      />
 
-                  <ReferenceLine
-                    y={Number(summary.avgLatestRisk.toFixed(2))}
-                    stroke={isDarkMode() ? COLORS.avgLineDark : COLORS.avgLineLight}
-                    strokeDasharray="5 5"
-                    ifOverflow="extendDomain"
-                  />
+                      <ReferenceLine
+                        y={Number(summary.avgLatestRisk.toFixed(2))}
+                        stroke={
+                          isDarkMode()
+                            ? COLORS.avgLineDark
+                            : COLORS.avgLineLight
+                        }
+                        strokeDasharray="5 5"
+                        ifOverflow="extendDomain"
+                      />
 
-                  <Bar
-                    dataKey="previous_for_nonincrease"
-                    name="Previous Risk"
-                    fill={COLORS.previous}
-                    radius={[8, 8, 0, 0]}
-                    maxBarSize={34}
-                    onClick={(payload) =>
-                      handleOverviewBarClick(payload as unknown as ChartRow)
-                    }
-                    style={{ cursor: "pointer" }}
-                  >
-                    <LabelList
-                      dataKey="previous_for_nonincrease"
-                      position="top"
-                      formatter={(value: any) =>
-                        Number(value ?? 0) > 0 ? formatRisk(Number(value ?? 0)) : ""
-                      }
-                      style={{
-                        fill: isDarkMode() ? "rgba(255,255,255,0.78)" : "#667085",
-                        fontSize: 10,
-                        fontWeight: 700,
-                      }}
-                    />
-                  </Bar>
+                      <Bar
+                        dataKey="previous_for_nonincrease"
+                        name="Previous Risk"
+                        fill={COLORS.previous}
+                        radius={[8, 8, 0, 0]}
+                        maxBarSize={34}
+                        onClick={(payload) => handleOverviewBarClick(payload)}
+                        style={{ cursor: "pointer" }}
+                      >
+                        <LabelList
+                          dataKey="previous_for_nonincrease"
+                          position="top"
+                          formatter={(value: any) =>
+                            Number(value ?? 0) > 0
+                              ? formatRisk(Number(value ?? 0))
+                              : ""
+                          }
+                          style={{
+                            fill: isDarkMode()
+                              ? "rgba(255,255,255,0.78)"
+                              : "#667085",
+                            fontSize: 10,
+                            fontWeight: 700,
+                          }}
+                        />
+                      </Bar>
 
-                  <Bar
-                    dataKey="previous_for_increase"
-                    name="Previous Risk"
-                    stackId="riskUp"
-                    fill={COLORS.previous}
-                    radius={[0, 0, 0, 0]}
-                    maxBarSize={34}
-                    onClick={(payload) =>
-                      handleOverviewBarClick(payload as unknown as ChartRow)
-                    }
-                    style={{ cursor: "pointer" }}
-                  />
+                      <Bar
+                        dataKey="previous_for_increase"
+                        name="Previous Risk"
+                        stackId="riskUp"
+                        fill={COLORS.previous}
+                        radius={[0, 0, 0, 0]}
+                        maxBarSize={34}
+                        onClick={(payload) => handleOverviewBarClick(payload)}
+                        style={{ cursor: "pointer" }}
+                      />
 
-                  <Bar
-                    dataKey="latest_positive_diff"
-                    name="Latest Risk Increased"
-                    stackId="riskUp"
-                    fill={COLORS.latestUp}
-                    radius={[8, 8, 0, 0]}
-                    maxBarSize={34}
-                    onClick={(payload) =>
-                      handleOverviewBarClick(payload as unknown as ChartRow)
-                    }
-                    style={{ cursor: "pointer" }}
-                  >
-                    <LabelList
-                      dataKey="latest_increase_label"
-                      position="top"
-                      formatter={(value: any) =>
-                        value !== null && value !== undefined && Number(value) > 0
-                          ? formatRisk(Number(value))
-                          : ""
-                      }
-                      style={{
-                        fill: isDarkMode() ? "rgba(255,255,255,0.86)" : "#475467",
-                        fontSize: 10,
-                        fontWeight: 700,
-                      }}
-                    />
-                  </Bar>
+                      <Bar
+                        dataKey="latest_positive_diff"
+                        name="Latest Risk Increased"
+                        stackId="riskUp"
+                        fill={COLORS.latestUp}
+                        radius={[8, 8, 0, 0]}
+                        maxBarSize={34}
+                        onClick={(payload) => handleOverviewBarClick(payload)}
+                        style={{ cursor: "pointer" }}
+                      >
+                        <LabelList
+                          dataKey="latest_increase_label"
+                          position="top"
+                          formatter={(value: any) =>
+                            value !== null &&
+                            value !== undefined &&
+                            Number(value) > 0
+                              ? formatRisk(Number(value))
+                              : ""
+                          }
+                          style={{
+                            fill: isDarkMode()
+                              ? "rgba(255,255,255,0.86)"
+                              : "#475467",
+                            fontSize: 10,
+                            fontWeight: 700,
+                          }}
+                        />
+                      </Bar>
 
-                  <Bar
-                    dataKey="latest_overlay_equal_or_lower"
-                    name="Latest Risk"
-                    fill={COLORS.latestStable}
-                    radius={[8, 8, 0, 0]}
-                    maxBarSize={34}
-                    onClick={(payload) =>
-                      handleOverviewBarClick(payload as unknown as ChartRow)
-                    }
-                    style={{ cursor: "pointer" }}
-                  >
-                    <LabelList
-                      dataKey="latest_equal_or_lower_label"
-                      position="top"
-                      formatter={(value: any) =>
-                        value !== null && value !== undefined && Number(value) >= 0
-                          ? formatRisk(Number(value))
-                          : ""
-                      }
-                      style={{
-                        fill: isDarkMode() ? "rgba(255,255,255,0.86)" : "#475467",
-                        fontSize: 10,
-                        fontWeight: 700,
-                      }}
-                    />
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+                      <Bar
+                        dataKey="latest_overlay_equal_or_lower"
+                        name="Latest Risk"
+                        fill={COLORS.latestStable}
+                        radius={[8, 8, 0, 0]}
+                        maxBarSize={34}
+                        onClick={(payload) => handleOverviewBarClick(payload)}
+                        style={{ cursor: "pointer" }}
+                      >
+                        <LabelList
+                          dataKey="latest_equal_or_lower_label"
+                          position="top"
+                          formatter={(value: any) =>
+                            value !== null &&
+                            value !== undefined &&
+                            Number(value) >= 0
+                              ? formatRisk(Number(value))
+                              : ""
+                          }
+                          style={{
+                            fill: isDarkMode()
+                              ? "rgba(255,255,255,0.86)"
+                              : "#475467",
+                            fontSize: 10,
+                            fontWeight: 700,
+                          }}
+                        />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
 
-              {totalPages > 1 && (
+              {!summaryMode && totalPages > 1 && (
                 <div className="mt-3 flex justify-end">
                   <div className="flex flex-wrap items-center justify-end gap-1.5">
                     <button
@@ -1665,6 +2205,7 @@ const AverageEnrollment: React.FC = () => {
 
                     {pageNumbers.map((page) => {
                       const active = page === currentPage;
+
                       return (
                         <button
                           key={page}
@@ -1685,7 +2226,9 @@ const AverageEnrollment: React.FC = () => {
                     <button
                       type="button"
                       onClick={() =>
-                        setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                        setCurrentPage((prev) =>
+                          Math.min(totalPages, prev + 1)
+                        )
                       }
                       disabled={currentPage === totalPages}
                       className={[
@@ -1698,6 +2241,17 @@ const AverageEnrollment: React.FC = () => {
                       Next
                     </button>
                   </div>
+                </div>
+              )}
+
+              {summaryMode && (
+                <div className="mt-3 border-t border-gray-100 pt-3 text-[11px] text-gray-500 dark:border-white/10 dark:text-white/45">
+                  Summary mode: showing{" "}
+                  <span className="font-semibold text-gray-700 dark:text-white/75">
+                    {chartData.length}
+                  </span>{" "}
+                  targets in one chart without pagination. Scroll horizontally
+                  to view all targets clearly.
                 </div>
               )}
             </>

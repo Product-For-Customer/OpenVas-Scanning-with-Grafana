@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
+  FiActivity,
   FiSearch,
   FiChevronDown,
   FiShield,
@@ -14,6 +15,7 @@ import {
   MdMemory,
   MdSecurity,
 } from "react-icons/md";
+import { useNavigate } from "react-router-dom";
 import type { DeviceRiskDTO } from "../../../services";
 
 type SortOrder = "desc" | "asc";
@@ -46,33 +48,7 @@ interface TableTargetProps {
   loading: boolean;
 }
 
-const ROWS_PER_PAGE = 4;
-
-const clamp = (v: number, min: number, max: number) =>
-  Math.max(min, Math.min(max, v));
-
-const formatNumber = (n: number) =>
-  !Number.isFinite(n) ? "0" : n.toLocaleString();
-
-const formatRisk = (n: number) =>
-  !Number.isFinite(n) ? "0.00" : n.toFixed(2);
-
-const clampRiskToTen = (risk: number) => clamp(risk || 0, 0, 10);
-
-const getProgressPercentFromRisk = (risk: number) =>
-  (clampRiskToTen(risk) / 10) * 100;
-
-const buildTargetKey = (taskName: string, ip: string) => {
-  const safeTask = String(taskName || "-").trim() || "-";
-  const safeIp = String(ip || "-").trim() || "-";
-  return `${safeTask}__${safeIp}`;
-};
-
-const buildTargetLabel = (taskName: string, ip: string) => {
-  const safeTask = String(taskName || "-").trim() || "-";
-  const safeIp = String(ip || "-").trim() || "-";
-  return `${safeTask} - ${safeIp}`;
-};
+const ROWS_PER_PAGE = 5;
 
 const DEVICE_ICONS = [
   {
@@ -107,16 +83,55 @@ const DEVICE_ICONS = [
   },
 ];
 
+const clamp = (v: number, min: number, max: number) =>
+  Math.max(min, Math.min(max, v));
+
 const stableIconIndex = (seed: string) => {
   let h = 0;
-  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+
+  for (let i = 0; i < seed.length; i++) {
+    h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  }
+
   return h % DEVICE_ICONS.length;
+};
+
+const formatNumber = (n: number) => {
+  if (!Number.isFinite(n)) return "0";
+  return n.toLocaleString();
+};
+
+const formatRisk = (n: number) => {
+  if (!Number.isFinite(n)) return "0.00";
+  return n.toFixed(2);
+};
+
+const clampRiskToTen = (risk: number) => {
+  if (!Number.isFinite(risk)) return 0;
+  return clamp(risk, 0, 10);
+};
+
+const getProgressPercentFromRisk = (risk: number) => {
+  return (clampRiskToTen(risk) / 10) * 100;
+};
+
+const buildTargetKey = (taskName: string, ip: string) => {
+  const safeTask = String(taskName || "-").trim() || "-";
+  const safeIp = String(ip || "-").trim() || "-";
+  return `${safeTask}__${safeIp}`;
+};
+
+const buildTargetLabel = (taskName: string, ip: string) => {
+  const safeTask = String(taskName || "-").trim() || "-";
+  const safeIp = String(ip || "-").trim() || "-";
+  return `${safeTask} - ${safeIp}`;
 };
 
 const getRiskMeta = (risk: number) => {
   if (risk >= 8) {
     return {
       label: "Critical",
+      dot: "bg-red-500",
       text: "text-red-600 dark:text-red-300",
       chip:
         "bg-red-50 border-red-200 text-red-700 dark:bg-red-500/10 dark:border-red-400/20 dark:text-red-300",
@@ -127,6 +142,7 @@ const getRiskMeta = (risk: number) => {
   if (risk >= 6) {
     return {
       label: "High",
+      dot: "bg-orange-500",
       text: "text-orange-600 dark:text-orange-300",
       chip:
         "bg-orange-50 border-orange-200 text-orange-700 dark:bg-orange-500/10 dark:border-orange-400/20 dark:text-orange-300",
@@ -137,6 +153,7 @@ const getRiskMeta = (risk: number) => {
   if (risk >= 4) {
     return {
       label: "Medium",
+      dot: "bg-yellow-500",
       text: "text-yellow-700 dark:text-yellow-300",
       chip:
         "bg-yellow-50 border-yellow-200 text-yellow-700 dark:bg-yellow-500/10 dark:border-yellow-400/20 dark:text-yellow-300",
@@ -147,6 +164,7 @@ const getRiskMeta = (risk: number) => {
   if (risk > 0) {
     return {
       label: "Low",
+      dot: "bg-emerald-500",
       text: "text-emerald-700 dark:text-emerald-300",
       chip:
         "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-400/20 dark:text-emerald-300",
@@ -156,15 +174,51 @@ const getRiskMeta = (risk: number) => {
 
   return {
     label: "Info",
-    text: "text-blue-700 dark:text-blue-300",
+    dot: "bg-sky-500",
+    text: "text-sky-700 dark:text-sky-300",
     chip:
-      "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-500/10 dark:border-blue-400/20 dark:text-blue-300",
+      "bg-sky-50 border-sky-200 text-sky-700 dark:bg-sky-500/10 dark:border-sky-400/20 dark:text-sky-300",
     bar: "linear-gradient(90deg, #7dd3fc 0%, #38bdf8 100%)",
   };
 };
 
+const DangerDots: React.FC<{ value: number }> = ({ value }) => {
+  let level = 1;
+
+  if (value >= 8) level = 5;
+  else if (value >= 6) level = 4;
+  else if (value >= 4) level = 3;
+  else if (value > 0) level = 2;
+
+  const activeClass =
+    value >= 8
+      ? "bg-[#ef4444]"
+      : value >= 6
+        ? "bg-[#f97316]"
+        : value >= 4
+          ? "bg-[#eab308]"
+          : value > 0
+            ? "bg-[#22c55e]"
+            : "bg-[#38bdf8]";
+
+  return (
+    <div className="flex items-center gap-0.5">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <span
+          key={i}
+          className={[
+            "h-1.5 w-1.5 rounded-full",
+            i < level ? activeClass : "bg-gray-200 dark:bg-white/10",
+          ].join(" ")}
+        />
+      ))}
+    </div>
+  );
+};
+
 const buildPageNumbers = (currentPage: number, totalPages: number): number[] => {
   if (totalPages <= 1) return [1];
+
   if (totalPages <= 5) {
     return Array.from({ length: totalPages }, (_, i) => i + 1);
   }
@@ -191,6 +245,8 @@ const buildPageNumbers = (currentPage: number, totalPages: number): number[] => 
 };
 
 const TableTarget: React.FC<TableTargetProps> = ({ data, loading }) => {
+  const navigate = useNavigate();
+
   const [search, setSearch] = useState("");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
   const [openSort, setOpenSort] = useState(false);
@@ -220,25 +276,26 @@ const TableTarget: React.FC<TableTargetProps> = ({ data, loading }) => {
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, []);
 
-  const baseRows = useMemo(() => {
+  const baseRows = useMemo<Row[]>(() => {
     const list = Array.isArray(data) ? data : [];
 
-    const mapped: Row[] = list.map((x, idx) => {
-      const risk = Number(x?.risk_score) || 0;
-      const vuln = Number(x?.vulnerability_total) || 0;
-      const progressPercent = getProgressPercentFromRisk(risk);
-
+    return list.map((x, idx) => {
       const taskID = String(x?.task_id ?? "").trim();
-      const name = String(x?.task_name ?? "").trim() || "-";
+      const name = String(x?.task_name ?? "").trim() || "Unknown Task";
       const ip = String(x?.ip_address ?? "").trim() || "-";
+      const firmwareVersion =
+        String(x?.firmware_version ?? "").trim() || "Unknown Device";
+
+      const vulnerabilityTotal = Number(x?.vulnerability_total) || 0;
+      const riskScore = Number(x?.risk_score) || 0;
+      const progressPercent = getProgressPercentFromRisk(riskScore);
+
       const targetKey = buildTargetKey(name, ip);
       const targetLabel = buildTargetLabel(name, ip);
 
-      const fw =
-        String(x?.firmware_version ?? "Unknown Device").trim() ||
-        "Unknown Device";
-
-      const iconIndex = stableIconIndex(`${taskID}-${ip}-${name}-${fw}`);
+      const iconIndex = stableIconIndex(
+        `${taskID}-${name}-${ip}-${firmwareVersion}`
+      );
 
       return {
         id: `${targetKey}-${taskID || "task"}-${idx}`,
@@ -248,15 +305,13 @@ const TableTarget: React.FC<TableTargetProps> = ({ data, loading }) => {
         ip,
         targetKey,
         targetLabel,
-        firmwareVersion: fw,
-        vulnerabilityTotal: vuln,
+        firmwareVersion,
+        vulnerabilityTotal,
         progressPercent: clamp(progressPercent, 0, 100),
-        riskScore: risk,
+        riskScore,
         iconIndex,
       };
     });
-
-    return mapped;
   }, [data]);
 
   const targetOptions = useMemo<TargetOption[]>(() => {
@@ -289,7 +344,7 @@ const TableTarget: React.FC<TableTargetProps> = ({ data, loading }) => {
     );
   }, [targetOptions, targetQuerySearch]);
 
-  const rows: Row[] = useMemo(() => {
+  const rows = useMemo<Row[]>(() => {
     let filtered = [...baseRows];
 
     if (selectedTargets.length > 0) {
@@ -298,33 +353,45 @@ const TableTarget: React.FC<TableTargetProps> = ({ data, loading }) => {
     }
 
     const q = search.trim().toLowerCase();
+
     if (q.length > 0) {
       filtered = filtered.filter((r) => {
         return (
           r.name.toLowerCase().includes(q) ||
           r.ip.toLowerCase().includes(q) ||
           r.targetLabel.toLowerCase().includes(q) ||
-          r.firmwareVersion.toLowerCase().includes(q)
+          r.firmwareVersion.toLowerCase().includes(q) ||
+          r.riskScore.toString().includes(q) ||
+          r.vulnerabilityTotal.toString().includes(q)
         );
       });
     }
 
     filtered.sort((a, b) => {
-      const diff = b.riskScore - a.riskScore;
-      return sortOrder === "desc" ? diff : -diff;
+      if (b.riskScore !== a.riskScore) {
+        return sortOrder === "desc"
+          ? b.riskScore - a.riskScore
+          : a.riskScore - b.riskScore;
+      }
+
+      if (b.vulnerabilityTotal !== a.vulnerabilityTotal) {
+        return b.vulnerabilityTotal - a.vulnerabilityTotal;
+      }
+
+      return a.name.localeCompare(b.name);
     });
 
     return filtered.map((r, i) => ({ ...r, no: i + 1 }));
   }, [baseRows, search, sortOrder, selectedTargets]);
 
   const totalPages = useMemo(() => {
-    const total = Math.ceil(rows.length / ROWS_PER_PAGE);
-    return Math.max(1, total);
+    return Math.max(1, Math.ceil(rows.length / ROWS_PER_PAGE));
   }, [rows.length]);
 
   const paginatedRows = useMemo(() => {
     const start = (currentPage - 1) * ROWS_PER_PAGE;
     const end = start + ROWS_PER_PAGE;
+
     return rows.slice(start, end);
   }, [rows, currentPage]);
 
@@ -343,7 +410,7 @@ const TableTarget: React.FC<TableTargetProps> = ({ data, loading }) => {
   }, [currentPage, totalPages]);
 
   const stats = useMemo(() => {
-    const source = selectedTargets.length > 0 ? rows : baseRows;
+    const source = rows;
 
     const totalTargets = source.length;
     const totalVulns = source.reduce(
@@ -355,8 +422,12 @@ const TableTarget: React.FC<TableTargetProps> = ({ data, loading }) => {
       0
     );
 
-    return { totalTargets, totalVulns, highestRisk };
-  }, [baseRows, rows, selectedTargets.length]);
+    return {
+      totalTargets,
+      totalVulns,
+      highestRisk,
+    };
+  }, [rows]);
 
   const targetButtonLabel = useMemo(() => {
     if (selectedTargets.length === 0) return "Target Filter";
@@ -393,6 +464,22 @@ const TableTarget: React.FC<TableTargetProps> = ({ data, loading }) => {
     filteredTargetOptions.length > 0 &&
     filteredTargetOptions.every((opt) => selectedTargets.includes(opt.key));
 
+  const goToDevice = (row: Row) => {
+    if (!row.taskID.trim()) {
+      console.warn("Cannot navigate: task_id is empty");
+      return;
+    }
+
+    navigate("/admin/vulnerability-by-device", {
+      state: {
+        task_id: row.taskID,
+        ip_address: row.ip,
+        task_name: row.name,
+        firmware_version: row.firmwareVersion,
+      },
+    });
+  };
+
   return (
     <section
       className={[
@@ -404,6 +491,7 @@ const TableTarget: React.FC<TableTargetProps> = ({ data, loading }) => {
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -top-12 -right-8 h-28 w-28 rounded-full bg-cyan-400/10 blur-3xl" />
         <div className="absolute -bottom-12 -left-8 h-28 w-28 rounded-full bg-violet-500/10 blur-3xl" />
+
         <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]">
           <div
             className="h-full w-full"
@@ -420,8 +508,8 @@ const TableTarget: React.FC<TableTargetProps> = ({ data, loading }) => {
 
       <div className="relative z-10">
         <div className="mb-4 flex flex-col gap-3">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+            <div className="min-w-0">
               <div className="mb-2.5 flex flex-wrap items-center gap-2">
                 <div
                   className={[
@@ -458,6 +546,19 @@ const TableTarget: React.FC<TableTargetProps> = ({ data, loading }) => {
                     "dark:bg-white/5 dark:text-white/65 dark:border-white/10",
                   ].join(" ")}
                 >
+                  <FiActivity className="text-[11px] text-cyan-500" />
+                  <span className="text-[10px] font-medium">
+                    {formatNumber(stats.totalVulns)} total vulns
+                  </span>
+                </div>
+
+                <div
+                  className={[
+                    "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1",
+                    "bg-slate-50 text-slate-600 border border-slate-200/80",
+                    "dark:bg-white/5 dark:text-white/65 dark:border-white/10",
+                  ].join(" ")}
+                >
                   <span className="text-[10px] font-medium">
                     Peak risk {formatRisk(stats.highestRisk)}/10
                   </span>
@@ -469,18 +570,18 @@ const TableTarget: React.FC<TableTargetProps> = ({ data, loading }) => {
               </h2>
 
               <p className="mt-1 text-[11px] text-gray-500 dark:text-white/55 sm:text-[12px]">
-                Monitored targets, firmware details, vulnerability totals, and
-                live risk posture
+                Showing all monitored targets with paginated risk score,
+                vulnerability total, and device exposure details
               </p>
             </div>
 
-            <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
-              <div className="relative" ref={targetRef}>
+            <div className="flex w-full flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center xl:w-auto xl:justify-end">
+              <div className="relative w-full sm:w-auto" ref={targetRef}>
                 <button
                   type="button"
                   onClick={() => setOpenTargetQuery((prev) => !prev)}
                   className={[
-                    "h-9 px-3.5 rounded-[14px] inline-flex items-center justify-between gap-2 transition text-left min-w-40 sm:min-w-44",
+                    "h-9 w-full px-3.5 rounded-[14px] inline-flex items-center justify-between gap-2 transition text-left sm:min-w-44",
                     "border border-gray-200/80 bg-white text-[12px] font-medium text-[#1f2240] hover:bg-gray-50",
                     "dark:border-white/10 dark:bg-white/5 dark:text-white/80 dark:hover:bg-white/10",
                   ].join(" ")}
@@ -495,9 +596,10 @@ const TableTarget: React.FC<TableTargetProps> = ({ data, loading }) => {
                     )}
 
                     <FiChevronDown
-                      className={`text-[14px] text-gray-500 transition dark:text-white/55 ${
-                        openTargetQuery ? "rotate-180" : ""
-                      }`}
+                      className={[
+                        "text-[14px] text-gray-500 transition dark:text-white/55",
+                        openTargetQuery ? "rotate-180" : "",
+                      ].join(" ")}
                     />
                   </div>
                 </button>
@@ -509,9 +611,6 @@ const TableTarget: React.FC<TableTargetProps> = ({ data, loading }) => {
                       "border border-gray-200 bg-white shadow-xl",
                       "dark:border-white/10 dark:bg-[#0B1220] dark:shadow-[0_18px_44px_rgba(0,0,0,0.28)]",
                       "sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[min(20rem,calc(100vw-2rem))]",
-                      "md:w-[min(20rem,calc(100vw-2rem))]",
-                      "lg:w-[min(20rem,calc(100vw-2rem))]",
-                      "xl:w-[min(20rem,calc(100vw-2rem))]",
                     ].join(" ")}
                   >
                     <div className="border-b border-gray-100 p-2 dark:border-white/10">
@@ -618,7 +717,7 @@ const TableTarget: React.FC<TableTargetProps> = ({ data, loading }) => {
 
               <div
                 className={[
-                  "flex items-center gap-2 rounded-[14px] h-9 px-3 min-w-60",
+                  "flex h-9 w-full items-center gap-2 rounded-[14px] px-3 sm:w-64",
                   "border border-gray-200/80 bg-white",
                   "dark:border-white/10 dark:bg-white/5",
                 ].join(" ")}
@@ -634,12 +733,12 @@ const TableTarget: React.FC<TableTargetProps> = ({ data, loading }) => {
                 />
               </div>
 
-              <div className="relative" ref={sortRef}>
+              <div className="relative w-full sm:w-auto" ref={sortRef}>
                 <button
                   type="button"
                   onClick={() => setOpenSort((prev) => !prev)}
                   className={[
-                    "h-9 px-3.5 rounded-[14px] inline-flex items-center justify-between gap-2 transition text-left min-w-35",
+                    "h-9 w-full px-3.5 rounded-[14px] inline-flex items-center justify-between gap-2 transition text-left sm:min-w-35",
                     "border border-gray-200/80 bg-white text-[12px] font-medium text-[#1f2240] hover:bg-gray-50",
                     "dark:border-white/10 dark:bg-white/5 dark:text-white/80 dark:hover:bg-white/10",
                   ].join(" ")}
@@ -649,14 +748,15 @@ const TableTarget: React.FC<TableTargetProps> = ({ data, loading }) => {
                   </span>
 
                   <FiChevronDown
-                    className={`text-[14px] text-gray-500 transition dark:text-white/55 ${
-                      openSort ? "rotate-180" : ""
-                    }`}
+                    className={[
+                      "text-[14px] text-gray-500 transition dark:text-white/55",
+                      openSort ? "rotate-180" : "",
+                    ].join(" ")}
                   />
                 </button>
 
                 {openSort && (
-                  <div className="absolute right-0 z-30 mt-2 w-48 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl dark:border-white/10 dark:bg-[#0B1220] dark:shadow-none">
+                  <div className="absolute right-0 z-60 mt-2 w-48 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl dark:border-white/10 dark:bg-[#0B1220] dark:shadow-none">
                     <button
                       type="button"
                       onClick={() => {
@@ -716,11 +816,7 @@ const TableTarget: React.FC<TableTargetProps> = ({ data, loading }) => {
                     Vulnerability
                   </th>
 
-                  <th className="min-w-52.5 whitespace-nowrap px-4 py-3 text-left text-[11px] font-semibold text-gray-500 dark:text-white/50">
-                    Risk Progress
-                  </th>
-
-                  <th className="whitespace-nowrap px-4 py-3 text-right text-[11px] font-semibold text-gray-500 dark:text-white/50">
+                  <th className="min-w-72 whitespace-nowrap px-4 py-3 text-right text-[11px] font-semibold text-gray-500 dark:text-white/50">
                     Risk Score
                   </th>
                 </tr>
@@ -738,7 +834,8 @@ const TableTarget: React.FC<TableTargetProps> = ({ data, loading }) => {
                       </td>
 
                       <td className="px-4 py-3.5">
-                        <div className="h-3 w-28 animate-pulse rounded bg-gray-200 dark:bg-white/10" />
+                        <div className="h-3 w-32 animate-pulse rounded bg-gray-200 dark:bg-white/10" />
+                        <div className="mt-2 h-2.5 w-16 animate-pulse rounded bg-gray-200 dark:bg-white/10" />
                       </td>
 
                       <td className="px-4 py-3.5">
@@ -754,18 +851,15 @@ const TableTarget: React.FC<TableTargetProps> = ({ data, loading }) => {
                       </td>
 
                       <td className="px-4 py-3.5">
-                        <div className="h-2 w-full animate-pulse rounded bg-gray-200 dark:bg-white/10" />
-                      </td>
-
-                      <td className="px-4 py-3.5">
-                        <div className="ml-auto h-3 w-12 animate-pulse rounded bg-gray-200 dark:bg-white/10" />
+                        <div className="ml-auto h-3 w-18 animate-pulse rounded bg-gray-200 dark:bg-white/10" />
+                        <div className="mt-2 ml-auto h-2 w-48 animate-pulse rounded bg-gray-200 dark:bg-white/10" />
                       </td>
                     </tr>
                   ))
                 ) : paginatedRows.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={7}
+                      colSpan={6}
                       className="px-4 py-7 text-center text-[12px] text-gray-500 dark:text-white/55"
                     >
                       No Data
@@ -779,13 +873,31 @@ const TableTarget: React.FC<TableTargetProps> = ({ data, loading }) => {
                     return (
                       <tr
                         key={row.id}
-                        className="border-b border-gray-100 transition-colors hover:bg-gray-50/70 dark:border-white/5 dark:hover:bg-white/3"
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => goToDevice(row)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            goToDevice(row);
+                          }
+                        }}
+                        className={[
+                          "cursor-pointer select-none border-b border-gray-100 transition-colors",
+                          "hover:bg-cyan-50/45 focus:bg-cyan-50/60 focus:outline-none",
+                          "dark:border-white/5 dark:hover:bg-white/5 dark:focus:bg-white/6",
+                        ].join(" ")}
+                        title={
+                          row.taskID
+                            ? `Open vulnerabilities for task_id ${row.taskID}`
+                            : "No task_id"
+                        }
                       >
                         <td className="whitespace-nowrap px-4 py-3.5 text-[12px] text-gray-600 dark:text-white/70">
                           {row.no}
                         </td>
 
-                        <td className="min-w-52.5 px-4 py-3.5">
+                        <td className="min-w-56 px-4 py-3.5">
                           <div className="flex min-w-0 items-center gap-2.5">
                             <div
                               className={[
@@ -802,13 +914,16 @@ const TableTarget: React.FC<TableTargetProps> = ({ data, loading }) => {
                                 {row.name}
                               </div>
 
-                              <div className="mt-1">
+                              <div className="mt-1 flex flex-wrap items-center gap-1.5">
                                 <span
                                   className={[
-                                    "inline-flex items-center rounded-full px-2 py-0.5 text-[8.5px] font-semibold border",
+                                    "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[8.5px] font-semibold border",
                                     riskMeta.chip,
                                   ].join(" ")}
                                 >
+                                  <span
+                                    className={`h-1.5 w-1.5 rounded-full ${riskMeta.dot}`}
+                                  />
                                   {riskMeta.label}
                                 </span>
                               </div>
@@ -820,7 +935,7 @@ const TableTarget: React.FC<TableTargetProps> = ({ data, loading }) => {
                           {row.ip}
                         </td>
 
-                        <td className="min-w-65 px-4 py-3.5">
+                        <td className="min-w-64 px-4 py-3.5">
                           <div className="truncate text-[12px] text-gray-600 dark:text-white/65">
                             {row.firmwareVersion}
                           </div>
@@ -830,32 +945,32 @@ const TableTarget: React.FC<TableTargetProps> = ({ data, loading }) => {
                           {formatNumber(row.vulnerabilityTotal)}
                         </td>
 
-                        <td className="min-w-52.5 px-4 py-3.5">
-                          <div className="flex items-center gap-2.5">
-                            <div className="h-2 flex-1 overflow-hidden rounded-full bg-[#eef0f6] dark:bg-white/10">
-                              <div
-                                className="h-full rounded-full transition-all duration-500"
-                                style={{
-                                  width: `${Math.max(
-                                    row.progressPercent,
-                                    row.riskScore > 0 ? 3 : 0
-                                  )}%`,
-                                  background: riskMeta.bar,
-                                }}
-                              />
+                        <td className="min-w-72 px-4 py-3.5">
+                          <div className="flex flex-col items-end gap-1.5">
+                            <div className="flex items-center justify-end gap-2">
+                              <DangerDots value={row.riskScore} />
+
+                              <span
+                                className={`text-[12px] font-semibold tabular-nums ${riskMeta.text}`}
+                              >
+                                {formatRisk(row.riskScore)}
+                              </span>
                             </div>
 
-                            <span className="whitespace-nowrap text-[10px] text-gray-400 dark:text-white/40">
-                              {formatRisk(row.riskScore)}
-                            </span>
-                          </div>
-                        </td>
-
-                        <td className="whitespace-nowrap px-4 py-3.5 text-right">
-                          <div
-                            className={`text-[12px] font-semibold ${riskMeta.text}`}
-                          >
-                            {formatRisk(row.riskScore)}
+                            <div className="flex w-full max-w-64 items-center gap-2.5">
+                              <div className="h-2 flex-1 overflow-hidden rounded-full bg-[#eef0f6] dark:bg-white/10">
+                                <div
+                                  className="h-full rounded-full transition-all duration-500"
+                                  style={{
+                                    width: `${Math.max(
+                                      row.progressPercent,
+                                      row.riskScore > 0 ? 4 : 0
+                                    )}%`,
+                                    background: riskMeta.bar,
+                                  }}
+                                />
+                              </div>
+                            </div>
                           </div>
                         </td>
                       </tr>
@@ -867,59 +982,75 @@ const TableTarget: React.FC<TableTargetProps> = ({ data, loading }) => {
           </div>
         </div>
 
-        {!loading && totalPages > 1 && (
-          <div className="mt-3 flex justify-end">
-            <div className="flex flex-wrap items-center justify-end gap-1.5">
-              <button
-                type="button"
-                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-                className={[
-                  "inline-flex h-8 min-w-8 items-center justify-center rounded-xl border px-2 text-[11px] font-medium transition",
-                  currentPage === 1
-                    ? "cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400 dark:border-white/10 dark:bg-white/5 dark:text-white/25"
-                    : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-white/10 dark:bg-white/6 dark:text-white/80 dark:hover:bg-white/10",
-                ].join(" ")}
-              >
-                Prev
-              </button>
-
-              {pageNumbers.map((page) => {
-                const active = page === currentPage;
-
-                return (
-                  <button
-                    key={page}
-                    type="button"
-                    onClick={() => setCurrentPage(page)}
-                    className={[
-                      "inline-flex h-8 min-w-8 items-center justify-center rounded-xl border px-2 text-[11px] font-semibold transition",
-                      active
-                        ? "border-cyan-400 bg-cyan-500 text-white shadow-sm"
-                        : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-white/10 dark:bg-white/6 dark:text-white/80 dark:hover:bg-white/10",
-                    ].join(" ")}
-                  >
-                    {page}
-                  </button>
-                );
-              })}
-
-              <button
-                type="button"
-                onClick={() =>
-                  setCurrentPage((prev) => Math.min(totalPages, prev + 1))
-                }
-                disabled={currentPage === totalPages}
-                className={[
-                  "inline-flex h-8 min-w-8 items-center justify-center rounded-xl border px-2 text-[11px] font-medium transition",
-                  currentPage === totalPages
-                    ? "cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400 dark:border-white/10 dark:bg-white/5 dark:text-white/25"
-                    : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-white/10 dark:bg-white/6 dark:text-white/80 dark:hover:bg-white/10",
-                ].join(" ")}
-              >
-                Next
-              </button>
+        {!loading && rows.length > 0 && (
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-[10.5px] text-gray-500 dark:text-white/45">
+              Showing{" "}
+              <span className="font-semibold text-gray-700 dark:text-white/70">
+                {paginatedRows.length}
+              </span>{" "}
+              of{" "}
+              <span className="font-semibold text-gray-700 dark:text-white/70">
+                {rows.length}
+              </span>{" "}
+              targets
             </div>
+
+            {totalPages > 1 && (
+              <div className="flex flex-wrap items-center justify-start gap-1.5 sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.max(1, prev - 1))
+                  }
+                  disabled={currentPage === 1}
+                  className={[
+                    "inline-flex h-8 min-w-8 items-center justify-center rounded-xl border px-2 text-[11px] font-medium transition",
+                    currentPage === 1
+                      ? "cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400 dark:border-white/10 dark:bg-white/5 dark:text-white/25"
+                      : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-white/10 dark:bg-white/6 dark:text-white/80 dark:hover:bg-white/10",
+                  ].join(" ")}
+                >
+                  Prev
+                </button>
+
+                {pageNumbers.map((page) => {
+                  const active = page === currentPage;
+
+                  return (
+                    <button
+                      key={page}
+                      type="button"
+                      onClick={() => setCurrentPage(page)}
+                      className={[
+                        "inline-flex h-8 min-w-8 items-center justify-center rounded-xl border px-2 text-[11px] font-semibold transition",
+                        active
+                          ? "border-cyan-400 bg-cyan-500 text-white shadow-sm"
+                          : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-white/10 dark:bg-white/6 dark:text-white/80 dark:hover:bg-white/10",
+                      ].join(" ")}
+                    >
+                      {page}
+                    </button>
+                  );
+                })}
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                  }
+                  disabled={currentPage === totalPages}
+                  className={[
+                    "inline-flex h-8 min-w-8 items-center justify-center rounded-xl border px-2 text-[11px] font-medium transition",
+                    currentPage === totalPages
+                      ? "cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400 dark:border-white/10 dark:bg-white/5 dark:text-white/25"
+                      : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-white/10 dark:bg-white/6 dark:text-white/80 dark:hover:bg-white/10",
+                  ].join(" ")}
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

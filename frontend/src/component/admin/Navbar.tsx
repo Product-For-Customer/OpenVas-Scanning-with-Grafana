@@ -7,7 +7,6 @@ import { Notification, UserProfile } from ".";
 import { useStateContext } from "../../contexts/ContextProvider";
 import { useAuth } from "../../contexts/AuthContext";
 import { pathOpenVas } from "../../services/api";
-import { FiSearch } from "react-icons/fi";
 import { HiOutlineMoon, HiOutlineSun } from "react-icons/hi2";
 import greenboneIcon from "../../assets/logo-light.svg";
 import { ListUserByID, type UserResponse } from "../../services";
@@ -131,7 +130,6 @@ const Navbar: React.FC = () => {
 
   const [navbarUser, setNavbarUser] = useState<UserResponse | null>(null);
   const [profileError, setProfileError] = useState(false);
-  const [search, setSearch] = useState("");
   const [profileThumbSrc, setProfileThumbSrc] = useState("");
   const [thumbLoading, setThumbLoading] = useState(false);
 
@@ -321,31 +319,6 @@ const Navbar: React.FC = () => {
                 <AiOutlineMenu className="text-[20px]" />
               </button>
             </TooltipComponent>
-
-            <div
-              className={[
-                "hidden h-11 w-full items-center rounded-full border border-gray-200 bg-[#f6f8fc] px-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] sm:flex",
-                "max-w-60 lg:max-w-90 xl:max-w-130",
-                "dark:border-white/10 dark:bg-white/5 dark:shadow-none",
-              ].join(" ")}
-            >
-              <FiSearch className="mr-3 shrink-0 text-[17px] text-gray-400 dark:text-white/40" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search assets, hosts, tasks, vulnerabilities..."
-                className={[
-                  "flex-1 border-none bg-transparent text-[13px] outline-none",
-                  "text-gray-700 placeholder:text-gray-400",
-                  "dark:text-white/80 dark:placeholder:text-white/35",
-                ].join(" ")}
-                aria-label="Search"
-              />
-              <span className="ml-3 hidden whitespace-nowrap text-[11px] font-medium text-gray-400 dark:text-white/35 xl:inline-flex">
-                ⌘ + k
-              </span>
-            </div>
           </div>
 
           <div className="relative z-10 flex h-full shrink-0 items-center">

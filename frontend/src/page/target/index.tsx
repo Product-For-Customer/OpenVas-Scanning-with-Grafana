@@ -6,6 +6,9 @@ import TableTarget from "./TableTarget";
 import DeviceMap from "./Map";
 import { ListDeviceRisk, type DeviceRiskDTO } from "../../services";
 
+// Keep this import for later use, but do not render it for now.
+void RiskScoreTable;
+
 const Target: React.FC = () => {
   const [deviceRisks, setDeviceRisks] = useState<DeviceRiskDTO[]>([]);
   const [loadingDeviceRisks, setLoadingDeviceRisks] = useState<boolean>(true);
@@ -51,6 +54,7 @@ const Target: React.FC = () => {
         if (isMountedRef.current) {
           setLoadingDeviceRisks(false);
         }
+
         isFetchingRef.current = false;
       }
     };
@@ -68,14 +72,8 @@ const Target: React.FC = () => {
         <DeviceMap />
       </div>
 
-      <div className="mb-4 grid grid-cols-1 items-stretch gap-4 sm:mb-5 sm:gap-5 md:grid-cols-10">
-        <div className="h-full min-w-0 md:col-span-6">
-          <RiskScoreGraph />
-        </div>
-
-        <div className="h-full min-w-0 md:col-span-4">
-          <RiskScoreTable data={deviceRisks} loading={loadingDeviceRisks} />
-        </div>
+      <div className="mb-4 sm:mb-5">
+        <RiskScoreGraph />
       </div>
 
       <div className="mb-2">

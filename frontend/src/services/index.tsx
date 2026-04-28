@@ -19,31 +19,91 @@ const vulnerabilityApi = axios.create({
 
 // =======================
 // API: GET /tasks/status
+// Route Backend: authorized.GET("/tasks/status", vulnerability.ListStatus)
 // =======================
+
+export type TaskStatusValue = "Done" | "Running" | "New" | "Stopped" | string;
+
+export type TaskSeverityLevel =
+  | "Log"
+  | "Low"
+  | "Medium"
+  | "High"
+  | "Critical"
+  | string;
+
+export type TaskTrendDirection = "up" | "down" | "same" | "none" | string;
+
 export type TaskStatusDTO = {
   task_id: string;
   task_name: string;
+  target_name: string;
+  target_hosts: string;
   mac_address: string;
-  status: string;
+
+  status: TaskStatusValue;
   count: number;
+
+  reports: number;
+  last_report_at: string;
+  last_report_at_unix: number;
+
+  severity_score: number;
+  severity_level: TaskSeverityLevel;
+
+  trend_direction: TaskTrendDirection;
+  trend_delta: number;
+};
+
+const toStringSafe = (value: unknown): string => {
+  if (value === null || value === undefined) return "";
+  return String(value);
+};
+
+const toNumberSafe = (value: unknown): number => {
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : 0;
+};
+
+const normalizeTaskStatus = (item: Partial<TaskStatusDTO>): TaskStatusDTO => {
+  return {
+    task_id: toStringSafe(item.task_id),
+    task_name: toStringSafe(item.task_name),
+    target_name: toStringSafe(item.target_name),
+    target_hosts: toStringSafe(item.target_hosts),
+    mac_address: toStringSafe(item.mac_address),
+
+    status: toStringSafe(item.status),
+    count: toNumberSafe(item.count),
+
+    reports: toNumberSafe(item.reports),
+    last_report_at: toStringSafe(item.last_report_at),
+    last_report_at_unix: toNumberSafe(item.last_report_at_unix),
+
+    severity_score: toNumberSafe(item.severity_score),
+    severity_level: toStringSafe(item.severity_level),
+
+    trend_direction: toStringSafe(item.trend_direction),
+    trend_delta: toNumberSafe(item.trend_delta),
+  };
 };
 
 export const ListTaskStatus = async (): Promise<TaskStatusDTO[] | null> => {
   try {
     const response = await vulnerabilityApi.get("/tasks/status");
 
-    if (Array.isArray(response.data)) {
-      return response.data as TaskStatusDTO[];
+    const rawData = Array.isArray(response.data)
+      ? response.data
+      : Array.isArray(response.data?.data)
+        ? response.data.data
+        : null;
+
+    if (!rawData) {
+      console.error("ListTaskStatus expected array but got:", response.data);
+      return null;
     }
 
-    const data = response.data?.data ?? response.data;
-
-    if (Array.isArray(data)) {
-      return data as TaskStatusDTO[];
-    }
-
-    console.error("Expected array but got:", response.data);
-    return null;
+    return rawData.map((item : any) => normalizeTaskStatus(item));
   } catch (error) {
     console.error("ListTaskStatus error:", error);
     return null;

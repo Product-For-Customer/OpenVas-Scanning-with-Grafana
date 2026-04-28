@@ -5,12 +5,11 @@ import {
   FiBell,
   FiFileText,
   FiUsers,
-  FiSettings,
 } from "react-icons/fi";
 import { AiOutlineUser } from "react-icons/ai";
 import { RiCustomerService2Line } from "react-icons/ri";
 import type { JSX } from "react/jsx-dev-runtime";
-import { MdSpaceDashboard, MdDashboardCustomize } from "react-icons/md";
+import { MdSpaceDashboard, MdDashboardCustomize, MdAdminPanelSettings } from "react-icons/md";
 import { FaProjectDiagram } from "react-icons/fa";
 
 export type SidebarLink = {
@@ -46,7 +45,7 @@ export const getLinks = ({ isAdmin }: GetLinksParams): SidebarSection[] => {
   if (isAdmin) {
     baseLinks.push({
       title: "Management",
-      icon: <FiSettings />,
+      icon: <MdAdminPanelSettings  />,
       links: [
         { name: "line notification", icon: <FiBell /> },
         { name: "report", icon: <FiFileText /> },

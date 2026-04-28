@@ -826,7 +826,7 @@ const Index: React.FC = () => {
           {[
             { icon: <FaNetworkWired className="text-[15px]" />, label: "Network", delay: "0s" },
             { icon: <FiWifi className="text-[15px]" />, label: "Wireless", delay: "0.45s" },
-            { icon: <FiServer className="text-[15px]" />, label: "Access Type", delay: "0.9s" },
+            { icon: <FiServer className="text-[15px]" />, label: "Assets Type", delay: "0.9s" },
           ].map((item) => (
             <div
               key={item.label}
