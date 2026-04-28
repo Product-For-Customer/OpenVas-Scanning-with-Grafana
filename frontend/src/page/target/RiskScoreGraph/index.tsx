@@ -2240,15 +2240,6 @@ const RiskScoreGraph: React.FC = () => {
                   </span>
                 </div>
 
-                {summaryMode && (
-                  <div className="inline-flex items-center gap-2 rounded-full border border-violet-200/70 bg-violet-50 px-2.5 py-1 dark:border-violet-400/15 dark:bg-violet-400/10">
-                    <span className="inline-block h-2 w-2 rounded-full bg-violet-500" />
-                    <span className="text-[11px] font-medium text-violet-700 dark:text-violet-300">
-                      All Targets In One Chart
-                    </span>
-                  </div>
-                )}
-
                 {selectedCount > 0 && (
                   <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200/70 bg-emerald-50 px-2.5 py-1 dark:border-emerald-400/15 dark:bg-emerald-400/10">
                     <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
