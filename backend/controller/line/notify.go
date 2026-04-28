@@ -316,6 +316,33 @@ func sendLinePushMessage(channelToken string, to string, message string) error {
 	return nil
 }
 
+func buildAppNotificationWelcomeMessage(notification entity.AppNotification, lineMaster entity.AppLineMaster) string {
+	displayName := strings.TrimSpace(notification.Name)
+	if displayName == "" {
+		displayName = "ผู้ใช้งาน"
+	}
+
+	lineMasterName := strings.TrimSpace(lineMaster.Name)
+	if lineMasterName == "" {
+		lineMasterName = "Auto Bot"
+	}
+
+	return fmt.Sprintf(`สวัสดีคุณ %s 👋
+ผมคือ %s
+
+ขอบคุณที่เชื่อมต่อกับระบบแจ้งเตือนอัตโนมัติผ่าน LINE
+
+Auto Bot จะช่วยแจ้งสถานะการสแกน Target บนเครือข่าย และรายงานการอัปเดตของระบบอัตโนมัติให้คุณทราบ
+
+การแจ้งเตือนที่คุณจะได้รับ ได้แก่
+🔹 สถานะการเริ่มสแกน
+🔹 สถานะกำลังสแกน
+🔹 สถานะสแกนเสร็จสิ้น
+🔹 สถานะ Automation Update System
+
+เมื่อมีเหตุการณ์สำคัญ ระบบจะแจ้งเตือนให้คุณทราบทันที ✅`, displayName, lineMasterName)
+}
+
 func CreateAppNotificationByLine(c *gin.Context) {
 	var input LineWebhookRequest
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -428,7 +455,8 @@ func CreateAppNotificationByLine(c *gin.Context) {
 		return
 	}
 
-	welcomeMessage := "Welcome to Network Alerts"
+	welcomeMessage := buildAppNotificationWelcomeMessage(notification, lineMaster)
+
 	if err := sendLinePushMessage(lineMaster.Token, sendID, welcomeMessage); err != nil {
 		c.JSON(http.StatusCreated, gin.H{
 			"message":       "create app notification success, but failed to send welcome message",
@@ -440,8 +468,9 @@ func CreateAppNotificationByLine(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
-		"message":     "create app notification by line success",
-		"source_type": sourceType,
-		"data":        notification,
+		"message":         "create app notification by line success",
+		"source_type":     sourceType,
+		"welcome_message": welcomeMessage,
+		"data":            notification,
 	})
 }
