@@ -338,7 +338,7 @@ Auto Bot จะช่วยแจ้งสถานะการสแกน Targ
 🔹 สถานะการเริ่มสแกน
 🔹 สถานะกำลังสแกน
 🔹 สถานะสแกนเสร็จสิ้น
-🔹 สถานะ Automation Update System
+🔹 สถานะ Automation Update
 
 เมื่อมีเหตุการณ์สำคัญ ระบบจะแจ้งเตือนให้คุณทราบทันที ✅`, displayName, lineMasterName)
 }
