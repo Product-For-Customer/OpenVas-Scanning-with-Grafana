@@ -635,7 +635,7 @@ const Conclusion: React.FC<ConclusionProps> = ({
         pageBreakInside: "avoid",
       }}
     >
-      <div className="border-b border-slate-200 bg-linear-to-r from-white via-slate-50 to-white px-4 py-3">
+      <div className="border-b border-slate-200 bg-white px-4 py-3">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-normal text-slate-500">
