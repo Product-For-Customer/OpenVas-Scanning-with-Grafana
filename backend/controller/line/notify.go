@@ -302,8 +302,8 @@ var (
 )
 
 type TargetStatusLineRow struct {
-	TaskName  string `json:"task_name"`
-	RunStatus int    `json:"run_status"`
+	TaskName string `json:"task_name"`
+	Status   string `json:"status"`
 }
 
 type TargetRiskLineRow struct {
@@ -433,12 +433,80 @@ func resetLineState(sendID string) {
 	delete(lineStates, key)
 }
 
-func setWaitingRiskLimit(notification entity.AppNotification) {
+func expireWaitingRiskLimitIfActive(sendID string, notificationID uint, expiresAt time.Time) bool {
 	lineStateMu.Lock()
 	defer lineStateMu.Unlock()
 
+	key := strings.TrimSpace(sendID)
+	state, ok := lineStates[key]
+	if !ok {
+		return false
+	}
+
+	if state.NotificationID != notificationID {
+		return false
+	}
+
+	if !state.WaitingRiskLimit {
+		return false
+	}
+
+	if state.ExpiresAt.IsZero() {
+		return false
+	}
+
+	if state.ExpiresAt.UnixNano() != expiresAt.UnixNano() {
+		return false
+	}
+
+	now := time.Now()
+	if now.Before(state.ExpiresAt) {
+		return false
+	}
+
+	state.WaitingRiskLimit = false
+	state.InvalidCount = 0
+	state.ExpiresAt = time.Time{}
+	state.CooldownUntil = now.Add(lineRiskCooldownDuration)
+	state.UpdatedAt = now
+
+	return true
+}
+
+func startRiskLimitTimeoutTimer(notification entity.AppNotification, channelToken string, expiresAt time.Time) {
+	sendID := strings.TrimSpace(notification.SendID)
+	notificationID := notification.ID
+
+	if sendID == "" || strings.TrimSpace(channelToken) == "" {
+		return
+	}
+
+	waitDuration := time.Until(expiresAt)
+	if waitDuration <= 0 {
+		waitDuration = time.Second
+	}
+
+	go func() {
+		timer := time.NewTimer(waitDuration)
+		defer timer.Stop()
+
+		<-timer.C
+
+		shouldNotify := expireWaitingRiskLimitIfActive(sendID, notificationID, expiresAt)
+		if !shouldNotify {
+			return
+		}
+
+		_ = sendLinePushMessage(channelToken, sendID, buildRiskLimitTimeoutMessage())
+	}()
+}
+
+func setWaitingRiskLimit(notification entity.AppNotification, channelToken string) {
+	lineStateMu.Lock()
+
 	now := time.Now()
 	key := strings.TrimSpace(notification.SendID)
+	expiresAt := now.Add(lineRiskInputTimeout)
 
 	lineStates[key] = &LineConversationState{
 		NotificationID:   notification.ID,
@@ -446,9 +514,13 @@ func setWaitingRiskLimit(notification entity.AppNotification) {
 		WaitingRiskLimit: true,
 		InvalidCount:     0,
 		CooldownUntil:    time.Time{},
-		ExpiresAt:        now.Add(lineRiskInputTimeout),
+		ExpiresAt:        expiresAt,
 		UpdatedAt:        now,
 	}
+
+	lineStateMu.Unlock()
+
+	startRiskLimitTimeoutTimer(notification, channelToken, expiresAt)
 }
 
 func addInvalidRiskInput(notification entity.AppNotification) (int, bool) {
@@ -473,7 +545,6 @@ func addInvalidRiskInput(notification entity.AppNotification) (int, bool) {
 
 	state.InvalidCount++
 	state.UpdatedAt = now
-	state.ExpiresAt = now.Add(lineRiskInputTimeout)
 
 	if state.InvalidCount >= lineMaxInvalidRiskInput {
 		state.WaitingRiskLimit = false
@@ -525,11 +596,16 @@ func buildRiskLimitTimeoutMessage() string {
 		minutes = 1
 	}
 
+	cooldownMinutes := int(lineRiskCooldownDuration.Minutes())
+	if cooldownMinutes <= 0 {
+		cooldownMinutes = 1
+	}
+
 	return fmt.Sprintf(`คำขอเช็ค Target Risk Score หมดเวลาแล้วครับ
 
 ระบบได้ยกเลิกคำขอเดิมแล้ว เนื่องจากไม่มีการระบุจำนวน Target ภายใน %d นาที
 
-กรุณาส่งเลข 2 เพื่อเริ่มคำขอใหม่อีกครั้งครับ`, minutes)
+กรุณาเริ่มร้องขอใหม่อีกครั้งในอีก %d นาทีครับ`, minutes, cooldownMinutes)
 }
 
 func buildRiskInputLockedMessage() string {
@@ -565,26 +641,18 @@ func getLineSendIDAndSourceType(event LineWebhookEvent) (string, bool, string) {
 	return "", false, ""
 }
 
-func statusTextAndEmoji(runStatus int) (string, string) {
-	switch runStatus {
-	case 0:
-		return "New", "🆕"
-	case 1:
-		return "Requested", "🕒"
-	case 2:
-		return "Running", "🟢"
-	case 3:
-		return "Stop Requested", "🟠"
-	case 4:
+func statusTextAndEmoji(status string) (string, string) {
+	switch strings.ToLower(strings.TrimSpace(status)) {
+	case "done":
 		return "Done", "✅"
-	case 5:
-		return "Stop Wait", "⏳"
-	case 6:
-		return "Stop", "🛑"
-	case 7:
-		return "Interrupted", "⚠️"
+	case "running":
+		return "Running", "🟢"
+	case "new":
+		return "New", "🆕"
+	case "stopped":
+		return "Stopped", "🛑"
 	default:
-		return "Unknown", "❔"
+		return "New", "🆕"
 	}
 }
 
@@ -594,11 +662,49 @@ func buildTargetStatusMessage() string {
 	var rows []TargetStatusLineRow
 
 	query := `
+		WITH LatestReports AS (
+			SELECT DISTINCT ON (rp.task)
+				rp.task AS task_id,
+				rp.id AS report_id,
+				rp.creation_time AS last_report_at_unix
+			FROM public.reports rp
+			ORDER BY rp.task, rp.creation_time DESC, rp.id DESC
+		),
+
+		TaskBase AS (
+			SELECT
+				t.id AS task_id,
+				COALESCE(NULLIF(t.name, ''), 'Unknown Target') AS task_name,
+
+				CASE
+					WHEN lr.report_id IS NULL THEN 'New'
+
+					WHEN LOWER(run_status_name(t.run_status)) LIKE '%run%' THEN 'Running'
+
+					WHEN LOWER(run_status_name(t.run_status)) LIKE '%stop%' THEN 'Stopped'
+					WHEN LOWER(run_status_name(t.run_status)) LIKE '%interrupt%' THEN 'Stopped'
+					WHEN LOWER(run_status_name(t.run_status)) LIKE '%pause%' THEN 'Stopped'
+
+					WHEN LOWER(run_status_name(t.run_status)) LIKE '%request%' THEN 'New'
+					WHEN LOWER(run_status_name(t.run_status)) LIKE '%new%' THEN 'New'
+					WHEN LOWER(run_status_name(t.run_status)) LIKE '%queued%' THEN 'New'
+					WHEN LOWER(run_status_name(t.run_status)) LIKE '%requested%' THEN 'New'
+
+					WHEN LOWER(run_status_name(t.run_status)) LIKE '%done%' THEN 'Done'
+					WHEN LOWER(run_status_name(t.run_status)) LIKE '%finished%' THEN 'Done'
+
+					ELSE 'Done'
+				END AS status
+
+			FROM public.tasks t
+			LEFT JOIN LatestReports lr ON lr.task_id = t.id
+		)
+
 		SELECT
-			COALESCE(NULLIF(t.name, ''), 'Unknown Target') AS task_name,
-			COALESCE(t.run_status, 0) AS run_status
-		FROM public.tasks t
-		ORDER BY t.name ASC
+			task_name,
+			status
+		FROM TaskBase
+		ORDER BY task_name ASC
 	`
 
 	if err := db.Raw(query).Scan(&rows).Error; err != nil {
@@ -613,7 +719,7 @@ func buildTargetStatusMessage() string {
 	b.WriteString("สถานะโดยรวมของ Target บนระบบครับ\n\n")
 
 	for i, row := range rows {
-		statusText, emoji := statusTextAndEmoji(row.RunStatus)
+		statusText, emoji := statusTextAndEmoji(row.Status)
 
 		taskName := strings.TrimSpace(row.TaskName)
 		if taskName == "" {
@@ -747,10 +853,12 @@ func buildTargetRiskScoreMessage(limit int) string {
 			ip = "Unknown IP"
 		}
 
-		b.WriteString(fmt.Sprintf("%d. %s - %s : %.2f\n", i+1, taskName, ip, row.RiskScore))
+		b.WriteString(fmt.Sprintf("%d. %s\n", i+1, taskName))
+		b.WriteString(fmt.Sprintf("IP : %s\n", ip))
+		b.WriteString(fmt.Sprintf("Risk Score : %.2f\n\n", row.RiskScore))
 
 		if b.Len() >= lineMaxMessageLength {
-			b.WriteString("\nแสดงผลบางส่วนเท่านั้น เนื่องจากข้อมูลมีจำนวนมากครับ")
+			b.WriteString("แสดงผลบางส่วนเท่านั้น เนื่องจากข้อมูลมีจำนวนมากครับ")
 			break
 		}
 	}
@@ -764,32 +872,61 @@ func buildCriticalVulnerabilityMessage() string {
 	var rows []CriticalVulnerabilityLineRow
 
 	query := `
-		WITH latest_report_per_host_task AS (
-			SELECT DISTINCT ON (r.task, res.host)
-				r.task AS task_id,
-				COALESCE(NULLIF(t.name, ''), 'Unknown Target') AS task_name,
-				COALESCE(NULLIF(res.host, ''), 'Unknown IP') AS ip_address,
-				r.id AS report_id,
-				r.creation_time
-			FROM public.reports r
-			INNER JOIN public.tasks t ON t.id = r.task
-			INNER JOIN public.results res ON res.report = r.id
-			WHERE COALESCE(res.host, '') <> ''
-			ORDER BY r.task, res.host, r.creation_time DESC, r.id DESC
+		WITH LatestReportPerHostTask AS (
+			SELECT DISTINCT ON (r.host, COALESCE(t.name, ''))
+				r.host AS host_ip,
+				rp.id AS report_id,
+				rp.task AS task_id,
+				COALESCE(t.name, '') AS task_name,
+				rp.creation_time
+			FROM public.results r
+			JOIN public.reports rp
+				ON rp.id = r.report
+			LEFT JOIN public.tasks t
+				ON t.id = rp.task
+			WHERE r.host IS NOT NULL
+				AND BTRIM(r.host) <> ''
+			ORDER BY
+				r.host,
+				COALESCE(t.name, ''),
+				rp.creation_time DESC,
+				rp.id DESC
+		),
+
+		CriticalVulnAgg AS (
+			SELECT
+				lrht.task_name,
+				lrht.host_ip,
+				COALESCE(NULLIF(BTRIM(n.name), ''), 'Unknown Vulnerability') AS vulnerability_name,
+				MAX(COALESCE(r.severity, 0))::float8 AS severity,
+				COUNT(*)::int AS total
+			FROM LatestReportPerHostTask lrht
+			JOIN public.results r
+				ON r.report = lrht.report_id
+				AND r.host = lrht.host_ip
+				AND COALESCE(r.severity, 0) >= 9
+			LEFT JOIN public.nvts n
+				ON n.uuid = r.nvt
+			GROUP BY
+				lrht.task_name,
+				lrht.host_ip,
+				COALESCE(NULLIF(BTRIM(n.name), ''), 'Unknown Vulnerability')
 		)
+
 		SELECT
-			lr.task_name,
-			lr.ip_address,
-			COALESCE(NULLIF(res.name, ''), 'Unknown Vulnerability') AS vulnerability_name,
-			COUNT(*) AS total,
-			COALESCE(ROUND(MAX(COALESCE(res.severity, 0))::numeric, 2), 0) AS severity
-		FROM latest_report_per_host_task lr
-		INNER JOIN public.results res
-			ON res.report = lr.report_id
-			AND COALESCE(res.host, '') = lr.ip_address
-		WHERE COALESCE(res.severity, 0) >= 9
-		GROUP BY lr.task_name, lr.ip_address, vulnerability_name
-		ORDER BY severity DESC, total DESC, lr.task_name ASC, lr.ip_address ASC, vulnerability_name ASC
+			COALESCE(NULLIF(BTRIM(task_name), ''), 'Unknown Target') AS task_name,
+			COALESCE(NULLIF(BTRIM(host_ip), ''), 'Unknown IP') AS ip_address,
+			COALESCE(NULLIF(BTRIM(vulnerability_name), ''), 'Unknown Vulnerability') AS vulnerability_name,
+			total,
+			severity
+		FROM CriticalVulnAgg
+		WHERE vulnerability_name <> ''
+		ORDER BY
+			severity DESC,
+			total DESC,
+			task_name ASC,
+			ip_address ASC,
+			vulnerability_name ASC
 		LIMIT 50
 	`
 
@@ -802,7 +939,7 @@ func buildCriticalVulnerabilityMessage() string {
 	}
 
 	var b strings.Builder
-	b.WriteString("ช่องโหว่ระดับ Critical ที่ตรวจพบครับ\n\n")
+	b.WriteString("ช่องโหว่ระดับ Critical ที่ตรวจพบครับ ⚠️\n\n")
 
 	for i, row := range rows {
 		taskName := strings.TrimSpace(row.TaskName)
@@ -898,7 +1035,7 @@ func handleRiskLimitInput(notification entity.AppNotification, text string) stri
 	return buildTargetRiskScoreMessage(limit)
 }
 
-func handleExistingLineCommand(notification entity.AppNotification, text string) string {
+func handleExistingLineCommand(notification entity.AppNotification, channelToken string, text string) string {
 	text = normalizeLineText(text)
 
 	state := getOrCreateLineState(notification)
@@ -949,7 +1086,7 @@ func handleExistingLineCommand(notification entity.AppNotification, text string)
 			return "ยังไม่มีข้อมูล Target Risk Score ในระบบครับ"
 		}
 
-		setWaitingRiskLimit(notification)
+		setWaitingRiskLimit(notification, channelToken)
 		return buildAskRiskLimitMessage()
 
 	case "3":
@@ -1023,7 +1160,7 @@ func CreateAppNotificationByLine(c *gin.Context) {
 			}
 		}
 
-		replyMessage := handleExistingLineCommand(existingNotification, messageText)
+		replyMessage := handleExistingLineCommand(existingNotification, lineMaster.Token, messageText)
 
 		if err := sendLinePushMessage(lineMaster.Token, sendID, replyMessage); err != nil {
 			c.JSON(http.StatusOK, gin.H{
