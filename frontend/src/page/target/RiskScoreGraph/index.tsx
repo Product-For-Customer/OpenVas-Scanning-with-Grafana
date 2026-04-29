@@ -1805,7 +1805,7 @@ const RiskScoreGraph: React.FC = () => {
   return (
     <section
       className={[
-        "relative flex h-full w-full min-w-0 max-w-none flex-col overflow-hidden rounded-[18px] p-2.5 sm:p-3 md:p-3.5",
+        "relative flex h-full w-full min-w-0 max-w-none flex-col overflow-visible rounded-[18px] p-2.5 sm:p-3 md:p-3.5",
         "border border-gray-200/80 bg-white shadow-sm",
         "dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:ring-1 dark:ring-white/10",
       ].join(" ")}
@@ -1815,10 +1815,10 @@ const RiskScoreGraph: React.FC = () => {
         <div className="absolute -bottom-12 -left-8 h-24 w-24 rounded-full bg-violet-500/10 blur-3xl" />
       </div>
 
-      <div className="relative z-10 flex h-full flex-col">
-        <div className="flex flex-col gap-2.5">
-          <div className="flex flex-col gap-2.5 xl:flex-row xl:items-start xl:justify-between">
-            <div className="min-w-0 flex-1">
+      <div className="relative z-10 flex h-full min-w-0 flex-col">
+        <div className="flex min-w-0 flex-col gap-3">
+          <div className="grid min-w-0 grid-cols-1 gap-3 min-[1600px]:grid-cols-[minmax(320px,1fr)_auto] min-[1600px]:items-start min-[1600px]:justify-between">
+            <div className="min-w-0">
               {detailMode ? (
                 <div className="flex items-center gap-2.5">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-linear-to-br from-cyan-500 via-sky-500 to-violet-500 text-white shadow-sm">
@@ -1859,11 +1859,11 @@ const RiskScoreGraph: React.FC = () => {
                     )}
                   </div>
 
-                  <h2 className="text-[15px] font-semibold tracking-tight text-[#1f2240] dark:text-white/90 sm:text-[17px]">
+                  <h2 className="max-w-full text-[18px] font-semibold leading-snug tracking-tight text-[#1f2240] dark:text-white/90 sm:text-[20px] lg:text-[21px] min-[760px]:whitespace-nowrap">
                     Risk score comparison by target
                   </h2>
 
-                  <p className="mt-0.5 text-[11px] text-gray-500 dark:text-white/50 sm:text-[12px]">
+                  <p className="mt-1 max-w-3xl text-[12px] leading-relaxed text-gray-500 dark:text-white/50 sm:text-[13px] min-[760px]:max-w-4xl">
                     {description}
                   </p>
                 </>
@@ -1871,10 +1871,61 @@ const RiskScoreGraph: React.FC = () => {
             </div>
 
             {!detailMode ? (
-              <div className="flex w-full flex-col gap-2.5 xl:w-auto xl:min-w-55">
-                <div className="flex flex-col gap-2.5 sm:flex-row sm:justify-end">
+              <div className="flex w-full min-w-0 flex-col gap-2.5 min-[1600px]:w-auto">
+                <div className="grid min-w-0 grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4 min-[1600px]:flex min-[1600px]:justify-end">
                   <div
-                    className="relative min-w-full sm:min-w-64"
+                    className="relative min-w-0 min-[1600px]:w-42"
+                    ref={viewModeDropdownRef}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setOpenViewMode((prev) => !prev)}
+                      className={[
+                        "inline-flex min-h-8.5 w-full items-center justify-between gap-3 rounded-xl px-3 text-left transition",
+                        "border border-gray-200/80 bg-white text-[11px] font-medium text-gray-600 hover:bg-gray-50",
+                        "dark:border-white/10 dark:bg-white/5 dark:text-white/70 dark:hover:bg-white/10",
+                      ].join(" ")}
+                    >
+                      <span className="truncate">{viewMode}</span>
+
+                      <FiChevronDown
+                        className={`text-[13px] transition-transform ${
+                          openViewMode ? "rotate-180" : ""
+                        }`}
+                      />
+                    </button>
+
+                    {openViewMode && (
+                      <div className="absolute right-0 z-50 mt-2 w-full min-w-42 overflow-hidden rounded-2xl border border-gray-200 bg-white p-1.5 shadow-[0_18px_40px_rgba(15,23,42,0.12)] dark:border-white/10 dark:bg-[#0B1220]">
+                        {VIEW_MODE_OPTIONS.map((item) => {
+                          const active = viewMode === item;
+
+                          return (
+                            <button
+                              key={item}
+                              type="button"
+                              onClick={() => {
+                                setViewMode(item);
+                                setOpenViewMode(false);
+                              }}
+                              className={[
+                                "flex w-full items-center justify-between gap-2 rounded-xl px-2.5 py-2 text-left text-[11px] font-medium transition",
+                                active
+                                  ? "bg-cyan-50 text-cyan-700 dark:bg-cyan-400/10 dark:text-cyan-300"
+                                  : "text-gray-600 hover:bg-gray-50 dark:text-white/70 dark:hover:bg-white/6",
+                              ].join(" ")}
+                            >
+                              <span>{item}</span>
+                              {active && <FiCheck className="text-[12px]" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  <div
+                    className="relative min-w-0 min-[1600px]:w-[20rem]"
                     ref={queryDropdownRef}
                   >
                     <button
@@ -1904,7 +1955,7 @@ const RiskScoreGraph: React.FC = () => {
                     </button>
 
                     {openQuery && (
-                      <div className="absolute right-0 z-40 mt-2 w-full overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.12)] dark:border-white/10 dark:bg-[#0B1220]">
+                      <div className="absolute right-0 z-50 mt-2 w-full max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.12)] sm:min-w-85 dark:border-white/10 dark:bg-[#0B1220]">
                         <div className="border-b border-gray-100 p-2.5 dark:border-white/10">
                           <div className="relative">
                             <FiSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-gray-400 dark:text-white/35" />
@@ -1997,58 +2048,7 @@ const RiskScoreGraph: React.FC = () => {
                   </div>
 
                   <div
-                    className="relative min-w-full sm:min-w-37.5"
-                    ref={viewModeDropdownRef}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => setOpenViewMode((prev) => !prev)}
-                      className={[
-                        "inline-flex min-h-8.5 w-full items-center justify-between gap-3 rounded-xl px-3 text-left transition",
-                        "border border-gray-200/80 bg-white text-[11px] font-medium text-gray-600 hover:bg-gray-50",
-                        "dark:border-white/10 dark:bg-white/5 dark:text-white/70 dark:hover:bg-white/10",
-                      ].join(" ")}
-                    >
-                      <span className="truncate">{viewMode}</span>
-
-                      <FiChevronDown
-                        className={`text-[13px] transition-transform ${
-                          openViewMode ? "rotate-180" : ""
-                        }`}
-                      />
-                    </button>
-
-                    {openViewMode && (
-                      <div className="absolute right-0 z-40 mt-2 w-full overflow-hidden rounded-2xl border border-gray-200 bg-white p-1.5 shadow-[0_18px_40px_rgba(15,23,42,0.12)] dark:border-white/10 dark:bg-[#0B1220]">
-                        {VIEW_MODE_OPTIONS.map((item) => {
-                          const active = viewMode === item;
-
-                          return (
-                            <button
-                              key={item}
-                              type="button"
-                              onClick={() => {
-                                setViewMode(item);
-                                setOpenViewMode(false);
-                              }}
-                              className={[
-                                "flex w-full items-center justify-between gap-2 rounded-xl px-2.5 py-2 text-left text-[11px] font-medium transition",
-                                active
-                                  ? "bg-cyan-50 text-cyan-700 dark:bg-cyan-400/10 dark:text-cyan-300"
-                                  : "text-gray-600 hover:bg-gray-50 dark:text-white/70 dark:hover:bg-white/6",
-                              ].join(" ")}
-                            >
-                              <span>{item}</span>
-                              {active && <FiCheck className="text-[12px]" />}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-
-                  <div
-                    className="relative min-w-full sm:min-w-47.5"
+                    className="relative min-w-0 min-[1600px]:w-58"
                     ref={sortDropdownRef}
                   >
                     <button
@@ -2070,7 +2070,7 @@ const RiskScoreGraph: React.FC = () => {
                     </button>
 
                     {openSort && (
-                      <div className="absolute right-0 z-40 mt-2 w-full overflow-hidden rounded-2xl border border-gray-200 bg-white p-1.5 shadow-[0_18px_40px_rgba(15,23,42,0.12)] dark:border-white/10 dark:bg-[#0B1220]">
+                      <div className="absolute right-0 z-50 mt-2 w-full min-w-42 overflow-hidden rounded-2xl border border-gray-200 bg-white p-1.5 shadow-[0_18px_40px_rgba(15,23,42,0.12)] dark:border-white/10 dark:bg-[#0B1220]">
                         {SORT_OPTIONS.map((item) => {
                           const active = sortBy === item;
 
@@ -2099,7 +2099,7 @@ const RiskScoreGraph: React.FC = () => {
                   </div>
 
                   <div
-                    className="relative min-w-full sm:min-w-42.5"
+                    className="relative min-w-0 min-[1600px]:w-48"
                     ref={rangeDropdownRef}
                   >
                     <button
@@ -2124,7 +2124,7 @@ const RiskScoreGraph: React.FC = () => {
                     </button>
 
                     {openRange && (
-                      <div className="absolute right-0 z-40 mt-2 w-full min-w-65 overflow-hidden rounded-2xl border border-gray-200 bg-white p-1.5 shadow-[0_18px_40px_rgba(15,23,42,0.12)] dark:border-white/10 dark:bg-[#0B1220]">
+                      <div className="absolute right-0 z-50 mt-2 w-full min-w-65 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-gray-200 bg-white p-1.5 shadow-[0_18px_40px_rgba(15,23,42,0.12)] dark:border-white/10 dark:bg-[#0B1220]">
                         {RANGE_OPTIONS.map((item) => {
                           const active = range === item;
 
@@ -2270,7 +2270,7 @@ const RiskScoreGraph: React.FC = () => {
           </div>
         </div>
 
-        <div className="mt-3 min-h-80 flex-1">
+        <div className="mt-3 min-h-80 min-w-0 flex-1">
           {detailMode ? renderDetailChart() : renderOverviewChart()}
         </div>
 

@@ -31,7 +31,6 @@ import {
 } from "../../../services";
 
 type SortType = "Latest Updated" | "Highest Latest Risk";
-
 type ViewMode = "By Page" | "Summary";
 
 type RangeKey =
@@ -105,7 +104,6 @@ type TooltipPositionProps = {
 };
 
 const SORT_OPTIONS: SortType[] = ["Latest Updated", "Highest Latest Risk"];
-
 const VIEW_MODE_OPTIONS: ViewMode[] = ["By Page", "Summary"];
 
 const RANGE_OPTIONS: RangeKey[] = [
@@ -130,9 +128,10 @@ const COLORS = {
   avgLineDark: "rgba(255,255,255,0.30)",
 };
 
-const MOBILE_BREAKPOINT = 640;
-const IPAD_BREAKPOINT = 1280;
-const LARGE_DESKTOP_BREAKPOINT = 1680;
+const COMPONENT_MOBILE_BREAKPOINT = 560;
+const COMPONENT_TABLET_BREAKPOINT = 900;
+const COMPONENT_NOTEBOOK_BREAKPOINT = 1180;
+const COMPONENT_LARGE_DESKTOP_BREAKPOINT = 1500;
 
 const pad2 = (n: number) => String(n).padStart(2, "0");
 
@@ -238,34 +237,38 @@ const getSafeTooltipTransform = ({
 };
 
 const getSummaryChartWidth = ({
-  screenWidth,
+  containerWidth,
   chartDataLength,
   summaryMode,
 }: {
-  screenWidth: number;
+  containerWidth: number;
   chartDataLength: number;
   summaryMode: boolean;
 }) => {
   if (!summaryMode) return "100%";
 
-  const safeWidth = Number.isFinite(screenWidth) ? screenWidth : 1440;
+  const safeWidth = Math.max(320, Number(containerWidth || 0));
   const total = Math.max(1, chartDataLength);
 
   const perTargetWidth =
-    safeWidth < MOBILE_BREAKPOINT
+    safeWidth < COMPONENT_MOBILE_BREAKPOINT
       ? 96
-      : safeWidth < IPAD_BREAKPOINT
-        ? 112
-        : safeWidth < LARGE_DESKTOP_BREAKPOINT
-          ? 128
-          : 140;
+      : safeWidth < COMPONENT_TABLET_BREAKPOINT
+        ? 106
+        : safeWidth < COMPONENT_NOTEBOOK_BREAKPOINT
+          ? 118
+          : safeWidth < COMPONENT_LARGE_DESKTOP_BREAKPOINT
+            ? 128
+            : 140;
 
-  const minVisibleWidth =
-    safeWidth < MOBILE_BREAKPOINT
-      ? Math.max(680, safeWidth - 48)
-      : Math.max(920, safeWidth - 120);
+  const minReadableWidth =
+    safeWidth < COMPONENT_MOBILE_BREAKPOINT
+      ? 640
+      : safeWidth < COMPONENT_TABLET_BREAKPOINT
+        ? 760
+        : Math.max(880, safeWidth - 8);
 
-  return Math.max(minVisibleWidth, total * perTargetWidth);
+  return Math.max(minReadableWidth, total * perTargetWidth);
 };
 
 const toDate = (value: unknown): Date | null => {
@@ -482,10 +485,10 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({
   return (
     <div
       style={{ transform: tooltipTransform }}
-      className="pointer-events-none min-w-62.5 max-w-[320px] rounded-[18px] border border-gray-200/90 bg-white/96 px-3 py-2.5 shadow-[0_14px_32px_rgba(15,23,42,0.14)] backdrop-blur dark:border-white/10 dark:bg-[#0B1220]/96 dark:shadow-[0_14px_28px_rgba(0,0,0,0.32)]"
+      className="pointer-events-none min-w-62.5 max-w-[320px] rounded-[18px] border border-gray-200/90 bg-white/95 px-3 py-2.5 shadow-[0_14px_32px_rgba(15,23,42,0.14)] backdrop-blur dark:border-white/10 dark:bg-[#0B1220]/95 dark:shadow-[0_14px_28px_rgba(0,0,0,0.32)]"
     >
       <div className="mb-2">
-        <p className="wrap-break-word text-[13px] font-semibold text-[#1f2240] dark:text-white/92">
+        <p className="text-[13px] font-semibold text-[#1f2240] wrap-anywhere dark:text-white/92">
           {item.task_name || "Unknown Task"}
         </p>
 
@@ -518,7 +521,7 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({
         <div className="grid grid-cols-1 gap-1.5">
           <div className="flex items-center justify-between gap-3 text-gray-600 dark:text-white/68">
             <span>Target Name</span>
-            <span className="wrap-break-word text-right font-medium">
+            <span className="text-right font-medium wrap-anywhere">
               {item.task_name || "-"}
             </span>
           </div>
@@ -616,10 +619,10 @@ const DetailTooltip: React.FC<DetailTooltipProps> = ({
   return (
     <div
       style={{ transform: tooltipTransform }}
-      className="pointer-events-none min-w-62.5 max-w-85 rounded-[18px] border border-gray-200/90 bg-white/96 px-3 py-2.5 shadow-[0_14px_32px_rgba(15,23,42,0.14)] backdrop-blur dark:border-white/10 dark:bg-[#0B1220]/96 dark:shadow-[0_14px_28px_rgba(0,0,0,0.32)]"
+      className="pointer-events-none min-w-62.5 max-w-85 rounded-[18px] border border-gray-200/90 bg-white/95 px-3 py-2.5 shadow-[0_14px_32px_rgba(15,23,42,0.14)] backdrop-blur dark:border-white/10 dark:bg-[#0B1220]/95 dark:shadow-[0_14px_28px_rgba(0,0,0,0.32)]"
     >
       <div className="mb-2">
-        <p className="wrap-break-word text-[13px] font-semibold text-[#1f2240] dark:text-white/92">
+        <p className="text-[13px] font-semibold text-[#1f2240] wrap-anywhere dark:text-white/92">
           {item.task_name || "-"}
         </p>
 
@@ -810,6 +813,13 @@ const CustomLegend = ({ detailMode = false }: { detailMode?: boolean }) => {
 };
 
 const AverageEnrollment: React.FC = () => {
+  const sectionRef = useRef<HTMLElement | null>(null);
+
+  const [containerWidth, setContainerWidth] = useState<number>(() => {
+    if (typeof window === "undefined") return 1440;
+    return window.innerWidth;
+  });
+
   const [sortBy, setSortBy] = useState<SortType>("Latest Updated");
   const [viewMode, setViewMode] = useState<ViewMode>("Summary");
   const [range, setRange] = useState<RangeKey>("This Year");
@@ -846,11 +856,6 @@ const AverageEnrollment: React.FC = () => {
   const [startDate, setStartDate] = useState<string>(sevenDaysAgoYMD);
   const [endDate, setEndDate] = useState<string>(todayYMD);
 
-  const [screenWidth, setScreenWidth] = useState<number>(() => {
-    if (typeof window === "undefined") return 1440;
-    return window.innerWidth;
-  });
-
   const [currentPage, setCurrentPage] = useState<number>(1);
 
   const hasFetchedRef = useRef(false);
@@ -869,53 +874,70 @@ const AverageEnrollment: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    const element = sectionRef.current;
+    if (!element || typeof ResizeObserver === "undefined") {
+      if (typeof window !== "undefined") {
+        const handleResize = () => setContainerWidth(window.innerWidth);
+        handleResize();
+        window.addEventListener("resize", handleResize);
 
-    const handleResize = () => {
-      setScreenWidth(window.innerWidth);
-    };
+        return () => window.removeEventListener("resize", handleResize);
+      }
 
-    handleResize();
-    window.addEventListener("resize", handleResize);
+      return;
+    }
 
-    return () => window.removeEventListener("resize", handleResize);
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      const nextWidth = Math.floor(entry?.contentRect?.width || 0);
+
+      if (nextWidth > 0) {
+        setContainerWidth(nextWidth);
+      }
+    });
+
+    observer.observe(element);
+
+    return () => observer.disconnect();
   }, []);
 
-  const isMobile = screenWidth < MOBILE_BREAKPOINT;
+  const isMobile = containerWidth < COMPONENT_MOBILE_BREAKPOINT;
+  const isTablet =
+    containerWidth >= COMPONENT_MOBILE_BREAKPOINT &&
+    containerWidth < COMPONENT_TABLET_BREAKPOINT;
+  const isNotebook =
+    containerWidth >= COMPONENT_TABLET_BREAKPOINT &&
+    containerWidth < COMPONENT_NOTEBOOK_BREAKPOINT;
+  const isLargeDesktop =
+    containerWidth >= COMPONENT_LARGE_DESKTOP_BREAKPOINT;
 
-  const isIPad =
-    screenWidth >= MOBILE_BREAKPOINT && screenWidth < IPAD_BREAKPOINT;
-
-  const isLargeDesktop = screenWidth >= LARGE_DESKTOP_BREAKPOINT;
+  const chartHeight = useMemo(() => {
+    if (isMobile) return 360;
+    if (isTablet) return 390;
+    return 420;
+  }, [isMobile, isTablet]);
 
   const overviewPageSize = useMemo(() => {
     if (summaryMode) return Number.MAX_SAFE_INTEGER;
-    if (isMobile) return 3;
-    if (isIPad) return 5;
+    if (isMobile) return 5;
+    if (isTablet) return 6;
+    if (isNotebook) return 8;
     if (isLargeDesktop) return 15;
     return 10;
-  }, [summaryMode, isMobile, isIPad, isLargeDesktop]);
+  }, [summaryMode, isMobile, isTablet, isNotebook, isLargeDesktop]);
 
   const overviewMaxVisibleLabels = useMemo(() => {
     if (summaryMode) return Number.MAX_SAFE_INTEGER;
     if (isMobile) return 3;
-    if (isIPad) return 5;
+    if (isTablet || isNotebook) return 5;
     return Number.MAX_SAFE_INTEGER;
-  }, [summaryMode, isMobile, isIPad]);
+  }, [summaryMode, isMobile, isTablet, isNotebook]);
 
   const detailMaxVisibleLabels = useMemo(() => {
     if (isMobile) return 3;
-    if (isIPad) return 5;
+    if (isTablet || isNotebook) return 5;
     return Number.MAX_SAFE_INTEGER;
-  }, [isMobile, isIPad]);
-
-  const chartPixelWidth = useMemo(() => {
-    return getSummaryChartWidth({
-      screenWidth,
-      chartDataLength: summaryMode ? rows.length : 0,
-      summaryMode,
-    });
-  }, [screenWidth, rows.length, summaryMode]);
+  }, [isMobile, isTablet, isNotebook]);
 
   const customRangeError = useMemo(() => {
     if (range !== "Custom Range") return "";
@@ -1069,7 +1091,7 @@ const AverageEnrollment: React.FC = () => {
 
   const mappedRows = useMemo<ChartRow[]>(() => {
     return rows.map((item, index) => {
-      const taskName = item.task_name || "-";
+      const taskName = (item as any).task_name || "-";
       const host = (item as any).host || (item as any).host_ip || "-";
 
       const previousRisk = Number((item as any).previous_risk_score ?? 0);
@@ -1287,6 +1309,14 @@ const AverageEnrollment: React.FC = () => {
     return sortedChartRows.slice(start, end);
   }, [summaryMode, sortedChartRows, currentPage, overviewPageSize]);
 
+  const chartPixelWidth = useMemo(() => {
+    return getSummaryChartWidth({
+      containerWidth,
+      chartDataLength: chartData.length,
+      summaryMode,
+    });
+  }, [containerWidth, chartData.length, summaryMode]);
+
   useEffect(() => {
     setCurrentPage(1);
   }, [
@@ -1348,7 +1378,6 @@ const AverageEnrollment: React.FC = () => {
     if (detailMode) return 10;
 
     const values = chartData.map((item: ChartRow) => item.overlay_top_value || 0);
-
     const rawMax = Math.max(...values, 0);
 
     return Math.max(6, Math.ceil(rawMax + 1));
@@ -1382,7 +1411,7 @@ const AverageEnrollment: React.FC = () => {
   const selectedCount = selectedKeys.length;
 
   const dropdownButtonLabel = useMemo(() => {
-    if (selectedCount === 0) return "Filter Device";
+    if (selectedCount === 0) return "Target Filter";
 
     if (selectedCount === 1) {
       const found = filterOptions.find(
@@ -1443,64 +1472,162 @@ const AverageEnrollment: React.FC = () => {
     void fetchDetailByTaskID(row.latest_task_id, row.task_name);
   };
 
+  const deviceDropdownWidth = isMobile ? "min(92vw, 420px)" : "420px";
+  const normalDropdownWidth = isMobile ? "min(92vw, 300px)" : "260px";
+
   return (
     <section
+      ref={sectionRef}
       className={[
-        "relative flex h-full w-full flex-col overflow-hidden rounded-[22px] p-3 sm:p-4 md:p-4.5",
-        "border border-gray-200/80 bg-white shadow-[0_10px_24px_rgba(15,23,42,0.05)]",
-        "dark:border-white/10 dark:bg-[#081120] dark:ring-1 dark:ring-cyan-400/10 dark:shadow-[0_14px_40px_rgba(0,0,0,0.24)]",
+        "relative flex h-full w-full min-w-0 max-w-none flex-col overflow-visible rounded-[18px] p-2.5 sm:p-3 md:p-3.5",
+        "border border-gray-200/80 bg-white shadow-sm",
+        "dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:ring-1 dark:ring-white/10",
       ].join(" ")}
     >
-      <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[22px]">
-        <div className="absolute -top-14 right-0 h-32 w-32 rounded-full bg-cyan-400/10 blur-3xl" />
-        <div className="absolute bottom-0 left-0 h-28 w-28 rounded-full bg-violet-400/10 blur-3xl" />
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -right-8 -top-12 h-24 w-24 rounded-full bg-cyan-400/10 blur-3xl" />
+        <div className="absolute -bottom-12 -left-8 h-24 w-24 rounded-full bg-violet-500/10 blur-3xl" />
       </div>
 
-      <div className="relative z-10 flex h-full min-h-0 flex-col">
-        <div className="mb-4 flex flex-col gap-3">
-          <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+      <div className="relative z-10 flex h-full min-w-0 flex-col">
+        <div className="flex min-w-0 flex-col gap-3">
+          <div className="grid min-w-0 grid-cols-1 gap-3">
             <div className="min-w-0">
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-linear-to-br from-cyan-500 via-sky-500 to-violet-500 text-white shadow-sm">
-                  <FiBarChart2 className="text-[15px]" />
-                </div>
+              {detailMode ? (
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-linear-to-br from-cyan-500 via-sky-500 to-violet-500 text-white shadow-sm">
+                    <FiBarChart2 className="text-[16px]" />
+                  </div>
 
-                <div className="min-w-0">
-                  <h2 className="text-[17px] font-semibold tracking-tight text-[#1f2240] dark:text-white/92 sm:text-[19px]">
-                    {detailMode
-                      ? `Risk Score Timeline${
-                          detailTaskName ? ` • ${detailTaskName}` : ""
-                        }`
-                      : "Target Risk Comparison"}
+                  <div className="min-w-0">
+                    <h2 className="truncate text-[17px] font-semibold tracking-tight text-[#1f2240] dark:text-white/92 sm:text-[19px]">
+                      Risk Score Timeline
+                      {detailTaskName ? ` • ${detailTaskName}` : ""}
+                    </h2>
+
+                    <p className="text-[11px] text-gray-500 dark:text-white/55 sm:text-[12px]">
+                      แสดง Risk Score ของ target ที่เลือกตาม Date-Time
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="mb-2 flex flex-wrap items-center gap-1.5">
+                    <div
+                      className={[
+                        "inline-flex items-center gap-1.5 rounded-full px-2 py-1",
+                        "border border-cyan-200/80 bg-cyan-50 text-cyan-700",
+                        "dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-300",
+                      ].join(" ")}
+                    >
+                      <FiActivity className="text-[10px]" />
+                      <span className="text-[10px] font-semibold tracking-wide">
+                        Risk Score Graph
+                      </span>
+                    </div>
+
+                    {summaryMode && (
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-violet-200 bg-violet-50 px-2 py-1 text-[10px] font-semibold text-violet-700 dark:border-violet-400/20 dark:bg-violet-400/10 dark:text-violet-300">
+                        Summary
+                      </span>
+                    )}
+                  </div>
+
+                  <h2 className="max-w-full text-[18px] font-semibold leading-snug tracking-tight text-[#1f2240] dark:text-white/90 sm:text-[20px] lg:text-[21px] min-[760px]:whitespace-nowrap">
+                    Target Risk Comparison
                   </h2>
 
-                  <p className="text-[11px] text-gray-500 dark:text-white/55 sm:text-[12px]">
-                    {detailMode
-                      ? "แสดง Risk Score ของ task ที่เลือกตาม Date-Time"
-                      : summaryMode
-                        ? "เปรียบเทียบ Previous Risk Score กับ Latest Risk Score ของแต่ละ Targets"
-                        : "เปรียบเทียบ Previous Risk Score กับ Latest Risk Score ของแต่ละ Targets"}
+                  <p className="mt-1 max-w-3xl text-[12px] leading-relaxed text-gray-500 dark:text-white/50 sm:text-[13px] min-[760px]:max-w-4xl">
+                    {summaryMode
+                      ? "Summary mode shows all filtered targets in one chart without pagination."
+                      : "Compare previous and latest risk scores across monitored targets."}
                   </p>
-                </div>
-              </div>
+                </>
+              )}
             </div>
 
             {!detailMode ? (
-              <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start xl:items-center">
-                <div
-                  className="relative min-w-full sm:min-w-72.5"
-                  ref={dropdownRef}
-                >
+              <div className="flex w-full min-w-0 flex-col gap-2.5">
+                <div className="grid min-w-0 grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4 min-[1600px]:flex min-[1600px]:justify-end">
+                  <div
+                    className="relative min-w-0 min-[1600px]:w-42"
+                    ref={viewModeDropdownRef}
+                  >
+                  <button
+                    type="button"
+                    onClick={() => setViewModeOpen((prev) => !prev)}
+                    className={[
+                      "inline-flex min-h-10 w-full items-center justify-between gap-3 rounded-2xl px-3.5 text-left transition",
+                      "border border-gray-200/80 bg-white text-[13px] font-medium text-gray-600 hover:bg-gray-50",
+                      "dark:border-white/10 dark:bg-white/6 dark:text-white/75 dark:hover:bg-white/10",
+                    ].join(" ")}
+                  >
+                    <span className="truncate">{viewMode}</span>
+
+                    <FiChevronDown
+                      className={`shrink-0 text-[15px] transition-transform ${
+                        viewModeOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {viewModeOpen && (
+                    <div
+                      style={{ width: normalDropdownWidth }}
+                      className="absolute left-0 z-50 mt-2 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.12)] dark:border-white/10 dark:bg-[#0B1220]"
+                    >
+                      <div className="p-2">
+                        {VIEW_MODE_OPTIONS.map((option) => {
+                          const checked = viewMode === option;
+
+                          return (
+                            <button
+                              key={option}
+                              type="button"
+                              onClick={() => {
+                                setViewMode(option);
+                                setViewModeOpen(false);
+                              }}
+                              className="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-white/6"
+                            >
+                              <span className="text-[12px] font-medium text-gray-700 dark:text-white/85">
+                                {option}
+                              </span>
+
+                              <div
+                                className={[
+                                  "flex h-5 w-5 items-center justify-center rounded-md border",
+                                  checked
+                                    ? "border-cyan-400 bg-cyan-500 text-white"
+                                    : "border-gray-300 bg-white text-transparent dark:border-white/15 dark:bg-white/5",
+                                ].join(" ")}
+                              >
+                                <FiCheck className="text-[11px]" />
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                  <div
+                    className="relative min-w-0 min-[1600px]:w-[20rem]"
+                    ref={dropdownRef}
+                  >
                   <button
                     type="button"
                     onClick={() => setOpen((prev: boolean) => !prev)}
                     className={[
-                      "inline-flex min-h-9 w-full items-center justify-between gap-3 rounded-2xl px-3.5 text-left transition",
-                      "border border-gray-200/80 bg-white text-[12px] font-medium text-gray-600 hover:bg-gray-50",
+                      "inline-flex min-h-10 w-full items-center justify-between gap-3 rounded-2xl px-3.5 text-left transition",
+                      "border border-gray-200/80 bg-white text-[13px] font-medium text-gray-600 hover:bg-gray-50",
                       "dark:border-white/10 dark:bg-white/6 dark:text-white/75 dark:hover:bg-white/10",
                     ].join(" ")}
                   >
-                    <span className="truncate">{dropdownButtonLabel}</span>
+                    <span className="min-w-0 truncate">
+                      {dropdownButtonLabel}
+                    </span>
 
                     <div className="flex shrink-0 items-center gap-2">
                       {selectedCount > 0 && (
@@ -1510,7 +1637,7 @@ const AverageEnrollment: React.FC = () => {
                       )}
 
                       <FiChevronDown
-                        className={`text-[14px] transition-transform ${
+                        className={`text-[15px] transition-transform ${
                           open ? "rotate-180" : ""
                         }`}
                       />
@@ -1518,7 +1645,10 @@ const AverageEnrollment: React.FC = () => {
                   </button>
 
                   {open && (
-                    <div className="absolute right-0 z-30 mt-2 w-full overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.12)] dark:border-white/10 dark:bg-[#0B1220]">
+                    <div
+                      style={{ width: deviceDropdownWidth }}
+                      className="absolute left-0 z-50 mt-2 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.12)] dark:border-white/10 dark:bg-[#0B1220]"
+                    >
                       <div className="border-b border-gray-100 p-3 dark:border-white/10">
                         <div className="relative">
                           <FiSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-gray-400 dark:text-white/35" />
@@ -1526,7 +1656,7 @@ const AverageEnrollment: React.FC = () => {
                           <input
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="Search device..."
+                            placeholder="Search target..."
                             className="h-10 w-full rounded-xl border border-gray-200 bg-white pl-9 pr-9 text-[12px] text-gray-700 outline-none focus:border-cyan-300 dark:border-white/10 dark:bg-white/5 dark:text-white/85"
                           />
 
@@ -1565,7 +1695,7 @@ const AverageEnrollment: React.FC = () => {
                       <div className="max-h-70 overflow-y-auto p-2">
                         {filteredOptions.length === 0 ? (
                           <div className="px-3 py-6 text-center text-[12px] text-gray-500 dark:text-white/45">
-                            No device found
+                            No target found
                           </div>
                         ) : (
                           filteredOptions.map((option: FilterOption) => {
@@ -1586,7 +1716,7 @@ const AverageEnrollment: React.FC = () => {
 
                                 <div
                                   className={[
-                                    "flex h-5 w-5 items-center justify-center rounded-md border",
+                                    "flex h-5 w-5 shrink-0 items-center justify-center rounded-md border",
                                     checked
                                       ? "border-cyan-400 bg-cyan-500 text-white"
                                       : "border-gray-300 bg-white text-transparent dark:border-white/15 dark:bg-white/5",
@@ -1603,90 +1733,33 @@ const AverageEnrollment: React.FC = () => {
                   )}
                 </div>
 
-                <div
-                  className="relative min-w-full sm:min-w-40"
-                  ref={viewModeDropdownRef}
-                >
-                  <button
-                    type="button"
-                    onClick={() => setViewModeOpen((prev) => !prev)}
-                    className={[
-                      "inline-flex min-h-9 w-full items-center justify-between gap-3 rounded-2xl px-3.5 text-left transition",
-                      "border border-gray-200/80 bg-white text-[12px] font-medium text-gray-600 hover:bg-gray-50",
-                      "dark:border-white/10 dark:bg-white/6 dark:text-white/75 dark:hover:bg-white/10",
-                    ].join(" ")}
+                  <div
+                    className="relative min-w-0 min-[1600px]:w-58"
+                    ref={sortDropdownRef}
                   >
-                    <span className="truncate">{viewMode}</span>
-
-                    <FiChevronDown
-                      className={`text-[14px] transition-transform ${
-                        viewModeOpen ? "rotate-180" : ""
-                      }`}
-                    />
-                  </button>
-
-                  {viewModeOpen && (
-                    <div className="absolute right-0 z-30 mt-2 w-full overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.12)] dark:border-white/10 dark:bg-[#0B1220]">
-                      <div className="p-2">
-                        {VIEW_MODE_OPTIONS.map((option) => {
-                          const checked = viewMode === option;
-
-                          return (
-                            <button
-                              key={option}
-                              type="button"
-                              onClick={() => {
-                                setViewMode(option);
-                                setViewModeOpen(false);
-                              }}
-                              className="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-white/6"
-                            >
-                              <span className="text-[12px] font-medium text-gray-700 dark:text-white/85">
-                                {option}
-                              </span>
-
-                              <div
-                                className={[
-                                  "flex h-5 w-5 items-center justify-center rounded-md border",
-                                  checked
-                                    ? "border-cyan-400 bg-cyan-500 text-white"
-                                    : "border-gray-300 bg-white text-transparent dark:border-white/15 dark:bg-white/5",
-                                ].join(" ")}
-                              >
-                                <FiCheck className="text-[11px]" />
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div
-                  className="relative min-w-full sm:min-w-55"
-                  ref={sortDropdownRef}
-                >
                   <button
                     type="button"
                     onClick={() => setSortOpen((prev) => !prev)}
                     className={[
-                      "inline-flex min-h-9 w-full items-center justify-between gap-3 rounded-2xl px-3.5 text-left transition",
-                      "border border-gray-200/80 bg-white text-[12px] font-medium text-gray-600 hover:bg-gray-50",
+                      "inline-flex min-h-10 w-full items-center justify-between gap-3 rounded-2xl px-3.5 text-left transition",
+                      "border border-gray-200/80 bg-white text-[13px] font-medium text-gray-600 hover:bg-gray-50",
                       "dark:border-white/10 dark:bg-white/6 dark:text-white/75 dark:hover:bg-white/10",
                     ].join(" ")}
                   >
                     <span className="truncate">{sortBy}</span>
 
                     <FiChevronDown
-                      className={`text-[14px] transition-transform ${
+                      className={`shrink-0 text-[15px] transition-transform ${
                         sortOpen ? "rotate-180" : ""
                       }`}
                     />
                   </button>
 
                   {sortOpen && (
-                    <div className="absolute right-0 z-30 mt-2 w-full overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.12)] dark:border-white/10 dark:bg-[#0B1220]">
+                    <div
+                      style={{ width: normalDropdownWidth }}
+                      className="absolute left-0 z-50 mt-2 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.12)] dark:border-white/10 dark:bg-[#0B1220]"
+                    >
                       <div className="p-2">
                         {SORT_OPTIONS.map((option) => {
                           const checked = sortBy === option;
@@ -1723,33 +1796,36 @@ const AverageEnrollment: React.FC = () => {
                   )}
                 </div>
 
-                <div
-                  className="relative min-w-full sm:min-w-45"
-                  ref={rangeDropdownRef}
-                >
+                  <div
+                    className="relative min-w-0 min-[1600px]:w-48"
+                    ref={rangeDropdownRef}
+                  >
                   <button
                     type="button"
                     onClick={() => setRangeOpen((prev) => !prev)}
                     className={[
-                      "inline-flex min-h-9 w-full items-center justify-between gap-3 rounded-2xl px-3.5 text-left transition",
-                      "border border-gray-200/80 bg-white text-[12px] font-medium text-gray-600 hover:bg-gray-50",
+                      "inline-flex min-h-10 w-full items-center justify-between gap-3 rounded-2xl px-3.5 text-left transition",
+                      "border border-gray-200/80 bg-white text-[13px] font-medium text-gray-600 hover:bg-gray-50",
                       "dark:border-white/10 dark:bg-white/6 dark:text-white/75 dark:hover:bg-white/10",
                     ].join(" ")}
                   >
                     <span className="inline-flex min-w-0 items-center gap-2 truncate">
-                      <FiCalendar className="shrink-0 text-[13px] text-cyan-500" />
+                      <FiCalendar className="shrink-0 text-[14px] text-cyan-500" />
                       <span className="truncate">{range}</span>
                     </span>
 
                     <FiChevronDown
-                      className={`shrink-0 text-[14px] transition-transform ${
+                      className={`shrink-0 text-[15px] transition-transform ${
                         rangeOpen ? "rotate-180" : ""
                       }`}
                     />
                   </button>
 
                   {rangeOpen && (
-                    <div className="absolute right-0 z-30 mt-2 w-full min-w-65 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.12)] dark:border-white/10 dark:bg-[#0B1220]">
+                    <div
+                      style={{ width: normalDropdownWidth }}
+                      className="absolute right-0 z-50 mt-2 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.12)] dark:border-white/10 dark:bg-[#0B1220]"
+                    >
                       <div className="p-2">
                         {RANGE_OPTIONS.map((option) => {
                           const checked = range === option;
@@ -1836,10 +1912,11 @@ const AverageEnrollment: React.FC = () => {
                 </div>
 
                 {refreshing && (
-                  <div className="text-right text-[10px] font-medium text-cyan-600 dark:text-cyan-300">
+                  <div className="w-full text-right text-[10px] font-medium text-cyan-600 dark:text-cyan-300">
                     Refreshing...
                   </div>
                 )}
+                </div>
               </div>
             ) : (
               <div className="flex justify-end">
@@ -1856,42 +1933,42 @@ const AverageEnrollment: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <div className="min-w-0 rounded-[22px] border border-gray-200/80 bg-white px-3 py-3 shadow-sm dark:border-white/10 dark:bg-white/6 sm:px-3 lg:px-4">
-              <div className="mb-2 flex min-w-0 items-center gap-1.5 whitespace-nowrap text-[clamp(10px,2.4vw,12px)] font-medium leading-none tracking-[-0.02em] text-gray-500 dark:text-white/55">
-                <FiShield className="shrink-0 text-[13px] text-cyan-500" />
-                <span className="min-w-0 whitespace-nowrap">
-                  {detailMode ? "Data Points" : "Total Assets"}
+            <div className="min-w-0 rounded-[22px] border border-gray-200/80 bg-white px-4 py-3 shadow-sm dark:border-white/10 dark:bg-white/6">
+              <div className="mb-2 flex min-w-0 items-center gap-1.5 text-[12px] font-medium leading-none tracking-[-0.02em] text-gray-500 dark:text-white/55">
+                <FiShield className="shrink-0 text-[14px] text-cyan-500" />
+                <span className="min-w-0 truncate">
+                  {detailMode ? "Data Points" : "Total Targets"}
                 </span>
               </div>
 
-              <div className="text-[20px] font-semibold text-[#1f2240] dark:text-white/92">
+              <div className="text-[21px] font-semibold text-[#1f2240] dark:text-white/92">
                 {detailMode ? detailRows.length : summary.totalAssets}
               </div>
             </div>
 
-            <div className="min-w-0 rounded-[22px] border border-gray-200/80 bg-white px-3 py-3 shadow-sm dark:border-white/10 dark:bg-white/6 sm:px-3 lg:px-4">
-              <div className="mb-2 flex min-w-0 items-center gap-1.5 whitespace-nowrap text-[clamp(9px,2.2vw,12px)] font-medium leading-none tracking-[-0.04em] text-gray-500 dark:text-white/55">
-                <FiActivity className="shrink-0 text-[12px] text-violet-500" />
-                <span className="min-w-0 whitespace-nowrap">
+            <div className="min-w-0 rounded-[22px] border border-gray-200/80 bg-white px-4 py-3 shadow-sm dark:border-white/10 dark:bg-white/6">
+              <div className="mb-2 flex min-w-0 items-center gap-1.5 text-[12px] font-medium leading-none tracking-[-0.02em] text-gray-500 dark:text-white/55">
+                <FiActivity className="shrink-0 text-[13px] text-violet-500" />
+                <span className="min-w-0 truncate">
                   Average Risk Score (CVSS Rating Score)
                 </span>
               </div>
 
-              <div className="text-[20px] font-semibold text-[#1f2240] dark:text-white/92">
+              <div className="text-[21px] font-semibold text-[#1f2240] dark:text-white/92">
                 {formatRisk(detailMode ? detailAvgRisk : summary.avgLatestRisk)}{" "}
                 / 10.00
               </div>
             </div>
 
-            <div className="min-w-0 rounded-[22px] border border-gray-200/80 bg-white px-3 py-3 shadow-sm dark:border-white/10 dark:bg-white/6 sm:px-3 lg:px-4">
-              <div className="mb-2 flex min-w-0 items-center gap-1.5 whitespace-nowrap text-[clamp(10px,2.4vw,12px)] font-medium leading-none tracking-[-0.02em] text-gray-500 dark:text-white/55">
-                <FiAlertCircle className="shrink-0 text-[13px] text-rose-500" />
-                <span className="min-w-0 whitespace-nowrap">
+            <div className="min-w-0 rounded-[22px] border border-gray-200/80 bg-white px-4 py-3 shadow-sm dark:border-white/10 dark:bg-white/6">
+              <div className="mb-2 flex min-w-0 items-center gap-1.5 text-[12px] font-medium leading-none tracking-[-0.02em] text-gray-500 dark:text-white/55">
+                <FiAlertCircle className="shrink-0 text-[14px] text-rose-500" />
+                <span className="min-w-0 truncate">
                   {detailMode ? "Risk Range" : "Increased / Decreased"}
                 </span>
               </div>
 
-              <div className="text-[20px] font-semibold text-[#1f2240] dark:text-white/92">
+              <div className="text-[21px] font-semibold text-[#1f2240] dark:text-white/92">
                 {detailMode
                   ? "0.00 - 10.00"
                   : `${summary.increasedCount} / ${summary.decreasedCount}`}
@@ -1902,22 +1979,31 @@ const AverageEnrollment: React.FC = () => {
 
         <CustomLegend detailMode={detailMode} />
 
-        <div className="min-h-105 flex flex-1 flex-col">
+        <div className="min-h-90 flex min-w-0 flex-1 flex-col">
           {loading ? (
-            <div className="flex h-105 items-center justify-center text-[13px] text-gray-500 dark:text-white/55">
+            <div
+              style={{ height: chartHeight }}
+              className="flex items-center justify-center text-[13px] text-gray-500 dark:text-white/55"
+            >
               Loading...
             </div>
           ) : detailLoading ? (
-            <div className="flex h-105 items-center justify-center text-[13px] text-gray-500 dark:text-white/55">
+            <div
+              style={{ height: chartHeight }}
+              className="flex items-center justify-center text-[13px] text-gray-500 dark:text-white/55"
+            >
               Loading detail...
             </div>
           ) : detailMode ? (
             detailRows.length === 0 ? (
-              <div className="flex h-105 items-center justify-center text-[13px] text-gray-500 dark:text-white/55">
+              <div
+                style={{ height: chartHeight }}
+                className="flex items-center justify-center text-[13px] text-gray-500 dark:text-white/55"
+              >
                 No Data
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height={420} minWidth={0}>
+              <ResponsiveContainer width="100%" height={chartHeight} minWidth={0}>
                 <BarChart
                   data={detailRows}
                   margin={{ top: 18, right: 8, left: -12, bottom: 6 }}
@@ -2002,14 +2088,17 @@ const AverageEnrollment: React.FC = () => {
               </ResponsiveContainer>
             )
           ) : chartData.length === 0 ? (
-            <div className="flex h-105 items-center justify-center text-[13px] text-gray-500 dark:text-white/55">
+            <div
+              style={{ height: chartHeight }}
+              className="flex items-center justify-center text-[13px] text-gray-500 dark:text-white/55"
+            >
               No Data
             </div>
           ) : (
             <>
               <div
                 className={[
-                  "w-full",
+                  "w-full min-w-0",
                   summaryMode
                     ? "overflow-x-auto overflow-y-hidden pb-2"
                     : "overflow-hidden",
@@ -2021,7 +2110,11 @@ const AverageEnrollment: React.FC = () => {
                     minWidth: summaryMode ? chartPixelWidth : "100%",
                   }}
                 >
-                  <ResponsiveContainer width="100%" height={420} minWidth={0}>
+                  <ResponsiveContainer
+                    width="100%"
+                    height={chartHeight}
+                    minWidth={0}
+                  >
                     <BarChart
                       data={chartData}
                       margin={{ top: 18, right: 8, left: -12, bottom: 6 }}
@@ -2089,7 +2182,9 @@ const AverageEnrollment: React.FC = () => {
                         fill={COLORS.previous}
                         radius={[8, 8, 0, 0]}
                         maxBarSize={34}
-                        onClick={(payload) => handleOverviewBarClick(payload)}
+                        onClick={(payload: any) =>
+                          handleOverviewBarClick(payload)
+                        }
                         style={{ cursor: "pointer" }}
                       >
                         <LabelList
@@ -2117,7 +2212,9 @@ const AverageEnrollment: React.FC = () => {
                         fill={COLORS.previous}
                         radius={[0, 0, 0, 0]}
                         maxBarSize={34}
-                        onClick={(payload) => handleOverviewBarClick(payload)}
+                        onClick={(payload: any) =>
+                          handleOverviewBarClick(payload)
+                        }
                         style={{ cursor: "pointer" }}
                       />
 
@@ -2128,23 +2225,23 @@ const AverageEnrollment: React.FC = () => {
                         fill={COLORS.latestUp}
                         radius={[8, 8, 0, 0]}
                         maxBarSize={34}
-                        onClick={(payload) => handleOverviewBarClick(payload)}
+                        onClick={(payload: any) =>
+                          handleOverviewBarClick(payload)
+                        }
                         style={{ cursor: "pointer" }}
                       >
                         <LabelList
                           dataKey="latest_increase_label"
                           position="top"
                           formatter={(value: any) =>
-                            value !== null &&
-                            value !== undefined &&
-                            Number(value) > 0
-                              ? formatRisk(Number(value))
+                            value !== null && value !== undefined
+                              ? formatRisk(Number(value ?? 0))
                               : ""
                           }
                           style={{
                             fill: isDarkMode()
                               ? "rgba(255,255,255,0.86)"
-                              : "#475467",
+                              : "#BE123C",
                             fontSize: 10,
                             fontWeight: 700,
                           }}
@@ -2157,23 +2254,23 @@ const AverageEnrollment: React.FC = () => {
                         fill={COLORS.latestStable}
                         radius={[8, 8, 0, 0]}
                         maxBarSize={34}
-                        onClick={(payload) => handleOverviewBarClick(payload)}
+                        onClick={(payload: any) =>
+                          handleOverviewBarClick(payload)
+                        }
                         style={{ cursor: "pointer" }}
                       >
                         <LabelList
                           dataKey="latest_equal_or_lower_label"
                           position="top"
                           formatter={(value: any) =>
-                            value !== null &&
-                            value !== undefined &&
-                            Number(value) >= 0
-                              ? formatRisk(Number(value))
+                            value !== null && value !== undefined
+                              ? formatRisk(Number(value ?? 0))
                               : ""
                           }
                           style={{
                             fill: isDarkMode()
                               ? "rgba(255,255,255,0.86)"
-                              : "#475467",
+                              : "#0369A1",
                             fontSize: 10,
                             fontWeight: 700,
                           }}
@@ -2185,8 +2282,20 @@ const AverageEnrollment: React.FC = () => {
               </div>
 
               {!summaryMode && totalPages > 1 && (
-                <div className="mt-3 flex justify-end">
-                  <div className="flex flex-wrap items-center justify-end gap-1.5">
+                <div className="mt-3 flex flex-col gap-2 border-t border-gray-100 pt-3 dark:border-white/10 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="text-[11px] text-gray-500 dark:text-white/45">
+                    Showing{" "}
+                    <span className="font-semibold text-gray-700 dark:text-white/75">
+                      {chartData.length}
+                    </span>{" "}
+                    of{" "}
+                    <span className="font-semibold text-gray-700 dark:text-white/75">
+                      {sortedChartRows.length}
+                    </span>{" "}
+                    targets
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-1.5">
                     <button
                       type="button"
                       onClick={() =>
@@ -2250,8 +2359,8 @@ const AverageEnrollment: React.FC = () => {
                   <span className="font-semibold text-gray-700 dark:text-white/75">
                     {chartData.length}
                   </span>{" "}
-                  targets in one chart without pagination. Scroll horizontally
-                  to view all targets clearly.
+                  targets in one chart. Scroll horizontally to view all targets
+                  clearly.
                 </div>
               )}
             </>
