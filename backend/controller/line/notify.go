@@ -321,6 +321,11 @@ type CriticalVulnerabilityLineRow struct {
 }
 
 func sendLinePushMessage(channelToken string, to string, message string) error {
+	message = strings.TrimSpace(message)
+	if message == "" {
+		return nil
+	}
+
 	payload := LinePushRequest{
 		To: to,
 		Messages: []LinePushMessage{
@@ -1126,7 +1131,8 @@ func handleExistingLineCommand(notification entity.AppNotification, lineMaster *
 		return buildLineCommandMenuMessage()
 
 	default:
-		return buildLineCommandMenuMessage()
+		resetLineState(notification.SendID)
+		return ""
 	}
 }
 
@@ -1195,6 +1201,15 @@ func CreateAppNotificationByLine(c *gin.Context) {
 		}
 
 		replyMessage := handleExistingLineCommand(existingNotification, lineMaster, messageText)
+
+		if strings.TrimSpace(replyMessage) == "" {
+			c.JSON(http.StatusOK, gin.H{
+				"message":      "unsupported line command ignored",
+				"source_type":  sourceType,
+				"data":         existingNotification,
+			})
+			return
+		}
 
 		if err := sendLinePushMessage(lineMaster.Token, sendID, replyMessage); err != nil {
 			c.JSON(http.StatusOK, gin.H{
