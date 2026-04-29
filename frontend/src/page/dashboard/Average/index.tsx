@@ -1976,6 +1976,7 @@ const AverageEnrollment: React.FC = () => {
             </div>
           </div>
         </div>
+        <br />
 
         <CustomLegend detailMode={detailMode} />
 
