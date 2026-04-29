@@ -8,11 +8,20 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/Tawunchai/openvas/config"
 	"github.com/Tawunchai/openvas/entity"
 	"github.com/asaskevich/govalidator"
 	"github.com/gin-gonic/gin"
+)
+
+const (
+	lineRiskInputTimeout      = 2 * time.Minute
+	lineRiskCooldownDuration = 2 * time.Minute
+	lineMaxInvalidRiskInput  = 3
+	lineMaxMessageLength     = 4300
 )
 
 type CreateAppNotificationInput struct {
@@ -277,6 +286,40 @@ type LinePushMessage struct {
 	Text string `json:"text"`
 }
 
+type LineConversationState struct {
+	NotificationID   uint
+	SendID           string
+	WaitingRiskLimit bool
+	InvalidCount     int
+	CooldownUntil    time.Time
+	ExpiresAt        time.Time
+	UpdatedAt        time.Time
+}
+
+var (
+	lineStateMu sync.Mutex
+	lineStates  = map[string]*LineConversationState{}
+)
+
+type TargetStatusLineRow struct {
+	TaskName  string `json:"task_name"`
+	RunStatus int    `json:"run_status"`
+}
+
+type TargetRiskLineRow struct {
+	TaskName  string  `json:"task_name"`
+	IPAddress string  `json:"ip_address"`
+	RiskScore float64 `json:"risk_score"`
+}
+
+type CriticalVulnerabilityLineRow struct {
+	TaskName          string  `json:"task_name"`
+	IPAddress         string  `json:"ip_address"`
+	VulnerabilityName string  `json:"vulnerability_name"`
+	Total             int     `json:"total"`
+	Severity          float64 `json:"severity"`
+}
+
 func sendLinePushMessage(channelToken string, to string, message string) error {
 	payload := LinePushRequest{
 		To: to,
@@ -332,15 +375,590 @@ func buildAppNotificationWelcomeMessage(notification entity.AppNotification, lin
 
 ขอบคุณที่เชื่อมต่อกับระบบแจ้งเตือนอัตโนมัติผ่าน LINE
 
-Auto Bot จะช่วยแจ้งสถานะการสแกน Target บนเครือข่าย และรายงานการอัปเดตของระบบอัตโนมัติให้คุณทราบ
+Auto Bot จะช่วยแจ้งสถานะการสแกน Target บนเครือข่าย รายงานการอัปเดตของระบบอัตโนมัติ และส่งรายงานสรุปผลการสแกนให้คุณทราบผ่าน LINE
 
 การแจ้งเตือนที่คุณจะได้รับ ได้แก่
 🔹 สถานะการเริ่มสแกน
 🔹 สถานะกำลังสแกน
 🔹 สถานะสแกนเสร็จสิ้น
 🔹 สถานะ Automation Update
+🔹 การส่งรายงานสรุปผลการสแกน
+
+คุณสามารถส่งเลขเพื่อใช้งานคำสั่งด่วนได้ดังนี้
+1️⃣ เช็คสถานะโดยรวมของ Target
+2️⃣ เช็ค Target Risk Score
+3️⃣ เช็คช่องโหว่ระดับ Critical
 
 เมื่อมีเหตุการณ์สำคัญ ระบบจะแจ้งเตือนให้คุณทราบทันที ✅`, displayName, lineMasterName)
+}
+
+func buildLineCommandMenuMessage() string {
+	return `กรุณาเลือกคำสั่งที่ต้องการใช้งานครับ
+
+1️⃣ เช็คสถานะโดยรวมของ Target
+2️⃣ เช็ค Target Risk Score
+3️⃣ เช็คช่องโหว่ระดับ Critical
+
+กรุณาส่งเลข 1, 2 หรือ 3 เพื่อใช้งานครับ`
+}
+
+func getOrCreateLineState(notification entity.AppNotification) *LineConversationState {
+	lineStateMu.Lock()
+	defer lineStateMu.Unlock()
+
+	key := strings.TrimSpace(notification.SendID)
+	state, ok := lineStates[key]
+	if !ok {
+		state = &LineConversationState{
+			NotificationID: notification.ID,
+			SendID:         key,
+			UpdatedAt:      time.Now(),
+		}
+		lineStates[key] = state
+		return state
+	}
+
+	state.NotificationID = notification.ID
+	state.SendID = key
+	state.UpdatedAt = time.Now()
+
+	return state
+}
+
+func resetLineState(sendID string) {
+	lineStateMu.Lock()
+	defer lineStateMu.Unlock()
+
+	key := strings.TrimSpace(sendID)
+	delete(lineStates, key)
+}
+
+func setWaitingRiskLimit(notification entity.AppNotification) {
+	lineStateMu.Lock()
+	defer lineStateMu.Unlock()
+
+	now := time.Now()
+	key := strings.TrimSpace(notification.SendID)
+
+	lineStates[key] = &LineConversationState{
+		NotificationID:   notification.ID,
+		SendID:           key,
+		WaitingRiskLimit: true,
+		InvalidCount:     0,
+		CooldownUntil:    time.Time{},
+		ExpiresAt:        now.Add(lineRiskInputTimeout),
+		UpdatedAt:        now,
+	}
+}
+
+func addInvalidRiskInput(notification entity.AppNotification) (int, bool) {
+	lineStateMu.Lock()
+	defer lineStateMu.Unlock()
+
+	now := time.Now()
+	key := strings.TrimSpace(notification.SendID)
+
+	state, ok := lineStates[key]
+	if !ok {
+		state = &LineConversationState{
+			NotificationID:   notification.ID,
+			SendID:           key,
+			WaitingRiskLimit: true,
+			InvalidCount:     0,
+			ExpiresAt:        now.Add(lineRiskInputTimeout),
+			UpdatedAt:        now,
+		}
+		lineStates[key] = state
+	}
+
+	state.InvalidCount++
+	state.UpdatedAt = now
+	state.ExpiresAt = now.Add(lineRiskInputTimeout)
+
+	if state.InvalidCount >= lineMaxInvalidRiskInput {
+		state.WaitingRiskLimit = false
+		state.InvalidCount = 0
+		state.ExpiresAt = time.Time{}
+		state.CooldownUntil = now.Add(lineRiskCooldownDuration)
+		return lineMaxInvalidRiskInput, true
+	}
+
+	return state.InvalidCount, false
+}
+
+func isLineStateCoolingDown(state *LineConversationState) (bool, time.Duration) {
+	if state == nil {
+		return false, 0
+	}
+
+	if state.CooldownUntil.IsZero() {
+		return false, 0
+	}
+
+	now := time.Now()
+	if now.After(state.CooldownUntil) {
+		return false, 0
+	}
+
+	return true, state.CooldownUntil.Sub(now)
+}
+
+func isRiskLimitInputExpired(state *LineConversationState) bool {
+	if state == nil {
+		return false
+	}
+
+	if !state.WaitingRiskLimit {
+		return false
+	}
+
+	if state.ExpiresAt.IsZero() {
+		return false
+	}
+
+	return time.Now().After(state.ExpiresAt)
+}
+
+func buildRiskLimitTimeoutMessage() string {
+	minutes := int(lineRiskInputTimeout.Minutes())
+	if minutes <= 0 {
+		minutes = 1
+	}
+
+	return fmt.Sprintf(`คำขอเช็ค Target Risk Score หมดเวลาแล้วครับ
+
+ระบบได้ยกเลิกคำขอเดิมแล้ว เนื่องจากไม่มีการระบุจำนวน Target ภายใน %d นาที
+
+กรุณาส่งเลข 2 เพื่อเริ่มคำขอใหม่อีกครั้งครับ`, minutes)
+}
+
+func buildRiskInputLockedMessage() string {
+	minutes := int(lineRiskCooldownDuration.Minutes())
+	if minutes <= 0 {
+		minutes = 1
+	}
+
+	return fmt.Sprintf(`กรอกข้อมูลไม่ถูกต้องครบ %d ครั้งแล้วครับ
+
+ระบบได้ยกเลิกคำขอเดิมแล้ว
+
+กรุณาเริ่มร้องขอใหม่อีกครั้งในอีก %d นาทีครับ`, lineMaxInvalidRiskInput, minutes)
+}
+
+func normalizeLineText(text string) string {
+	return strings.TrimSpace(text)
+}
+
+func getLineSendIDAndSourceType(event LineWebhookEvent) (string, bool, string) {
+	if strings.TrimSpace(event.Source.GroupID) != "" {
+		return strings.TrimSpace(event.Source.GroupID), true, "group"
+	}
+
+	if strings.TrimSpace(event.Source.RoomID) != "" {
+		return strings.TrimSpace(event.Source.RoomID), true, "room"
+	}
+
+	if strings.TrimSpace(event.Source.UserID) != "" {
+		return strings.TrimSpace(event.Source.UserID), false, "user"
+	}
+
+	return "", false, ""
+}
+
+func statusTextAndEmoji(runStatus int) (string, string) {
+	switch runStatus {
+	case 0:
+		return "New", "🆕"
+	case 1:
+		return "Requested", "🕒"
+	case 2:
+		return "Running", "🟢"
+	case 3:
+		return "Stop Requested", "🟠"
+	case 4:
+		return "Done", "✅"
+	case 5:
+		return "Stop Wait", "⏳"
+	case 6:
+		return "Stop", "🛑"
+	case 7:
+		return "Interrupted", "⚠️"
+	default:
+		return "Unknown", "❔"
+	}
+}
+
+func buildTargetStatusMessage() string {
+	db := config.DB()
+
+	var rows []TargetStatusLineRow
+
+	query := `
+		SELECT
+			COALESCE(NULLIF(t.name, ''), 'Unknown Target') AS task_name,
+			COALESCE(t.run_status, 0) AS run_status
+		FROM public.tasks t
+		ORDER BY t.name ASC
+	`
+
+	if err := db.Raw(query).Scan(&rows).Error; err != nil {
+		return fmt.Sprintf("ขออภัยครับ ไม่สามารถดึงข้อมูลสถานะ Target ได้ในขณะนี้\n\nรายละเอียด: %s", err.Error())
+	}
+
+	if len(rows) == 0 {
+		return "ยังไม่มี Target ในระบบครับ"
+	}
+
+	var b strings.Builder
+	b.WriteString("สถานะโดยรวมของ Target บนระบบครับ\n\n")
+
+	for i, row := range rows {
+		statusText, emoji := statusTextAndEmoji(row.RunStatus)
+
+		taskName := strings.TrimSpace(row.TaskName)
+		if taskName == "" {
+			taskName = "Unknown Target"
+		}
+
+		b.WriteString(fmt.Sprintf("%d. %s : %s %s\n", i+1, taskName, statusText, emoji))
+
+		if b.Len() >= lineMaxMessageLength {
+			b.WriteString("\nแสดงผลบางส่วนเท่านั้น เนื่องจากข้อมูลมีจำนวนมากครับ")
+			break
+		}
+	}
+
+	return strings.TrimSpace(b.String())
+}
+
+func countTargetRiskRows() (int, error) {
+	db := config.DB()
+
+	var total int64
+
+	query := `
+		WITH latest_report_per_host_task AS (
+			SELECT DISTINCT ON (r.task, res.host)
+				r.task AS task_id,
+				COALESCE(NULLIF(t.name, ''), 'Unknown Target') AS task_name,
+				COALESCE(NULLIF(res.host, ''), 'Unknown IP') AS ip_address,
+				r.id AS report_id,
+				r.creation_time
+			FROM public.reports r
+			INNER JOIN public.tasks t ON t.id = r.task
+			INNER JOIN public.results res ON res.report = r.id
+			WHERE COALESCE(res.host, '') <> ''
+			ORDER BY r.task, res.host, r.creation_time DESC, r.id DESC
+		)
+		SELECT COUNT(*) AS total
+		FROM latest_report_per_host_task
+	`
+
+	if err := db.Raw(query).Scan(&total).Error; err != nil {
+		return 0, err
+	}
+
+	return int(total), nil
+}
+
+func buildAskRiskLimitMessage() string {
+	total, err := countTargetRiskRows()
+	if err != nil {
+		return fmt.Sprintf("ขออภัยครับ ไม่สามารถตรวจสอบจำนวน Target ได้ในขณะนี้\n\nรายละเอียด: %s", err.Error())
+	}
+
+	if total == 0 {
+		return "ยังไม่มีข้อมูล Target Risk Score ในระบบครับ"
+	}
+
+	minutes := int(lineRiskInputTimeout.Minutes())
+	if minutes <= 0 {
+		minutes = 1
+	}
+
+	return fmt.Sprintf(`ต้องการทราบ Target Risk Score กี่ Target ครับ
+
+ปัจจุบันท่านมี Target ในระบบทั้งหมด %d Target
+
+กรุณากรอกเป็นตัวเลข เช่น 5, 10 หรือ %d ครับ
+
+หมายเหตุ: คำขอนี้จะหมดเวลาภายใน %d นาที หากยังไม่ระบุจำนวน Target`, total, total, minutes)
+}
+
+func buildTargetRiskScoreMessage(limit int) string {
+	db := config.DB()
+
+	var rows []TargetRiskLineRow
+
+	query := `
+		WITH latest_report_per_host_task AS (
+			SELECT DISTINCT ON (r.task, res.host)
+				r.task AS task_id,
+				COALESCE(NULLIF(t.name, ''), 'Unknown Target') AS task_name,
+				COALESCE(NULLIF(res.host, ''), 'Unknown IP') AS ip_address,
+				r.id AS report_id,
+				r.creation_time
+			FROM public.reports r
+			INNER JOIN public.tasks t ON t.id = r.task
+			INNER JOIN public.results res ON res.report = r.id
+			WHERE COALESCE(res.host, '') <> ''
+			ORDER BY r.task, res.host, r.creation_time DESC, r.id DESC
+		),
+		risk_score_rows AS (
+			SELECT
+				lr.task_name,
+				lr.ip_address,
+				COALESCE(ROUND(AVG(CASE WHEN COALESCE(res.severity, 0) > 0 THEN res.severity END)::numeric, 2), 0) AS risk_score
+			FROM latest_report_per_host_task lr
+			INNER JOIN public.results res
+				ON res.report = lr.report_id
+				AND COALESCE(res.host, '') = lr.ip_address
+			WHERE COALESCE(res.severity, 0) >= 0
+			GROUP BY lr.task_name, lr.ip_address
+		)
+		SELECT
+			task_name,
+			ip_address,
+			risk_score
+		FROM risk_score_rows
+		ORDER BY risk_score DESC, task_name ASC, ip_address ASC
+		LIMIT ?
+	`
+
+	if err := db.Raw(query, limit).Scan(&rows).Error; err != nil {
+		return fmt.Sprintf("ขออภัยครับ ไม่สามารถดึงข้อมูล Target Risk Score ได้ในขณะนี้\n\nรายละเอียด: %s", err.Error())
+	}
+
+	if len(rows) == 0 {
+		return "ยังไม่มีข้อมูล Target Risk Score ในระบบครับ"
+	}
+
+	var b strings.Builder
+	b.WriteString(fmt.Sprintf("Target Risk Score จำนวน %d Target ครับ\n\n", len(rows)))
+
+	for i, row := range rows {
+		taskName := strings.TrimSpace(row.TaskName)
+		if taskName == "" {
+			taskName = "Unknown Target"
+		}
+
+		ip := strings.TrimSpace(row.IPAddress)
+		if ip == "" {
+			ip = "Unknown IP"
+		}
+
+		b.WriteString(fmt.Sprintf("%d. %s - %s : %.2f\n", i+1, taskName, ip, row.RiskScore))
+
+		if b.Len() >= lineMaxMessageLength {
+			b.WriteString("\nแสดงผลบางส่วนเท่านั้น เนื่องจากข้อมูลมีจำนวนมากครับ")
+			break
+		}
+	}
+
+	return strings.TrimSpace(b.String())
+}
+
+func buildCriticalVulnerabilityMessage() string {
+	db := config.DB()
+
+	var rows []CriticalVulnerabilityLineRow
+
+	query := `
+		WITH latest_report_per_host_task AS (
+			SELECT DISTINCT ON (r.task, res.host)
+				r.task AS task_id,
+				COALESCE(NULLIF(t.name, ''), 'Unknown Target') AS task_name,
+				COALESCE(NULLIF(res.host, ''), 'Unknown IP') AS ip_address,
+				r.id AS report_id,
+				r.creation_time
+			FROM public.reports r
+			INNER JOIN public.tasks t ON t.id = r.task
+			INNER JOIN public.results res ON res.report = r.id
+			WHERE COALESCE(res.host, '') <> ''
+			ORDER BY r.task, res.host, r.creation_time DESC, r.id DESC
+		)
+		SELECT
+			lr.task_name,
+			lr.ip_address,
+			COALESCE(NULLIF(res.name, ''), 'Unknown Vulnerability') AS vulnerability_name,
+			COUNT(*) AS total,
+			COALESCE(ROUND(MAX(COALESCE(res.severity, 0))::numeric, 2), 0) AS severity
+		FROM latest_report_per_host_task lr
+		INNER JOIN public.results res
+			ON res.report = lr.report_id
+			AND COALESCE(res.host, '') = lr.ip_address
+		WHERE COALESCE(res.severity, 0) >= 9
+		GROUP BY lr.task_name, lr.ip_address, vulnerability_name
+		ORDER BY severity DESC, total DESC, lr.task_name ASC, lr.ip_address ASC, vulnerability_name ASC
+		LIMIT 50
+	`
+
+	if err := db.Raw(query).Scan(&rows).Error; err != nil {
+		return fmt.Sprintf("ขออภัยครับ ไม่สามารถดึงข้อมูลช่องโหว่ระดับ Critical ได้ในขณะนี้\n\nรายละเอียด: %s", err.Error())
+	}
+
+	if len(rows) == 0 {
+		return "ขณะนี้ยังไม่พบช่องโหว่ระดับ Critical ในระบบครับ ✅"
+	}
+
+	var b strings.Builder
+	b.WriteString("ช่องโหว่ระดับ Critical ที่ตรวจพบครับ\n\n")
+
+	for i, row := range rows {
+		taskName := strings.TrimSpace(row.TaskName)
+		if taskName == "" {
+			taskName = "Unknown Target"
+		}
+
+		ip := strings.TrimSpace(row.IPAddress)
+		if ip == "" {
+			ip = "Unknown IP"
+		}
+
+		vulnName := strings.TrimSpace(row.VulnerabilityName)
+		if vulnName == "" {
+			vulnName = "Unknown Vulnerability"
+		}
+
+		b.WriteString(fmt.Sprintf("%d. %s - %s\n", i+1, taskName, ip))
+		b.WriteString(fmt.Sprintf("• %s\n", vulnName))
+		b.WriteString(fmt.Sprintf("• Total: %d\n", row.Total))
+		b.WriteString(fmt.Sprintf("• Severity: %.2f\n\n", row.Severity))
+
+		if b.Len() >= lineMaxMessageLength {
+			b.WriteString("แสดงผลบางส่วนเท่านั้น เนื่องจากข้อมูลมีจำนวนมากครับ")
+			break
+		}
+	}
+
+	return strings.TrimSpace(b.String())
+}
+
+func handleRiskLimitInput(notification entity.AppNotification, text string) string {
+	total, err := countTargetRiskRows()
+	if err != nil {
+		resetLineState(notification.SendID)
+		return fmt.Sprintf("ขออภัยครับ ไม่สามารถตรวจสอบจำนวน Target ได้ในขณะนี้\n\nรายละเอียด: %s", err.Error())
+	}
+
+	if total == 0 {
+		resetLineState(notification.SendID)
+		return "ยังไม่มีข้อมูล Target Risk Score ในระบบครับ"
+	}
+
+	limit, err := strconv.Atoi(text)
+	if err != nil {
+		invalidCount, locked := addInvalidRiskInput(notification)
+		if locked {
+			return buildRiskInputLockedMessage()
+		}
+
+		return fmt.Sprintf(`กรุณากรอกเป็นตัวเลขอีกครั้งครับ
+
+ตัวอย่าง: 5, 10 หรือ %d
+
+ท่านยังสามารถกรอกใหม่ได้อีก %d ครั้ง`, total, lineMaxInvalidRiskInput-invalidCount)
+	}
+
+	if limit <= 0 {
+		invalidCount, locked := addInvalidRiskInput(notification)
+		if locked {
+			return buildRiskInputLockedMessage()
+		}
+
+		return fmt.Sprintf(`กรุณากรอกจำนวน Target มากกว่า 0 ครับ
+
+ปัจจุบันท่านมี Target ในระบบทั้งหมด %d Target
+
+ท่านยังสามารถกรอกใหม่ได้อีก %d ครั้ง`, total, lineMaxInvalidRiskInput-invalidCount)
+	}
+
+	if limit > total {
+		invalidCount, locked := addInvalidRiskInput(notification)
+		if locked {
+			return fmt.Sprintf(`กรอกข้อมูลไม่ถูกต้องครบ %d ครั้งแล้วครับ
+
+ปัจจุบันท่านมี Target ในระบบทั้งหมด %d Target
+
+ระบบได้ยกเลิกคำขอเดิมแล้ว
+
+กรุณาเริ่มร้องขอใหม่อีกครั้งในอีก %d นาทีครับ`, lineMaxInvalidRiskInput, total, int(lineRiskCooldownDuration.Minutes()))
+		}
+
+		return fmt.Sprintf(`จำนวนที่กรอกเกินจำนวน Target ที่มีอยู่ครับ
+
+ปัจจุบันท่านมี Target ในระบบทั้งหมด %d Target
+
+กรุณากรอกตัวเลขไม่เกิน %d ครับ
+
+ท่านยังสามารถกรอกใหม่ได้อีก %d ครั้ง`, total, total, lineMaxInvalidRiskInput-invalidCount)
+	}
+
+	resetLineState(notification.SendID)
+	return buildTargetRiskScoreMessage(limit)
+}
+
+func handleExistingLineCommand(notification entity.AppNotification, text string) string {
+	text = normalizeLineText(text)
+
+	state := getOrCreateLineState(notification)
+
+	if coolingDown, remaining := isLineStateCoolingDown(state); coolingDown {
+		seconds := int(remaining.Seconds())
+		if seconds < 1 {
+			seconds = 1
+		}
+
+		return fmt.Sprintf(`ขณะนี้ระบบพักคำขอชั่วคราวครับ
+
+คำขอเดิมถูกยกเลิกแล้ว
+
+กรุณาเริ่มร้องขอใหม่อีกครั้งในอีกประมาณ %d วินาที
+
+หลังครบเวลาแล้ว กรุณาส่งเลข 2 เพื่อเริ่มคำขอ Target Risk Score ใหม่ครับ`, seconds)
+	}
+
+	if !state.CooldownUntil.IsZero() && time.Now().After(state.CooldownUntil) {
+		resetLineState(notification.SendID)
+		state = getOrCreateLineState(notification)
+	}
+
+	if isRiskLimitInputExpired(state) {
+		resetLineState(notification.SendID)
+		return buildRiskLimitTimeoutMessage()
+	}
+
+	if state.WaitingRiskLimit {
+		return handleRiskLimitInput(notification, text)
+	}
+
+	switch text {
+	case "1":
+		resetLineState(notification.SendID)
+		return buildTargetStatusMessage()
+
+	case "2":
+		total, err := countTargetRiskRows()
+		if err != nil {
+			resetLineState(notification.SendID)
+			return fmt.Sprintf("ขออภัยครับ ไม่สามารถตรวจสอบจำนวน Target ได้ในขณะนี้\n\nรายละเอียด: %s", err.Error())
+		}
+
+		if total == 0 {
+			resetLineState(notification.SendID)
+			return "ยังไม่มีข้อมูล Target Risk Score ในระบบครับ"
+		}
+
+		setWaitingRiskLimit(notification)
+		return buildAskRiskLimitMessage()
+
+	case "3":
+		resetLineState(notification.SendID)
+		return buildCriticalVulnerabilityMessage()
+
+	default:
+		return buildLineCommandMenuMessage()
+	}
 }
 
 func CreateAppNotificationByLine(c *gin.Context) {
@@ -375,31 +993,16 @@ func CreateAppNotificationByLine(c *gin.Context) {
 		return
 	}
 
-	name := strings.TrimSpace(event.Message.Text)
-	if name == "" {
+	messageText := strings.TrimSpace(event.Message.Text)
+	if messageText == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "message text is required",
 		})
 		return
 	}
 
-	sendID := ""
-	isGroup := false
-	sourceType := ""
-
-	if event.Source.GroupID != "" {
-		sendID = event.Source.GroupID
-		isGroup = true
-		sourceType = "group"
-	} else if event.Source.RoomID != "" {
-		sendID = event.Source.RoomID
-		isGroup = true
-		sourceType = "room"
-	} else if event.Source.UserID != "" {
-		sendID = event.Source.UserID
-		isGroup = false
-		sourceType = "user"
-	} else {
+	sendID, isGroup, sourceType := getLineSendIDAndSourceType(event)
+	if sendID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "send id not found from line source",
 		})
@@ -410,10 +1013,34 @@ func CreateAppNotificationByLine(c *gin.Context) {
 
 	var existingNotification entity.AppNotification
 	if err := db.Preload("AppLineMaster").Where("send_id = ?", sendID).First(&existingNotification).Error; err == nil {
+		lineMaster := existingNotification.AppLineMaster
+		if lineMaster.ID == 0 {
+			if err := db.First(&lineMaster, existingNotification.AppLineMasterID).Error; err != nil {
+				c.JSON(http.StatusNotFound, gin.H{
+					"error": "AppLineMaster not found",
+				})
+				return
+			}
+		}
+
+		replyMessage := handleExistingLineCommand(existingNotification, messageText)
+
+		if err := sendLinePushMessage(lineMaster.Token, sendID, replyMessage); err != nil {
+			c.JSON(http.StatusOK, gin.H{
+				"message":       "command handled, but failed to send line message",
+				"source_type":   sourceType,
+				"line_push_err": err.Error(),
+				"reply_message": replyMessage,
+				"data":          existingNotification,
+			})
+			return
+		}
+
 		c.JSON(http.StatusOK, gin.H{
-			"message":     "send_id already exists, old source",
-			"source_type": sourceType,
-			"data":        existingNotification,
+			"message":       "line command handled successfully",
+			"source_type":   sourceType,
+			"reply_message": replyMessage,
+			"data":          existingNotification,
 		})
 		return
 	}
@@ -427,7 +1054,7 @@ func CreateAppNotificationByLine(c *gin.Context) {
 	}
 
 	notification := entity.AppNotification{
-		Name:            name,
+		Name:            messageText,
 		SendID:          sendID,
 		Alert:           true,
 		IsGroup:         isGroup,
