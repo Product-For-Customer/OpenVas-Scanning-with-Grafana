@@ -359,16 +359,37 @@ func sendLinePushMessage(channelToken string, to string, message string) error {
 	return nil
 }
 
-func buildAppNotificationWelcomeMessage(notification entity.AppNotification, lineMaster entity.AppLineMaster) string {
-	displayName := strings.TrimSpace(notification.Name)
-	if displayName == "" {
-		displayName = "ผู้ใช้งาน"
+func getLineMasterDisplayName(lineMaster *entity.AppLineMaster) string {
+	if lineMaster == nil {
+		return "Auto Bot"
 	}
 
 	lineMasterName := strings.TrimSpace(lineMaster.Name)
 	if lineMasterName == "" {
 		lineMasterName = "Auto Bot"
 	}
+
+	return lineMasterName
+}
+
+func appendLineServiceFooter(message string, lineMaster *entity.AppLineMaster) string {
+	message = strings.TrimSpace(message)
+	lineMasterName := getLineMasterDisplayName(lineMaster)
+
+	if message == "" {
+		return fmt.Sprintf("ขอบคุณที่ใช้บริการ %s ครับผม 🙏", lineMasterName)
+	}
+
+	return fmt.Sprintf("%s\n\nขอบคุณที่ใช้บริการ %s ครับผม 🙏", message, lineMasterName)
+}
+
+func buildAppNotificationWelcomeMessage(notification entity.AppNotification, lineMaster *entity.AppLineMaster) string {
+	displayName := strings.TrimSpace(notification.Name)
+	if displayName == "" {
+		displayName = "ผู้ใช้งาน"
+	}
+
+	lineMasterName := getLineMasterDisplayName(lineMaster)
 
 	return fmt.Sprintf(`สวัสดี %s 👋
 ผมคือ %s
@@ -386,20 +407,22 @@ Auto Bot จะช่วยแจ้งสถานะการสแกน Targ
 
 คุณสามารถส่งเลขเพื่อใช้งานคำสั่งด่วนได้ดังนี้
 1️⃣ เช็คสถานะโดยรวมของ Target
-2️⃣ เช็ค Target Risk Score
+2️⃣ เช็ค Target Risk Score (เรียงจากคะเเนความเสี่ยงสูงสุดไปต่ำสุด)
 3️⃣ เช็คช่องโหว่ระดับ Critical
+❔ ส่ง ? เพื่อทวนคำสั่งด่วนอีกครั้ง
 
 เมื่อมีเหตุการณ์สำคัญ ระบบจะแจ้งเตือนให้คุณทราบทันที ✅`, displayName, lineMasterName)
 }
 
 func buildLineCommandMenuMessage() string {
-	return `กรุณาเลือกคำสั่งที่ต้องการใช้งานครับ
+	return `นี่คือการทวนคำสั่งด่วนที่สามารถใช้งานได้ครับ
 
+คุณสามารถส่งเลขเพื่อใช้งานคำสั่งด่วนได้ดังนี้
 1️⃣ เช็คสถานะโดยรวมของ Target
-2️⃣ เช็ค Target Risk Score
+2️⃣ เช็ค Target Risk Score (เรียงจากคะเเนความเสี่ยงสูงสุดไปต่ำสุด)
 3️⃣ เช็คช่องโหว่ระดับ Critical
 
-กรุณาส่งเลข 1, 2 หรือ 3 เพื่อใช้งานครับ`
+หากต้องการดูคำสั่งอีกครั้ง สามารถส่ง ? ได้ครับ`
 }
 
 func getOrCreateLineState(notification entity.AppNotification) *LineConversationState {
@@ -656,7 +679,7 @@ func statusTextAndEmoji(status string) (string, string) {
 	}
 }
 
-func buildTargetStatusMessage() string {
+func buildTargetStatusMessage(lineMaster *entity.AppLineMaster) string {
 	db := config.DB()
 
 	var rows []TargetStatusLineRow
@@ -712,7 +735,7 @@ func buildTargetStatusMessage() string {
 	}
 
 	if len(rows) == 0 {
-		return "ยังไม่มี Target ในระบบครับ"
+		return appendLineServiceFooter("ยังไม่มี Target ในระบบครับ", lineMaster)
 	}
 
 	var b strings.Builder
@@ -734,7 +757,7 @@ func buildTargetStatusMessage() string {
 		}
 	}
 
-	return strings.TrimSpace(b.String())
+	return appendLineServiceFooter(b.String(), lineMaster)
 }
 
 func countTargetRiskRows() (int, error) {
@@ -791,7 +814,7 @@ func buildAskRiskLimitMessage() string {
 หมายเหตุ: คำขอนี้จะหมดเวลาภายใน %d นาที หากยังไม่ระบุจำนวน Target`, total, total, minutes)
 }
 
-func buildTargetRiskScoreMessage(limit int) string {
+func buildTargetRiskScoreMessage(limit int, lineMaster *entity.AppLineMaster) string {
 	db := config.DB()
 
 	var rows []TargetRiskLineRow
@@ -836,7 +859,7 @@ func buildTargetRiskScoreMessage(limit int) string {
 	}
 
 	if len(rows) == 0 {
-		return "ยังไม่มีข้อมูล Target Risk Score ในระบบครับ"
+		return appendLineServiceFooter("ยังไม่มีข้อมูล Target Risk Score ในระบบครับ", lineMaster)
 	}
 
 	var b strings.Builder
@@ -863,10 +886,10 @@ func buildTargetRiskScoreMessage(limit int) string {
 		}
 	}
 
-	return strings.TrimSpace(b.String())
+	return appendLineServiceFooter(b.String(), lineMaster)
 }
 
-func buildCriticalVulnerabilityMessage() string {
+func buildCriticalVulnerabilityMessage(lineMaster *entity.AppLineMaster) string {
 	db := config.DB()
 
 	var rows []CriticalVulnerabilityLineRow
@@ -935,7 +958,7 @@ func buildCriticalVulnerabilityMessage() string {
 	}
 
 	if len(rows) == 0 {
-		return "ขณะนี้ยังไม่พบช่องโหว่ระดับ Critical ในระบบครับ ✅"
+		return appendLineServiceFooter("ขณะนี้ยังไม่พบช่องโหว่ระดับ Critical ในระบบครับ ✅", lineMaster)
 	}
 
 	var b strings.Builder
@@ -968,10 +991,10 @@ func buildCriticalVulnerabilityMessage() string {
 		}
 	}
 
-	return strings.TrimSpace(b.String())
+	return appendLineServiceFooter(b.String(), lineMaster)
 }
 
-func handleRiskLimitInput(notification entity.AppNotification, text string) string {
+func handleRiskLimitInput(notification entity.AppNotification, lineMaster *entity.AppLineMaster, text string) string {
 	total, err := countTargetRiskRows()
 	if err != nil {
 		resetLineState(notification.SendID)
@@ -1032,10 +1055,10 @@ func handleRiskLimitInput(notification entity.AppNotification, text string) stri
 	}
 
 	resetLineState(notification.SendID)
-	return buildTargetRiskScoreMessage(limit)
+	return buildTargetRiskScoreMessage(limit, lineMaster)
 }
 
-func handleExistingLineCommand(notification entity.AppNotification, channelToken string, text string) string {
+func handleExistingLineCommand(notification entity.AppNotification, lineMaster *entity.AppLineMaster, text string) string {
 	text = normalizeLineText(text)
 
 	state := getOrCreateLineState(notification)
@@ -1066,13 +1089,13 @@ func handleExistingLineCommand(notification entity.AppNotification, channelToken
 	}
 
 	if state.WaitingRiskLimit {
-		return handleRiskLimitInput(notification, text)
+		return handleRiskLimitInput(notification, lineMaster, text)
 	}
 
 	switch text {
 	case "1":
 		resetLineState(notification.SendID)
-		return buildTargetStatusMessage()
+		return buildTargetStatusMessage(lineMaster)
 
 	case "2":
 		total, err := countTargetRiskRows()
@@ -1086,12 +1109,21 @@ func handleExistingLineCommand(notification entity.AppNotification, channelToken
 			return "ยังไม่มีข้อมูล Target Risk Score ในระบบครับ"
 		}
 
+		channelToken := ""
+		if lineMaster != nil {
+			channelToken = lineMaster.Token
+		}
+
 		setWaitingRiskLimit(notification, channelToken)
 		return buildAskRiskLimitMessage()
 
 	case "3":
 		resetLineState(notification.SendID)
-		return buildCriticalVulnerabilityMessage()
+		return buildCriticalVulnerabilityMessage(lineMaster)
+
+	case "?", "？":
+		resetLineState(notification.SendID)
+		return buildLineCommandMenuMessage()
 
 	default:
 		return buildLineCommandMenuMessage()
@@ -1151,16 +1183,18 @@ func CreateAppNotificationByLine(c *gin.Context) {
 	var existingNotification entity.AppNotification
 	if err := db.Preload("AppLineMaster").Where("send_id = ?", sendID).First(&existingNotification).Error; err == nil {
 		lineMaster := existingNotification.AppLineMaster
-		if lineMaster.ID == 0 {
-			if err := db.First(&lineMaster, existingNotification.AppLineMasterID).Error; err != nil {
+		if lineMaster == nil || lineMaster.ID == 0 {
+			var loadedLineMaster entity.AppLineMaster
+			if err := db.First(&loadedLineMaster, existingNotification.AppLineMasterID).Error; err != nil {
 				c.JSON(http.StatusNotFound, gin.H{
 					"error": "AppLineMaster not found",
 				})
 				return
 			}
+			lineMaster = &loadedLineMaster
 		}
 
-		replyMessage := handleExistingLineCommand(existingNotification, lineMaster.Token, messageText)
+		replyMessage := handleExistingLineCommand(existingNotification, lineMaster, messageText)
 
 		if err := sendLinePushMessage(lineMaster.Token, sendID, replyMessage); err != nil {
 			c.JSON(http.StatusOK, gin.H{
@@ -1219,7 +1253,7 @@ func CreateAppNotificationByLine(c *gin.Context) {
 		return
 	}
 
-	welcomeMessage := buildAppNotificationWelcomeMessage(notification, lineMaster)
+	welcomeMessage := buildAppNotificationWelcomeMessage(notification, &lineMaster)
 
 	if err := sendLinePushMessage(lineMaster.Token, sendID, welcomeMessage); err != nil {
 		c.JSON(http.StatusCreated, gin.H{

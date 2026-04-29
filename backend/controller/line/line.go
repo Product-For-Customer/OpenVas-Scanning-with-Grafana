@@ -212,6 +212,35 @@ func humanizeChannelTitle(channel string) string {
 	}
 }
 
+func displayScanStatusText(channel string, statusText string) string {
+	normalized := strings.ToLower(strings.TrimSpace(statusText))
+
+	switch channel {
+	case "scan_started":
+		return "กำลังสแกน"
+	case "scan_stopped":
+		return "หยุดการสแกนแล้ว"
+	case "scan_done":
+		return "เสร็จสิ้น"
+	}
+
+	switch normalized {
+	case "running":
+		return "กำลังสแกน"
+	case "stopped":
+		return "หยุดการสแกนแล้ว"
+	case "done":
+		return "เสร็จสิ้น"
+	case "unknown":
+		return "ไม่ทราบสถานะ"
+	default:
+		if strings.TrimSpace(statusText) == "" {
+			return "ไม่ทราบสถานะ"
+		}
+		return strings.TrimSpace(statusText)
+	}
+}
+
 func buildScanStatusLineMessage(channel string, rawPayload string) (string, error) {
 	var data map[string]interface{}
 	if err := json.Unmarshal([]byte(rawPayload), &data); err != nil {
@@ -229,21 +258,30 @@ func buildScanStatusLineMessage(channel string, rawPayload string) (string, erro
 	}
 
 	emoji := "ℹ️"
-	title := "OpenVAS Scan Update"
+	title := "อัปเดตสถานะการสแกน OpenVAS"
 
 	switch channel {
 	case "scan_started":
 		emoji = "🚀"
-		title = "OpenVAS Scan Started"
+		title = "เริ่มสแกน OpenVAS แล้ว"
 	case "scan_stopped":
 		emoji = "🛑"
-		title = "OpenVAS Scan Stopped"
+		title = "หยุดการสแกน OpenVAS แล้ว"
 	case "scan_done":
 		emoji = "✅"
-		title = "OpenVAS Scan Done"
+		title = "สแกน OpenVAS เสร็จสิ้นแล้ว"
 	}
 
-	msg := fmt.Sprintf("%s %s\nTask: %s\nStatus: %s", emoji, title, taskName, statusText)
+	displayStatus := displayScanStatusText(channel, statusText)
+
+	msg := fmt.Sprintf(
+		"%s %s\nTarget: %s\nสถานะ: %s",
+		emoji,
+		title,
+		taskName,
+		displayStatus,
+	)
+
 	return msg, nil
 }
 

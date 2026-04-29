@@ -176,55 +176,69 @@ func sendLinePushToAllNotifications(message string) error {
 	return nil
 }
 
-func buildFeedLineMessage(resultType, triggeredBy, source string, force bool, message string, output string) string {
-	statusText := humanizeFeedResultType(resultType)
+func buildFeedLineMessage(resultType string, message string, output string) string {
+	title, emoji := getFeedLineTitle(resultType)
+	statusText := humanizeFeedLineStatus(resultType)
 	summary := summarizeFeedOutput(resultType, message, output)
 
-	title := "OpenVAS Feed Update"
-	emoji := "ℹ️"
-
-	switch resultType {
-	case "server_error":
-		title = "OpenVAS Feed Update - Server Error"
-		emoji = "⚠️"
-	case "unauthorized":
-		title = "OpenVAS Feed Update - Unauthorized"
-		emoji = "⛔"
-	case "already_running":
-		title = "OpenVAS Feed Update - Already Running"
-		emoji = "⏳"
-	case "timeout":
-		title = "OpenVAS Feed Update - Timeout"
-		emoji = "⌛"
-	case "updated":
-		title = "OpenVAS Feed Update - Updated"
-		emoji = "✅"
-	case "no_update":
-		title = "OpenVAS Feed Update - No Update"
-		emoji = "📭"
-	case "failed":
-		title = "OpenVAS Feed Update - Failed"
-		emoji = "❌"
+	if strings.TrimSpace(summary) == "" {
+		summary = "ระบบดำเนินการอัปเดต Feed เรียบร้อยแล้ว"
 	}
 
 	var b strings.Builder
 	b.WriteString(fmt.Sprintf("%s %s", emoji, title))
 	b.WriteString("\n")
-	b.WriteString("Status: " + statusText)
+	b.WriteString("สถานะ: " + statusText)
 	b.WriteString("\n")
-	b.WriteString("Triggered By: " + safeString(triggeredBy))
-	b.WriteString("\n")
-	b.WriteString("Source: " + safeString(source))
-	b.WriteString("\n")
-	b.WriteString(fmt.Sprintf("Force: %t", force))
-	b.WriteString("\n")
-	b.WriteString("Summary: " + summary)
+	b.WriteString("รายละเอียด: " + summary)
 
 	return b.String()
 }
 
-func notifyFeedUpdateToAllNotifications(resultType, triggeredBy, source string, force bool, message string, output string) {
-	lineMessage := buildFeedLineMessage(resultType, triggeredBy, source, force, message, output)
+func getFeedLineTitle(resultType string) (string, string) {
+	switch resultType {
+	case "server_error":
+		return "ระบบอัปเดต Feed ยังไม่พร้อมใช้งานครับ", "⚠️"
+	case "unauthorized":
+		return "ไม่สามารถอัปเดต Feed ได้ครับ", "⛔"
+	case "already_running":
+		return "ระบบกำลังอัปเดต Feed อยู่ครับ", "⏳"
+	case "timeout":
+		return "การอัปเดต Feed ใช้เวลานานเกินไปครับ", "⌛"
+	case "updated":
+		return "อัปเดต Feed ของ OpenVAS สำเร็จแล้วครับ", "✅"
+	case "no_update":
+		return "ตรวจสอบ Feed ของ OpenVAS แล้วครับ", "📭"
+	case "failed":
+		return "อัปเดต Feed ของ OpenVAS ไม่สำเร็จครับ", "❌"
+	default:
+		return "แจ้งเตือนสถานะ Feed ของ OpenVAS ครับ", "ℹ️"
+	}
+}
+
+func humanizeFeedLineStatus(resultType string) string {
+	switch resultType {
+	case "server_error":
+		return "ตั้งค่าระบบไม่สมบูรณ์"
+	case "unauthorized":
+		return "ไม่ได้รับอนุญาต"
+	case "already_running":
+		return "กำลังทำงาน"
+	case "timeout":
+		return "หมดเวลา"
+	case "updated":
+		return "อัปเดตแล้ว"
+	case "no_update":
+		return "ไม่มีข้อมูลใหม่"
+	case "failed":
+		return "ไม่สำเร็จ"
+	default:
+		return "ไม่ทราบสถานะ"
+	}
+}
+
+func notifyFeedUpdateToAllNotifications(resultType string, message string, output string) {
+	lineMessage := buildFeedLineMessage(resultType, message, output)
 
 	if err := sendLinePushToAllNotifications(lineMessage); err != nil {
 		log.Println("⚠️ sendLinePushToAllNotifications error:", err)
@@ -283,9 +297,6 @@ func TriggerFeedUpdateHandler(c *gin.Context) {
 
 		notifyFeedUpdateToAllNotifications(
 			"server_error",
-			req.TriggeredBy,
-			req.Source,
-			req.Force,
 			errMsg,
 			"",
 		)
@@ -336,9 +347,6 @@ func TriggerFeedUpdateHandler(c *gin.Context) {
 
 		notifyFeedUpdateToAllNotifications(
 			"unauthorized",
-			req.TriggeredBy,
-			req.Source,
-			req.Force,
 			errMsg,
 			"",
 		)
@@ -388,9 +396,6 @@ func TriggerFeedUpdateHandler(c *gin.Context) {
 
 		notifyFeedUpdateToAllNotifications(
 			"already_running",
-			req.TriggeredBy,
-			req.Source,
-			req.Force,
 			errMsg,
 			"",
 		)
@@ -498,9 +503,6 @@ func TriggerFeedUpdateHandler(c *gin.Context) {
 
 		notifyFeedUpdateToAllNotifications(
 			"timeout",
-			req.TriggeredBy,
-			req.Source,
-			req.Force,
 			errMsg,
 			combinedOutput,
 		)
@@ -553,9 +555,6 @@ func TriggerFeedUpdateHandler(c *gin.Context) {
 
 		notifyFeedUpdateToAllNotifications(
 			parsedResultType,
-			req.TriggeredBy,
-			req.Source,
-			req.Force,
 			err.Error(),
 			combinedOutput,
 		)
@@ -638,9 +637,6 @@ func TriggerFeedUpdateHandler(c *gin.Context) {
 
 		notifyFeedUpdateToAllNotifications(
 			"updated",
-			req.TriggeredBy,
-			req.Source,
-			req.Force,
 			successMsg,
 			combinedOutput,
 		)
@@ -777,40 +773,36 @@ func summarizeFeedOutput(resultType, message, output string) string {
 
 	switch resultType {
 	case "server_error":
-		if msg != "" {
-			return msg
-		}
-		return "backend configuration error"
+		return "ระบบยังไม่ได้ตั้งค่า AUTOMATION_TOKEN สำหรับ Automation"
 
 	case "unauthorized":
-		return "request rejected because automation token is invalid"
+		return "Token สำหรับ Automation ไม่ถูกต้อง ระบบจึงไม่ดำเนินการต่อ"
 
 	case "already_running":
-		return "feed update request was ignored because another update is already running"
+		return "มีการอัปเดต Feed กำลังทำงานอยู่ กรุณารอให้เสร็จก่อน"
 
 	case "timeout":
 		services := extractFailedServices(output)
 		if len(services) > 0 {
 			return fmt.Sprintf(
-				"feed update timed out while processing services: %s",
+				"ใช้เวลานานเกินไปขณะอัปเดตบริการ: %s",
 				strings.Join(services, ", "),
 			)
 		}
-		return "feed update exceeded the allowed execution time"
+		return "การอัปเดต Feed ใช้เวลานานเกินกว่าที่กำหนด"
 
 	case "updated":
 		images := extractUpdatedImages(output)
 		if len(images) > 0 {
 			return fmt.Sprintf(
-				"feed data updated successfully (%d image(s) updated: %s)",
+				"อัปเดตข้อมูล Feed เรียบร้อยแล้ว (%d รายการ)",
 				len(images),
-				strings.Join(images, ", "),
 			)
 		}
-		return "feed update completed successfully"
+		return "อัปเดตข้อมูล Feed เรียบร้อยแล้ว"
 
 	case "no_update":
-		return "system checked feed images and found no new updates"
+		return "ตรวจสอบแล้ว ไม่มีข้อมูล Feed ใหม่"
 
 	case "failed":
 		failure := detectFailureReason(lower, msg)
@@ -818,7 +810,7 @@ func summarizeFeedOutput(resultType, message, output string) string {
 
 		if len(services) > 0 && failure != "" {
 			return fmt.Sprintf(
-				"feed update failed for service(s): %s. Reason: %s",
+				"ไม่สามารถอัปเดตบริการ %s ได้: %s",
 				strings.Join(services, ", "),
 				failure,
 			)
@@ -826,26 +818,26 @@ func summarizeFeedOutput(resultType, message, output string) string {
 
 		if len(services) > 0 {
 			return fmt.Sprintf(
-				"feed update failed for service(s): %s",
+				"ไม่สามารถอัปเดตบริการ %s ได้",
 				strings.Join(services, ", "),
 			)
 		}
 
 		if failure != "" {
-			return "feed update failed. Reason: " + failure
+			return failure
 		}
 
 		if msg != "" {
-			return "feed update failed. Reason: " + cleanSentence(msg)
+			return cleanSentence(msg)
 		}
 
-		return "feed update failed during script execution"
+		return "ระบบไม่สามารถอัปเดต Feed ได้ในขณะนี้"
 
 	default:
 		if msg != "" {
 			return cleanSentence(msg)
 		}
-		return "feed update finished"
+		return "ระบบดำเนินการอัปเดต Feed เรียบร้อยแล้ว"
 	}
 }
 
@@ -873,23 +865,23 @@ func humanizeFeedResultType(resultType string) string {
 func detectFailureReason(lowerOutput, message string) string {
 	switch {
 	case strings.Contains(lowerOutput, "502 bad gateway"):
-		return "registry.community.greenbone.net returned 502 Bad Gateway"
+		return "Registry ของ Greenbone ตอบกลับเป็น 502 Bad Gateway"
 	case strings.Contains(lowerOutput, "401 unauthorized"):
-		return "registry authentication failed"
+		return "ยืนยันตัวตนกับ Registry ไม่สำเร็จ"
 	case strings.Contains(lowerOutput, "403 forbidden"):
-		return "registry access was forbidden"
+		return "ไม่มีสิทธิ์เข้าถึง Registry"
 	case strings.Contains(lowerOutput, "context deadline exceeded"):
-		return "operation exceeded timeout"
+		return "การทำงานใช้เวลานานเกินกำหนด"
 	case strings.Contains(lowerOutput, "failed to resolve reference"):
-		return "failed to resolve image reference from registry"
+		return "ไม่สามารถตรวจสอบ Image จาก Registry ได้"
 	case strings.Contains(lowerOutput, "failed to pull image"):
-		return "failed to pull image from registry"
+		return "ไม่สามารถดาวน์โหลด Image จาก Registry ได้"
 	case strings.Contains(lowerOutput, "docker compose up failed"):
-		return "docker compose up failed"
+		return "สั่งงาน Docker Compose ไม่สำเร็จ"
 	case strings.Contains(lowerOutput, "network is unreachable"):
-		return "network is unreachable"
+		return "ไม่สามารถเชื่อมต่อเครือข่ายได้"
 	case strings.Contains(lowerOutput, "no such host"):
-		return "registry host could not be resolved"
+		return "ไม่สามารถค้นหา Host ของ Registry ได้"
 	}
 
 	if strings.TrimSpace(message) != "" {

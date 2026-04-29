@@ -484,15 +484,11 @@ func SendPDFToLine(c *gin.Context) {
 
 	publicURL = buildPublicPDFURL(filePath)
 
-	msg := fmt.Sprintf("PDF report is ready\nFile: %s\n%s", filepath.Base(filePath), publicURL)
-	if len(taskIDs) > 0 {
-		msg = fmt.Sprintf(
-			"PDF report is ready\nTask ID: %s\nFile: %s\n%s",
-			strings.Join(taskIDs, ","),
-			filepath.Base(filePath),
-			publicURL,
-		)
-	}
+	msg := fmt.Sprintf(
+		"📄 สร้างรายงาน PDF สำเร็จแล้วครับ\n\nไฟล์รายงาน: %s\nเปิดรายงานได้ที่:\n%s",
+		filepath.Base(filePath),
+		publicURL,
+	)
 
 	if len(requestedIDs) == 0 {
 		if err := pushLineTextMessage(msg); err != nil {
