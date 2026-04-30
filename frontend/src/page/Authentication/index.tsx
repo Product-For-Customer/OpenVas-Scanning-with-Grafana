@@ -28,9 +28,9 @@ import { pathOpenVas } from "../../services/api";
 import { useAuth } from "../../contexts/AuthContext";
 import ModalOTPSignUp from "../../Model/ModalOTPSignUp";
 import ModalOTP from "../../Model/ModalOTP";
-import travelPhoto from "../../assets/login-photo.jpg";
 import LoginSuccessAnimation from "./animation/index";
 import greenboneIcon from "../../assets/logo-light.svg";
+import NetworkGlobeAnimation from "./animation/login";
 
 type SignUpFormData = {
   email: string;
@@ -74,7 +74,8 @@ const Index: React.FC = () => {
   const [loginPassword, setLoginPassword] = useState("");
   const [loginSubmitting, setLoginSubmitting] = useState(false);
   const [loginError, setLoginError] = useState("");
-  const [showLoginSuccessAnimation, setShowLoginSuccessAnimation] = useState(false);
+  const [showLoginSuccessAnimation, setShowLoginSuccessAnimation] =
+    useState(false);
 
   const [forgotEmail, setForgotEmail] = useState("");
   const [verifiedResetEmail, setVerifiedResetEmail] = useState("");
@@ -116,7 +117,8 @@ const Index: React.FC = () => {
 
   const [existingContacts, setExistingContacts] = useState<
     EmailAndPhoneNumberResponse[]
-  >([]);//@ts-ignore
+  >([]);
+  // @ts-ignore
   const [loadingExistingContacts, setLoadingExistingContacts] = useState(false);
   const [duplicateErrors, setDuplicateErrors] = useState<DuplicateErrors>({
     email: "",
@@ -412,8 +414,8 @@ const Index: React.FC = () => {
       console.error("CheckUserEmail error:", err);
       setForgotError(
         err?.response?.data?.error ||
-        err?.message ||
-        "เกิดข้อผิดพลาดระหว่างตรวจสอบอีเมล"
+          err?.message ||
+          "เกิดข้อผิดพลาดระหว่างตรวจสอบอีเมล"
       );
     } finally {
       setForgotSubmitting(false);
@@ -470,8 +472,8 @@ const Index: React.FC = () => {
       console.error("Send OTP error:", err);
       setResetError(
         err?.response?.data?.error ||
-        err?.message ||
-        "เกิดข้อผิดพลาดระหว่างส่ง OTP"
+          err?.message ||
+          "เกิดข้อผิดพลาดระหว่างส่ง OTP"
       );
     } finally {
       setResetSubmitting(false);
@@ -650,8 +652,8 @@ const Index: React.FC = () => {
       console.error("Send OTP error:", error);
       message.error(
         error?.response?.data?.error ||
-        error?.message ||
-        "เกิดข้อผิดพลาดในการส่ง OTP"
+          error?.message ||
+          "เกิดข้อผิดพลาดในการส่ง OTP"
       );
     } finally {
       setSignupSubmitting(false);
@@ -747,7 +749,6 @@ const Index: React.FC = () => {
     </div>
   );
 
-
   const handleLoginSuccessAnimationFinished = async () => {
     try {
       await refreshMe();
@@ -761,26 +762,22 @@ const Index: React.FC = () => {
 
   const renderPhotoPanel = () => (
     <div className="relative h-full overflow-hidden bg-slate-950">
-      <img
-        src={travelPhoto}
-        alt="Network Security"
-        className="absolute inset-0 h-full w-full object-cover"
-      />
+      <NetworkGlobeAnimation />
 
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,6,23,0.38)_0%,rgba(2,6,23,0.56)_38%,rgba(2,6,23,0.84)_100%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,6,23,0.28)_0%,rgba(2,6,23,0.46)_38%,rgba(2,6,23,0.82)_100%)]" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(6,182,212,0.22),transparent_26%),radial-gradient(circle_at_bottom_left,rgba(139,92,246,0.18),transparent_32%)]" />
 
-      <div className="absolute inset-0 opacity-[0.11]">
+      <div className="absolute inset-0 opacity-[0.09]">
         <div className="h-full w-full bg-[linear-gradient(rgba(255,255,255,0.10)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.10)_1px,transparent_1px)] bg-size-[22px_22px]" />
       </div>
 
       <div
-        className="absolute inset-x-[18%] top-[-25%] h-[55%] rounded-full bg-cyan-400/20 blur-3xl"
+        className="absolute inset-x-[18%] top-[-25%] h-[55%] rounded-full bg-cyan-400/16 blur-3xl"
         style={{ animation: "floatSoftAlt 7s ease-in-out infinite" }}
       />
       <div
-        className="absolute inset-x-0 top-[-20%] h-[42%] bg-linear-to-b from-cyan-300/18 via-sky-300/8 to-transparent"
-        style={{ animation: "scanBeam 4.8s linear infinite" }}
+        className="absolute inset-x-0 top-[-20%] h-[42%] bg-linear-to-b from-cyan-300/12 via-sky-300/5 to-transparent"
+        style={{ animation: "scanBeam 5.4s linear infinite" }}
       />
 
       <div className="absolute inset-x-0 top-0 p-6 text-white">
@@ -793,7 +790,8 @@ const Index: React.FC = () => {
               Argus
             </h1>
             <p className="mt-3 max-w-57.5 text-[11px] leading-5 text-slate-200/80">
-              Secure access for scan operations, device visibility, and report review.
+              Secure access for scan operations, device visibility, and report
+              review.
             </p>
           </div>
 
@@ -824,14 +822,28 @@ const Index: React.FC = () => {
       <div className="absolute bottom-16 left-5 right-5">
         <div className="grid grid-cols-3 gap-2">
           {[
-            { icon: <FaNetworkWired className="text-[15px]" />, label: "Network", delay: "0s" },
-            { icon: <FiWifi className="text-[15px]" />, label: "Wireless", delay: "0.45s" },
-            { icon: <FiServer className="text-[15px]" />, label: "Assets Type", delay: "0.9s" },
+            {
+              icon: <FaNetworkWired className="text-[15px]" />,
+              label: "Network",
+              delay: "0s",
+            },
+            {
+              icon: <FiWifi className="text-[15px]" />,
+              label: "Wireless",
+              delay: "0.45s",
+            },
+            {
+              icon: <FiServer className="text-[15px]" />,
+              label: "Assets Type",
+              delay: "0.9s",
+            },
           ].map((item) => (
             <div
               key={item.label}
               className="rounded-2xl border border-white/10 bg-slate-900/45 px-3 py-2 backdrop-blur-md"
-              style={{ animation: `floatSoft 4.8s ease-in-out infinite ${item.delay}` }}
+              style={{
+                animation: `floatSoft 4.8s ease-in-out infinite ${item.delay}`,
+              }}
             >
               <div className="flex items-center gap-2 text-white">
                 <span className="inline-flex h-7 w-7 items-center justify-center rounded-xl bg-white/10 text-cyan-300 shadow-[0_0_18px_rgba(34,211,238,0.14)]">
@@ -897,16 +909,17 @@ const Index: React.FC = () => {
   const renderLoginForm = (compact = false) => (
     <div className={compact ? "w-full max-w-170" : "w-full max-w-77.5"}>
       <div className="text-center">
-
         <h2
-          className={`${panelTitleClass} ${compact ? "text-[34px] sm:text-[38px]" : "text-[30px]"
-            } tracking-[-0.04em]`}
+          className={`${panelTitleClass} ${
+            compact ? "text-[34px] sm:text-[38px]" : "text-[30px]"
+          } tracking-[-0.04em]`}
         >
           Welcome
         </h2>
         <p
-          className={`mt-1.5 ${compact ? "text-[12px] sm:text-[13px]" : "text-[11px]"
-            } text-slate-500 dark:text-white/55`}
+          className={`mt-1.5 ${
+            compact ? "text-[12px] sm:text-[13px]" : "text-[11px]"
+          } text-slate-500 dark:text-white/55`}
         >
           Sign in to the security scan console
         </p>
@@ -928,8 +941,9 @@ const Index: React.FC = () => {
             </label>
             <div className="relative">
               <FiMail
-                className={`pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 ${compact ? "text-[15px]" : "text-[13px]"
-                  } text-cyan-600 dark:text-cyan-300`}
+                className={`pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 ${
+                  compact ? "text-[15px]" : "text-[13px]"
+                } text-cyan-600 dark:text-cyan-300`}
               />
               <input
                 type="email"
@@ -958,8 +972,9 @@ const Index: React.FC = () => {
             </label>
             <div className="relative">
               <FiLock
-                className={`pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 ${compact ? "text-[15px]" : "text-[13px]"
-                  } text-cyan-600 dark:text-cyan-300`}
+                className={`pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 ${
+                  compact ? "text-[15px]" : "text-[13px]"
+                } text-cyan-600 dark:text-cyan-300`}
               />
               <input
                 type={showLoginPassword ? "text" : "password"}
@@ -976,7 +991,7 @@ const Index: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowLoginPassword((prev) => !prev)}
-                className={`absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-cyan-600 dark:text-white/40 dark:hover:text-cyan-300`}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-cyan-600 dark:text-white/40 dark:hover:text-cyan-300"
                 aria-label={showLoginPassword ? "Hide password" : "Show password"}
               >
                 {showLoginPassword ? (
@@ -1075,7 +1090,8 @@ const Index: React.FC = () => {
           Forgot Password
         </h2>
         <p className="mt-1.5 text-[11px] leading-5 text-slate-500 dark:text-white/55">
-          Verify that your email exists before continuing the password reset flow.
+          Verify that your email exists before continuing the password reset
+          flow.
         </p>
       </div>
 
@@ -1382,7 +1398,9 @@ const Index: React.FC = () => {
                   type="button"
                   onClick={() => setShowSignUpPassword((prev) => !prev)}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-cyan-600 dark:text-white/40 dark:hover:text-cyan-300"
-                  aria-label={showSignUpPassword ? "Hide password" : "Show password"}
+                  aria-label={
+                    showSignUpPassword ? "Hide password" : "Show password"
+                  }
                 >
                   {showSignUpPassword ? (
                     <FiEyeOff className="text-[14px]" />
@@ -1624,7 +1642,8 @@ const Index: React.FC = () => {
                         filter:
                           viewMode === "signup" ? "blur(0px)" : "blur(3px)",
                         transition: `opacity 620ms ${ANIM_EASE}, transform 760ms ${ANIM_EASE}, filter 760ms ${ANIM_EASE}`,
-                        transitionDelay: viewMode === "signup" ? "100ms" : "0ms",
+                        transitionDelay:
+                          viewMode === "signup" ? "100ms" : "0ms",
                         pointerEvents: viewMode === "signup" ? "auto" : "none",
                       }}
                     >

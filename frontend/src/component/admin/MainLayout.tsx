@@ -57,17 +57,25 @@ const MainLayout: React.FC = () => {
       <div
         className={[
           "relative min-h-dvh overflow-x-hidden",
-          "bg-[#f3f7fb]",
-          "dark:bg-linear-to-br dark:from-[#070A12] dark:via-[#0A1020] dark:to-[#070A12]",
+          "bg-[#f4f7fb]",
+          "dark:bg-[#070b14]",
         ].join(" ")}
         onScrollCapture={closeNavbarPopups}
         onWheelCapture={closeNavbarPopups}
         onTouchMoveCapture={closeNavbarPopups}
       >
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute left-[18%] top-0 h-96 w-96 rounded-full bg-cyan-400/8 blur-[120px]" />
-          <div className="absolute right-0 top-[20%] h-96 w-96 rounded-full bg-violet-500/8 blur-[120px]" />
-          <div className="absolute bottom-0 left-0 h-80 w-80 rounded-full bg-sky-500/8 blur-[120px]" />
+        <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+          <div className="absolute inset-0 bg-linear-to-br from-white via-[#f4f8fd] to-[#eef4fb] dark:from-[#070b14] dark:via-[#0a1020] dark:to-[#070b14]" />
+
+          <div className="absolute left-[12%] top-30 h-90 w-90 rounded-full bg-cyan-300/16 blur-[120px] dark:bg-cyan-400/10" />
+
+          <div className="absolute right-30 top-[18%] h-95 w-95 rounded-full bg-violet-300/14 blur-[130px] dark:bg-violet-500/9" />
+
+          <div className="absolute bottom-40 left-[34%] h-85 w-85 rounded-full bg-sky-300/12 blur-[120px] dark:bg-sky-500/8" />
+
+          <div className="absolute inset-x-0 top-0 h-48 bg-linear-to-b from-white/75 via-white/25 to-transparent dark:from-[#070b14]/90 dark:via-[#070b14]/25 dark:to-transparent" />
+
+          <div className="absolute inset-x-0 bottom-0 h-48 bg-linear-to-t from-[#f4f7fb] via-[#f4f7fb]/55 to-transparent dark:from-[#070b14] dark:via-[#070b14]/55 dark:to-transparent" />
         </div>
 
         <div className="fixed bottom-4 right-4 z-1000">
@@ -80,7 +88,7 @@ const MainLayout: React.FC = () => {
 
         <div
           className={[
-            "relative min-h-dvh",
+            "relative z-10 min-h-dvh",
             "transform-gpu",
             "transition-[margin-left] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
             "will-change-[margin-left]",
