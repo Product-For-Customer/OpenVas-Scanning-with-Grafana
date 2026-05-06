@@ -9,14 +9,18 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/Tawunchai/openvas/config"
 	"github.com/Tawunchai/openvas/entity"
+	"github.com/Tawunchai/openvas/manage"
 	"github.com/asaskevich/govalidator"
 	_ "github.com/lib/pq"
 	"github.com/lib/pq"
+	"gorm.io/gorm"
 )
 
 // =====================================================
@@ -30,6 +34,198 @@ func getPGConnString() string {
 	}
 
 	return "host=pg-gvm port=5432 user=pbi password=Pbi12345 dbname=gvmd sslmode=disable"
+}
+
+// =====================================================
+// LINE Status Manage Limit Helpers
+// =====================================================
+
+type LineStatusManageLimitTaskIDDTO struct {
+	TaskID string `gorm:"column:task_id"`
+}
+
+func normalizeLineStatusTaskIDForManageLimit(taskID string) string {
+	taskID = strings.TrimSpace(taskID)
+
+	if taskID == "" {
+		return ""
+	}
+
+	taskIDNumber, err := strconv.ParseInt(taskID, 10, 64)
+	if err == nil {
+		return strconv.FormatInt(taskIDNumber, 10)
+	}
+
+	taskIDFloat, floatErr := strconv.ParseFloat(taskID, 64)
+	if floatErr == nil {
+		taskIDInt := int64(taskIDFloat)
+		if taskIDFloat == float64(taskIDInt) {
+			return strconv.FormatInt(taskIDInt, 10)
+		}
+	}
+
+	return taskID
+}
+
+func compareLineStatusTaskIDForManageLimit(a string, b string) int {
+	a = normalizeLineStatusTaskIDForManageLimit(a)
+	b = normalizeLineStatusTaskIDForManageLimit(b)
+
+	if a == "" && b == "" {
+		return 0
+	}
+
+	if a == "" {
+		return 1
+	}
+
+	if b == "" {
+		return -1
+	}
+
+	aNumber, aErr := strconv.ParseInt(a, 10, 64)
+	bNumber, bErr := strconv.ParseInt(b, 10, 64)
+
+	if aErr == nil && bErr == nil {
+		if aNumber < bNumber {
+			return -1
+		}
+
+		if aNumber > bNumber {
+			return 1
+		}
+
+		return 0
+	}
+
+	return strings.Compare(a, b)
+}
+
+// FindLineStatusManageLimitTaskIDs
+//
+// ใช้หา task_id กลุ่มแรกตามค่า TargetLimit ใน manage.go
+//
+// ตัวอย่าง:
+// manage.TargetLimit = 5
+// public.tasks มี task_id = 2, 3, 4, 5, 6, 7
+// function นี้จะคืนค่า = 2, 3, 4, 5, 6
+func FindLineStatusManageLimitTaskIDs(db *gorm.DB) ([]string, error) {
+	targetLimit := manage.GetTargetLimit()
+
+	if targetLimit <= 0 {
+		return make([]string, 0), nil
+	}
+
+	query := `
+SELECT
+  t.id::text AS task_id
+FROM public.tasks t
+WHERE t.id IS NOT NULL
+ORDER BY
+  t.id ASC
+LIMIT ?;
+`
+
+	rows := make([]LineStatusManageLimitTaskIDDTO, 0)
+
+	if err := db.Raw(query, targetLimit).Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+
+	taskIDs := make([]string, 0, len(rows))
+	seen := make(map[string]bool)
+
+	for _, row := range rows {
+		taskID := normalizeLineStatusTaskIDForManageLimit(row.TaskID)
+
+		if taskID == "" {
+			continue
+		}
+
+		if seen[taskID] {
+			continue
+		}
+
+		seen[taskID] = true
+		taskIDs = append(taskIDs, taskID)
+	}
+
+	sort.SliceStable(taskIDs, func(i int, j int) bool {
+		return compareLineStatusTaskIDForManageLimit(taskIDs[i], taskIDs[j]) < 0
+	})
+
+	return taskIDs, nil
+}
+
+func BuildLineStatusManageLimitTaskIDSet(db *gorm.DB) (map[string]bool, error) {
+	taskIDs, err := FindLineStatusManageLimitTaskIDs(db)
+	if err != nil {
+		return nil, err
+	}
+
+	allowedTaskIDs := make(map[string]bool)
+
+	for _, taskID := range taskIDs {
+		cleanTaskID := normalizeLineStatusTaskIDForManageLimit(taskID)
+
+		if cleanTaskID == "" {
+			continue
+		}
+
+		allowedTaskIDs[cleanTaskID] = true
+	}
+
+	return allowedTaskIDs, nil
+}
+
+func extractTaskIDFromScanNotifyPayload(rawPayload string) string {
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(rawPayload), &data); err != nil {
+		return ""
+	}
+
+	value, ok := data["task_id"]
+	if !ok || value == nil {
+		return ""
+	}
+
+	switch v := value.(type) {
+	case string:
+		return normalizeLineStatusTaskIDForManageLimit(v)
+	case float64:
+		taskIDInt := int64(v)
+		if v == float64(taskIDInt) {
+			return normalizeLineStatusTaskIDForManageLimit(strconv.FormatInt(taskIDInt, 10))
+		}
+		return normalizeLineStatusTaskIDForManageLimit(fmt.Sprintf("%v", v))
+	case int:
+		return normalizeLineStatusTaskIDForManageLimit(strconv.Itoa(v))
+	case int64:
+		return normalizeLineStatusTaskIDForManageLimit(strconv.FormatInt(v, 10))
+	case json.Number:
+		return normalizeLineStatusTaskIDForManageLimit(v.String())
+	default:
+		return normalizeLineStatusTaskIDForManageLimit(fmt.Sprintf("%v", v))
+	}
+}
+
+func isScanNotifyTaskIDInLineStatusManageLimit(rawPayload string) (bool, string, error) {
+	db := config.DB()
+	if db == nil {
+		return false, "", fmt.Errorf("database connection is nil")
+	}
+
+	taskID := extractTaskIDFromScanNotifyPayload(rawPayload)
+	if taskID == "" {
+		return false, "", nil
+	}
+
+	allowedTaskIDs, err := BuildLineStatusManageLimitTaskIDSet(db)
+	if err != nil {
+		return false, taskID, err
+	}
+
+	return allowedTaskIDs[taskID], taskID, nil
 }
 
 // =====================================================
@@ -441,6 +637,21 @@ func StartLineStatusListener() {
 			}
 
 			log.Println("📩 Notify received channel:", n.Channel, "payload:", n.Extra)
+
+			isAllowed, taskID, err := isScanNotifyTaskIDInLineStatusManageLimit(n.Extra)
+			if err != nil {
+				log.Println("⚠️ manage target limit check error:", err)
+				continue
+			}
+
+			if !isAllowed {
+				if strings.TrimSpace(taskID) == "" {
+					log.Println("ℹ️ skip scan notification because task_id is empty or missing from payload")
+				} else {
+					log.Println("ℹ️ skip scan notification because task_id is outside manage target limit:", taskID)
+				}
+				continue
+			}
 
 			// 1) บันทึกลง AppHistoryNotify ก่อน
 			subject := buildScanHistorySubject(n.Channel)

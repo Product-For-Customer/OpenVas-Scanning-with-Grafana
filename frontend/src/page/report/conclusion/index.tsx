@@ -647,8 +647,7 @@ const Conclusion: React.FC<ConclusionProps> = ({
             </h3>
 
             <p className="mt-1.5 max-w-full text-[12.25px] leading-[1.55] text-slate-600">
-              สรุปภาพรวมของรายงานทั้งหมดในหน้าเดียว โดยใช้กราฟรายเดือนสำหรับการเปรียบเทียบ
-              และสรุปมุมมองระดับความรุนแรงร่วมกับแนวโน้ม Risk Score ของเป้าหมายสำคัญ
+              One-page report summary with monthly comparisons, severity insights, and key target risk trends.
             </p>
           </div>
         </div>

@@ -111,38 +111,6 @@ export const ListTaskStatus = async (): Promise<TaskStatusDTO[] | null> => {
 };
 
 // =======================
-// API: GET /tasks/summary-vulnerability
-// =======================
-export type TaskVulnSummaryDTO = {
-  task_id: string;
-  task_name: string;
-  total: number;
-  critical: number;
-  high: number;
-  medium: number;
-  low: number;
-  info: number;
-};
-
-export const ListTaskVulnSummary = async (): Promise<TaskVulnSummaryDTO[] | null> => {
-  try {
-    const response = await vulnerabilityApi.get("/tasks/summary-vulnerability");
-
-
-    if (response.status === 200) {
-      const data = response.data?.data ?? response.data;
-      return Array.isArray(data) ? (data as TaskVulnSummaryDTO[]) : [];
-    }
-
-    console.error("Unexpected status:", response.status);
-    return null;
-  } catch (error) {
-    console.error("Error fetching task vulnerability summary:", error);
-    return null;
-  }
-};
-
-// =======================
 // API: GET /vulnerabilities/list
 // =======================
 export type VulnerabilityLevelDTO = {

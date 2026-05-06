@@ -7,6 +7,7 @@ import { getLinks, type SidebarSection } from "./dummy";
 import { useStateContext } from "../../contexts/ContextProvider";
 import { useAuth } from "../../contexts/AuthContext";
 import logo from "../../assets/argus-logo-real.png";
+import argusWordmark from "../../assets/argus-font-sidebar.png";
 import { message } from "antd";
 import { RiDoorOpenLine } from "react-icons/ri";
 
@@ -21,6 +22,22 @@ const COLLAPSED_WIDTH = 76;
 const DESKTOP_BREAKPOINT = 900;
 const TABLET_MIN = 768;
 const TABLET_MAX = 1024;
+
+const getAdminLinkPath = (linkName: string) => `/admin/${linkName}`;
+
+const safeDecodePath = (pathname: string) => {
+  try {
+    return decodeURIComponent(pathname);
+  } catch {
+    return pathname;
+  }
+};
+
+const normalizePath = (pathname: string) =>
+  safeDecodePath(pathname).replace(/\/+$/, "").toLowerCase();
+
+const isSamePath = (currentPath: string, targetPath: string) =>
+  normalizePath(currentPath) === normalizePath(targetPath);
 
 const Sidebar: React.FC = () => {
   const navigate = useNavigate();
@@ -43,6 +60,9 @@ const Sidebar: React.FC = () => {
   const isTablet = currentScreen >= TABLET_MIN && currentScreen <= TABLET_MAX;
   const isExpanded = !!activeMenu;
 
+  const argusWordmarkSizeClass =
+    isDesktop && !isTablet ? "h-[22px]" : isTablet ? "h-[15px]" : "h-[16px]";
+
   const sidebarWidth = useMemo(() => {
     if (!isDesktop) return "88vw";
     return isExpanded ? `${EXPANDED_WIDTH}px` : `${COLLAPSED_WIDTH}px`;
@@ -63,12 +83,13 @@ const Sidebar: React.FC = () => {
 
       const nextOpen: Record<string, boolean> = {};
       safeData.forEach((section: SidebarSection) => {
-        const hasActiveChild = section.links?.some(
-          (link) => location.pathname === `/admin/${link.name}`
+        const hasActiveChild = section.links?.some((link) =>
+          isSamePath(location.pathname, getAdminLinkPath(link.name))
         );
 
         nextOpen[section.title] = !!hasActiveChild;
       });
+
       setOpenSections(nextOpen);
     } catch (error) {
       console.error("Failed to load sidebar links:", error);
@@ -115,7 +136,7 @@ const Sidebar: React.FC = () => {
   };
 
   const isLinkActive = (linkName: string) =>
-    location.pathname === `/admin/${linkName}`;
+    isSamePath(location.pathname, getAdminLinkPath(linkName));
 
   const formatLabel = useMemo(
     () => (value: string) => {
@@ -434,13 +455,12 @@ const Sidebar: React.FC = () => {
 
               {isExpanded && (
                 <div className="min-w-0">
-                  <span
-                    className={`block bg-linear-to-r from-[#1f2240] via-[#174966] to-[#4b4ca6] bg-clip-text font-semibold tracking-tight text-transparent dark:from-white dark:via-cyan-100 dark:to-violet-200 ${
-                      isTablet ? "text-[15px]" : "text-[16px]"
-                    }`}
-                  >
-                    Argus
-                  </span>
+                  <img
+                    src={argusWordmark}
+                    alt="Argus"
+                    className={`block w-auto object-contain drop-shadow-[0_5px_12px_rgba(59,130,246,0.18)] dark:drop-shadow-[0_5px_14px_rgba(34,211,238,0.26)] ${argusWordmarkSizeClass}`}
+                  />
+
                   <span
                     className={`block text-gray-500 dark:text-white/45 ${
                       isTablet ? "text-[10px]" : "text-[10.5px]"
@@ -484,7 +504,11 @@ const Sidebar: React.FC = () => {
           >
             <div
               className={
-                isExpanded ? (isTablet ? "space-y-1" : "space-y-1.5") : "space-y-2.5"
+                isExpanded
+                  ? isTablet
+                    ? "space-y-1"
+                    : "space-y-1.5"
+                  : "space-y-2.5"
               }
             >
               {menuLinks.map((section) => {
@@ -512,8 +536,8 @@ const Sidebar: React.FC = () => {
                           isOpen
                             ? "bg-linear-to-r from-cyan-500 via-sky-500 to-violet-500 text-white shadow-[0_12px_24px_-18px_rgba(56,189,248,0.88)]"
                             : hasActiveChild
-                            ? "bg-white text-[#1f2937] shadow-[0_8px_18px_-16px_rgba(15,23,42,0.22)] dark:bg-white/5 dark:text-white/90"
-                            : "bg-transparent text-[#4b4f63] hover:bg-gray-50 dark:text-white/70 dark:hover:bg-white/8",
+                              ? "bg-white text-[#1f2937] shadow-[0_8px_18px_-16px_rgba(15,23,42,0.22)] dark:bg-white/5 dark:text-white/90"
+                              : "bg-transparent text-[#4b4f63] hover:bg-gray-50 dark:text-white/70 dark:hover:bg-white/8",
                         ].join(" ")}
                         aria-expanded={isOpen}
                       >
@@ -527,8 +551,8 @@ const Sidebar: React.FC = () => {
                               isOpen
                                 ? "bg-white/18 text-white ring-1 ring-white/18"
                                 : hasActiveChild
-                                ? "bg-cyan-50 text-cyan-600 ring-1 ring-cyan-100 dark:bg-cyan-500/10 dark:text-cyan-300 dark:ring-cyan-400/10"
-                                : "bg-gray-100 text-gray-500 dark:bg-white/5 dark:text-white/55",
+                                  ? "bg-cyan-50 text-cyan-600 ring-1 ring-cyan-100 dark:bg-cyan-500/10 dark:text-cyan-300 dark:ring-cyan-400/10"
+                                  : "bg-gray-100 text-gray-500 dark:bg-white/5 dark:text-white/55",
                             ].join(" ")}
                           >
                             {sectionIcon}
@@ -579,7 +603,9 @@ const Sidebar: React.FC = () => {
                       >
                         <div
                           className={
-                            isTablet ? "space-y-1 pl-5 pr-1.5" : "space-y-1 pl-5.5 pr-2"
+                            isTablet
+                              ? "space-y-1 pl-5 pr-1.5"
+                              : "space-y-1 pl-5.5 pr-2"
                           }
                         >
                           {section.links?.map((link: SidebarLink) => {
@@ -587,7 +613,7 @@ const Sidebar: React.FC = () => {
 
                             return (
                               <NavLink
-                                to={`/admin/${link.name}`}
+                                to={getAdminLinkPath(link.name)}
                                 key={`${section.title}-${link.name}`}
                                 onClick={handleCloseSideBar}
                                 className={[
@@ -718,7 +744,7 @@ const Sidebar: React.FC = () => {
                               return (
                                 <NavLink
                                   key={`${section.title}-${link.name}-mini`}
-                                  to={`/admin/${link.name}`}
+                                  to={getAdminLinkPath(link.name)}
                                   onClick={() => {
                                     setHoveredSection(null);
                                     handleCloseSideBar();

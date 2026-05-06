@@ -57,7 +57,7 @@ func main() {
 	r.POST("/line/webhook/notification", line.CreateAppNotificationByLine)
 
 	//==== Report Data for Frontend =====
-	r.GET("/summary-vulnerability-report", vulnerability.ListTaskVulnSummary)
+	r.GET("/summary-vulnerability-report", vulnerability.ListTaskVulnSummary) //complete
 	r.GET("/critical-report", report.ListCriticalForReport)
 	r.GET("/devices/risk-report", report.ListDeviceRiskForReport)
 	r.GET("/target-differ-report", report.ListTargetDiffer)
@@ -65,7 +65,7 @@ func main() {
 	r.GET("/download-pdf", report.DownloadPDF)
 	r.GET("/send-pdf-to-line", report.SendPDFToLine)
 	r.GET("/app-report", report.ListAppReport)
-	r.GET("/reports/all/:task_id", vulnerability.ListALLReportByTaskID)
+	r.GET("/reports/all/:task_id", vulnerability.ListALLReportByTaskID) // complete
 
 	// ===== Protected Routes =====
 	authorized := r.Group("")
@@ -74,70 +74,70 @@ func main() {
 		authorized.GET("/auth/me", auth.Me)
 
 		// ===== Protected Routes for Vulnerability Management Authorization =====
-		authorized.GET("/tasks/status", vulnerability.ListStatus)
-		authorized.GET("/vulnerabilities/list", vulnerability.ListVulnerability)
-		authorized.GET("/assets/risk", vulnerability.ListAssetRisk)
-		authorized.GET("/devices/risk", vulnerability.ListDeviceRisk)
-		authorized.GET("/vulnerabilities/detail/by-name", vulnerability.ListVulnerabilityDetailByName)
-		authorized.GET("/vulnerabilities/:task_id", vulnerability.ListVulnerabilityByTaskID)
-		authorized.GET("/target-differ", vulnerability.ListTargetDiffer)
-		authorized.GET("/vulnerabilities/level/:level", vulnerability.ListVulnerabilityByLevel)
-		authorized.GET("/tasks/summary-vulnerability", vulnerability.ListTaskVulnSummary)
-		authorized.GET("/all-targets", vulnerability.ListALLTarget)
+		authorized.GET("/tasks/status", vulnerability.ListStatus) // complete
+		authorized.GET("/vulnerabilities/list", vulnerability.ListVulnerability) // complete
+		authorized.GET("/assets/risk", vulnerability.ListAssetRisk) // complete
+		authorized.GET("/devices/risk", vulnerability.ListDeviceRisk) // complete
+		authorized.GET("/vulnerabilities/detail/by-name", vulnerability.ListVulnerabilityDetailByName) //complete
+		authorized.GET("/vulnerabilities/:task_id", vulnerability.ListVulnerabilityByTaskID) // complete
+		authorized.GET("/target-differ", vulnerability.ListTargetDiffer) // complete
+		authorized.GET("/vulnerabilities/level/:level", vulnerability.ListVulnerabilityByLevel) // complete
+		authorized.GET("/tasks/summary-vulnerability", vulnerability.ListTaskVulnSummary) //complete ไม่ได้ใช้งานแล้ว
+		authorized.GET("/all-targets", vulnerability.ListALLTarget) // complete
 
 		// ===== Location =====
-		authorized.GET("/locations", location.ListLocation)
-		authorized.GET("/locations/:id", location.ListLocationByID)
-		authorized.POST("/create-locations", location.CreateLocation)
-		authorized.PATCH("/update-locations/:id", location.UpdateLocationByID)
-		authorized.DELETE("/delete-locations/:id", location.DeleteLocationByID)
+		authorized.GET("/locations", location.ListLocation) // complete
+		authorized.GET("/locations/:id", location.ListLocationByID)  // complete
+		authorized.POST("/create-locations", location.CreateLocation) // complete
+		authorized.PATCH("/update-locations/:id", location.UpdateLocationByID) // complete
+		authorized.DELETE("/delete-locations/:id", location.DeleteLocationByID) // complete
 
 		// ===== Protected Routes for Line Notify History Authorization =====
-		authorized.GET("/history-notifies", line.ListHistoryNotify)
-		authorized.DELETE("/delete-history-notifies", line.DeleteHistoryNotifyByIDs)
+		authorized.GET("/history-notifies", line.ListHistoryNotify) // complete
+		authorized.DELETE("/delete-history-notifies", line.DeleteHistoryNotifyByIDs) // complete
 
 		// ===== Protected Routes for User Management Authorization =====
-		authorized.GET("/users", user.ListUser)
-		authorized.GET("/users/:id", user.ListUserByID)
-		authorized.PATCH("/update-users/:id", user.UpdateUserByID)
-		authorized.DELETE("/delete-users/:id", user.DeleteUserByID)
-		authorized.POST("/create-users", user.CreateUser)
-		authorized.GET("/roles", user.ListRoles)
-		authorized.PATCH("/admin/users/:id", user.UpdateUserIDByAdmin)
+		authorized.GET("/users", user.ListUser) // complete
+		authorized.GET("/users/:id", user.ListUserByID) // complete
+		authorized.PATCH("/update-users/:id", user.UpdateUserByID) // complete
+		authorized.DELETE("/delete-users/:id", user.DeleteUserByID) // complete
+		authorized.POST("/create-users", user.CreateUser) // complete
+		authorized.GET("/roles", user.ListRoles) // complete
+		authorized.PATCH("/admin/users/:id", user.UpdateUserIDByAdmin) // complete
 
 		// ===== Protected Routes for OTP Management Authorization =====
-		authorized.GET("/send-emails", otp.ListSendEmail)
-		authorized.PUT("/send-email/:id", otp.UpdateSendEmailByID)
+		authorized.GET("/send-emails", otp.ListSendEmail) // complete
+		authorized.PUT("/send-email/:id", otp.UpdateSendEmailByID) // complete
 
 		// ===== Protected Routes for Line Master Authorization =====
-		authorized.GET("/app-line-masters", line.ListAppLineMaster)
-		authorized.POST("/create-app-line-masters", line.CreateAppLineMaster)
-		authorized.PATCH("/update-app-line-masters/:id", line.UpdateAppLineMasterByID)
-		authorized.DELETE("/delete-app-line-masters/:id", line.DeleteAppLineMasterByID)
-		authorized.POST("/line/test-notify", line.TestLineNotifyByAppNotificationID)
+		authorized.GET("/app-line-masters", line.ListAppLineMaster) // complete
+		authorized.POST("/create-app-line-masters", line.CreateAppLineMaster) // complete 
+		authorized.PATCH("/update-app-line-masters/:id", line.UpdateAppLineMasterByID) // complete
+		authorized.DELETE("/delete-app-line-masters/:id", line.DeleteAppLineMasterByID) // complete
+		authorized.POST("/line/test-notify", line.TestLineNotifyByAppNotificationID) // complete
 
 		// ===== Protected Routes for Line Notifications Authorization =====
-		authorized.GET("/app-notifications", line.ListAppNotification)
-		authorized.POST("/create-app-notifications", line.CreateAppNotification)
-		authorized.PATCH("/update-app-notifications/:id", line.UpdateAppNotificationByID)
-		authorized.DELETE("/delete-app-notifications/:id", line.DeleteAppNotificationByID)
+		authorized.GET("/app-notifications", line.ListAppNotification) // complete
+		authorized.POST("/create-app-notifications", line.CreateAppNotification) // complete
+		authorized.PATCH("/update-app-notifications/:id", line.UpdateAppNotificationByID) // complete
+		authorized.DELETE("/delete-app-notifications/:id", line.DeleteAppNotificationByID) // complete
 
 		// ===== Report Management =====
-		authorized.PUT("/app-report/:id", report.UpdateAppReportByID)
+		authorized.PUT("/app-report/:id", report.UpdateAppReportByID) // complete
 
 		// ===== Diagram Management =====
-		authorized.GET("/diagrams", diagram.ListDiagrams)
-		authorized.GET("/diagrams/:id", diagram.ListDiagramByID)
-		authorized.POST("/create-diagrams", diagram.CreateDiagram)
-		authorized.PATCH("/update-diagrams/:id", diagram.UpdateDiagramByID)
-		authorized.DELETE("/delete-diagrams/:id", diagram.DeleteDiagramByID)
+		authorized.GET("/diagrams", diagram.ListDiagrams) // complete
+		authorized.GET("/diagrams/:id", diagram.ListDiagramByID) // complete
+		authorized.POST("/create-diagrams", diagram.CreateDiagram) // complete
+		authorized.PATCH("/update-diagrams/:id", diagram.UpdateDiagramByID) // complete
+		authorized.DELETE("/delete-diagrams/:id", diagram.DeleteDiagramByID) // complete
 
 		// ===== Diagram Node Management =====
-		authorized.GET("/diagram-nodes", diagram.ListAppDiagramNodes)
-		authorized.GET("/diagram-nodes/:id", diagram.ListAppDiagramNodeByID)
-		authorized.POST("/create-diagram-nodes", diagram.CreateAppDiagramNode)
-		authorized.PATCH("/update-diagram-nodes/:id", diagram.UpdateAppDiagramNodeByID)
-		authorized.DELETE("/delete-diagram-nodes/:id", diagram.DeleteAppDiagramNodeByID)
+		authorized.GET("/diagram-nodes", diagram.ListAppDiagramNodes) // complete
+		authorized.GET("/diagram-nodes/:id", diagram.ListAppDiagramNodeByID) // complete
+		authorized.POST("/create-diagram-nodes", diagram.CreateAppDiagramNode)  // complete
+		authorized.PATCH("/update-diagram-nodes/:id", diagram.UpdateAppDiagramNodeByID) // complete
+		authorized.DELETE("/delete-diagram-nodes/:id", diagram.DeleteAppDiagramNodeByID) // complete
 	}
 
 	log.Printf("✅ Server starting on port %s\n", port)

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -13,8 +14,10 @@ import (
 
 	"github.com/Tawunchai/openvas/config"
 	"github.com/Tawunchai/openvas/entity"
+	"github.com/Tawunchai/openvas/manage"
 	"github.com/asaskevich/govalidator"
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 const (
@@ -318,6 +321,159 @@ type CriticalVulnerabilityLineRow struct {
 	VulnerabilityName string  `json:"vulnerability_name"`
 	Total             int     `json:"total"`
 	Severity          float64 `json:"severity"`
+}
+
+type LineManageLimitTaskIDDTO struct {
+	TaskID string `gorm:"column:task_id"`
+}
+
+func normalizeLineTaskIDForManageLimit(taskID string) string {
+	taskID = strings.TrimSpace(taskID)
+
+	if taskID == "" {
+		return ""
+	}
+
+	taskIDNumber, err := strconv.ParseInt(taskID, 10, 64)
+	if err == nil {
+		return strconv.FormatInt(taskIDNumber, 10)
+	}
+
+	return taskID
+}
+
+func compareLineTaskIDForManageLimit(a string, b string) int {
+	a = normalizeLineTaskIDForManageLimit(a)
+	b = normalizeLineTaskIDForManageLimit(b)
+
+	if a == "" && b == "" {
+		return 0
+	}
+
+	if a == "" {
+		return 1
+	}
+
+	if b == "" {
+		return -1
+	}
+
+	aNumber, aErr := strconv.ParseInt(a, 10, 64)
+	bNumber, bErr := strconv.ParseInt(b, 10, 64)
+
+	if aErr == nil && bErr == nil {
+		if aNumber < bNumber {
+			return -1
+		}
+
+		if aNumber > bNumber {
+			return 1
+		}
+
+		return 0
+	}
+
+	return strings.Compare(a, b)
+}
+
+func FindLineManageLimitTaskIDs(db *gorm.DB) ([]string, error) {
+	targetLimit := manage.GetTargetLimit()
+
+	if targetLimit <= 0 {
+		return make([]string, 0), nil
+	}
+
+	query := `
+SELECT
+  t.id::text AS task_id
+FROM public.tasks t
+WHERE t.id IS NOT NULL
+ORDER BY
+  t.id ASC
+LIMIT ?;
+`
+
+	rows := make([]LineManageLimitTaskIDDTO, 0)
+
+	if err := db.Raw(query, targetLimit).Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+
+	taskIDs := make([]string, 0, len(rows))
+	seen := make(map[string]bool)
+
+	for _, row := range rows {
+		taskID := normalizeLineTaskIDForManageLimit(row.TaskID)
+
+		if taskID == "" {
+			continue
+		}
+
+		if seen[taskID] {
+			continue
+		}
+
+		seen[taskID] = true
+		taskIDs = append(taskIDs, taskID)
+	}
+
+	sort.SliceStable(taskIDs, func(i int, j int) bool {
+		return compareLineTaskIDForManageLimit(taskIDs[i], taskIDs[j]) < 0
+	})
+
+	return taskIDs, nil
+}
+
+func buildRiskLimitExampleText(total int) string {
+	if total <= 1 {
+		return "1"
+	}
+
+	examples := make([]int, 0)
+	seen := make(map[int]bool)
+
+	addExample := func(value int) {
+		if value <= 0 {
+			return
+		}
+
+		if value > total {
+			return
+		}
+
+		if seen[value] {
+			return
+		}
+
+		seen[value] = true
+		examples = append(examples, value)
+	}
+
+	addExample(1)
+	addExample(5)
+	addExample(10)
+	addExample(total)
+
+	sort.Ints(examples)
+
+	if len(examples) == 0 {
+		return strconv.Itoa(total)
+	}
+
+	if len(examples) == 1 {
+		return strconv.Itoa(examples[0])
+	}
+
+	if len(examples) == 2 {
+		return fmt.Sprintf("%d หรือ %d", examples[0], examples[1])
+	}
+
+	textParts := make([]string, 0, len(examples))
+	for _, example := range examples {
+		textParts = append(textParts, strconv.Itoa(example))
+	}
+
+	return fmt.Sprintf("%s หรือ %s", strings.Join(textParts[:len(textParts)-1], ", "), textParts[len(textParts)-1])
 }
 
 func sendLinePushMessage(channelToken string, to string, message string) error {
@@ -687,6 +843,15 @@ func statusTextAndEmoji(status string) (string, string) {
 func buildTargetStatusMessage(lineMaster *entity.AppLineMaster) string {
 	db := config.DB()
 
+	allowedTaskIDs, err := FindLineManageLimitTaskIDs(db)
+	if err != nil {
+		return fmt.Sprintf("ขออภัยครับ ไม่สามารถดึงข้อมูลสถานะ Target ได้ในขณะนี้\n\nรายละเอียด: %s", err.Error())
+	}
+
+	if len(allowedTaskIDs) == 0 {
+		return appendLineServiceFooter("ยังไม่มี Target ในระบบครับ", lineMaster)
+	}
+
 	var rows []TargetStatusLineRow
 
 	query := `
@@ -726,6 +891,7 @@ func buildTargetStatusMessage(lineMaster *entity.AppLineMaster) string {
 
 			FROM public.tasks t
 			LEFT JOIN LatestReports lr ON lr.task_id = t.id
+			WHERE t.id::text IN ?
 		)
 
 		SELECT
@@ -735,7 +901,7 @@ func buildTargetStatusMessage(lineMaster *entity.AppLineMaster) string {
 		ORDER BY task_name ASC
 	`
 
-	if err := db.Raw(query).Scan(&rows).Error; err != nil {
+	if err := db.Raw(query, allowedTaskIDs).Scan(&rows).Error; err != nil {
 		return fmt.Sprintf("ขออภัยครับ ไม่สามารถดึงข้อมูลสถานะ Target ได้ในขณะนี้\n\nรายละเอียด: %s", err.Error())
 	}
 
@@ -768,6 +934,15 @@ func buildTargetStatusMessage(lineMaster *entity.AppLineMaster) string {
 func countTargetRiskRows() (int, error) {
 	db := config.DB()
 
+	allowedTaskIDs, err := FindLineManageLimitTaskIDs(db)
+	if err != nil {
+		return 0, err
+	}
+
+	if len(allowedTaskIDs) == 0 {
+		return 0, nil
+	}
+
 	var total int64
 
 	query := `
@@ -782,13 +957,14 @@ func countTargetRiskRows() (int, error) {
 			INNER JOIN public.tasks t ON t.id = r.task
 			INNER JOIN public.results res ON res.report = r.id
 			WHERE COALESCE(res.host, '') <> ''
+				AND r.task::text IN ?
 			ORDER BY r.task, res.host, r.creation_time DESC, r.id DESC
 		)
 		SELECT COUNT(*) AS total
 		FROM latest_report_per_host_task
 	`
 
-	if err := db.Raw(query).Scan(&total).Error; err != nil {
+	if err := db.Raw(query, allowedTaskIDs).Scan(&total).Error; err != nil {
 		return 0, err
 	}
 
@@ -810,17 +986,28 @@ func buildAskRiskLimitMessage() string {
 		minutes = 1
 	}
 
+	exampleText := buildRiskLimitExampleText(total)
+
 	return fmt.Sprintf(`ต้องการทราบ Target Risk Score กี่ Target ครับ
 
 ปัจจุบันท่านมี Target ในระบบทั้งหมด %d Target
 
-กรุณากรอกเป็นตัวเลข เช่น 5, 10 หรือ %d ครับ
+กรุณากรอกเป็นตัวเลข เช่น %s ครับ
 
-หมายเหตุ: คำขอนี้จะหมดเวลาภายใน %d นาที หากยังไม่ระบุจำนวน Target`, total, total, minutes)
+หมายเหตุ: คำขอนี้จะหมดเวลาภายใน %d นาที หากยังไม่ระบุจำนวน Target`, total, exampleText, minutes)
 }
 
 func buildTargetRiskScoreMessage(limit int, lineMaster *entity.AppLineMaster) string {
 	db := config.DB()
+
+	allowedTaskIDs, err := FindLineManageLimitTaskIDs(db)
+	if err != nil {
+		return fmt.Sprintf("ขออภัยครับ ไม่สามารถดึงข้อมูล Target Risk Score ได้ในขณะนี้\n\nรายละเอียด: %s", err.Error())
+	}
+
+	if len(allowedTaskIDs) == 0 {
+		return appendLineServiceFooter("ยังไม่มีข้อมูล Target Risk Score ในระบบครับ", lineMaster)
+	}
 
 	var rows []TargetRiskLineRow
 
@@ -836,6 +1023,7 @@ func buildTargetRiskScoreMessage(limit int, lineMaster *entity.AppLineMaster) st
 			INNER JOIN public.tasks t ON t.id = r.task
 			INNER JOIN public.results res ON res.report = r.id
 			WHERE COALESCE(res.host, '') <> ''
+				AND r.task::text IN ?
 			ORDER BY r.task, res.host, r.creation_time DESC, r.id DESC
 		),
 		risk_score_rows AS (
@@ -859,7 +1047,7 @@ func buildTargetRiskScoreMessage(limit int, lineMaster *entity.AppLineMaster) st
 		LIMIT ?
 	`
 
-	if err := db.Raw(query, limit).Scan(&rows).Error; err != nil {
+	if err := db.Raw(query, allowedTaskIDs, limit).Scan(&rows).Error; err != nil {
 		return fmt.Sprintf("ขออภัยครับ ไม่สามารถดึงข้อมูล Target Risk Score ได้ในขณะนี้\n\nรายละเอียด: %s", err.Error())
 	}
 
@@ -897,6 +1085,15 @@ func buildTargetRiskScoreMessage(limit int, lineMaster *entity.AppLineMaster) st
 func buildCriticalVulnerabilityMessage(lineMaster *entity.AppLineMaster) string {
 	db := config.DB()
 
+	allowedTaskIDs, err := FindLineManageLimitTaskIDs(db)
+	if err != nil {
+		return fmt.Sprintf("ขออภัยครับ ไม่สามารถดึงข้อมูลช่องโหว่ระดับ Critical ได้ในขณะนี้\n\nรายละเอียด: %s", err.Error())
+	}
+
+	if len(allowedTaskIDs) == 0 {
+		return appendLineServiceFooter("ขณะนี้ยังไม่พบช่องโหว่ระดับ Critical ในระบบครับ ✅", lineMaster)
+	}
+
 	var rows []CriticalVulnerabilityLineRow
 
 	query := `
@@ -914,6 +1111,7 @@ func buildCriticalVulnerabilityMessage(lineMaster *entity.AppLineMaster) string 
 				ON t.id = rp.task
 			WHERE r.host IS NOT NULL
 				AND BTRIM(r.host) <> ''
+				AND rp.task::text IN ?
 			ORDER BY
 				r.host,
 				COALESCE(t.name, ''),
@@ -958,7 +1156,7 @@ func buildCriticalVulnerabilityMessage(lineMaster *entity.AppLineMaster) string 
 		LIMIT 50
 	`
 
-	if err := db.Raw(query).Scan(&rows).Error; err != nil {
+	if err := db.Raw(query, allowedTaskIDs).Scan(&rows).Error; err != nil {
 		return fmt.Sprintf("ขออภัยครับ ไม่สามารถดึงข้อมูลช่องโหว่ระดับ Critical ได้ในขณะนี้\n\nรายละเอียด: %s", err.Error())
 	}
 
@@ -1011,6 +1209,8 @@ func handleRiskLimitInput(notification entity.AppNotification, lineMaster *entit
 		return "ยังไม่มีข้อมูล Target Risk Score ในระบบครับ"
 	}
 
+	exampleText := buildRiskLimitExampleText(total)
+
 	limit, err := strconv.Atoi(text)
 	if err != nil {
 		invalidCount, locked := addInvalidRiskInput(notification)
@@ -1020,9 +1220,9 @@ func handleRiskLimitInput(notification entity.AppNotification, lineMaster *entit
 
 		return fmt.Sprintf(`กรุณากรอกเป็นตัวเลขอีกครั้งครับ
 
-ตัวอย่าง: 5, 10 หรือ %d
+ตัวอย่าง: %s
 
-ท่านยังสามารถกรอกใหม่ได้อีก %d ครั้ง`, total, lineMaxInvalidRiskInput-invalidCount)
+ท่านยังสามารถกรอกใหม่ได้อีก %d ครั้ง`, exampleText, lineMaxInvalidRiskInput-invalidCount)
 	}
 
 	if limit <= 0 {
@@ -1204,9 +1404,9 @@ func CreateAppNotificationByLine(c *gin.Context) {
 
 		if strings.TrimSpace(replyMessage) == "" {
 			c.JSON(http.StatusOK, gin.H{
-				"message":      "unsupported line command ignored",
-				"source_type":  sourceType,
-				"data":         existingNotification,
+				"message":     "unsupported line command ignored",
+				"source_type": sourceType,
+				"data":        existingNotification,
 			})
 			return
 		}
