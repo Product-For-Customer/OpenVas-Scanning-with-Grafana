@@ -219,6 +219,18 @@ const Value: React.FC<ValueProps> = ({
     );
   }, [filteredRows, selectedTargets.length]);
 
+  const selectedTaskNames = useMemo(() => {
+    if (selectedTargets.length === 0) return [];
+
+    return Array.from(
+      new Set(
+        selectedTargetOptions
+          .map((option) => String(option.task_name ?? "").trim())
+          .filter((name) => name !== "")
+      )
+    );
+  }, [selectedTargetOptions, selectedTargets.length]);
+
   const selectedTargetHosts = useMemo(() => {
     if (selectedTargets.length === 0) return [];
 
@@ -238,6 +250,7 @@ const Value: React.FC<ValueProps> = ({
       task_id: option.task_id,
       task_name: option.task_name,
       host: option.host,
+      host_ip: option.host,
     }));
   }, [selectedTargetOptions]);
 
@@ -505,9 +518,10 @@ const Value: React.FC<ValueProps> = ({
     navigate("/admin/vulnerability-by-level", {
       state: {
         level,
-        scopeTask: selectedTargets.length > 0 ? selectedTargetLabels : "all",
+        scopeTask: selectedTargets.length > 0 ? selectedTaskNames : "all",
         task_id: selectedTaskIDs.length === 1 ? selectedTaskIDs[0] : undefined,
         task_ids: selectedTaskIDs.length > 0 ? selectedTaskIDs : undefined,
+        task_names: selectedTaskNames.length > 0 ? selectedTaskNames : undefined,
 
         target_keys: selectedTargets.length > 0 ? selectedTargets : undefined,
         target_labels:
