@@ -342,27 +342,6 @@ services:
     depends_on:
       - backend
 
-  n8n:
-    image: n8nio/n8n:latest
-    container_name: n8n
-    restart: unless-stopped
-    ports:
-      - "5678:5678"
-    environment:
-      - TZ=${TZ}
-      - GENERIC_TIMEZONE=${TZ}
-      - N8N_HOST=${N8N_HOST}
-      - N8N_PORT=${N8N_PORT}
-      - N8N_PROTOCOL=${N8N_PROTOCOL}
-      - WEBHOOK_URL=${WEBHOOK_URL}
-      - N8N_BASIC_AUTH_ACTIVE=true
-      - N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER}
-      - N8N_BASIC_AUTH_PASSWORD=${N8N_BASIC_AUTH_PASSWORD}
-    volumes:
-      - n8n_data:/home/node/.n8n
-    depends_on:
-      - backend
-
 volumes:
   gpg_data_vol:
   scap_data_vol:
@@ -378,4 +357,3 @@ volumes:
   redis_socket_vol:
   openvas_data_vol:
   openvas_log_data_vol:
-  n8n_data:

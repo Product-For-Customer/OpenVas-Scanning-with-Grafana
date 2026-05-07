@@ -385,8 +385,9 @@ const CombinedMonthYearFilter: React.FC<CombinedFilterProps> = ({
           )}
 
           <FiChevronDown
-            className={`pointer-events-none text-[12px] text-gray-400 dark:text-white/45 transition-transform ${open ? "rotate-180" : ""
-              }`}
+            className={`pointer-events-none text-[12px] text-gray-400 dark:text-white/45 transition-transform ${
+              open ? "rotate-180" : ""
+            }`}
           />
         </div>
       </button>
@@ -452,6 +453,7 @@ const CombinedMonthYearFilter: React.FC<CombinedFilterProps> = ({
                     <div className="px-2.5 pb-1 text-[9.5px] font-semibold uppercase tracking-wide text-slate-400 dark:text-white/35">
                       Month
                     </div>
+
                     <div className="space-y-1">
                       {monthOptions.map((opt) => {
                         const checked = selectedKeys.includes(opt.key);
@@ -496,6 +498,7 @@ const CombinedMonthYearFilter: React.FC<CombinedFilterProps> = ({
                     <div className="px-2.5 pb-1 pt-1 text-[9.5px] font-semibold uppercase tracking-wide text-slate-400 dark:text-white/35">
                       Year
                     </div>
+
                     <div className="space-y-1">
                       {yearOptions.map((opt) => {
                         const checked = selectedKeys.includes(opt.key);
@@ -599,8 +602,9 @@ const StatusFilterDropdown: React.FC<StatusFilterProps> = ({
           )}
 
           <FiChevronDown
-            className={`pointer-events-none shrink-0 text-[12px] text-gray-400 dark:text-white/45 transition-transform ${open ? "rotate-180" : ""
-              }`}
+            className={`pointer-events-none shrink-0 text-[12px] text-gray-400 dark:text-white/45 transition-transform ${
+              open ? "rotate-180" : ""
+            }`}
           />
         </div>
       </button>
@@ -873,9 +877,7 @@ const Index: React.FC<HistoryNotifyProps> = ({
     combinedFilterOptions.every((opt) => selectedDateKeys.includes(opt.key));
 
   const allVisibleStatusSelected =
-    filteredStatusOptions
-      .filter((opt) => opt.key !== "All")
-      .length > 0 &&
+    filteredStatusOptions.filter((opt) => opt.key !== "All").length > 0 &&
     filteredStatusOptions
       .filter((opt) => opt.key !== "All")
       .every((opt) => activeStatusFilters.includes(opt.key as StatusKey));
@@ -887,9 +889,11 @@ const Index: React.FC<HistoryNotifyProps> = ({
       }
 
       const next = [...prev, key];
+
       return next.sort((a, b) => {
         const aIsMonth = a.startsWith("month:");
         const bIsMonth = b.startsWith("month:");
+
         if (aIsMonth && !bIsMonth) return -1;
         if (!aIsMonth && bIsMonth) return 1;
 
@@ -908,17 +912,18 @@ const Index: React.FC<HistoryNotifyProps> = ({
     setSelectedDateKeys((prev) => {
       const prevSet = new Set(prev);
       const allSelected =
-        visibleKeys.length > 0 &&
-        visibleKeys.every((key) => prevSet.has(key));
+        visibleKeys.length > 0 && visibleKeys.every((key) => prevSet.has(key));
 
       if (allSelected) {
         return prev.filter((key) => !visibleKeys.includes(key));
       }
 
       const next = Array.from(new Set([...prev, ...visibleKeys]));
+
       return next.sort((a, b) => {
         const aIsMonth = a.startsWith("month:");
         const bIsMonth = b.startsWith("month:");
+
         if (aIsMonth && !bIsMonth) return -1;
         if (!aIsMonth && bIsMonth) return 1;
 
@@ -956,14 +961,13 @@ const Index: React.FC<HistoryNotifyProps> = ({
     const current = normalizedSelectedFilters.includes("All")
       ? []
       : normalizedSelectedFilters.filter(
-        (key): key is StatusKey => key !== "All"
-      );
+          (key): key is StatusKey => key !== "All"
+        );
 
     const currentSet = new Set(current);
 
     const allSelected =
-      visibleKeys.length > 0 &&
-      visibleKeys.every((key) => currentSet.has(key));
+      visibleKeys.length > 0 && visibleKeys.every((key) => currentSet.has(key));
 
     if (allSelected) {
       const next = current.filter((key) => !visibleKeys.includes(key));
@@ -1088,6 +1092,7 @@ const Index: React.FC<HistoryNotifyProps> = ({
       }
 
       const selectedSet = new Set(selected);
+
       setItems((prev) => prev.filter((item) => !selectedSet.has(item.id)));
       setSelected([]);
       setDeleteOpen(false);
@@ -1136,377 +1141,379 @@ const Index: React.FC<HistoryNotifyProps> = ({
   }, [notifications]);
 
   return (
-    <>
-      <section
-        className={[
-          "relative overflow-hidden rounded-[18px] p-3 sm:p-3.5",
-          "bg-white border border-gray-200/80 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.20)]",
-          "dark:bg-[#08111f]/95 dark:border-white/10 dark:ring-1 dark:ring-cyan-400/10 dark:shadow-none",
-        ].join(" ")}
-      >
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -top-12 right-5 h-24 w-24 rounded-full bg-cyan-400/10 blur-3xl" />
-          <div className="absolute bottom-0 left-0 h-24 w-24 rounded-full bg-violet-500/10 blur-3xl" />
-          <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]">
-            <div
-              className="h-full w-full"
-              style={{
-                backgroundImage: `
-                  linear-gradient(to right, currentColor 1px, transparent 1px),
-                  linear-gradient(to bottom, currentColor 1px, transparent 1px)
-                `,
-                backgroundSize: "24px 24px",
+    <section
+      className={[
+        "relative overflow-hidden rounded-[18px] p-3 sm:p-3.5",
+        "bg-white border border-gray-200/80 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.20)]",
+        "dark:bg-[#08111f]/95 dark:border-white/10 dark:ring-1 dark:ring-cyan-400/10 dark:shadow-none",
+      ].join(" ")}
+    >
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -top-12 right-5 h-24 w-24 rounded-full bg-cyan-400/10 blur-3xl" />
+        <div className="absolute bottom-0 left-0 h-24 w-24 rounded-full bg-violet-500/10 blur-3xl" />
+        <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]">
+          <div
+            className="h-full w-full"
+            style={{
+              backgroundImage: `
+                linear-gradient(to right, currentColor 1px, transparent 1px),
+                linear-gradient(to bottom, currentColor 1px, transparent 1px)
+              `,
+              backgroundSize: "24px 24px",
+            }}
+          />
+        </div>
+      </div>
+
+      <div className="relative z-10">
+        <div className="flex flex-col gap-2.5 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0">
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-[9.5px] font-semibold text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-300">
+              <FiShield className="text-[10px]" />
+              Notification History Center
+            </div>
+
+            <h2 className="mt-2 text-[16px] font-semibold tracking-tight text-slate-900 sm:text-[18px] dark:text-white">
+              Summary Notifications
+            </h2>
+
+            <p className="mt-0.5 text-[10.5px] text-slate-500 sm:text-[11px] dark:text-white/55">
+              Review, search, filter, and manage notification history records.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-1.5">
+            <div className="relative min-w-46 flex-1 sm:flex-none sm:w-75">
+              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-[12px] text-gray-400 dark:text-white/35" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search notifications."
+                className={[
+                  "w-full h-8 rounded-[14px] pl-8.5 pr-3 text-[11px] outline-none transition",
+                  "border border-gray-200 bg-white text-slate-800 focus:ring-2 focus:ring-cyan-200",
+                  "dark:border-white/10 dark:bg-white/5 dark:text-white/80 dark:placeholder:text-white/35 dark:focus:ring-cyan-400/10",
+                ].join(" ")}
+              />
+            </div>
+
+            <CombinedMonthYearFilter
+              buttonLabel={dateFilterButtonLabel}
+              options={combinedFilterOptions}
+              selectedKeys={selectedDateKeys}
+              searchValue={dateFilterSearch}
+              open={openDateFilter}
+              onOpenChange={(open) => {
+                setOpenDateFilter(open);
+                if (open) setOpenFilter(false);
               }}
+              onSearchChange={setDateFilterSearch}
+              onToggle={toggleDateFilter}
+              onSelectAllVisible={handleSelectAllVisibleDateFilters}
+              onClearAll={() => setSelectedDateKeys([])}
+              allVisibleSelected={allVisibleDateFiltersSelected}
+              containerRef={dateFilterRef}
             />
+
+            <StatusFilterDropdown
+              buttonLabel={statusFilterButtonLabel}
+              options={filteredStatusOptions}
+              selectedValues={normalizedSelectedFilters}
+              searchValue={filterSearch}
+              open={openFilter}
+              onOpenChange={(open) => {
+                setOpenFilter(open);
+                if (open) setOpenDateFilter(false);
+              }}
+              onSearchChange={setFilterSearch}
+              onToggle={toggleStatusFilter}
+              onSelectAllVisible={handleSelectAllVisibleStatus}
+              onClearAll={() => setSelectedFilters(["All"])}
+              allVisibleSelected={allVisibleStatusSelected}
+              containerRef={statusFilterRef}
+            />
+
+            <button
+              type="button"
+              onClick={toggleSelectAll}
+              className={[
+                "inline-flex h-8 w-8 items-center justify-center rounded-[14px] transition",
+                allSelected
+                  ? "bg-cyan-50 text-cyan-700 border border-cyan-200 dark:bg-cyan-500/10 dark:text-cyan-200 dark:border-cyan-400/20"
+                  : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-white/5 dark:border-white/10 dark:text-white/70 dark:hover:bg-white/8",
+              ].join(" ")}
+              title="Select all"
+            >
+              {allSelected ? (
+                <FiCheckSquare className="text-[12px]" />
+              ) : (
+                <FiSquare className="text-[12px]" />
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={openDeleteModal}
+              disabled={selected.length === 0}
+              className={[
+                "inline-flex h-8 w-8 items-center justify-center rounded-[14px] transition",
+                selected.length > 0
+                  ? "bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 dark:bg-red-500/10 dark:border-red-400/20 dark:text-red-300 dark:hover:bg-red-500/15"
+                  : "bg-white border border-gray-200 text-gray-300 cursor-not-allowed dark:bg-white/5 dark:border-white/10 dark:text-white/20",
+              ].join(" ")}
+              title="Delete selected"
+            >
+              <FiTrash2 className="text-[12px]" />
+            </button>
           </div>
         </div>
 
-        <div className="relative z-10">
-          <div className="flex flex-col gap-2.5 lg:flex-row lg:items-start lg:justify-between">
-            <div className="min-w-0">
-              <div className="inline-flex items-center gap-1.5 rounded-full border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-[9.5px] font-semibold text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-300">
-                <FiShield className="text-[10px]" />
-                Notification History Center
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+          <div className="inline-flex items-center rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[9.5px] font-medium text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/65">
+            Month:
+            <span className="ml-1 font-semibold text-slate-900 dark:text-white">
+              {selectedMonths.length === 0
+                ? "All"
+                : selectedMonths.length === 1
+                ? MONTH_OPTIONS.find((m) => m.key === selectedMonths[0])?.label
+                : `${selectedMonths.length} selected`}
+            </span>
+          </div>
+
+          <div className="inline-flex items-center rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[9.5px] font-medium text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/65">
+            Year:
+            <span className="ml-1 font-semibold text-slate-900 dark:text-white">
+              {selectedYears.length === 0
+                ? "All"
+                : selectedYears.length === 1
+                ? selectedYears[0]
+                : `${selectedYears.length} selected`}
+            </span>
+          </div>
+
+          <div className="inline-flex items-center rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[9.5px] font-medium text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/65">
+            Status:
+            <span className="ml-1 font-semibold text-slate-900 dark:text-white">
+              {normalizedSelectedFilters.includes("All")
+                ? "All"
+                : normalizedSelectedFilters.length === 1
+                ? normalizedSelectedFilters[0]
+                : `${normalizedSelectedFilters.length} selected`}
+            </span>
+          </div>
+
+          <div className="inline-flex items-center rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[9.5px] font-medium text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/65">
+            Total:
+            <span className="ml-1 font-semibold text-slate-900 dark:text-white">
+              {summaryCount.all}
+            </span>
+          </div>
+
+          <div className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[9.5px] font-medium text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-500/10 dark:text-emerald-200">
+            Completed:
+            <span className="ml-1 font-semibold">
+              {summaryCount.updateCompleted}
+            </span>
+          </div>
+
+          <div className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[9.5px] font-medium text-slate-700 dark:border-slate-400/20 dark:bg-slate-500/10 dark:text-slate-200">
+            No Update:
+            <span className="ml-1 font-semibold">{summaryCount.noUpdate}</span>
+          </div>
+
+          <div className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[9.5px] font-medium text-amber-700 dark:border-amber-400/20 dark:bg-amber-500/10 dark:text-amber-200">
+            Running:
+            <span className="ml-1 font-semibold">
+              {summaryCount.alreadyRunning}
+            </span>
+          </div>
+
+          <div className="inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-[9.5px] font-medium text-red-700 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-200">
+            Failed:
+            <span className="ml-1 font-semibold">
+              {summaryCount.updateFailed}
+            </span>
+          </div>
+
+          <div className="inline-flex items-center rounded-full border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-[9.5px] font-medium text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-200">
+            Notification:
+            <span className="ml-1 font-semibold">
+              {summaryCount.statusNotification}
+            </span>
+          </div>
+
+          <div className="inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[9.5px] font-medium text-violet-700 dark:border-violet-400/20 dark:bg-violet-500/10 dark:text-violet-200">
+            Unauthorized:
+            <span className="ml-1 font-semibold">
+              {summaryCount.unauthorized}
+            </span>
+          </div>
+
+          <div className="inline-flex items-center rounded-full border border-fuchsia-200 bg-fuchsia-50 px-2.5 py-1 text-[9.5px] font-medium text-fuchsia-700 dark:border-fuchsia-400/20 dark:bg-fuchsia-500/10 dark:text-fuchsia-200">
+            Server Error:
+            <span className="ml-1 font-semibold">
+              {summaryCount.serverError}
+            </span>
+          </div>
+
+          <div className="inline-flex items-center rounded-full border border-orange-200 bg-orange-50 px-2.5 py-1 text-[9.5px] font-medium text-orange-700 dark:border-orange-400/20 dark:bg-orange-500/10 dark:text-orange-200">
+            Timeout:
+            <span className="ml-1 font-semibold">{summaryCount.timeout}</span>
+          </div>
+
+          <div className="inline-flex items-center rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[9.5px] font-medium text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/65">
+            Selected:
+            <span className="ml-1 font-semibold text-slate-900 dark:text-white">
+              {selected.length}
+            </span>
+          </div>
+        </div>
+
+        {error && (
+          <div className="mt-3 rounded-[14px] border border-red-200 bg-red-50 px-3 py-2 text-[11px] text-red-700 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300">
+            {error}
+          </div>
+        )}
+
+        <div className="mt-3.5 overflow-hidden rounded-[18px] border border-gray-200/80 bg-white/70 dark:border-white/10 dark:bg-white/3">
+          {loading ? (
+            <div className="min-h-110 px-5 py-8 text-center flex flex-col items-center justify-center">
+              <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-[14px] border border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-200">
+                <FiRotateCw className="animate-spin text-[16px]" />
               </div>
 
-              <h2 className="mt-2 text-[16px] font-semibold tracking-tight text-slate-900 sm:text-[18px] dark:text-white">
-                Summary Notifications
-              </h2>
+              <h3 className="mt-3 text-[13px] font-semibold text-slate-900 dark:text-white/85">
+                Loading notifications...
+              </h3>
 
-              <p className="mt-0.5 text-[10.5px] text-slate-500 sm:text-[11px] dark:text-white/55">
-                Review, search, filter, and manage notification history records.
+              <p className="mt-1 text-[10px] text-slate-500 dark:text-white/55">
+                Please wait while we load your notification history.
               </p>
             </div>
-
-            <div className="flex flex-wrap items-center gap-1.5">
-              <div className="relative min-w-46 flex-1 sm:flex-none sm:w-75">
-                <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-[12px] text-gray-400 dark:text-white/35" />
-                <input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search notifications."
-                  className={[
-                    "w-full h-8 rounded-[14px] pl-8.5 pr-3 text-[11px] outline-none transition",
-                    "border border-gray-200 bg-white text-slate-800 focus:ring-2 focus:ring-cyan-200",
-                    "dark:border-white/10 dark:bg-white/5 dark:text-white/80 dark:placeholder:text-white/35 dark:focus:ring-cyan-400/10",
-                  ].join(" ")}
-                />
+          ) : notifications.length === 0 ? (
+            <div className="min-h-110 px-5 py-8 text-center flex flex-col items-center justify-center">
+              <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-[14px] border border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-200">
+                <FiMessageSquare className="text-[16px]" />
               </div>
 
-              <CombinedMonthYearFilter
-                buttonLabel={dateFilterButtonLabel}
-                options={combinedFilterOptions}
-                selectedKeys={selectedDateKeys}
-                searchValue={dateFilterSearch}
-                open={openDateFilter}
-                onOpenChange={(open) => {
-                  setOpenDateFilter(open);
-                  if (open) setOpenFilter(false);
-                }}
-                onSearchChange={setDateFilterSearch}
-                onToggle={toggleDateFilter}
-                onSelectAllVisible={handleSelectAllVisibleDateFilters}
-                onClearAll={() => setSelectedDateKeys([])}
-                allVisibleSelected={allVisibleDateFiltersSelected}
-                containerRef={dateFilterRef}
-              />
+              <h3 className="mt-3 text-[13px] font-semibold text-slate-900 dark:text-white/85">
+                No notifications found
+              </h3>
 
-              <StatusFilterDropdown
-                buttonLabel={statusFilterButtonLabel}
-                options={filteredStatusOptions}
-                selectedValues={normalizedSelectedFilters}
-                searchValue={filterSearch}
-                open={openFilter}
-                onOpenChange={(open) => {
-                  setOpenFilter(open);
-                  if (open) setOpenDateFilter(false);
-                }}
-                onSearchChange={setFilterSearch}
-                onToggle={toggleStatusFilter}
-                onSelectAllVisible={handleSelectAllVisibleStatus}
-                onClearAll={() => setSelectedFilters(["All"])}
-                allVisibleSelected={allVisibleStatusSelected}
-                containerRef={statusFilterRef}
-              />
-
-              <button
-                type="button"
-                onClick={toggleSelectAll}
-                className={[
-                  "inline-flex h-8 w-8 items-center justify-center rounded-[14px] transition",
-                  allSelected
-                    ? "bg-cyan-50 text-cyan-700 border border-cyan-200 dark:bg-cyan-500/10 dark:text-cyan-200 dark:border-cyan-400/20"
-                    : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-white/5 dark:border-white/10 dark:text-white/70 dark:hover:bg-white/8",
-                ].join(" ")}
-                title="Select all"
-              >
-                {allSelected ? (
-                  <FiCheckSquare className="text-[12px]" />
-                ) : (
-                  <FiSquare className="text-[12px]" />
-                )}
-              </button>
-
-              <button
-                type="button"
-                onClick={openDeleteModal}
-                disabled={selected.length === 0}
-                className={[
-                  "inline-flex h-8 w-8 items-center justify-center rounded-[14px] transition",
-                  selected.length > 0
-                    ? "bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 dark:bg-red-500/10 dark:border-red-400/20 dark:text-red-300 dark:hover:bg-red-500/15"
-                    : "bg-white border border-gray-200 text-gray-300 cursor-not-allowed dark:bg-white/5 dark:border-white/10 dark:text-white/20",
-                ].join(" ")}
-                title="Delete selected"
-              >
-                <FiTrash2 className="text-[12px]" />
-              </button>
+              <p className="mt-1 text-[10px] text-slate-500 dark:text-white/55">
+                Try adjusting your search, date filter, or status filter.
+              </p>
             </div>
-          </div>
+          ) : (
+            <div className="min-h-110 max-h-110 overflow-y-auto">
+              {notifications.map((item, idx) => {
+                const tone = getStatusMeta(item.status);
+                const isSelected = selected.includes(item.id);
+                const parsed = parseDescription(item.description);
+                const displayTitle = getDisplayTitle(item);
+                const displayDescription = getDisplayDescription(item);
 
-          <div className="mt-3 flex flex-wrap items-center gap-1.5">
-            <div className="inline-flex items-center rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[9.5px] font-medium text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/65">
-              Month:
-              <span className="ml-1 font-semibold text-slate-900 dark:text-white">
-                {selectedMonths.length === 0
-                  ? "All"
-                  : selectedMonths.length === 1
-                    ? MONTH_OPTIONS.find((m) => m.key === selectedMonths[0])?.label
-                    : `${selectedMonths.length} selected`}
-              </span>
-            </div>
+                return (
+                  <div
+                    key={item.id}
+                    className={[
+                      "px-3 py-2.5 transition-colors sm:px-4",
+                      idx !== notifications.length - 1
+                        ? "border-b border-gray-200/70 dark:border-white/10"
+                        : "",
+                      isSelected
+                        ? "bg-cyan-50/70 dark:bg-cyan-500/5"
+                        : "hover:bg-gray-50 dark:hover:bg-white/4",
+                    ].join(" ")}
+                  >
+                    <div className="flex items-start gap-2">
+                      <button
+                        type="button"
+                        onClick={() => toggleSelect(item.id)}
+                        className={[
+                          "mt-1 inline-flex h-4 w-4 shrink-0 rounded border transition",
+                          isSelected
+                            ? "border-cyan-500 bg-cyan-500"
+                            : "border-gray-300 bg-white dark:border-white/15 dark:bg-white/5",
+                        ].join(" ")}
+                        aria-label="Select notification"
+                      >
+                        {isSelected && (
+                          <span className="m-auto h-1.5 w-1.5 rounded-xs bg-white" />
+                        )}
+                      </button>
 
-            <div className="inline-flex items-center rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[9.5px] font-medium text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/65">
-              Year:
-              <span className="ml-1 font-semibold text-slate-900 dark:text-white">
-                {selectedYears.length === 0
-                  ? "All"
-                  : selectedYears.length === 1
-                    ? selectedYears[0]
-                    : `${selectedYears.length} selected`}
-              </span>
-            </div>
+                      <div
+                        className={[
+                          "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl border",
+                          tone.iconWrap,
+                        ].join(" ")}
+                      >
+                        {tone.icon}
+                      </div>
 
-            <div className="inline-flex items-center rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[9.5px] font-medium text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/65">
-              Status:
-              <span className="ml-1 font-semibold text-slate-900 dark:text-white">
-                {normalizedSelectedFilters.includes("All")
-                  ? "All"
-                  : normalizedSelectedFilters.length === 1
-                    ? normalizedSelectedFilters[0]
-                    : `${normalizedSelectedFilters.length} selected`}
-              </span>
-            </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <h3 className="truncate text-[12px] font-semibold text-slate-900 dark:text-white/90">
+                                {displayTitle}
+                              </h3>
 
-            <div className="inline-flex items-center rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[9.5px] font-medium text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/65">
-              Total:
-              <span className="ml-1 font-semibold text-slate-900 dark:text-white">
-                {summaryCount.all}
-              </span>
-            </div>
-
-            <div className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[9.5px] font-medium text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-500/10 dark:text-emerald-200">
-              Completed:
-              <span className="ml-1 font-semibold">
-                {summaryCount.updateCompleted}
-              </span>
-            </div>
-
-            <div className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[9.5px] font-medium text-slate-700 dark:border-slate-400/20 dark:bg-slate-500/10 dark:text-slate-200">
-              No Update:
-              <span className="ml-1 font-semibold">{summaryCount.noUpdate}</span>
-            </div>
-
-            <div className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[9.5px] font-medium text-amber-700 dark:border-amber-400/20 dark:bg-amber-500/10 dark:text-amber-200">
-              Running:
-              <span className="ml-1 font-semibold">
-                {summaryCount.alreadyRunning}
-              </span>
-            </div>
-
-            <div className="inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-[9.5px] font-medium text-red-700 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-200">
-              Failed:
-              <span className="ml-1 font-semibold">
-                {summaryCount.updateFailed}
-              </span>
-            </div>
-
-            <div className="inline-flex items-center rounded-full border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-[9.5px] font-medium text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-200">
-              Notification:
-              <span className="ml-1 font-semibold">
-                {summaryCount.statusNotification}
-              </span>
-            </div>
-
-            <div className="inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[9.5px] font-medium text-violet-700 dark:border-violet-400/20 dark:bg-violet-500/10 dark:text-violet-200">
-              Unauthorized:
-              <span className="ml-1 font-semibold">
-                {summaryCount.unauthorized}
-              </span>
-            </div>
-
-            <div className="inline-flex items-center rounded-full border border-fuchsia-200 bg-fuchsia-50 px-2.5 py-1 text-[9.5px] font-medium text-fuchsia-700 dark:border-fuchsia-400/20 dark:bg-fuchsia-500/10 dark:text-fuchsia-200">
-              Server Error:
-              <span className="ml-1 font-semibold">
-                {summaryCount.serverError}
-              </span>
-            </div>
-
-            <div className="inline-flex items-center rounded-full border border-orange-200 bg-orange-50 px-2.5 py-1 text-[9.5px] font-medium text-orange-700 dark:border-orange-400/20 dark:bg-orange-500/10 dark:text-orange-200">
-              Timeout:
-              <span className="ml-1 font-semibold">{summaryCount.timeout}</span>
-            </div>
-
-            <div className="inline-flex items-center rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[9.5px] font-medium text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/65">
-              Selected:
-              <span className="ml-1 font-semibold text-slate-900 dark:text-white">
-                {selected.length}
-              </span>
-            </div>
-          </div>
-
-          {error && (
-            <div className="mt-3 rounded-[14px] border border-red-200 bg-red-50 px-3 py-2 text-[11px] text-red-700 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300">
-              {error}
-            </div>
-          )}
-
-          <div className="mt-3.5 overflow-hidden rounded-[18px] border border-gray-200/80 bg-white/70 dark:border-white/10 dark:bg-white/3">
-            {loading ? (
-              <div className="min-h-110 px-5 py-8 text-center flex flex-col items-center justify-center">
-                <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-[14px] border border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-200">
-                  <FiRotateCw className="animate-spin text-[16px]" />
-                </div>
-                <h3 className="mt-3 text-[13px] font-semibold text-slate-900 dark:text-white/85">
-                  Loading notifications...
-                </h3>
-                <p className="mt-1 text-[10px] text-slate-500 dark:text-white/55">
-                  Please wait while we load your notification history.
-                </p>
-              </div>
-            ) : notifications.length === 0 ? (
-              <div className="min-h-110 px-5 py-8 text-center flex flex-col items-center justify-center">
-                <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-[14px] border border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-200">
-                  <FiMessageSquare className="text-[16px]" />
-                </div>
-                <h3 className="mt-3 text-[13px] font-semibold text-slate-900 dark:text-white/85">
-                  No notifications found
-                </h3>
-                <p className="mt-1 text-[10px] text-slate-500 dark:text-white/55">
-                  Try adjusting your search, date filter, or status filter.
-                </p>
-              </div>
-            ) : (
-              <div className="min-h-110 max-h-110 overflow-y-auto">
-                {notifications.map((item, idx) => {
-                  const tone = getStatusMeta(item.status);
-                  const isSelected = selected.includes(item.id);
-                  const parsed = parseDescription(item.description);
-                  const displayTitle = getDisplayTitle(item);
-                  const displayDescription = getDisplayDescription(item);
-
-                  return (
-                    <div
-                      key={item.id}
-                      className={[
-                        "px-3 py-2.5 transition-colors sm:px-4",
-                        idx !== notifications.length - 1
-                          ? "border-b border-gray-200/70 dark:border-white/10"
-                          : "",
-                        isSelected
-                          ? "bg-cyan-50/70 dark:bg-cyan-500/5"
-                          : "hover:bg-gray-50 dark:hover:bg-white/4",
-                      ].join(" ")}
-                    >
-                      <div className="flex items-start gap-2">
-                        <button
-                          type="button"
-                          onClick={() => toggleSelect(item.id)}
-                          className={[
-                            "mt-1 inline-flex h-4 w-4 shrink-0 rounded border transition",
-                            isSelected
-                              ? "border-cyan-500 bg-cyan-500"
-                              : "border-gray-300 bg-white dark:border-white/15 dark:bg-white/5",
-                          ].join(" ")}
-                          aria-label="Select notification"
-                        >
-                          {isSelected && (
-                            <span className="m-auto h-1.5 w-1.5 rounded-xs bg-white" />
-                          )}
-                        </button>
-
-                        <div
-                          className={[
-                            "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl border",
-                            tone.iconWrap,
-                          ].join(" ")}
-                        >
-                          {tone.icon}
-                        </div>
-
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-start justify-between gap-2">
-                            <div className="min-w-0">
-                              <div className="flex flex-wrap items-center gap-1.5">
-                                <h3 className="truncate text-[12px] font-semibold text-slate-900 dark:text-white/90">
-                                  {displayTitle}
-                                </h3>
-
+                              <span
+                                className={[
+                                  "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-medium",
+                                  tone.badge,
+                                ].join(" ")}
+                              >
                                 <span
-                                  className={[
-                                    "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-medium",
-                                    tone.badge,
-                                  ].join(" ")}
-                                >
+                                  className={`h-1.5 w-1.5 rounded-full ${tone.dot}`}
+                                />
+                                {tone.label}
+                              </span>
+                            </div>
+
+                            <p className="mt-1 text-[10.5px] leading-5 text-slate-600 dark:text-white/60">
+                              {displayDescription}
+                            </p>
+
+                            {parsed.metaLines.length > 0 && (
+                              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                                {parsed.metaLines.map((line, index) => (
                                   <span
-                                    className={`h-1.5 w-1.5 rounded-full ${tone.dot}`}
-                                  />
-                                  {tone.label}
-                                </span>
+                                    key={`${item.id}-meta-${index}`}
+                                    className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[9px] text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/55"
+                                  >
+                                    {line}
+                                  </span>
+                                ))}
                               </div>
+                            )}
+                          </div>
 
-                              <p className="mt-1 text-[10.5px] leading-5 text-slate-600 dark:text-white/60">
-                                {displayDescription}
-                              </p>
-
-                              {parsed.metaLines.length > 0 && (
-                                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                                  {parsed.metaLines.map((line, index) => (
-                                    <span
-                                      key={`${item.id}-meta-${index}`}
-                                      className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[9px] text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/55"
-                                    >
-                                      {line}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
+                          <div className="shrink-0 text-right">
+                            <div className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1 text-[9px] text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/55">
+                              <FiClock className="text-[9px]" />
+                              {formatDate(item.datetime || item.created_at)}
                             </div>
 
-                            <div className="shrink-0 text-right">
-                              <div className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1 text-[9px] text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/55">
-                                <FiClock className="text-[9px]" />
-                                {formatDate(item.datetime || item.created_at)}
-                              </div>
-
-                              <p className="mt-1 text-[9.5px] text-slate-500 dark:text-white/45">
-                                {formatTime(item.datetime || item.created_at)}
-                              </p>
-                            </div>
+                            <p className="mt-1 text-[9.5px] text-slate-500 dark:text-white/45">
+                              {formatTime(item.datetime || item.created_at)}
+                            </p>
                           </div>
                         </div>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
-      </section>
+      </div>
 
       {deleteOpen && (
-        <div className="fixed inset-0 z-200 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-[2px]">
+        <div className="absolute inset-0 z-200 flex items-center justify-center p-4 ">
           <div className="w-full max-w-md overflow-hidden rounded-[22px] border border-gray-200 bg-white shadow-2xl dark:border-white/10 dark:bg-[#0B1220]">
             <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-4 py-3 dark:border-white/10">
               <div className="flex items-start gap-3">
@@ -1518,6 +1525,7 @@ const Index: React.FC<HistoryNotifyProps> = ({
                   <h3 className="text-[14px] font-semibold text-slate-900 dark:text-white/90">
                     Delete selected notifications
                   </h3>
+
                   <p className="mt-1 text-[10.5px] text-slate-500 dark:text-white/55">
                     This action will remove the selected notification history
                     records.
@@ -1549,6 +1557,7 @@ const Index: React.FC<HistoryNotifyProps> = ({
                       <p className="font-medium text-slate-800 dark:text-white/80">
                         {getDisplayTitle(item)}
                       </p>
+
                       <p className="mt-0.5 text-slate-500 dark:text-white/45">
                         {formatDate(item.datetime || item.created_at)}{" "}
                         {formatTime(item.datetime || item.created_at)}
@@ -1587,7 +1596,7 @@ const Index: React.FC<HistoryNotifyProps> = ({
           </div>
         </div>
       )}
-    </>
+    </section>
   );
 };
 
