@@ -96,7 +96,7 @@ const getTypeBadgeClass = (isGroup: boolean) => {
 };
 
 const buildDeviceLabel = (item: AssetRiskDTO) =>
-  `${item.task_name} - ${item.host_ip}`;
+  `${item.task_name}`;
 
 const dedupeAssetRisk = (items: AssetRiskDTO[]): AssetRiskDTO[] => {
   const map = new Map<string, AssetRiskDTO>();
@@ -731,7 +731,7 @@ const DevicePickerDropdown: React.FC<DevicePickerProps> = ({
             Select Device Task
           </p>
           <p className="text-[11px] text-slate-500 dark:text-white/50">
-            Choose one or more task IDs
+            Choose one or more Devices
           </p>
         </div>
 
@@ -783,10 +783,6 @@ const DevicePickerDropdown: React.FC<DevicePickerProps> = ({
                       </p>
 
                       <div className="mt-2 flex flex-wrap items-center gap-2">
-                        <span className="inline-flex rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 dark:border-white/10 dark:bg-white/10 dark:text-white/65">
-                          Task ID: {item.task_id}
-                        </span>
-
                         <span className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-500 dark:border-blue-400/20 dark:bg-blue-500/10 dark:text-blue-200">
                           IP: {item.host_ip}
                         </span>
