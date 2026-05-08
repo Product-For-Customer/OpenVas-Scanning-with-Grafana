@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { AiOutlineMenu } from "react-icons/ai";
 import { RiNotification3Line } from "react-icons/ri";
 import { MdKeyboardArrowDown } from "react-icons/md";
-import { TooltipComponent } from "@syncfusion/ej2-react-popups";
 import { Notification, UserProfile } from ".";
 import { useStateContext } from "../../contexts/ContextProvider";
 import { useAuth } from "../../contexts/AuthContext";
@@ -21,8 +20,32 @@ type NavBtnProps = {
   "aria-label"?: string;
 };
 
+type TooltipPosition =
+  | "Top"
+  | "TopCenter"
+  | "BottomCenter"
+  | "RightCenter"
+  | "LeftCenter";
+
+type SimpleTooltipProps = {
+  content: string;
+  position?: TooltipPosition;
+  children: React.ReactNode;
+};
+
 const DESKTOP_BREAKPOINT = 900;
 const NAV_AVATAR_SIZE = 36;
+
+const SimpleTooltip: React.FC<SimpleTooltipProps> = ({
+  content,
+  position,
+  children,
+}) => {
+  void content;
+  void position;
+
+  return <>{children}</>;
+};
 
 const createCoverThumbnail = async (
   imageSrc: string,
@@ -83,15 +106,17 @@ const NavButton: React.FC<NavBtnProps> = ({
   className = "",
   "aria-label": ariaLabel,
 }) => (
-  <TooltipComponent content={title} position="BottomCenter">
+  <SimpleTooltip content={title} position="BottomCenter">
     <button
       type="button"
       aria-label={ariaLabel ?? title}
       onClick={onClick}
+      style={{ WebkitTapHighlightColor: "transparent" }}
       className={[
         "relative inline-flex h-10 w-10 items-center justify-center rounded-xl text-[18px] transition-all duration-200",
         "text-gray-600 hover:bg-gray-100 active:bg-gray-200",
         "dark:text-white/75 dark:hover:bg-white/10 dark:active:bg-white/15",
+        "focus:outline-none focus:ring-0",
         className,
       ].join(" ")}
     >
@@ -110,7 +135,7 @@ const NavButton: React.FC<NavBtnProps> = ({
 
       {icon}
     </button>
-  </TooltipComponent>
+  </SimpleTooltip>
 );
 
 const Navbar: React.FC = () => {
@@ -279,7 +304,11 @@ const Navbar: React.FC = () => {
     };
   }, [profileSrc]);
 
-  const fullName = `${effectiveUser?.first_name || "Guest"} ${effectiveUser?.last_name || "User"}`.trim();
+  const fullName =
+    `${effectiveUser?.first_name || "Guest"} ${
+      effectiveUser?.last_name || "User"
+    }`.trim();
+
   const roleName = effectiveUser?.role || "Viewer";
   const email = effectiveUser?.email || "guest@example.com";
 
@@ -302,7 +331,7 @@ const Navbar: React.FC = () => {
           </div>
 
           <div className="relative z-10 flex min-w-0 flex-1 items-center gap-2.5 pl-3 sm:gap-3 sm:pl-4 md:pl-5">
-            <TooltipComponent
+            <SimpleTooltip
               content={activeMenu ? "Hide menu" : "Open menu"}
               position="BottomCenter"
             >
@@ -310,15 +339,17 @@ const Navbar: React.FC = () => {
                 type="button"
                 aria-label="Toggle menu"
                 onClick={handleActiveMenu}
+                style={{ WebkitTapHighlightColor: "transparent" }}
                 className={[
                   "inline-flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-200",
                   "text-gray-600 hover:bg-gray-100 active:bg-gray-200",
                   "dark:text-white/75 dark:hover:bg-white/10 dark:active:bg-white/15",
+                  "focus:outline-none focus:ring-0",
                 ].join(" ")}
               >
                 <AiOutlineMenu className="text-[20px]" />
               </button>
-            </TooltipComponent>
+            </SimpleTooltip>
           </div>
 
           <div className="relative z-10 flex h-full shrink-0 items-center">
@@ -358,14 +389,16 @@ const Navbar: React.FC = () => {
             <div className="h-8 w-px bg-gray-200/90 dark:bg-white/10" />
 
             <div className="px-2.5 sm:px-3.5 md:px-4">
-              <TooltipComponent content="Profile" position="BottomCenter">
+              <SimpleTooltip content="Profile" position="BottomCenter">
                 <button
                   type="button"
                   onClick={() => handleClick("userProfile")}
+                  style={{ WebkitTapHighlightColor: "transparent" }}
                   className={[
                     "group flex max-w-[44vw] items-center gap-2 rounded-xl px-2 py-1.5 transition-colors sm:max-w-none sm:gap-2.5 sm:px-2.5",
                     "hover:bg-gray-100 active:bg-gray-200",
                     "dark:hover:bg-white/10 dark:active:bg-white/15",
+                    "focus:outline-none focus:ring-0",
                   ].join(" ")}
                   aria-label="Open profile"
                 >
@@ -394,7 +427,7 @@ const Navbar: React.FC = () => {
 
                   <MdKeyboardArrowDown className="hidden text-[18px] text-gray-400 transition-colors group-hover:text-gray-600 dark:text-white/45 dark:group-hover:text-white/70 sm:block" />
                 </button>
-              </TooltipComponent>
+              </SimpleTooltip>
             </div>
           </div>
         </div>

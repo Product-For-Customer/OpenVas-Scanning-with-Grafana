@@ -1,13 +1,36 @@
 import React, { useMemo, useRef } from "react";
 import { Outlet } from "react-router-dom";
-import { TooltipComponent } from "@syncfusion/ej2-react-popups";
 import { useStateContext } from "../../contexts/ContextProvider";
 import { Navbar, Sidebar, ThemeSettings } from "./index";
 import "./main.css";
 
 const SIDEBAR_EXPANDED_WIDTH = 272;
-const SIDEBAR_COLLAPSED_WIDTH = 76;
+const SIDEBAR_COLLAPSED_WIDTH = 88;
 const DESKTOP_BREAKPOINT = 900;
+
+type TooltipPosition =
+  | "Top"
+  | "TopCenter"
+  | "BottomCenter"
+  | "RightCenter"
+  | "LeftCenter";
+
+type SimpleTooltipProps = {
+  content: string;
+  position?: TooltipPosition;
+  children: React.ReactNode;
+};
+
+const SimpleTooltip: React.FC<SimpleTooltipProps> = ({
+  content,
+  position,
+  children,
+}) => {
+  void content;
+  void position;
+
+  return <>{children}</>;
+};
 
 const MainLayout: React.FC = () => {
   const { activeMenu, themeSettings, screenSize, setIsClicked } =
@@ -79,9 +102,9 @@ const MainLayout: React.FC = () => {
         </div>
 
         <div className="fixed bottom-4 right-4 z-1000">
-          <TooltipComponent content="Settings" position={"Top" as any}>
+          <SimpleTooltip content="Settings" position="Top">
             <div />
-          </TooltipComponent>
+          </SimpleTooltip>
         </div>
 
         <Sidebar />
