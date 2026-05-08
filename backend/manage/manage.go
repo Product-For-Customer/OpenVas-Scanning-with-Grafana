@@ -7,7 +7,7 @@ package manage
 // - ห้ามใส่ค่าติดลบ เช่น -1
 // - ห้ามใส่ทศนิยม เช่น 10.5
 // - ห้ามใส่ตัวอักษรหรือ string เช่น "10"
-const TargetLimit = 8
+const TargetLimit = 25
 
 // เช็กว่า TargetLimit ต้องเป็นจำนวนเต็ม
 // ถ้าใส่ 10.5 หรือ "10" จะ compile ไม่ผ่าน
