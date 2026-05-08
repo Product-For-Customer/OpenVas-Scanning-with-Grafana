@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { MdOutlineCancel, MdKeyboardArrowDown } from "react-icons/md";
 import { FiLogOut } from "react-icons/fi";
@@ -34,6 +34,7 @@ const COLLAPSED_WIDTH = 88;
 const DESKTOP_BREAKPOINT = 900;
 const TABLET_MIN = 768;
 const TABLET_MAX = 1024;
+const MINI_MENU_CLOSE_DELAY = 180;
 
 const SimpleTooltip: React.FC<SimpleTooltipProps> = ({
   content,
@@ -76,6 +77,8 @@ const Sidebar: React.FC = () => {
   );
   const [loggingOut, setLoggingOut] = useState(false);
 
+  const miniCloseTimerRef = useRef<number | null>(null);
+
   const currentScreen =
     typeof screenSize === "number" ? screenSize : window.innerWidth;
 
@@ -107,7 +110,33 @@ const Sidebar: React.FC = () => {
     return isExpanded ? `${EXPANDED_WIDTH}px` : `${COLLAPSED_WIDTH}px`;
   }, [isDesktop, isExpanded]);
 
+  const clearMiniCloseTimer = () => {
+    if (miniCloseTimerRef.current) {
+      window.clearTimeout(miniCloseTimerRef.current);
+      miniCloseTimerRef.current = null;
+    }
+  };
+
+  const openMiniSection = (title: string) => {
+    clearMiniCloseTimer();
+    setActiveMiniSection(title);
+  };
+
+  const scheduleCloseMiniSection = (title?: string) => {
+    clearMiniCloseTimer();
+
+    miniCloseTimerRef.current = window.setTimeout(() => {
+      setActiveMiniSection((prev) => {
+        if (title && prev !== title) return prev;
+        return null;
+      });
+
+      miniCloseTimerRef.current = null;
+    }, MINI_MENU_CLOSE_DELAY);
+  };
+
   const handleCloseSideBar = () => {
+    clearMiniCloseTimer();
     setActiveMiniSection(null);
 
     if (typeof screenSize === "number" && screenSize <= DESKTOP_BREAKPOINT) {
@@ -133,19 +162,28 @@ const Sidebar: React.FC = () => {
       });
 
       setOpenSections(nextOpen);
+      clearMiniCloseTimer();
       setActiveMiniSection(null);
     } catch (error) {
       console.error("Failed to load sidebar links:", error);
       setMenuLinks([]);
+      clearMiniCloseTimer();
       setActiveMiniSection(null);
     }
   }, [location.pathname, isAdmin]);
 
   useEffect(() => {
     if (isExpanded) {
+      clearMiniCloseTimer();
       setActiveMiniSection(null);
     }
   }, [isExpanded]);
+
+  useEffect(() => {
+    return () => {
+      clearMiniCloseTimer();
+    };
+  }, []);
 
   const toggleSection = (title: string) => {
     if (isDesktop && !isExpanded) return;
@@ -153,6 +191,7 @@ const Sidebar: React.FC = () => {
   };
 
   const toggleMiniSection = (title: string) => {
+    clearMiniCloseTimer();
     setActiveMiniSection((prev) => (prev === title ? null : title));
   };
 
@@ -172,6 +211,7 @@ const Sidebar: React.FC = () => {
   const handleLogout = async () => {
     try {
       setLoggingOut(true);
+      clearMiniCloseTimer();
       setActiveMiniSection(null);
       await logout();
       message.success("logout success");
@@ -342,7 +382,10 @@ const Sidebar: React.FC = () => {
       {!isExpanded && activeMiniSection && (
         <div
           className="fixed inset-0 z-35 bg-transparent"
-          onClick={() => setActiveMiniSection(null)}
+          onClick={() => {
+            clearMiniCloseTimer();
+            setActiveMiniSection(null);
+          }}
         />
       )}
 
@@ -735,13 +778,19 @@ const Sidebar: React.FC = () => {
                 }
 
                 return (
-                  <div key={section.title} className="relative">
+                  <div
+                    key={section.title}
+                    className="relative"
+                    onMouseEnter={() => openMiniSection(section.title)}
+                    onMouseLeave={() => scheduleCloseMiniSection(section.title)}
+                  >
                     <button
                       type="button"
                       onClick={(event) => {
                         event.stopPropagation();
                         toggleMiniSection(section.title);
                       }}
+                      onFocus={() => openMiniSection(section.title)}
                       style={{ WebkitTapHighlightColor: "transparent" }}
                       className={[
                         "flex h-12 w-full items-center justify-center border transition-all duration-200",
@@ -773,8 +822,14 @@ const Sidebar: React.FC = () => {
                         style={{
                           animation: "sidebarMiniModalIn 160ms ease-out both",
                         }}
+                        onMouseEnter={() => openMiniSection(section.title)}
+                        onMouseLeave={() =>
+                          scheduleCloseMiniSection(section.title)
+                        }
                         onClick={(event) => event.stopPropagation()}
                       >
+                        <div className="absolute -left-3 top-0 h-full w-3 bg-transparent" />
+
                         <div className="overflow-hidden rounded-[18px] border border-gray-200 bg-white shadow-[0_18px_42px_-22px_rgba(15,23,42,0.5)] ring-1 ring-white/70 backdrop-blur dark:border-white/10 dark:bg-[#0B1220] dark:ring-white/5 dark:shadow-none">
                           <div className="relative overflow-hidden bg-linear-to-r from-cyan-500 via-sky-500 to-violet-500 px-4 py-3 text-white">
                             <span
@@ -811,6 +866,7 @@ const Sidebar: React.FC = () => {
                                     key={`${section.title}-${link.name}-mini-click`}
                                     to={getAdminLinkPath(link.name)}
                                     onClick={() => {
+                                      clearMiniCloseTimer();
                                       setActiveMiniSection(null);
                                       handleCloseSideBar();
                                     }}
