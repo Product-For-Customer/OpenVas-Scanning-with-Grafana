@@ -301,7 +301,7 @@ const normalizeMonthlyData = (
     }));
 };
 
-const Conclusion: React.FC<ConclusionProps> = ({
+const index: React.FC<ConclusionProps> = ({
   onReady,
   selectedTaskIDs = [],
 }) => {
@@ -1258,4 +1258,4 @@ const Conclusion: React.FC<ConclusionProps> = ({
   );
 };
 
-export default Conclusion;
+export default index;

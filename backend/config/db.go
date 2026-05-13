@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Tawunchai/openvas/entity"
+	"github.com/Tawunchai/openvas/services"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -227,6 +228,7 @@ func SeedDatabase() {
 		send := entity.SendEmail{
 			Email:   "service@gmail.com",
 			PassApp: "serg rnko xxxx xxxx",
+			AppUserID: 1,
 		}
 
 		if err := db.Create(&send).Error; err != nil {
@@ -302,6 +304,7 @@ func SeedDatabase() {
 			Name:  "GOT Bot",
 			Description: "Testing Auto Bot send Line Alert about Vulnerability",
 			Token: "LINE_CHANNEL_ACCESS_TOKEN",
+			AppUserID: 1,
 		}
 
 		if err := db.Create(&lineMaster).Error; err != nil {
@@ -328,6 +331,7 @@ func SeedDatabase() {
 					Alert:           true,
 					IsGroup:         true,
 					AppLineMasterID: lineMaster.ID,
+					AppUserID: 1,
 				},
 			}
 
@@ -351,12 +355,12 @@ func SeedDatabase() {
 		if errAdminRole != nil || errUserRole != nil {
 			log.Println("⚠️ Skip seeding AppUser: required AppRole records not found")
 		} else {
-			adminPassword, err := HashPassword("12345678")
+			adminPassword, err := services.HashPassword("12345678")
 			if err != nil {
 				log.Fatalf("❌ failed to hash admin password: %v", err)
 			}
 
-			userPassword, err := HashPassword("12345678")
+			userPassword, err := services.HashPassword("12345678")
 			if err != nil {
 				log.Fatalf("❌ failed to hash user password: %v", err)
 			}

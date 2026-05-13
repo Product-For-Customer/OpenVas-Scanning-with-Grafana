@@ -152,7 +152,7 @@ const normalizeTaskIDs = (ids?: string[]): string[] => {
     .filter((id) => id !== "");
 };
 
-const ComparisonReport: React.FC<ComparisonReportProps> = ({
+const index: React.FC<ComparisonReportProps> = ({
   onReady,
   selectedTaskIDs = [],
 }) => {
@@ -437,4 +437,4 @@ const ComparisonReport: React.FC<ComparisonReportProps> = ({
   );
 };
 
-export default ComparisonReport;
+export default index;

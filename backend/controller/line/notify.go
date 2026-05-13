@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	lineRiskInputTimeout      = 2 * time.Minute
+	lineRiskInputTimeout     = 2 * time.Minute
 	lineRiskCooldownDuration = 2 * time.Minute
 	lineMaxInvalidRiskInput  = 3
 	lineMaxMessageLength     = 4300
@@ -50,6 +50,49 @@ type AppNotificationResponse struct {
 	Alert           bool   `json:"alert"`
 	IsGroup         bool   `json:"is_group"`
 	AppLineMasterID uint   `json:"app_line_master_id"`
+	AppUserID       uint   `json:"app_user_id"`
+}
+
+func getLoginAppUserIDForNotification(c *gin.Context) (uint, bool) {
+	userIDValue, exists := c.Get("user_id")
+	if !exists {
+		return 0, false
+	}
+
+	switch v := userIDValue.(type) {
+	case uint:
+		if v == 0 {
+			return 0, false
+		}
+		return v, true
+
+	case uint64:
+		if v == 0 {
+			return 0, false
+		}
+		return uint(v), true
+
+	case int:
+		if v <= 0 {
+			return 0, false
+		}
+		return uint(v), true
+
+	case int64:
+		if v <= 0 {
+			return 0, false
+		}
+		return uint(v), true
+
+	case float64:
+		if v <= 0 {
+			return 0, false
+		}
+		return uint(v), true
+
+	default:
+		return 0, false
+	}
 }
 
 func mapAppNotificationResponse(n entity.AppNotification) AppNotificationResponse {
@@ -60,10 +103,19 @@ func mapAppNotificationResponse(n entity.AppNotification) AppNotificationRespons
 		Alert:           n.Alert,
 		IsGroup:         n.IsGroup,
 		AppLineMasterID: n.AppLineMasterID,
+		AppUserID:       n.AppUserID,
 	}
 }
 
 func CreateAppNotification(c *gin.Context) {
+	loginAppUserID, ok := getLoginAppUserIDForNotification(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "unauthorized: user not found in context",
+		})
+		return
+	}
+
 	var input CreateAppNotificationInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -71,6 +123,14 @@ func CreateAppNotification(c *gin.Context) {
 	}
 
 	db := config.DB()
+
+	var appUser entity.AppUser
+	if err := db.First(&appUser, loginAppUserID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "login app user not found",
+		})
+		return
+	}
 
 	var lineMaster entity.AppLineMaster
 	if err := db.First(&lineMaster, input.AppLineMasterID).Error; err != nil {
@@ -84,9 +144,10 @@ func CreateAppNotification(c *gin.Context) {
 		Alert:           input.Alert,
 		IsGroup:         input.IsGroup,
 		AppLineMasterID: input.AppLineMasterID,
+		AppUserID:       loginAppUserID,
 	}
 
-	if ok, err := govalidator.ValidateStruct(appNotification); !ok {
+	if ok, err := govalidator.ValidateStruct(appNotification); !ok || err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -126,6 +187,14 @@ func ListAppNotification(c *gin.Context) {
 }
 
 func UpdateAppNotificationByID(c *gin.Context) {
+	loginAppUserID, ok := getLoginAppUserIDForNotification(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "unauthorized: user not found in context",
+		})
+		return
+	}
+
 	id := c.Param("id")
 
 	nid, err := strconv.ParseUint(id, 10, 64)
@@ -141,6 +210,14 @@ func UpdateAppNotificationByID(c *gin.Context) {
 	}
 
 	db := config.DB()
+
+	var appUser entity.AppUser
+	if err := db.First(&appUser, loginAppUserID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "login app user not found",
+		})
+		return
+	}
 
 	var appNotification entity.AppNotification
 	if err := db.First(&appNotification, uint(nid)).Error; err != nil {
@@ -158,6 +235,7 @@ func UpdateAppNotificationByID(c *gin.Context) {
 	}
 
 	updatedNotification := appNotification
+	updatedNotification.AppUserID = loginAppUserID
 
 	if input.Name != nil {
 		updatedNotification.Name = strings.TrimSpace(*input.Name)
@@ -184,12 +262,14 @@ func UpdateAppNotificationByID(c *gin.Context) {
 		updatedNotification.AppLineMasterID = *input.AppLineMasterID
 	}
 
-	if ok, err := govalidator.ValidateStruct(updatedNotification); !ok {
+	if ok, err := govalidator.ValidateStruct(updatedNotification); !ok || err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	updates := map[string]interface{}{}
+	updates := map[string]interface{}{
+		"app_user_id": loginAppUserID,
+	}
 
 	if input.Name != nil {
 		updates["name"] = updatedNotification.Name
@@ -1445,6 +1525,7 @@ func CreateAppNotificationByLine(c *gin.Context) {
 		Alert:           true,
 		IsGroup:         isGroup,
 		AppLineMasterID: lineMaster.ID,
+		AppUserID:       1,
 	}
 
 	if ok, err := govalidator.ValidateStruct(notification); !ok {

@@ -12,4 +12,7 @@ type AppLocation struct {
 	Longtitude float64 `json:"longtitude" valid:"required~Longtitude is required"`
 
 	TaskID string `json:"task_id" gorm:"type:varchar(255);not null;index" valid:"required~TaskID is required"`
+
+	AppUserID uint     `json:"app_user_id" gorm:"not null;index" valid:"required~AppUserID is required"`
+	AppUser   *AppUser `json:"app_user" gorm:"foreignKey:AppUserID" valid:"-"`
 }

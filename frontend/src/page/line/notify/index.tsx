@@ -59,6 +59,7 @@ type UiNotification = {
   alert: boolean;
   is_group: boolean;
   app_line_master_id: number;
+  app_user_id: number;
 };
 
 type NotificationFormData = {
@@ -83,6 +84,7 @@ type UiApp = {
   id: number;
   name: string;
   token: string;
+  app_user_id: number;
   category: string;
   description: string;
   icon: React.ReactNode;
@@ -244,6 +246,7 @@ const mapToUiApp = (item: AppLineMasterResponse): UiApp => {
     id: item.id,
     name: item.name,
     token: item.token,
+    app_user_id: Number(item.app_user_id ?? 0),
     category: getCategoryFromName(item.name),
     description: normalizeText(item.description) || getDescriptionFromName(item.name),
     icon: getIconByName(item.name),
@@ -710,7 +713,7 @@ const LineMasterSelector: React.FC<{
   );
 };
 
-const Notify: React.FC = () => {
+const index: React.FC = () => {
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<SortKey>("Newest");
   const [openSort, setOpenSort] = useState(false);
@@ -854,7 +857,12 @@ const Notify: React.FC = () => {
     const q = lineMasterSearch.trim().toLowerCase();
 
     return uiLineMasters.filter((item) => {
-      const blob = [item.name, item.category, item.description].join(" ").toLowerCase();
+      const blob = [
+        item.name,
+        item.category,
+        item.description,
+        String(item.app_user_id || ""),
+      ].join(" ").toLowerCase();
       return blob.includes(q);
     });
   }, [uiLineMasters, lineMasterSearch]);
@@ -901,6 +909,7 @@ const Notify: React.FC = () => {
         alert: Boolean(item.alert),
         is_group: Boolean(item.is_group),
         app_line_master_id: Number(item.app_line_master_id ?? 0),
+        app_user_id: Number(item.app_user_id ?? 0),
       }));
 
       notificationListCache = mapped;
@@ -996,6 +1005,7 @@ const Notify: React.FC = () => {
         item.is_group ? "true" : "false",
         lineMasterName,
         typeText,
+        String(item.app_user_id || ""),
       ]
         .join(" ")
         .toLowerCase();
@@ -1798,13 +1808,13 @@ const Notify: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="max-h-48.5 overflow-y-auto p-3">
+                    <div className="max-h-100 overflow-y-auto p-3">
                       {loadingLineMasters ? (
-                        <div className="flex min-h-40 items-center justify-center text-[12px] text-slate-500 dark:text-white/50">
+                        <div className="flex min-h-40 items-center justify-center text-[12px] text-slate-500 dark:text-white/45">
                           Loading integrations...
                         </div>
                       ) : lineMasterError ? (
-                        <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-[12px] text-rose-700 dark:border-rose-400/20 dark:bg-rose-500/10 dark:text-rose-200">
+                        <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] text-rose-700 dark:border-rose-400/20 dark:bg-rose-500/10 dark:text-rose-200">
                           {lineMasterError}
                         </div>
                       ) : filteredLineMasters.length === 0 ? (
@@ -1836,6 +1846,11 @@ const Notify: React.FC = () => {
                                   <p className="mt-2 line-clamp-2 text-[11px] leading-5 text-slate-600 dark:text-white/55">
                                     {item.description}
                                   </p>
+
+                                  <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-cyan-200 bg-white/80 px-2 py-1 text-[10px] font-semibold text-cyan-700 dark:border-cyan-400/20 dark:bg-white/8 dark:text-cyan-200">
+                                    <FiUser className="text-[10px]" />
+                                    AppUserID: {item.app_user_id || "-"}
+                                  </div>
 
                                   <div className="mt-3 flex items-center gap-2">
                                     <button
@@ -1886,26 +1901,27 @@ const Notify: React.FC = () => {
             </div>
           </div>
 
-          <div className="mt-5">
-            <div className={`${panelClass} flex flex-col`}>
-                <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="mt-4 flex flex-1 flex-col">
+            <div className="w-full">
+              <div className={panelClass}>
+                <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <h3 className="text-[13px] font-semibold text-slate-800 dark:text-white/85">
-                      Notify List
+                    <h3 className="text-[14px] font-semibold text-slate-900 dark:text-white">
+                      Receivers
                     </h3>
-                    <p className="mt-0.5 text-[10.5px] text-slate-500 dark:text-white/45">
-                      Notification receivers overview
+                    <p className="mt-1 text-[11px] text-slate-500 dark:text-white/45">
+                      Manage LINE receiver IDs and alert status.
                     </p>
                   </div>
 
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                    <div className="relative min-w-55">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="relative">
                       <FiSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-slate-400 dark:text-white/35" />
                       <input
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         placeholder="Search notify..."
-                        className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-[12px] outline-none transition focus:border-violet-300 focus:ring-2 focus:ring-violet-100 dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:placeholder:text-white/35 dark:focus:border-violet-400/30 dark:focus:ring-violet-400/10"
+                        className="h-10 w-55 rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-[12px] outline-none transition focus:border-violet-300 focus:ring-2 focus:ring-violet-100 dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:placeholder:text-white/35 dark:focus:border-violet-400/30 dark:focus:ring-violet-400/10"
                       />
                     </div>
 
@@ -1913,35 +1929,34 @@ const Notify: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setOpenSort((prev) => !prev)}
-                        className="inline-flex h-10 items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 text-[12px] text-violet-700 transition hover:bg-violet-100 dark:border-violet-400/20 dark:bg-violet-500/10 dark:text-violet-300 dark:hover:bg-violet-500/15"
+                        className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-[12px] font-medium text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white/75 dark:hover:bg-white/10"
                       >
-                        <FiLayers className="text-[13px]" />
                         {sortBy}
-                        <FiChevronDown className="text-[13px]" />
+                        <FiChevronDown
+                          className={`text-[13px] transition ${openSort ? "rotate-180" : ""}`}
+                        />
                       </button>
 
                       {openSort && (
-                        <div className="absolute right-0 z-20 mt-2 min-w-45 overflow-hidden rounded-xl border border-violet-100 bg-white shadow-lg dark:border-white/10 dark:bg-[#0b1525]">
+                        <div className="absolute right-0 top-[calc(100%+8px)] z-20 w-45 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl dark:border-white/10 dark:bg-[#10192a]">
                           {(["Newest", "Alert: On First", "Alert: Off First"] as SortKey[]).map(
-                            (option) => (
+                            (item) => (
                               <button
-                                key={option}
+                                key={item}
                                 type="button"
                                 onClick={() => {
-                                  setSortBy(option);
+                                  setSortBy(item);
                                   setOpenSort(false);
                                 }}
                                 className={[
-                                  "flex w-full items-center justify-between px-3 py-2.5 text-left text-[12px] transition",
-                                  sortBy === option
-                                    ? "bg-violet-50 text-violet-700 dark:bg-violet-500/10 dark:text-violet-300"
-                                    : "text-slate-700 hover:bg-slate-50 dark:text-white/75 dark:hover:bg-white/5",
+                                  "flex w-full items-center justify-between px-3 py-2.5 text-left text-[12px] transition hover:bg-slate-50 dark:hover:bg-white/5",
+                                  sortBy === item
+                                    ? "text-violet-700 dark:text-violet-300"
+                                    : "text-slate-700 dark:text-white/70",
                                 ].join(" ")}
                               >
-                                <span>{option}</span>
-                                {sortBy === option ? (
-                                  <FiCheckCircle className="text-[13px]" />
-                                ) : null}
+                                {item}
+                                {sortBy === item ? <FiCheck className="text-[12px]" /> : null}
                               </button>
                             ),
                           )}
@@ -1955,6 +1970,7 @@ const Notify: React.FC = () => {
               </div>
             </div>
           </div>
+        </div>
       </section>
 
       {openCreateModal && (
@@ -1963,10 +1979,10 @@ const Notify: React.FC = () => {
             <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-white/10">
               <div>
                 <h3 className="text-[16px] font-semibold text-slate-900 dark:text-white">
-                  Create Notify
+                  Create Notification
                 </h3>
                 <p className="mt-0.5 text-[11px] text-slate-500 dark:text-white/45">
-                  Add a new notification receiver
+                  Add a new receiver for LINE messages.
                 </p>
               </div>
               <button
@@ -1985,64 +2001,65 @@ const Notify: React.FC = () => {
                 </div>
               ) : null}
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label className={labelClass}>Name</label>
-                  <input
-                    className={inputClass}
-                    value={createForm.name}
-                    onChange={(e) =>
-                      setCreateForm((prev) => ({ ...prev, name: e.target.value }))
-                    }
-                    placeholder="Receiver name"
-                  />
-                </div>
+              <div>
+                <label className={labelClass}>Name</label>
+                <input
+                  className={inputClass}
+                  value={createForm.name}
+                  onChange={(e) =>
+                    setCreateForm((prev) => ({ ...prev, name: e.target.value }))
+                  }
+                  placeholder="Receiver name"
+                />
+              </div>
 
-                <div>
-                  <label className={labelClass}>Send ID</label>
-                  <input
-                    className={inputClass}
-                    value={createForm.send_id}
-                    onChange={(e) =>
-                      setCreateForm((prev) => ({ ...prev, send_id: e.target.value }))
-                    }
-                    placeholder="User ID / Group ID"
-                  />
-                </div>
+              <div>
+                <label className={labelClass}>Send ID</label>
+                <input
+                  className={inputClass}
+                  value={createForm.send_id}
+                  onChange={(e) =>
+                    setCreateForm((prev) => ({ ...prev, send_id: e.target.value }))
+                  }
+                  placeholder="LINE user ID / group ID"
+                />
               </div>
 
               <div>
                 <label className={labelClass}>App Line Master</label>
                 <LineMasterSelector
                   value={createForm.app_line_master_id}
-                  options={lineMasters}
                   onChange={(next) =>
                     setCreateForm((prev) => ({
                       ...prev,
                       app_line_master_id: next,
                     }))
                   }
+                  options={lineMasters}
+                  disabled={loadingLineMasters}
                 />
               </div>
 
-              <div>
-                <label className={labelClass}>Alert Status</label>
-                <AlertToggle
-                  value={createForm.alert}
-                  onChange={(next) =>
-                    setCreateForm((prev) => ({ ...prev, alert: next }))
-                  }
-                />
-              </div>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <label className={labelClass}>Alert</label>
+                  <AlertToggle
+                    value={createForm.alert}
+                    onChange={(next) =>
+                      setCreateForm((prev) => ({ ...prev, alert: next }))
+                    }
+                  />
+                </div>
 
-              <div>
-                <label className={labelClass}>Receiver Type</label>
-                <ReceiverTypeToggle
-                  value={createForm.is_group}
-                  onChange={(next) =>
-                    setCreateForm((prev) => ({ ...prev, is_group: next }))
-                  }
-                />
+                <div>
+                  <label className={labelClass}>Receiver Type</label>
+                  <ReceiverTypeToggle
+                    value={createForm.is_group}
+                    onChange={(next) =>
+                      setCreateForm((prev) => ({ ...prev, is_group: next }))
+                    }
+                  />
+                </div>
               </div>
             </div>
 
@@ -2065,16 +2082,16 @@ const Notify: React.FC = () => {
         </div>
       )}
 
-      {openEditModal && (
+      {openEditModal && selectedRow && (
         <div className={modalBackdropClass}>
           <div className={`${modalCardClass} max-w-2xl`}>
             <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-white/10">
               <div>
                 <h3 className="text-[16px] font-semibold text-slate-900 dark:text-white">
-                  Edit Notify
+                  Edit Notification
                 </h3>
                 <p className="mt-0.5 text-[11px] text-slate-500 dark:text-white/45">
-                  Update notification receiver
+                  Update selected receiver data.
                 </p>
               </div>
               <button
@@ -2093,64 +2110,65 @@ const Notify: React.FC = () => {
                 </div>
               ) : null}
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label className={labelClass}>Name</label>
-                  <input
-                    className={inputClass}
-                    value={editForm.name}
-                    onChange={(e) =>
-                      setEditForm((prev) => ({ ...prev, name: e.target.value }))
-                    }
-                    placeholder="Receiver name"
-                  />
-                </div>
+              <div>
+                <label className={labelClass}>Name</label>
+                <input
+                  className={inputClass}
+                  value={editForm.name}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({ ...prev, name: e.target.value }))
+                  }
+                  placeholder="Receiver name"
+                />
+              </div>
 
-                <div>
-                  <label className={labelClass}>Send ID</label>
-                  <input
-                    className={inputClass}
-                    value={editForm.send_id}
-                    onChange={(e) =>
-                      setEditForm((prev) => ({ ...prev, send_id: e.target.value }))
-                    }
-                    placeholder="User ID / Group ID"
-                  />
-                </div>
+              <div>
+                <label className={labelClass}>Send ID</label>
+                <input
+                  className={inputClass}
+                  value={editForm.send_id}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({ ...prev, send_id: e.target.value }))
+                  }
+                  placeholder="LINE user ID / group ID"
+                />
               </div>
 
               <div>
                 <label className={labelClass}>App Line Master</label>
                 <LineMasterSelector
                   value={editForm.app_line_master_id}
-                  options={lineMasters}
                   onChange={(next) =>
                     setEditForm((prev) => ({
                       ...prev,
                       app_line_master_id: next,
                     }))
                   }
+                  options={lineMasters}
+                  disabled={loadingLineMasters}
                 />
               </div>
 
-              <div>
-                <label className={labelClass}>Alert Status</label>
-                <AlertToggle
-                  value={editForm.alert}
-                  onChange={(next) =>
-                    setEditForm((prev) => ({ ...prev, alert: next }))
-                  }
-                />
-              </div>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <label className={labelClass}>Alert</label>
+                  <AlertToggle
+                    value={editForm.alert}
+                    onChange={(next) =>
+                      setEditForm((prev) => ({ ...prev, alert: next }))
+                    }
+                  />
+                </div>
 
-              <div>
-                <label className={labelClass}>Receiver Type</label>
-                <ReceiverTypeToggle
-                  value={editForm.is_group}
-                  onChange={(next) =>
-                    setEditForm((prev) => ({ ...prev, is_group: next }))
-                  }
-                />
+                <div>
+                  <label className={labelClass}>Receiver Type</label>
+                  <ReceiverTypeToggle
+                    value={editForm.is_group}
+                    onChange={(next) =>
+                      setEditForm((prev) => ({ ...prev, is_group: next }))
+                    }
+                  />
+                </div>
               </div>
             </div>
 
@@ -2182,7 +2200,7 @@ const Notify: React.FC = () => {
               </div>
 
               <h3 className="text-center text-[16px] font-semibold text-slate-900 dark:text-white">
-                Delete Notify
+                Delete Notification
               </h3>
               <p className="mt-2 text-center text-[12px] leading-6 text-slate-500 dark:text-white/50">
                 Are you sure you want to delete{" "}
@@ -2220,14 +2238,14 @@ const Notify: React.FC = () => {
 
       {openTestModal && testTarget && (
         <div className={modalBackdropClass}>
-          <div className={`${modalCardClass} max-w-xl`}>
+          <div className={`${modalCardClass} max-w-lg`}>
             <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-white/10">
               <div>
                 <h3 className="text-[16px] font-semibold text-slate-900 dark:text-white">
-                  Test LINE Notify
+                  Test LINE Message
                 </h3>
                 <p className="mt-0.5 text-[11px] text-slate-500 dark:text-white/45">
-                  Send a test message to {testTarget.name}
+                  Send a test message to selected receiver.
                 </p>
               </div>
               <button
@@ -2239,15 +2257,15 @@ const Notify: React.FC = () => {
               </button>
             </div>
 
-            <div className="px-5 py-5">
+            <div className="space-y-4 px-5 py-5">
               {testLineError ? (
-                <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-[12px] text-rose-700 dark:border-rose-400/20 dark:bg-rose-500/10 dark:text-rose-200">
+                <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-[12px] text-rose-700 dark:border-rose-400/20 dark:bg-rose-500/10 dark:text-rose-200">
                   {testLineError}
                 </div>
               ) : null}
 
               {testLineSuccess ? (
-                <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-[12px] text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-500/10 dark:text-emerald-200">
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-[12px] text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-500/10 dark:text-emerald-200">
                   {testLineSuccess}
                 </div>
               ) : null}
@@ -2263,7 +2281,7 @@ const Notify: React.FC = () => {
                       message: e.target.value,
                     }))
                   }
-                  placeholder="Enter test message..."
+                  placeholder="Enter test message"
                 />
               </div>
             </div>
@@ -2280,7 +2298,7 @@ const Notify: React.FC = () => {
                 disabled={testingLine}
                 className="bg-cyan-600 text-white hover:bg-cyan-700"
               >
-                {testingLine ? "Sending..." : "Send Test"}
+                {testingLine ? "Sending..." : "Send"}
               </ActionButton>
             </div>
           </div>
@@ -2314,6 +2332,25 @@ const Notify: React.FC = () => {
                   {masterFormError}
                 </div>
               ) : null}
+
+              <div className="rounded-2xl border border-cyan-200 bg-cyan-50/70 px-3 py-2.5 dark:border-cyan-400/20 dark:bg-cyan-500/10">
+                <div className="flex items-start gap-2">
+                  <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-cyan-200 bg-white text-cyan-700 dark:border-cyan-400/20 dark:bg-white/10 dark:text-cyan-200">
+                    <FiUser className="text-[13px]" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold text-cyan-800 dark:text-cyan-200">
+                      AppUserID:{" "}
+                      {masterFormMode === "create"
+                        ? "Auto assigned after save"
+                        : editingMaster?.app_user_id || "-"}
+                    </p>
+                    <p className="mt-0.5 text-[10px] leading-4 text-cyan-700/80 dark:text-cyan-100/70">
+                      AppUserID is assigned by the logged-in session.
+                    </p>
+                  </div>
+                </div>
+              </div>
 
               <div>
                 <label className={labelClass}>Integration Name</label>
@@ -2420,6 +2457,11 @@ const Notify: React.FC = () => {
                 ?
               </p>
 
+              <div className="mx-auto mt-3 inline-flex items-center gap-1.5 rounded-full border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-[10.5px] font-semibold text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-200">
+                <FiUser className="text-[11px]" />
+                AppUserID: {masterDeleteTarget.app_user_id || "-"}
+              </div>
+
               {masterDeleteError ? (
                 <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-[12px] text-rose-700 dark:border-rose-400/20 dark:bg-rose-500/10 dark:text-rose-200">
                   {masterDeleteError}
@@ -2449,4 +2491,4 @@ const Notify: React.FC = () => {
   );
 };
 
-export default Notify;
+export default index;

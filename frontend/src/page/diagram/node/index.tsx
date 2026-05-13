@@ -16,6 +16,7 @@ import {
   FiBarChart2,
   FiHash,
   FiActivity,
+  FiUser,
 } from "react-icons/fi";
 import {
   CreateAppDiagramNode,
@@ -33,7 +34,7 @@ import { ListALLTarget, type AllTargetDTO } from "../../../services";
 import DiagramNodeFormModal, {
   type DiagramNodeFormValues,
   type DiagramNodeModalMode,
-} from "../modal/DiagramNodeFormModal";
+} from "../Model/DiagramNodeFormModal";
 import { useAuth } from "../../../contexts/AuthContext";
 
 const getImageSrc = (value?: string) => {
@@ -187,7 +188,7 @@ const TOOLTIP_ESTIMATED_HEIGHT = 420;
 const TOOLTIP_GAP = 14;
 const CONTAINER_PADDING = 12;
 
-const DiagramNode: React.FC = () => {
+const index: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const auth = useAuth() as any;
@@ -237,9 +238,8 @@ const DiagramNode: React.FC = () => {
     width: number;
     height: number;
   } | null>(null);
-  const [modalAnchorPoint, setModalAnchorPoint] = useState<ModalAnchorPoint | null>(
-    null
-  );
+  const [modalAnchorPoint, setModalAnchorPoint] =
+    useState<ModalAnchorPoint | null>(null);
 
   const [hoverCard, setHoverCard] = useState<HoverCardState | null>(null);
 
@@ -332,7 +332,9 @@ const DiagramNode: React.FC = () => {
           return;
         }
 
-        const safeAllNodes = Array.isArray(fetchedAllNodes) ? fetchedAllNodes : [];
+        const safeAllNodes = Array.isArray(fetchedAllNodes)
+          ? fetchedAllNodes
+          : [];
         const safeTargets = Array.isArray(fetchedTargets) ? fetchedTargets : [];
 
         const filteredNodes = safeAllNodes
@@ -685,6 +687,13 @@ const DiagramNode: React.FC = () => {
                     </span>
                   </div>
 
+                  <div className={badgeCls}>
+                    <FiUser className="shrink-0 text-[10px] text-cyan-500" />
+                    <span className="truncate text-[9.5px] font-medium">
+                      Diagram AppUserID: {diagram?.app_user_id || "-"}
+                    </span>
+                  </div>
+
                   {reloading && (
                     <div className={badgeCls}>
                       <span className="truncate text-[9.5px] font-medium">
@@ -816,189 +825,215 @@ const DiagramNode: React.FC = () => {
                     );
                   })}
 
-                  {hoverCard && (() => {
-                    const matchedTarget = targetMap.get(
-                      String(hoverCard.node.task_id || "").trim()
-                    );
+                  {hoverCard &&
+                    (() => {
+                      const matchedTarget = targetMap.get(
+                        String(hoverCard.node.task_id || "").trim()
+                      );
 
-                    const targetName = String(matchedTarget?.name || "").trim();
-                    const targetIP = String(matchedTarget?.ip || "").trim();
-                    const detectedDate = formatDetectedDateTime(
-                      matchedTarget?.detected_date
-                    );
-                    const riskScore = formatRiskScore(matchedTarget?.risk_score);
-                    const level = String(matchedTarget?.level || "").trim() || "-";
-                    const total = Number(matchedTarget?.total ?? 0);
-                    const severity = formatSeverity(matchedTarget?.severity);
+                      const targetName = String(matchedTarget?.name || "").trim();
+                      const targetIP = String(matchedTarget?.ip || "").trim();
+                      const detectedDate = formatDetectedDateTime(
+                        matchedTarget?.detected_date
+                      );
+                      const riskScore = formatRiskScore(
+                        matchedTarget?.risk_score
+                      );
+                      const level =
+                        String(matchedTarget?.level || "").trim() || "-";
+                      const total = Number(matchedTarget?.total ?? 0);
+                      const severity = formatSeverity(matchedTarget?.severity);
 
-                    const targetDisplay =
-                      targetName || targetIP
-                        ? [targetName || "-", targetIP || "-"].join(" - ")
-                        : hoverCard.node.task_id || "-";
+                      const targetDisplay =
+                        targetName || targetIP
+                          ? [targetName || "-", targetIP || "-"].join(" - ")
+                          : hoverCard.node.task_id || "-";
 
-                    const riskTone = getRiskScoreTone(matchedTarget?.risk_score);
-                    const levelTone = getLevelTone(matchedTarget?.level);
+                      const riskTone = getRiskScoreTone(
+                        matchedTarget?.risk_score
+                      );
+                      const levelTone = getLevelTone(matchedTarget?.level);
 
-                    return (
-                      <div
-                        data-hover-card="true"
-                        className="pointer-events-auto absolute z-999 w-75"
-                        style={{
-                          left: hoverCard.left,
-                          top: hoverCard.top,
-                        }}
-                        onMouseEnter={clearHoverLeaveTimer}
-                        onMouseLeave={scheduleHideHoverCard}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <div className="relative overflow-visible">
-                          <div className="overflow-hidden rounded-2xl border border-sky-100 bg-white shadow-[0_20px_40px_rgba(14,165,233,0.14)]">
-                            <div className="border-b border-sky-100 bg-linear-to-r from-sky-50 via-white to-cyan-50 px-3 py-2.5">
-                              <div className="flex items-center gap-2">
-                                <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-sky-500 text-white shadow-sm">
-                                  <FiMapPin className="text-[14px]" />
-                                </span>
-                                <div className="min-w-0 text-left">
-                                  <p className="text-[11px] font-semibold text-slate-800">
-                                    Node Detail
+                      return (
+                        <div
+                          data-hover-card="true"
+                          className="pointer-events-auto absolute z-999 w-75"
+                          style={{
+                            left: hoverCard.left,
+                            top: hoverCard.top,
+                          }}
+                          onMouseEnter={clearHoverLeaveTimer}
+                          onMouseLeave={scheduleHideHoverCard}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="relative overflow-visible">
+                            <div className="overflow-hidden rounded-2xl border border-sky-100 bg-white shadow-[0_20px_40px_rgba(14,165,233,0.14)]">
+                              <div className="border-b border-sky-100 bg-linear-to-r from-sky-50 via-white to-cyan-50 px-3 py-2.5">
+                                <div className="flex items-center gap-2">
+                                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-sky-500 text-white shadow-sm">
+                                    <FiMapPin className="text-[14px]" />
+                                  </span>
+                                  <div className="min-w-0 text-left">
+                                    <p className="text-[11px] font-semibold text-slate-800">
+                                      Node Detail
+                                    </p>
+                                    <p className="text-[9.5px] text-slate-500">
+                                      Marker information
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="space-y-2 px-3 py-3 text-left">
+                                <div>
+                                  <p className="mb-1 flex items-center gap-1.5 text-[9.5px] font-medium text-sky-700">
+                                    <FiType className="text-[10px] text-sky-500" />
+                                    Label
                                   </p>
-                                  <p className="text-[9.5px] text-slate-500">
-                                    Marker information
+                                  <p className="text-[11px] font-semibold text-slate-800 wrap-break-word">
+                                    {hoverCard.node.label || "-"}
                                   </p>
                                 </div>
+
+                                <div>
+                                  <p className="mb-1 flex items-center gap-1.5 text-[9.5px] font-medium text-sky-700">
+                                    <FiAlignLeft className="text-[10px] text-sky-500" />
+                                    Description
+                                  </p>
+                                  <p className="text-[10.5px] leading-5 text-slate-600 wrap-break-word">
+                                    {hoverCard.node.description?.trim()
+                                      ? hoverCard.node.description
+                                      : "No description"}
+                                  </p>
+                                </div>
+
+                                <div>
+                                  <p className="mb-1 flex items-center gap-1.5 text-[9.5px] font-medium text-sky-700">
+                                    <FiUser className="text-[10px] text-sky-500" />
+                                    App User ID
+                                  </p>
+                                  <p className="text-[10.5px] font-medium text-slate-800 wrap-break-word">
+                                    {hoverCard.node.app_user_id || "-"}
+                                  </p>
+                                </div>
+
+                                <div>
+                                  <p className="mb-1 flex items-center gap-1.5 text-[9.5px] font-medium text-sky-700">
+                                    <FiCpu className="text-[10px] text-sky-500" />
+                                    Target
+                                  </p>
+                                  <p className="text-[10.5px] font-medium text-slate-800 wrap-break-word">
+                                    {targetDisplay}
+                                  </p>
+                                </div>
+
+                                <div>
+                                  <p className="mb-1 flex items-center gap-1.5 text-[9.5px] font-medium text-sky-700">
+                                    <FiCalendar className="text-[10px] text-sky-500" />
+                                    Detected
+                                  </p>
+                                  <p className="text-[10.5px] font-medium text-slate-800 wrap-break-word">
+                                    {detectedDate}
+                                  </p>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div
+                                    className={`rounded-xl border px-2.5 py-2 ${riskTone.box}`}
+                                  >
+                                    <p
+                                      className={`mb-1 flex items-center gap-1.5 text-[9px] font-medium ${riskTone.label}`}
+                                    >
+                                      <span
+                                        className={`h-1.5 w-1.5 rounded-full ${riskTone.dot}`}
+                                      />
+                                      <FiBarChart2 className="text-[10px]" />
+                                      Risk Score
+                                    </p>
+                                    <p
+                                      className={`text-[10.5px] font-semibold ${riskTone.value}`}
+                                    >
+                                      {riskScore}
+                                    </p>
+                                  </div>
+
+                                  <div
+                                    className={`rounded-xl border px-2.5 py-2 ${levelTone.box}`}
+                                  >
+                                    <p
+                                      className={`mb-1 flex items-center gap-1.5 text-[9px] font-medium ${levelTone.label}`}
+                                    >
+                                      <span
+                                        className={`h-1.5 w-1.5 rounded-full ${levelTone.dot}`}
+                                      />
+                                      <FiAlertTriangle className="text-[10px]" />
+                                      Level
+                                    </p>
+                                    <p
+                                      className={`text-[10.5px] font-semibold ${levelTone.value}`}
+                                    >
+                                      {level}
+                                    </p>
+                                  </div>
+
+                                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-2">
+                                    <p className="mb-1 flex items-center gap-1.5 text-[9px] font-medium text-sky-700">
+                                      <FiHash className="text-[10px] text-sky-500" />
+                                      Total
+                                    </p>
+                                    <p className="text-[10.5px] font-semibold text-slate-800">
+                                      {total}
+                                    </p>
+                                  </div>
+
+                                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-2">
+                                    <p className="mb-1 flex items-center gap-1.5 text-[9px] font-medium text-sky-700">
+                                      <FiActivity className="text-[10px] text-sky-500" />
+                                      Severity
+                                    </p>
+                                    <p className="text-[10.5px] font-semibold text-slate-800">
+                                      {severity}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                {!isUserRole && (
+                                  <div className="pt-1">
+                                    <button
+                                      type="button"
+                                      className={editGradientBtn}
+                                      onClick={(e) =>
+                                        void handleOpenEdit(hoverCard.node.id, {
+                                          clientX: e.clientX,
+                                          clientY: e.clientY,
+                                        })
+                                      }
+                                    >
+                                      <FiEdit2 className="text-[12px]" />
+                                      Edit Node
+                                    </button>
+                                  </div>
+                                )}
                               </div>
                             </div>
 
-                            <div className="space-y-2 px-3 py-3 text-left">
-                              <div>
-                                <p className="mb-1 flex items-center gap-1.5 text-[9.5px] font-medium text-sky-700">
-                                  <FiType className="text-[10px] text-sky-500" />
-                                  Label
-                                </p>
-                                <p className="text-[11px] font-semibold text-slate-800 wrap-break-word">
-                                  {hoverCard.node.label || "-"}
-                                </p>
-                              </div>
-
-                              <div>
-                                <p className="mb-1 flex items-center gap-1.5 text-[9.5px] font-medium text-sky-700">
-                                  <FiAlignLeft className="text-[10px] text-sky-500" />
-                                  Description
-                                </p>
-                                <p className="text-[10.5px] leading-5 text-slate-600 wrap-break-word">
-                                  {hoverCard.node.description?.trim()
-                                    ? hoverCard.node.description
-                                    : "No description"}
-                                </p>
-                              </div>
-
-                              <div>
-                                <p className="mb-1 flex items-center gap-1.5 text-[9.5px] font-medium text-sky-700">
-                                  <FiCpu className="text-[10px] text-sky-500" />
-                                  Target
-                                </p>
-                                <p className="text-[10.5px] font-medium text-slate-800 wrap-break-word">
-                                  {targetDisplay}
-                                </p>
-                              </div>
-
-                              <div>
-                                <p className="mb-1 flex items-center gap-1.5 text-[9.5px] font-medium text-sky-700">
-                                  <FiCalendar className="text-[10px] text-sky-500" />
-                                  Detected
-                                </p>
-                                <p className="text-[10.5px] font-medium text-slate-800 wrap-break-word">
-                                  {detectedDate}
-                                </p>
-                              </div>
-
-                              <div className="grid grid-cols-2 gap-2">
-                                <div
-                                  className={`rounded-xl border px-2.5 py-2 ${riskTone.box}`}
-                                >
-                                  <p
-                                    className={`mb-1 flex items-center gap-1.5 text-[9px] font-medium ${riskTone.label}`}
-                                  >
-                                    <span className={`h-1.5 w-1.5 rounded-full ${riskTone.dot}`} />
-                                    <FiBarChart2 className="text-[10px]" />
-                                    Risk Score
-                                  </p>
-                                  <p className={`text-[10.5px] font-semibold ${riskTone.value}`}>
-                                    {riskScore}
-                                  </p>
-                                </div>
-
-                                <div
-                                  className={`rounded-xl border px-2.5 py-2 ${levelTone.box}`}
-                                >
-                                  <p
-                                    className={`mb-1 flex items-center gap-1.5 text-[9px] font-medium ${levelTone.label}`}
-                                  >
-                                    <span className={`h-1.5 w-1.5 rounded-full ${levelTone.dot}`} />
-                                    <FiAlertTriangle className="text-[10px]" />
-                                    Level
-                                  </p>
-                                  <p className={`text-[10.5px] font-semibold ${levelTone.value}`}>
-                                    {level}
-                                  </p>
-                                </div>
-
-                                <div className="rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-2">
-                                  <p className="mb-1 flex items-center gap-1.5 text-[9px] font-medium text-sky-700">
-                                    <FiHash className="text-[10px] text-sky-500" />
-                                    Total
-                                  </p>
-                                  <p className="text-[10.5px] font-semibold text-slate-800">
-                                    {total}
-                                  </p>
-                                </div>
-
-                                <div className="rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-2">
-                                  <p className="mb-1 flex items-center gap-1.5 text-[9px] font-medium text-sky-700">
-                                    <FiActivity className="text-[10px] text-sky-500" />
-                                    Severity
-                                  </p>
-                                  <p className="text-[10.5px] font-semibold text-slate-800">
-                                    {severity}
-                                  </p>
-                                </div>
-                              </div>
-
-                              {!isUserRole && (
-                                <div className="pt-1">
-                                  <button
-                                    type="button"
-                                    className={editGradientBtn}
-                                    onClick={(e) =>
-                                      void handleOpenEdit(hoverCard.node.id, {
-                                        clientX: e.clientX,
-                                        clientY: e.clientY,
-                                      })
-                                    }
-                                  >
-                                    <FiEdit2 className="text-[12px]" />
-                                    Edit Node
-                                  </button>
-                                </div>
-                              )}
-                            </div>
+                            <div
+                              className="absolute h-3 w-3 rotate-45 border-r border-b border-sky-100 bg-white"
+                              style={{
+                                left: hoverCard.arrowLeft,
+                                top: hoverCard.placeBelow ? -6 : undefined,
+                                bottom: hoverCard.placeBelow ? undefined : -6,
+                                transform: `translateX(-50%) ${
+                                  hoverCard.placeBelow
+                                    ? "rotate(225deg)"
+                                    : "rotate(45deg)"
+                                }`,
+                              }}
+                            />
                           </div>
-
-                          <div
-                            className="absolute h-3 w-3 rotate-45 border-r border-b border-sky-100 bg-white"
-                            style={{
-                              left: hoverCard.arrowLeft,
-                              top: hoverCard.placeBelow ? -6 : undefined,
-                              bottom: hoverCard.placeBelow ? undefined : -6,
-                              transform: `translateX(-50%) ${
-                                hoverCard.placeBelow ? "rotate(225deg)" : "rotate(45deg)"
-                              }`,
-                            }}
-                          />
                         </div>
-                      </div>
-                    );
-                  })()}
+                      );
+                    })()}
                 </div>
               </div>
             </div>
@@ -1036,4 +1071,4 @@ const DiagramNode: React.FC = () => {
   );
 };
 
-export default DiagramNode;
+export default index;

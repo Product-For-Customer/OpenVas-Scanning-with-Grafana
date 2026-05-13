@@ -2,65 +2,72 @@ package services
 
 import (
 	"errors"
+	"golang.org/x/crypto/bcrypt"
+	"os"
 	"time"
 
-	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt/v5"
 )
 
-type JwtWrapper struct {
-	SecretKey       string
-	Issuer          string
-	ExpirationHours int64
+type JWTClaims struct {
+	UserID uint   `json:"user_id"`
+	Email  string `json:"email"`
+	Role   string `json:"role"`
+	jwt.RegisteredClaims
 }
 
-type JwtClaim struct {
-	Email string
-	jwt.StandardClaims
+func GetJWTSecret() string {
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		return "super-secret-dev-key-change-this"
+	}
+	return secret
 }
 
-func (j *JwtWrapper) GenerateToken(email string) (signedToken string, err error) {
-	claims := &JwtClaim{
-		Email: email,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Local().Add(time.Hour * time.Duration(j.ExpirationHours)).Unix(),
-			Issuer:    j.Issuer,
+func GenerateJWT(userID uint, email string, role string) (string, error) {
+	claims := JWTClaims{
+		UserID: userID,
+		Email:  email,
+		Role:   role,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			NotBefore: jwt.NewNumericDate(time.Now()),
+			Issuer:    "openvas-backend",
+			Subject:   email,
 		},
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
-	signedToken, err = token.SignedString([]byte(j.SecretKey))
-	if err != nil {
-		return
-	}
-
-	return 
+	return token.SignedString([]byte(GetJWTSecret()))
 }
 
-func (j *JwtWrapper) ValidateToken(signedToken string) (claims *JwtClaim, err error) {
-	token, err := jwt.ParseWithClaims(
-		signedToken,
-		&JwtClaim{},
-		func(token *jwt.Token) (interface{}, error) {
-			return []byte(j.SecretKey), nil
-		},
-	)
-
+func ParseJWT(tokenString string) (*JWTClaims, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
+		return []byte(GetJWTSecret()), nil
+	})
 	if err != nil {
-		return
+		return nil, err
 	}
 
-	claims, ok := token.Claims.(*JwtClaim)
+	claims, ok := token.Claims.(*JWTClaims)
 	if !ok {
-		err = errors.New("Couldn't parse claims")
-		return
+		return nil, errors.New("invalid token claims")
 	}
 
-	if claims.ExpiresAt < time.Now().Local().Unix() {
-		err = errors.New("JWT is expired")
-		return
+	if !token.Valid {
+		return nil, errors.New("invalid token")
 	}
 
-	return
+	return claims, nil
+}
 
+func HashPassword(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	return string(bytes), err
+}
+
+func CheckPasswordHash(password string, hashedPassword string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
+	return err == nil
 }

@@ -1,6 +1,7 @@
 package location
 
 import (
+	"errors"
 	"net/http"
 	"sort"
 	"strconv"
@@ -40,6 +41,7 @@ type LocationResponse struct {
 	Latitude   float64     `json:"latitude"`
 	Longtitude float64     `json:"longtitude"`
 	TaskID     string      `json:"task_id"`
+	AppUserID  uint        `json:"app_user_id"`
 	CreatedAt  interface{} `json:"created_at"`
 	UpdatedAt  interface{} `json:"updated_at"`
 }
@@ -56,7 +58,50 @@ func cleanOptionalString(value *string) string {
 	if value == nil {
 		return ""
 	}
+
 	return strings.TrimSpace(*value)
+}
+
+func getLoginAppUserIDForLocation(c *gin.Context) (uint, bool) {
+	userIDValue, exists := c.Get("user_id")
+	if !exists {
+		return 0, false
+	}
+
+	switch v := userIDValue.(type) {
+	case uint:
+		if v == 0 {
+			return 0, false
+		}
+		return v, true
+
+	case uint64:
+		if v == 0 {
+			return 0, false
+		}
+		return uint(v), true
+
+	case int:
+		if v <= 0 {
+			return 0, false
+		}
+		return uint(v), true
+
+	case int64:
+		if v <= 0 {
+			return 0, false
+		}
+		return uint(v), true
+
+	case float64:
+		if v <= 0 {
+			return 0, false
+		}
+		return uint(v), true
+
+	default:
+		return 0, false
+	}
 }
 
 func normalizeLocationTaskIDForManageLimit(taskID string) string {
@@ -223,12 +268,21 @@ func mapLocationResponse(loc entity.AppLocation) LocationResponse {
 		Latitude:   loc.Latitude,
 		Longtitude: loc.Longtitude,
 		TaskID:     loc.TaskID,
+		AppUserID:  loc.AppUserID,
 		CreatedAt:  loc.CreatedAt,
 		UpdatedAt:  loc.UpdatedAt,
 	}
 }
 
 func CreateLocation(c *gin.Context) {
+	loginAppUserID, ok := getLoginAppUserIDForLocation(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "unauthorized: user not found in context",
+		})
+		return
+	}
+
 	var input CreateLocationInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -238,6 +292,21 @@ func CreateLocation(c *gin.Context) {
 	}
 
 	db := config.DB()
+
+	var appUser entity.AppUser
+	if err := db.First(&appUser, loginAppUserID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "login app user not found",
+			})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
 
 	taskID := normalizeLocationTaskIDForManageLimit(input.TaskID)
 	if taskID == "" {
@@ -270,9 +339,10 @@ func CreateLocation(c *gin.Context) {
 		Latitude:   input.Latitude,
 		Longtitude: input.Longtitude,
 		TaskID:     taskID,
+		AppUserID:  loginAppUserID,
 	}
 
-	ok, err := govalidator.ValidateStruct(location)
+	ok, err = govalidator.ValidateStruct(location)
 	if !ok || err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
@@ -288,7 +358,9 @@ func CreateLocation(c *gin.Context) {
 	}
 
 	var createdLocation entity.AppLocation
-	if err := db.First(&createdLocation, location.ID).Error; err != nil {
+	if err := db.
+		Preload("AppUser").
+		First(&createdLocation, location.ID).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "failed to reload created location",
 		})
@@ -322,6 +394,7 @@ func ListLocation(c *gin.Context) {
 
 	var locations []entity.AppLocation
 	if err := db.
+		Preload("AppUser").
 		Order("id ASC").
 		Find(&locations).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -356,8 +429,10 @@ func ListLocationByID(c *gin.Context) {
 	db := config.DB()
 
 	var location entity.AppLocation
-	if err := db.First(&location, uint(lid)).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
+	if err := db.
+		Preload("AppUser").
+		First(&location, uint(lid)).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{
 				"error": "location not found",
 			})
@@ -392,6 +467,14 @@ func ListLocationByID(c *gin.Context) {
 }
 
 func UpdateLocationByID(c *gin.Context) {
+	loginAppUserID, ok := getLoginAppUserIDForLocation(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "unauthorized: user not found in context",
+		})
+		return
+	}
+
 	id := c.Param("id")
 
 	lid, err := strconv.ParseUint(id, 10, 64)
@@ -412,9 +495,24 @@ func UpdateLocationByID(c *gin.Context) {
 
 	db := config.DB()
 
+	var appUser entity.AppUser
+	if err := db.First(&appUser, loginAppUserID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "login app user not found",
+			})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
 	var location entity.AppLocation
 	if err := db.First(&location, uint(lid)).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{
 				"error": "location not found",
 			})
@@ -443,23 +541,41 @@ func UpdateLocationByID(c *gin.Context) {
 		return
 	}
 
+	if input.Location == nil &&
+		input.Building == nil &&
+		input.Floor == nil &&
+		input.Latitude == nil &&
+		input.Longtitude == nil &&
+		input.TaskID == nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "no fields to update",
+		})
+		return
+	}
+
 	updatedLocation := location
+	updatedLocation.AppUserID = loginAppUserID
 
 	if input.Location != nil {
 		updatedLocation.Location = cleanOptionalString(input.Location)
 	}
+
 	if input.Building != nil {
 		updatedLocation.Building = cleanOptionalString(input.Building)
 	}
+
 	if input.Floor != nil {
 		updatedLocation.Floor = *input.Floor
 	}
+
 	if input.Latitude != nil {
 		updatedLocation.Latitude = *input.Latitude
 	}
+
 	if input.Longtitude != nil {
 		updatedLocation.Longtitude = *input.Longtitude
 	}
+
 	if input.TaskID != nil {
 		taskID := normalizeLocationTaskIDForManageLimit(*input.TaskID)
 		if taskID == "" {
@@ -496,32 +612,32 @@ func UpdateLocationByID(c *gin.Context) {
 		return
 	}
 
-	updates := map[string]interface{}{}
+	updates := map[string]interface{}{
+		"app_user_id": loginAppUserID,
+	}
 
 	if input.Location != nil {
 		updates["location"] = updatedLocation.Location
 	}
+
 	if input.Building != nil {
 		updates["building"] = updatedLocation.Building
 	}
+
 	if input.Floor != nil {
 		updates["floor"] = updatedLocation.Floor
 	}
+
 	if input.Latitude != nil {
 		updates["latitude"] = updatedLocation.Latitude
 	}
+
 	if input.Longtitude != nil {
 		updates["longtitude"] = updatedLocation.Longtitude
 	}
+
 	if input.TaskID != nil {
 		updates["task_id"] = updatedLocation.TaskID
-	}
-
-	if len(updates) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "no fields to update",
-		})
-		return
 	}
 
 	if err := db.Model(&entity.AppLocation{}).
@@ -534,7 +650,9 @@ func UpdateLocationByID(c *gin.Context) {
 	}
 
 	var reloaded entity.AppLocation
-	if err := db.First(&reloaded, location.ID).Error; err != nil {
+	if err := db.
+		Preload("AppUser").
+		First(&reloaded, location.ID).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "failed to reload updated location",
 		})
@@ -562,7 +680,7 @@ func DeleteLocationByID(c *gin.Context) {
 
 	var location entity.AppLocation
 	if err := db.First(&location, uint(lid)).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{
 				"error": "location not found",
 			})

@@ -93,7 +93,7 @@ const normalizeTaskIDs = (ids?: string[]): string[] => {
     .filter((id) => id !== "");
 };
 
-const ReportKPI: React.FC<ReportKPIProps> = ({
+const index: React.FC<ReportKPIProps> = ({
   onReady,
   selectedTaskIDs = [],
   prefetchedRows,
@@ -369,4 +369,4 @@ const ReportKPI: React.FC<ReportKPIProps> = ({
   );
 };
 
-export default ReportKPI;
+export default index;

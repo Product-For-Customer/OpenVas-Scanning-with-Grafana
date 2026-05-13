@@ -5,15 +5,15 @@ import {
   FiFileText,
   FiLoader,
 } from "react-icons/fi";
-import ReportHeader from "./ReportHeader";
+import ReportHeader from "./Header";
 import ReportKPI from "./ReportKPI";
 import SeveritySnapshot from "./SeveritySnapshot";
 import ExecutiveHighlights from "./ExecutiveHighlights";
-import TopDeviceRiskReport from "./TopDeviceRiskReport";
-import ComparisonReport from "./comparision";
-import Section6MonthlyRiskReport from "./monthlyRiskReport";
-import Conclusion from "./conclusion";
-import ReportFooter from "./ReportFooter";
+import TopDeviceRiskReport from "./TopDeviceRisk";
+import ComparisonReport from "./Comparision";
+import Section6MonthlyRiskReport from "./MonthlyRisk";
+import Conclusion from "./Conclusion";
+import ReportFooter from "./Footer";
 import {
   ListCriticalForReport,
   ListDeviceRiskForReport,

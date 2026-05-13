@@ -79,7 +79,7 @@ const normalizeTaskIDs = (ids?: string[]): string[] => {
     .filter((id) => id !== "");
 };
 
-const SeveritySnapshot: React.FC<SeveritySnapshotProps> = ({
+const index: React.FC<SeveritySnapshotProps> = ({
   title = "Severity Snapshot",
   totalLabel = "Total Findings",
   onReady,
@@ -411,4 +411,4 @@ const SeveritySnapshot: React.FC<SeveritySnapshotProps> = ({
   );
 };
 
-export default SeveritySnapshot;
+export default index;

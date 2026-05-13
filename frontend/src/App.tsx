@@ -1,6 +1,6 @@
 import React from 'react';
 import ConfigRoutes from './routes/mainroutes';
-import { ContextProvider } from "./contexts/ContextProvider";
+import { ContextProvider } from "./contexts/ProviderContext";
 import { AuthProvider } from "./contexts/AuthContext";
 
 const App: React.FC = () => {

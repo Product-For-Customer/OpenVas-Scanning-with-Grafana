@@ -1,32 +1,32 @@
 import { lazy } from "react";
 import { Navigate, useRoutes, type RouteObject } from "react-router-dom";
-import Loadable from "../component/third-patry/Loadable";
+import Loadable from "../component/load/Loadable";
 import { useAuth } from "../contexts/AuthContext";
 
 // ===== Admin Pages =====
-const Dashboard = Loadable(lazy(() => import("../page/dashboard/index")));
+const Dashboard = Loadable(lazy(() => import("../page/Dashboard/index")));
 const Account = Loadable(lazy(() => import("../page/Account/index")));
-const Target = Loadable(lazy(() => import("../page/target/index")));
-const StatusTargetData = Loadable(lazy(() => import("../page/target/Status/data/index")));
-const LineNotification = Loadable(lazy(() => import("../page/line/index")));
-const User = Loadable(lazy(() => import("../page/user/index")));
-const MainLayout = Loadable(lazy(() => import("../component/admin/MainLayout")));
-const Service = Loadable(lazy(() => import("../component/admin/Service")));
-const VulnerabilityByDevice = Loadable(lazy(() => import("../page/target/RiskScoreTable/vulnerability/index")));
-const VulnerabilityByLevel = Loadable(lazy(() => import("../page/dashboard/only/vulnerability")));
-const Vulnerability = Loadable(lazy(() => import("../page/vulnerability/index")));
-const VulnerabilityDetail = Loadable(lazy(() => import("../page/vulnerability/List/Detail/index")));
-const Report = Loadable(lazy(() => import("../page/report/index")));
-const Diagram = Loadable(lazy(() => import("../page/diagram/index")));
-const DiagramNode = Loadable(lazy(() => import("../page/diagram/node/index")));
+const Target = Loadable(lazy(() => import("../page/Target/index")));
+const StatusTargetData = Loadable(lazy(() => import("../page/Target/Status/data/index")));
+const LineNotification = Loadable(lazy(() => import("../page/Line/index")));
+const User = Loadable(lazy(() => import("../page/User/index")));
+const MainLayout = Loadable(lazy(() => import("../component/structure/MainLayout")));
+const Service = Loadable(lazy(() => import("../component/structure/navbar/Service")));
+const VulnerabilityByDevice = Loadable(lazy(() => import("../page/Target/TableTarget/vulnerability/index")));
+const VulnerabilityByLevel = Loadable(lazy(() => import("../page/Dashboard/Description/vulnerability")));
+const Vulnerability = Loadable(lazy(() => import("../page/Vulnerability/index")));
+const VulnerabilityDetail = Loadable(lazy(() => import("../page/Vulnerability/List/Detail/index")));
+const Report = Loadable(lazy(() => import("../page/Report/index")));
+const Diagram = Loadable(lazy(() => import("../page/Diagram/index")));
+const DiagramNode = Loadable(lazy(() => import("../page/Diagram/Node/index")));
 
 // ===== Login Pages =====
 const Authentication = Loadable(lazy(() => import("../page/Authentication/index")));
-const Loader = Loadable(lazy(() => import("../component/third-patry/Loader")));
+const Loader = Loadable(lazy(() => import("../component/load/Loader")));
 
 
 //====== Test Captuer ======
-const CaptureTest = Loadable(lazy(() => import("../page/report/CaptureTest")));
+const CaptureTest = Loadable(lazy(() => import("../page/Report/capture")));
 const LogoAnimation = Loadable(lazy(() => import("../page/Authentication/animation/index")));
 // ======================= ROUTES =======================
 

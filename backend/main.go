@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/Tawunchai/openvas/config"
 	"github.com/Tawunchai/openvas/controller/auth"
@@ -20,12 +21,12 @@ import (
 )
 
 func main() {
-	config.ConnectDB()
-	config.SetupDatabase()
-	config.SeedDatabase()
+	config.ConnectDB() // เชื่อมต่อฐานข้อมูล
+	config.SetupDatabase() // สร้างตารางและข้อมูลเริ่มต้น
+	config.SeedDatabase() // เติมข้อมูลเริ่มต้นเพิ่มเติม
 
-	go line.StartLineStatusListener()
-	go automation.StartDailyFeedUpdateScheduler()
+	go line.StartLineStatusListener() // เริ่มฟังก์ชันฟังสถานะ Line Notify เพื่อเเจ้งเตือนสถานะ
+	go automation.StartDailyFeedUpdateScheduler() // เริ่มฟังก์ชันตั้งเวลาทำงานอัตโนมัติสำหรับอัปเดตข้อมูลช่องโหว่รายวัน
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -40,14 +41,14 @@ func main() {
 	})
 
 	// ==== Public Auth Routes ====
-	r.POST("/auth/login", auth.Login)
-	r.POST("/send-otp-signup", auth.SendOTPForSignUp)
-	r.POST("/verify-otp-signup", auth.VerifyOTPSignUp)
-	r.POST("/check-user-email", auth.CheckUserEmail)
-	r.POST("/send-otp", otp.SendOTP)
-	r.POST("/verify-otp-password", otp.VerifyOTPAddUpdatePassword)
-	r.POST("/auth/logout", auth.Logout)
-	r.GET("/email-phone-numbers", user.ListEmailAndPhoneNumber)
+	r.POST("/auth/login", auth.Login) // ใช้สำหรับเข้าสู่ระบบด้วย email และ password
+	r.POST("/send-otp-signup", auth.SendOTPForSignUp) // ใช้สำหรับส่ง OTP เมื่อผู้ใช้ต้องการสมัครสมาชิกใหม่
+	r.POST("/verify-otp-signup", auth.VerifyOTPSignUp) // ใช้สำหรับตรวจสอบ OTP และสร้างบัญชีผู้ใช้ใหม่เมื่อสมัครสมาชิก
+	r.POST("/check-user-email", auth.CheckUserEmail) // ใช้สำหรับตรวจสอบว่ามีผู้ใช้ที่ลงทะเบียนด้วยอีเมลนี้แล้วหรือไม่ (สำหรับการต้องการเปลี่ยนรหัสผ่าน)
+	r.POST("/send-otp", otp.SendOTP) // ใช้สำหรับส่ง OTP เมื่อผู้ใช้ต้องการเปลี่ยนรหัสผ่าน
+	r.POST("/verify-otp-password", otp.VerifyOTPAddUpdatePassword) // ใช้สำหรับตรวจสอบ OTP และอัปเดตรหัสผ่านใหม่เมื่อผู้ใช้ต้องการเปลี่ยนรหัสผ่าน
+	r.POST("/auth/logout", auth.Logout) // ใช้สำหรับออกจากระบบโดยการลบคุกกี้ auth_token
+	r.GET("/email-phone-numbers", user.ListEmailAndPhoneNumber) // ใช้สำหรับดึงรายชื่ออีเมลและหมายเลขโทรศัพท์ของผู้ใช้ทั้งหมด
 
 	// เปิดให้รูปที่แคปไว้เข้าถึงผ่าน URL
 	r.Static("/public/reports", "./tmp/reports")
@@ -57,7 +58,7 @@ func main() {
 	r.POST("/line/webhook/notification", line.CreateAppNotificationByLine)
 
 	//==== Report Data for Frontend =====
-	r.GET("/summary-vulnerability-report", vulnerability.ListTaskVulnSummary) //complete
+	r.GET("/summary-vulnerability-report", vulnerability.ListTaskVulnSummary)
 	r.GET("/critical-report", report.ListCriticalForReport)
 	r.GET("/devices/risk-report", report.ListDeviceRiskForReport)
 	r.GET("/target-differ-report", report.ListTargetDiffer)
@@ -65,7 +66,7 @@ func main() {
 	r.GET("/download-pdf", report.DownloadPDF)
 	r.GET("/send-pdf-to-line", report.SendPDFToLine)
 	r.GET("/app-report", report.ListAppReport)
-	r.GET("/reports/all/:task_id", vulnerability.ListALLReportByTaskID) // complete
+	r.GET("/reports/all/:task_id", vulnerability.ListALLReportByTaskID)
 
 	// ===== Protected Routes =====
 	authorized := r.Group("")
@@ -126,11 +127,11 @@ func main() {
 		authorized.PUT("/app-report/:id", report.UpdateAppReportByID) // complete
 
 		// ===== Diagram Management =====
-		authorized.GET("/diagrams", diagram.ListDiagrams) // complete
-		authorized.GET("/diagrams/:id", diagram.ListDiagramByID) // complete
-		authorized.POST("/create-diagrams", diagram.CreateDiagram) // complete
-		authorized.PATCH("/update-diagrams/:id", diagram.UpdateDiagramByID) // complete
-		authorized.DELETE("/delete-diagrams/:id", diagram.DeleteDiagramByID) // complete
+		authorized.GET("/diagrams", diagram.ListDiagrams) 
+		authorized.GET("/diagrams/:id", diagram.ListDiagramByID) 
+		authorized.POST("/create-diagrams", diagram.CreateDiagram) 
+		authorized.PATCH("/update-diagrams/:id", diagram.UpdateDiagramByID) 
+		authorized.DELETE("/delete-diagrams/:id", diagram.DeleteDiagramByID) 
 
 		// ===== Diagram Node Management =====
 		authorized.GET("/diagram-nodes", diagram.ListAppDiagramNodes) // complete
@@ -152,14 +153,18 @@ func CORSMiddleware() gin.HandlerFunc {
 		origin := c.Request.Header.Get("Origin")
 
 		allowedOrigins := map[string]bool{
-			"http://localhost:5174":           true,
-			"http://localhost:5173":           true,
-			"http://frontend":                 true,
-			"https://openvaswebv1.vercel.app": true,
-			"http://10.10.20.87:5173":        true,
-			"http://10.10.20.87:5174":        true,		
-			"http://10.10.40.250:5173":        true,
-			"http://10.10.40.250:5174":        true,
+			"http://localhost:5173": true,
+			"http://frontend":       true,
+		}
+
+		envOrigins := os.Getenv("CORS_ALLOWED_ORIGINS")
+		if envOrigins != "" {
+			for _, item := range strings.Split(envOrigins, ",") {
+				trimmedOrigin := strings.TrimSpace(item)
+				if trimmedOrigin != "" {
+					allowedOrigins[trimmedOrigin] = true
+				}
+			}
 		}
 
 		if allowedOrigins[origin] {

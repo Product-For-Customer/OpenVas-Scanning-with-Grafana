@@ -1,13 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
-import StatusTarget from "./Status/index";
-import RiskScoreGraph from "./RiskScoreGraph";
-import RiskScoreTable from "./RiskScoreTable";
+import StatusTarget from "./Status";
+import RiskScoreGraph from "./GraphComparision";
 import TableTarget from "./TableTarget";
 import DeviceMap from "./Map";
 import { ListDeviceRisk, type DeviceRiskDTO } from "../../services";
-
-// Keep this import for later use, but do not render it for now.
-void RiskScoreTable;
 
 const Target: React.FC = () => {
   const [deviceRisks, setDeviceRisks] = useState<DeviceRiskDTO[]>([]);

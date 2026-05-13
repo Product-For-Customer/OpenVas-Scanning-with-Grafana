@@ -1,6 +1,7 @@
 package diagram
 
 import (
+	"errors"
 	"net/http"
 	"sort"
 	"strconv"
@@ -45,6 +46,7 @@ type DiagramInfo struct {
 	Name        string      `json:"name"`
 	Description string      `json:"description"`
 	ImageBase64 string      `json:"image_base64"`
+	AppUserID   uint        `json:"app_user_id"`
 	CreatedAt   interface{} `json:"created_at"`
 	UpdatedAt   interface{} `json:"updated_at"`
 }
@@ -53,6 +55,7 @@ type AppDiagramNodeResponse struct {
 	ID          uint         `json:"id"`
 	DiagramID   uint         `json:"diagram_id"`
 	Diagram     *DiagramInfo `json:"diagram,omitempty"`
+	AppUserID   uint         `json:"app_user_id"`
 	TaskID      string       `json:"task_id"`
 	Label       string       `json:"label"`
 	Description string       `json:"description"`
@@ -78,7 +81,50 @@ func cleanOptionalString(value *string) string {
 	if value == nil {
 		return ""
 	}
+
 	return strings.TrimSpace(*value)
+}
+
+func getLoginAppUserIDForDiagramNode(c *gin.Context) (uint, bool) {
+	userIDValue, exists := c.Get("user_id")
+	if !exists {
+		return 0, false
+	}
+
+	switch v := userIDValue.(type) {
+	case uint:
+		if v == 0 {
+			return 0, false
+		}
+		return v, true
+
+	case uint64:
+		if v == 0 {
+			return 0, false
+		}
+		return uint(v), true
+
+	case int:
+		if v <= 0 {
+			return 0, false
+		}
+		return uint(v), true
+
+	case int64:
+		if v <= 0 {
+			return 0, false
+		}
+		return uint(v), true
+
+	case float64:
+		if v <= 0 {
+			return 0, false
+		}
+		return uint(v), true
+
+	default:
+		return 0, false
+	}
 }
 
 func normalizeDiagramTaskIDForManageLimit(taskID string) string {
@@ -246,6 +292,7 @@ func mapDiagramInfo(diagram *entity.AppDiagram) *DiagramInfo {
 		Name:        diagram.Name,
 		Description: diagram.Description,
 		ImageBase64: diagram.ImageBase64,
+		AppUserID:   diagram.AppUserID,
 		CreatedAt:   diagram.CreatedAt,
 		UpdatedAt:   diagram.UpdatedAt,
 	}
@@ -256,6 +303,7 @@ func mapAppDiagramNodeResponse(node entity.AppDiagramNode) AppDiagramNodeRespons
 		ID:          node.ID,
 		DiagramID:   node.DiagramID,
 		Diagram:     mapDiagramInfo(node.Diagram),
+		AppUserID:   node.AppUserID,
 		TaskID:      node.TaskID,
 		Label:       node.Label,
 		Description: node.Description,
@@ -271,6 +319,14 @@ func mapAppDiagramNodeResponse(node entity.AppDiagramNode) AppDiagramNodeRespons
 }
 
 func CreateAppDiagramNode(c *gin.Context) {
+	loginAppUserID, ok := getLoginAppUserIDForDiagramNode(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "unauthorized: user not found in context",
+		})
+		return
+	}
+
 	var input CreateAppDiagramNodeInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -280,6 +336,21 @@ func CreateAppDiagramNode(c *gin.Context) {
 	}
 
 	db := config.DB()
+
+	var appUser entity.AppUser
+	if err := db.First(&appUser, loginAppUserID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "login app user not found",
+			})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
 
 	taskID := normalizeDiagramTaskIDForManageLimit(input.TaskID)
 	if taskID == "" {
@@ -307,7 +378,7 @@ func CreateAppDiagramNode(c *gin.Context) {
 
 	var diagram entity.AppDiagram
 	if err := db.First(&diagram, input.DiagramID).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"error": "diagram_id not found",
 			})
@@ -322,6 +393,7 @@ func CreateAppDiagramNode(c *gin.Context) {
 
 	node := entity.AppDiagramNode{
 		DiagramID:   input.DiagramID,
+		AppUserID:   loginAppUserID,
 		TaskID:      taskID,
 		Label:       cleanString(input.Label),
 		Description: cleanString(input.Description),
@@ -337,7 +409,7 @@ func CreateAppDiagramNode(c *gin.Context) {
 		node.ZIndex = 1
 	}
 
-	ok, err := govalidator.ValidateStruct(node)
+	ok, err = govalidator.ValidateStruct(node)
 	if !ok || err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
@@ -353,7 +425,10 @@ func CreateAppDiagramNode(c *gin.Context) {
 	}
 
 	var createdNode entity.AppDiagramNode
-	if err := db.Preload("Diagram").First(&createdNode, node.ID).Error; err != nil {
+	if err := db.
+		Preload("Diagram").
+		Preload("AppUser").
+		First(&createdNode, node.ID).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "failed to reload created app diagram node",
 		})
@@ -386,7 +461,11 @@ func ListAppDiagramNodes(c *gin.Context) {
 	}
 
 	var nodes []entity.AppDiagramNode
-	if err := db.Preload("Diagram").Order("id ASC").Find(&nodes).Error; err != nil {
+	if err := db.
+		Preload("Diagram").
+		Preload("AppUser").
+		Order("id ASC").
+		Find(&nodes).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "failed to list app diagram nodes",
 		})
@@ -419,8 +498,11 @@ func ListAppDiagramNodeByID(c *gin.Context) {
 	db := config.DB()
 
 	var node entity.AppDiagramNode
-	if err := db.Preload("Diagram").First(&node, uint(nid)).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
+	if err := db.
+		Preload("Diagram").
+		Preload("AppUser").
+		First(&node, uint(nid)).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{
 				"error": "app diagram node not found",
 			})
@@ -455,6 +537,14 @@ func ListAppDiagramNodeByID(c *gin.Context) {
 }
 
 func UpdateAppDiagramNodeByID(c *gin.Context) {
+	loginAppUserID, ok := getLoginAppUserIDForDiagramNode(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "unauthorized: user not found in context",
+		})
+		return
+	}
+
 	id := c.Param("id")
 
 	nid, err := strconv.ParseUint(id, 10, 64)
@@ -475,9 +565,24 @@ func UpdateAppDiagramNodeByID(c *gin.Context) {
 
 	db := config.DB()
 
+	var appUser entity.AppUser
+	if err := db.First(&appUser, loginAppUserID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "login app user not found",
+			})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
 	var node entity.AppDiagramNode
 	if err := db.First(&node, uint(nid)).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{
 				"error": "app diagram node not found",
 			})
@@ -523,11 +628,12 @@ func UpdateAppDiagramNodeByID(c *gin.Context) {
 	}
 
 	updatedNode := node
+	updatedNode.AppUserID = loginAppUserID
 
 	if input.DiagramID != nil {
 		var diagram entity.AppDiagram
 		if err := db.First(&diagram, *input.DiagramID).Error; err != nil {
-			if err == gorm.ErrRecordNotFound {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
 				c.JSON(http.StatusBadRequest, gin.H{
 					"error": "diagram_id not found",
 				})
@@ -539,6 +645,7 @@ func UpdateAppDiagramNodeByID(c *gin.Context) {
 			})
 			return
 		}
+
 		updatedNode.DiagramID = *input.DiagramID
 	}
 
@@ -602,7 +709,7 @@ func UpdateAppDiagramNodeByID(c *gin.Context) {
 		updatedNode.ZIndex = *input.ZIndex
 	}
 
-	ok, err := govalidator.ValidateStruct(updatedNode)
+	ok, err = govalidator.ValidateStruct(updatedNode)
 	if !ok || err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
@@ -610,7 +717,9 @@ func UpdateAppDiagramNodeByID(c *gin.Context) {
 		return
 	}
 
-	updates := map[string]interface{}{}
+	updates := map[string]interface{}{
+		"app_user_id": loginAppUserID,
+	}
 
 	if input.DiagramID != nil {
 		updates["diagram_id"] = updatedNode.DiagramID
@@ -662,7 +771,10 @@ func UpdateAppDiagramNodeByID(c *gin.Context) {
 	}
 
 	var reloadedNode entity.AppDiagramNode
-	if err := db.Preload("Diagram").First(&reloadedNode, node.ID).Error; err != nil {
+	if err := db.
+		Preload("Diagram").
+		Preload("AppUser").
+		First(&reloadedNode, node.ID).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "failed to reload updated app diagram node",
 		})
@@ -690,7 +802,7 @@ func DeleteAppDiagramNodeByID(c *gin.Context) {
 
 	var node entity.AppDiagramNode
 	if err := db.First(&node, uint(nid)).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{
 				"error": "app diagram node not found",
 			})

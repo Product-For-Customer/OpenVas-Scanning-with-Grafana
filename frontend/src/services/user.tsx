@@ -244,6 +244,7 @@ export interface SendEmailResponse {
   id: number;
   email: string;
   pass_app: string;
+  app_user_id: number;
 }
 
 export interface UpdateSendEmailPayload {
@@ -278,6 +279,8 @@ export const ListSendEmails = async (): Promise<SendEmailResponse[] | null> => {
 
 // =======================
 // API: PUT /send-email/:id
+// app_user_id ไม่ต้องส่งจาก frontend
+// backend จะใช้ user_id จากคนที่ login อยู่
 // =======================
 export const UpdateSendEmailByID = async (
   id: number,
@@ -343,6 +346,7 @@ export type LocationResponse = {
   latitude: number;
   longtitude: number;
   task_id: string;
+  app_user_id: number;
   created_at?: string;
   updated_at?: string;
   message?: string;
@@ -376,15 +380,16 @@ export type DeleteLocationResponse = {
 // =======================
 const normalizeLocation = (raw: any): LocationResponse => {
   return {
-    id: Number(raw?.id ?? 0),
-    location: String(raw?.location ?? ""),
-    building: String(raw?.building ?? ""),
-    floor: Number(raw?.floor ?? 0),
-    latitude: Number(raw?.latitude ?? 0),
-    longtitude: Number(raw?.longtitude ?? 0),
-    task_id: String(raw?.task_id ?? ""),
-    created_at: raw?.created_at ? String(raw.created_at) : undefined,
-    updated_at: raw?.updated_at ? String(raw.updated_at) : undefined,
+    id: Number(raw?.id ?? raw?.ID ?? 0),
+    location: String(raw?.location ?? raw?.Location ?? ""),
+    building: String(raw?.building ?? raw?.Building ?? ""),
+    floor: Number(raw?.floor ?? raw?.Floor ?? 0),
+    latitude: Number(raw?.latitude ?? raw?.Latitude ?? 0),
+    longtitude: Number(raw?.longtitude ?? raw?.Longtitude ?? 0),
+    task_id: String(raw?.task_id ?? raw?.TaskID ?? ""),
+    app_user_id: Number(raw?.app_user_id ?? raw?.AppUserID ?? 0),
+    created_at: raw?.created_at ?? raw?.CreatedAt ?? undefined,
+    updated_at: raw?.updated_at ?? raw?.UpdatedAt ?? undefined,
     message: raw?.message ? String(raw.message) : undefined,
     error: raw?.error ? String(raw.error) : undefined,
   };
@@ -433,6 +438,8 @@ export const ListLocationByID = async (
 };
 
 // POST /create-locations
+// app_user_id ไม่ต้องส่งจาก frontend
+// backend จะใช้ user_id จากคนที่ login อยู่
 export const CreateLocation = async (
   payload: CreateLocationInput
 ): Promise<LocationResponse | null> => {
@@ -453,6 +460,8 @@ export const CreateLocation = async (
 };
 
 // PATCH /update-locations/:id
+// app_user_id ไม่ต้องส่งจาก frontend
+// backend จะใช้ user_id จากคนที่ login อยู่
 export const UpdateLocationByID = async (
   id: number | string,
   payload: UpdateLocationInput

@@ -101,6 +101,7 @@ export type AppNotificationResponse = {
   alert: boolean;
   is_group: boolean;
   app_line_master_id: number;
+  app_user_id: number;
 };
 
 export type CreateAppNotificationInput = {
@@ -133,21 +134,37 @@ export type DeleteAppNotificationResponse = {
   message: string;
 };
 
+const normalizeAppNotification = (item: any): AppNotificationResponse => {
+  return {
+    id: Number(item?.id ?? item?.ID ?? 0),
+    name: String(item?.name ?? item?.Name ?? ""),
+    send_id: String(item?.send_id ?? item?.SendID ?? ""),
+    alert: Boolean(item?.alert ?? item?.Alert ?? false),
+    is_group: Boolean(item?.is_group ?? item?.IsGroup ?? false),
+    app_line_master_id: Number(
+      item?.app_line_master_id ?? item?.AppLineMasterID ?? 0
+    ),
+    app_user_id: Number(item?.app_user_id ?? item?.AppUserID ?? 0),
+  };
+};
+
 // =======================
 // API: GET /app-notifications
 // =======================
-export const ListAppNotification = async (): Promise<AppNotificationResponse[] | null> => {
+export const ListAppNotification = async (): Promise<
+  AppNotificationResponse[] | null
+> => {
   try {
     const response = await historyNotifyApi.get("/app-notifications");
 
     if (Array.isArray(response.data)) {
-      return response.data as AppNotificationResponse[];
+      return response.data.map((item) => normalizeAppNotification(item));
     }
 
     const data = response.data?.data ?? response.data;
 
     if (Array.isArray(data)) {
-      return data as AppNotificationResponse[];
+      return data.map((item) => normalizeAppNotification(item));
     }
 
     console.error("Expected array but got:", response.data);
@@ -160,12 +177,17 @@ export const ListAppNotification = async (): Promise<AppNotificationResponse[] |
 
 // =======================
 // API: POST /create-app-notifications
+// app_user_id ไม่ต้องส่งจาก frontend
+// backend จะใช้ user_id จากคนที่ login อยู่
 // =======================
 export const CreateAppNotification = async (
   payload: CreateAppNotificationInput
 ): Promise<CreateAppNotificationResponse | null> => {
   try {
-    const response = await historyNotifyApi.post("/create-app-notifications", payload);
+    const response = await historyNotifyApi.post(
+      "/create-app-notifications",
+      payload
+    );
 
     if (
       response.data &&
@@ -173,7 +195,10 @@ export const CreateAppNotification = async (
       "message" in response.data &&
       "data" in response.data
     ) {
-      return response.data as CreateAppNotificationResponse;
+      return {
+        message: String(response.data.message),
+        data: normalizeAppNotification(response.data.data),
+      };
     }
 
     console.error("Unexpected CreateAppNotification response:", response.data);
@@ -186,6 +211,8 @@ export const CreateAppNotification = async (
 
 // =======================
 // API: PATCH /update-app-notifications/:id
+// app_user_id ไม่ต้องส่งจาก frontend
+// backend จะใช้ user_id จากคนที่ login อยู่
 // =======================
 export const UpdateAppNotificationByID = async (
   id: number,
@@ -203,7 +230,10 @@ export const UpdateAppNotificationByID = async (
       "message" in response.data &&
       "data" in response.data
     ) {
-      return response.data as UpdateAppNotificationResponse;
+      return {
+        message: String(response.data.message),
+        data: normalizeAppNotification(response.data.data),
+      };
     }
 
     console.error("Unexpected UpdateAppNotificationByID response:", response.data);
@@ -230,7 +260,9 @@ export const DeleteAppNotificationByID = async (
       typeof response.data === "object" &&
       "message" in response.data
     ) {
-      return response.data as DeleteAppNotificationResponse;
+      return {
+        message: String(response.data.message),
+      };
     }
 
     console.error("Unexpected DeleteAppNotificationByID response:", response.data);
@@ -249,6 +281,7 @@ export type AppLineMasterResponse = {
   name: string;
   description: string;
   token: string;
+  app_user_id: number;
 };
 
 export type CreateAppLineMasterInput = {
@@ -277,21 +310,33 @@ export type DeleteAppLineMasterResponse = {
   message: string;
 };
 
+const normalizeAppLineMaster = (item: any): AppLineMasterResponse => {
+  return {
+    id: Number(item?.id ?? item?.ID ?? 0),
+    name: String(item?.name ?? item?.Name ?? ""),
+    description: String(item?.description ?? item?.Description ?? ""),
+    token: String(item?.token ?? item?.Token ?? ""),
+    app_user_id: Number(item?.app_user_id ?? item?.AppUserID ?? 0),
+  };
+};
+
 // =======================
 // API: GET /app-line-masters
 // =======================
-export const ListAppLineMaster = async (): Promise<AppLineMasterResponse[] | null> => {
+export const ListAppLineMaster = async (): Promise<
+  AppLineMasterResponse[] | null
+> => {
   try {
     const response = await historyNotifyApi.get("/app-line-masters");
 
     if (Array.isArray(response.data)) {
-      return response.data as AppLineMasterResponse[];
+      return response.data.map((item) => normalizeAppLineMaster(item));
     }
 
     const data = response.data?.data ?? response.data;
 
     if (Array.isArray(data)) {
-      return data as AppLineMasterResponse[];
+      return data.map((item) => normalizeAppLineMaster(item));
     }
 
     console.error("Expected array but got:", response.data);
@@ -304,12 +349,17 @@ export const ListAppLineMaster = async (): Promise<AppLineMasterResponse[] | nul
 
 // =======================
 // API: POST /create-app-line-masters
+// app_user_id ไม่ต้องส่งจาก frontend
+// backend จะใช้ user_id จากคนที่ login อยู่
 // =======================
 export const CreateAppLineMaster = async (
   payload: CreateAppLineMasterInput
 ): Promise<CreateAppLineMasterResponse | null> => {
   try {
-    const response = await historyNotifyApi.post("/create-app-line-masters", payload);
+    const response = await historyNotifyApi.post(
+      "/create-app-line-masters",
+      payload
+    );
 
     if (
       response.data &&
@@ -317,7 +367,10 @@ export const CreateAppLineMaster = async (
       "message" in response.data &&
       "data" in response.data
     ) {
-      return response.data as CreateAppLineMasterResponse;
+      return {
+        message: String(response.data.message),
+        data: normalizeAppLineMaster(response.data.data),
+      };
     }
 
     console.error("Unexpected CreateAppLineMaster response:", response.data);
@@ -330,6 +383,8 @@ export const CreateAppLineMaster = async (
 
 // =======================
 // API: PATCH /update-app-line-masters/:id
+// app_user_id ไม่ต้องส่งจาก frontend
+// backend จะใช้ user_id จากคนที่ login อยู่
 // =======================
 export const UpdateAppLineMasterByID = async (
   id: number,
@@ -347,7 +402,10 @@ export const UpdateAppLineMasterByID = async (
       "message" in response.data &&
       "data" in response.data
     ) {
-      return response.data as UpdateAppLineMasterResponse;
+      return {
+        message: String(response.data.message),
+        data: normalizeAppLineMaster(response.data.data),
+      };
     }
 
     console.error("Unexpected UpdateAppLineMasterByID response:", response.data);
@@ -365,14 +423,18 @@ export const DeleteAppLineMasterByID = async (
   id: number
 ): Promise<DeleteAppLineMasterResponse | null> => {
   try {
-    const response = await historyNotifyApi.delete(`/delete-app-line-masters/${id}`);
+    const response = await historyNotifyApi.delete(
+      `/delete-app-line-masters/${id}`
+    );
 
     if (
       response.data &&
       typeof response.data === "object" &&
       "message" in response.data
     ) {
-      return response.data as DeleteAppLineMasterResponse;
+      return {
+        message: String(response.data.message),
+      };
     }
 
     console.error("Unexpected DeleteAppLineMasterByID response:", response.data);
@@ -438,6 +500,3 @@ export const TestLineNotifyByAppNotificationID = async (
 };
 
 export default historyNotifyApi;
-
-
-

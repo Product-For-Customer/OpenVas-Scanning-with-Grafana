@@ -181,7 +181,7 @@ const normalizeTaskIDs = (ids?: string[]): string[] => {
     .filter((id) => id !== "");
 };
 
-const ExecutiveHighlights: React.FC<ExecutiveHighlightsProps> = ({
+const index: React.FC<ExecutiveHighlightsProps> = ({
   onReady,
   selectedTaskIDs = [],
   pageIndex = 0,
@@ -642,4 +642,4 @@ const ExecutiveHighlights: React.FC<ExecutiveHighlightsProps> = ({
   );
 };
 
-export default ExecutiveHighlights;
+export default index;
