@@ -8,7 +8,7 @@ import {
   type UpdateUserInput,
 } from "../../../services/user";
 import { ListEmailAndPhoneNumber } from "../../../services";
-import { useStateContext } from "../../../contexts/ContextProvider";
+import { useStateContext } from "../../../contexts/ProviderContext";
 
 type SettingProps = {
   user: UserResponse;

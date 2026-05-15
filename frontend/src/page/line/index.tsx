@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import HistoryNotify from "./history";
-import Notify from "./notify";
-import Graph from "./graph";
-import GraphIPad from "./graph/graphIPad";
-import Count from "./count";
+import HistoryNotify from "./History";
+import Notify from "./Notify";
+import Graph from "./Graph";
+import GraphIPad from "./Graph/graphIPad";
+import Count from "./Monthly";
 import {
   ListHistoryNotify,
   type HistoryNotifyResponse,

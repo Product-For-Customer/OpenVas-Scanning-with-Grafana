@@ -9,5 +9,8 @@ type AppDiagram struct {
 	Description string `json:"description" gorm:"type:text"`
 	ImageBase64 string `json:"image_base64" gorm:"type:text;not null" valid:"required~ImageBase64 is required"`
 
+	AppUserID uint     `json:"app_user_id" valid:"required~AppUserID is required"`
+	AppUser   *AppUser `json:"app_user" gorm:"foreignKey:AppUserID" valid:"-"`
+
 	AppDiagramNodes []AppDiagramNode `json:"app_diagram_nodes" gorm:"foreignKey:DiagramID"`
 }

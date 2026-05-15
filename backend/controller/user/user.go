@@ -8,6 +8,7 @@ import (
 
 	"github.com/Tawunchai/openvas/config"
 	"github.com/Tawunchai/openvas/entity"
+	"github.com/Tawunchai/openvas/services"
 	"github.com/asaskevich/govalidator"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -118,7 +119,7 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	hashedPassword, err := config.HashPassword(password)
+	hashedPassword, err := services.HashPassword(password)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to hash password"})
 		return
@@ -243,11 +244,16 @@ func UpdateUserByID(c *gin.Context) {
 
 		var existing entity.AppUser
 		err := db.Where("email = ? AND id <> ?", newEmail, user.ID).First(&existing).Error
-		if err == nil {
+
+		switch {
+		case err == nil:
 			c.JSON(http.StatusBadRequest, gin.H{"error": "email already exists"})
 			return
-		}
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+
+		case errors.Is(err, gorm.ErrRecordNotFound):
+			// ไม่พบ email ซ้ำ = อัปเดตต่อได้
+
+		default:
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to check existing email"})
 			return
 		}
@@ -323,7 +329,7 @@ func UpdateUserByID(c *gin.Context) {
 		user.AppRoleID = validateUser.AppRoleID
 	}
 	if input.Password != nil {
-		hashedPassword, err := config.HashPassword(newPlainPassword)
+		hashedPassword, err := services.HashPassword(newPlainPassword)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to hash password"})
 			return
@@ -464,13 +470,18 @@ func UpdateUserIDByAdmin(c *gin.Context) {
 
 		var existing entity.AppUser
 		err := db.Where("email = ? AND id <> ?", newEmail, user.ID).First(&existing).Error
-		if err == nil {
+
+		switch {
+		case err == nil:
 			c.JSON(http.StatusBadRequest, gin.H{
 				"error": "email already exists",
 			})
 			return
-		}
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+
+		case errors.Is(err, gorm.ErrRecordNotFound):
+			// ไม่พบ email ซ้ำ = อัปเดตต่อได้
+
+		default:
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": "failed to check existing email",
 			})
@@ -537,7 +548,7 @@ func UpdateUserIDByAdmin(c *gin.Context) {
 	}
 
 	if input.Password != nil {
-		hashedPassword, err := config.HashPassword(newPlainPassword)
+		hashedPassword, err := services.HashPassword(newPlainPassword)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": "failed to hash password",

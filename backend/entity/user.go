@@ -13,6 +13,13 @@ type AppUser struct {
 	Location    string `valid:"required~Location is required"`
 	Position    string `valid:"required~Position is required"`
 
+	SendEmail      []SendEmail      `gorm:"foreignKey:AppUserID" valid:"-"`
+	AppDiagram     []AppDiagram     `gorm:"foreignKey:AppUserID" valid:"-"`
+	AppDiagramNode []AppDiagramNode `gorm:"foreignKey:AppUserID" valid:"-"`
+	AppLineMaster  []AppLineMaster  `gorm:"foreignKey:AppUserID" valid:"-"`
+	AppNotification []AppNotification `gorm:"foreignKey:AppUserID" valid:"-"`
+	AppLocation    []AppLocation    `gorm:"foreignKey:AppUserID" valid:"-"`
+
 	AppRoleID uint     `valid:"required~AppRoleID is required"`
 	AppRole   *AppRole `gorm:"foreignKey:AppRoleID" valid:"-"`
 }

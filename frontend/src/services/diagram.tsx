@@ -22,6 +22,7 @@ export type DiagramResponse = {
   name: string;
   description: string;
   image_base64: string;
+  app_user_id: number;
   created_at?: string;
   updated_at?: string;
   message?: string;
@@ -52,6 +53,7 @@ export type DiagramInfo = {
   name: string;
   description: string;
   image_base64: string;
+  app_user_id: number;
   created_at?: string;
   updated_at?: string;
 };
@@ -72,6 +74,7 @@ export type AppDiagramNodeResponse = {
   id: number;
   diagram_id: number;
   diagram?: DiagramInfo | null;
+  app_user_id: number;
   task_id: string;
   label: string;
   description: string;
@@ -121,65 +124,76 @@ export type DeleteAppDiagramNodeResponse = {
 // =======================
 // Helpers
 // =======================
-const normalizeDiagram = (raw: any): DiagramResponse => {
+const normalizeDiagram = (item: any): DiagramResponse => {
   return {
-    id: Number(raw?.id ?? 0),
-    name: String(raw?.name ?? ""),
-    description: String(raw?.description ?? ""),
-    image_base64: String(raw?.image_base64 ?? ""),
-    created_at: raw?.created_at ? String(raw.created_at) : undefined,
-    updated_at: raw?.updated_at ? String(raw.updated_at) : undefined,
-    message: raw?.message ? String(raw.message) : undefined,
-    error: raw?.error ? String(raw.error) : undefined,
+    id: Number(item?.id ?? item?.ID ?? 0),
+    name: String(item?.name ?? item?.Name ?? ""),
+    description: String(item?.description ?? item?.Description ?? ""),
+    image_base64: String(item?.image_base64 ?? item?.ImageBase64 ?? ""),
+    app_user_id: Number(item?.app_user_id ?? item?.AppUserID ?? 0),
+    created_at: item?.created_at ?? item?.CreatedAt ?? undefined,
+    updated_at: item?.updated_at ?? item?.UpdatedAt ?? undefined,
+    message: item?.message,
+    error: item?.error,
   };
 };
 
-const normalizeDiagramInfo = (raw: any): DiagramInfo => {
+const normalizeDiagramInfo = (item: any): DiagramInfo | null => {
+  if (!item || typeof item !== "object") {
+    return null;
+  }
+
   return {
-    id: Number(raw?.id ?? 0),
-    name: String(raw?.name ?? ""),
-    description: String(raw?.description ?? ""),
-    image_base64: String(raw?.image_base64 ?? ""),
-    created_at: raw?.created_at ? String(raw.created_at) : undefined,
-    updated_at: raw?.updated_at ? String(raw.updated_at) : undefined,
+    id: Number(item?.id ?? item?.ID ?? 0),
+    name: String(item?.name ?? item?.Name ?? ""),
+    description: String(item?.description ?? item?.Description ?? ""),
+    image_base64: String(item?.image_base64 ?? item?.ImageBase64 ?? ""),
+    app_user_id: Number(item?.app_user_id ?? item?.AppUserID ?? 0),
+    created_at: item?.created_at ?? item?.CreatedAt ?? undefined,
+    updated_at: item?.updated_at ?? item?.UpdatedAt ?? undefined,
   };
 };
 
-const normalizeAppLocation = (raw: any): AppLocationResponse => {
+const normalizeAppLocation = (item: any): AppLocationResponse => {
   return {
-    id: Number(raw?.id ?? 0),
-    location: String(raw?.location ?? ""),
-    building: String(raw?.building ?? ""),
-    floor: Number(raw?.floor ?? 0),
-    latitude: Number(raw?.latitude ?? 0),
-    longtitude: Number(raw?.longtitude ?? 0),
-    app_diagram_node_id: Number(raw?.app_diagram_node_id ?? 0),
-    created_at: raw?.created_at ? String(raw.created_at) : undefined,
-    updated_at: raw?.updated_at ? String(raw.updated_at) : undefined,
+    id: Number(item?.id ?? item?.ID ?? 0),
+    location: String(item?.location ?? item?.Location ?? ""),
+    building: String(item?.building ?? item?.Building ?? ""),
+    floor: Number(item?.floor ?? item?.Floor ?? 0),
+    latitude: Number(item?.latitude ?? item?.Latitude ?? 0),
+    longtitude: Number(item?.longtitude ?? item?.Longtitude ?? 0),
+    app_diagram_node_id: Number(
+      item?.app_diagram_node_id ?? item?.AppDiagramNodeID ?? 0
+    ),
+    created_at: item?.created_at ?? item?.CreatedAt ?? undefined,
+    updated_at: item?.updated_at ?? item?.UpdatedAt ?? undefined,
   };
 };
 
-const normalizeAppDiagramNode = (raw: any): AppDiagramNodeResponse => {
+const normalizeAppDiagramNode = (item: any): AppDiagramNodeResponse => {
+  const appLocations = item?.app_locations ?? item?.AppLocations;
+
   return {
-    id: Number(raw?.id ?? 0),
-    diagram_id: Number(raw?.diagram_id ?? 0),
-    diagram: raw?.diagram ? normalizeDiagramInfo(raw.diagram) : null,
-    task_id: String(raw?.task_id ?? ""),
-    label: String(raw?.label ?? ""),
-    description: String(raw?.description ?? ""),
-    icon: String(raw?.icon ?? ""),
-    x: Number(raw?.x ?? 0),
-    y: Number(raw?.y ?? 0),
-    width: Number(raw?.width ?? 0),
-    height: Number(raw?.height ?? 0),
-    z_index: Number(raw?.z_index ?? 0),
-    app_locations: Array.isArray(raw?.app_locations)
-      ? raw.app_locations.map((item: any) => normalizeAppLocation(item))
+    id: Number(item?.id ?? item?.ID ?? 0),
+    diagram_id: Number(item?.diagram_id ?? item?.DiagramID ?? 0),
+    diagram: normalizeDiagramInfo(item?.diagram ?? item?.Diagram),
+    app_user_id: Number(item?.app_user_id ?? item?.AppUserID ?? 0),
+    task_id: String(item?.task_id ?? item?.TaskID ?? ""),
+    label: String(item?.label ?? item?.Label ?? ""),
+    description: String(item?.description ?? item?.Description ?? ""),
+    icon: String(item?.icon ?? item?.Icon ?? ""),
+    x: Number(item?.x ?? item?.X ?? 0),
+    y: Number(item?.y ?? item?.Y ?? 0),
+    width: Number(item?.width ?? item?.Width ?? 0),
+    height: Number(item?.height ?? item?.Height ?? 0),
+    z_index: Number(item?.z_index ?? item?.ZIndex ?? 1),
+    app_locations: Array.isArray(appLocations)
+      ? appLocations.map((location) => normalizeAppLocation(location))
       : [],
-    created_at: raw?.created_at ? String(raw.created_at) : undefined,
-    updated_at: raw?.updated_at ? String(raw.updated_at) : undefined,
-    message: raw?.message ? String(raw.message) : undefined,
-    error: raw?.error ? String(raw.error) : undefined,
+    created_at: item?.created_at ?? item?.CreatedAt ?? undefined,
+    updated_at: item?.updated_at ?? item?.UpdatedAt ?? undefined,
+    message: item?.message,
+    error: item?.error,
   };
 };
 
@@ -228,6 +242,8 @@ export const ListDiagramByID = async (
 };
 
 // POST /create-diagrams
+// app_user_id ไม่ต้องส่งจาก frontend
+// backend จะใช้ user_id จากคนที่ login อยู่
 export const CreateDiagram = async (
   payload: CreateDiagramInput
 ): Promise<DiagramResponse | null> => {
@@ -249,6 +265,8 @@ export const CreateDiagram = async (
 };
 
 // PATCH /update-diagrams/:id
+// app_user_id ไม่ต้องส่งจาก frontend
+// backend จะใช้ user_id จากคนที่ login อยู่
 export const UpdateDiagramByID = async (
   id: number | string,
   payload: UpdateDiagramInput
@@ -296,7 +314,9 @@ export const DeleteDiagramByID = async (
 // =======================
 
 // GET /diagram-nodes
-export const ListAppDiagramNodes = async (): Promise<AppDiagramNodeResponse[] | null> => {
+export const ListAppDiagramNodes = async (): Promise<
+  AppDiagramNodeResponse[] | null
+> => {
   try {
     const response = await diagramApi.get("/diagram-nodes");
 
@@ -336,6 +356,8 @@ export const ListAppDiagramNodeByID = async (
 };
 
 // POST /create-diagram-nodes
+// app_user_id ไม่ต้องส่งจาก frontend
+// backend จะใช้ user_id จากคนที่ login อยู่
 export const CreateAppDiagramNode = async (
   payload: CreateAppDiagramNodeInput
 ): Promise<AppDiagramNodeResponse | null> => {
@@ -357,6 +379,8 @@ export const CreateAppDiagramNode = async (
 };
 
 // PATCH /update-diagram-nodes/:id
+// app_user_id ไม่ต้องส่งจาก frontend
+// backend จะใช้ user_id จากคนที่ login อยู่
 export const UpdateAppDiagramNodeByID = async (
   id: number | string,
   payload: UpdateAppDiagramNodeInput

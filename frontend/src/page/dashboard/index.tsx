@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
-import Value from "./Value";
-import AverageEnrollment from "./Average/index";
-import TopPerforming from "./Top/index";
-import DeliveryAnalysis from "./Analysis/index";
-import TopVulnerability from "./Vulnerbility/index";
+import OverallSeverity from "./OverallSeverity";
+import GraphComparision from "./GraphComparision";
+import AverageVulnerability from "./Average";
+import DonutVulnerability from "./Donut";
+import TopVulnerability from "./Total";
 import {
   ListVulnerability,
   type VulnerabilityLevelDTO,
@@ -66,11 +66,11 @@ const DashboardIndex: React.FC = () => {
   return (
     <div className="relative isolate z-0 w-full overflow-visible">
       <div className="relative z-20 mb-4 sm:mb-5">
-        <Value vulnerabilityData={vulnerabilityData} loading={loading} />
+        <OverallSeverity vulnerabilityData={vulnerabilityData} loading={loading} />
       </div>
 
       <div className="relative z-0 mb-4 sm:mb-5">
-        <AverageEnrollment />
+        <GraphComparision />
       </div>
 
       <div className="relative z-0 mb-4 grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2 xl:grid-cols-12 xl:auto-rows-fr xl:items-stretch">
@@ -82,14 +82,14 @@ const DashboardIndex: React.FC = () => {
         </div>
 
         <div className="flex h-full min-h-0 w-full md:col-span-1 xl:col-span-4">
-          <DeliveryAnalysis
+          <DonutVulnerability
             vulnerabilityData={vulnerabilityData}
             loading={loading}
           />
         </div>
 
         <div className="flex h-full min-h-0 w-full md:col-span-1 xl:col-span-4">
-          <TopPerforming />
+          <AverageVulnerability />
         </div>
       </div>
     </div>

@@ -6,7 +6,10 @@ type AppDiagramNode struct {
 	gorm.Model
 
 	DiagramID uint        `json:"diagram_id" gorm:"not null;index" valid:"required~DiagramID is required"`
-	Diagram   *AppDiagram `json:"diagram"`
+	Diagram   *AppDiagram `json:"diagram" gorm:"foreignKey:DiagramID" valid:"-"`
+
+	AppUserID uint     `json:"app_user_id" gorm:"not null;index" valid:"required~AppUserID is required"`
+	AppUser   *AppUser `json:"app_user" gorm:"foreignKey:AppUserID" valid:"-"`
 
 	TaskID string `json:"task_id" gorm:"type:varchar(255);not null;index" valid:"required~TaskID is required"`
 
@@ -21,5 +24,4 @@ type AppDiagramNode struct {
 	Height float64 `json:"height" gorm:"type:decimal(10,4)"`
 
 	ZIndex int `json:"z_index" gorm:"default:1"`
-
 }

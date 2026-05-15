@@ -26,8 +26,8 @@ import {
   ListDiagrams,
   type DiagramResponse,
 } from "../../services/diagram";
-import DiagramFormModal from "./modal/DiagramFormModal";
-import DiagramDeleteModal from "./modal/DiagramDeleteModal";
+import DiagramFormModal from "./Model/DiagramFormModal";
+import DiagramDeleteModal from "./Model/DiagramDeleteModal";
 import message from "antd/es/message";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
@@ -65,7 +65,7 @@ const safeTime = (value?: string) => {
   return Number.isNaN(t) ? 0 : t;
 };
 
-const Diagrams: React.FC = () => {
+const index: React.FC = () => {
   const navigate = useNavigate();
   const auth = useAuth() as any;
 
@@ -803,4 +803,4 @@ const Diagrams: React.FC = () => {
   );
 };
 
-export default Diagrams;
+export default index;

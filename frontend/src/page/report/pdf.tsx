@@ -1,19 +1,19 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   FiChevronLeft,
   FiChevronRight,
   FiFileText,
   FiLoader,
 } from "react-icons/fi";
-import ReportHeader from "./ReportHeader";
+import ReportHeader from "./Header";
 import ReportKPI from "./ReportKPI";
 import SeveritySnapshot from "./SeveritySnapshot";
 import ExecutiveHighlights from "./ExecutiveHighlights";
-import TopDeviceRiskReport from "./TopDeviceRiskReport";
-import ComparisonReport from "./comparision";
-import Section6MonthlyRiskReport from "./monthlyRiskReport";
-import Conclusion from "./conclusion";
-import ReportFooter from "./ReportFooter";
+import TopDeviceRiskReport from "./TopDeviceRisk";
+import ComparisonReport from "./Comparision";
+import Section6MonthlyRiskReport from "./MonthlyRisk";
+import Conclusion from "./Conclusion";
+import ReportFooter from "./Footer";
 import {
   ListCriticalForReport,
   ListDeviceRiskForReport,
@@ -22,12 +22,11 @@ import {
 } from "../../services/report";
 import type { DeviceRiskForReportDTO } from "../../services/report";
 
-const sectionLabelClass =
-  "text-[8.5px] font-semibold uppercase tracking-normal text-slate-500";
-const sectionHeadingClass =
-  "mt-1 text-[16px] font-bold leading-[1.2] text-slate-900";
-const sectionDescClass =
-  "mt-1.5 max-w-full text-[10.5px] leading-[1.6] text-slate-600";
+const HeadingClass =
+  "mt-1 text-[22px] font-bold leading-[1.25] text-slate-900";
+
+const DescClass =
+  "mt-2 max-w-full text-[15.5px] leading-[1.85] text-slate-600";
 
 const PAGE_WIDTH = 1120;
 const PAGE_HEIGHT = 1620;
@@ -125,9 +124,19 @@ const readTaskIDsFromQuery = (): { mode: "all" | "filtered"; ids: string[] } => 
 const normalizeTaskIDs = (ids?: string[]): string[] => {
   if (!Array.isArray(ids)) return [];
 
-  return ids
-    .map((id) => String(id).trim())
-    .filter((id) => id !== "");
+  const seen = new Set<string>();
+  const normalized: string[] = [];
+
+  for (const id of ids) {
+    const value = String(id).trim();
+    if (!value) continue;
+    if (seen.has(value)) continue;
+
+    seen.add(value);
+    normalized.push(value);
+  }
+
+  return normalized;
 };
 
 const getViewportMode = (width: number): ViewportMode => {
@@ -149,7 +158,15 @@ const buildVisiblePageNumbers = (
   }
 
   if (currentPage >= totalPages - 3) {
-    return [1, "ellipsis-left", totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+    return [
+      1,
+      "ellipsis-left",
+      totalPages - 4,
+      totalPages - 3,
+      totalPages - 2,
+      totalPages - 1,
+      totalPages,
+    ];
   }
 
   return [
@@ -185,8 +202,8 @@ const Pdf: React.FC<PdfProps> = ({
   const previewFrameRef = useRef<HTMLDivElement | null>(null);
 
   const isMountedRef = useRef(false);
-  const isPrefetchingRef = useRef(false);
-  const lastPrefetchKeyRef = useRef("");
+  const latestRequestIdRef = useRef(0);
+  const lastCompletedPrefetchKeyRef = useRef("");
 
   const normalizedSelectedTaskIDs = useMemo(
     () => normalizeTaskIDs(selectedTaskIDs),
@@ -201,6 +218,7 @@ const Pdf: React.FC<PdfProps> = ({
 
     return () => {
       isMountedRef.current = false;
+      latestRequestIdRef.current += 1;
     };
   }, []);
 
@@ -214,6 +232,7 @@ const Pdf: React.FC<PdfProps> = ({
     if (normalizedSelectedTaskIDs.length > 0) {
       return "filtered";
     }
+
     return taskMode;
   }, [normalizedSelectedTaskIDs, taskMode]);
 
@@ -221,8 +240,17 @@ const Pdf: React.FC<PdfProps> = ({
     if (normalizedSelectedTaskIDs.length > 0) {
       return normalizedSelectedTaskIDs;
     }
-    return queryTaskIDs;
+
+    return normalizeTaskIDs(queryTaskIDs);
   }, [normalizedSelectedTaskIDs, queryTaskIDs]);
+
+  const reportSelectedTaskIDs = useMemo<string[]>(() => {
+    if (effectiveTaskMode === "all" || effectiveTaskIDs.length === 0) {
+      return [];
+    }
+
+    return effectiveTaskIDs;
+  }, [effectiveTaskMode, effectiveTaskIDs]);
 
   const prefetchKey = useMemo(() => {
     return JSON.stringify({
@@ -284,77 +312,90 @@ const Pdf: React.FC<PdfProps> = ({
     };
   }, []);
 
-  const loadPrefetchData = useCallback(async () => {
-    if (isPrefetchingRef.current) return;
-    if (lastPrefetchKeyRef.current === prefetchKey) return;
-
-    try {
-      isPrefetchingRef.current = true;
-      lastPrefetchKeyRef.current = prefetchKey;
-
-      if (isMountedRef.current) {
-        setPrefetchLoading(true);
-      }
-
-      const requestTaskIds =
-        effectiveTaskMode === "all" || effectiveTaskIDs.length === 0
-          ? undefined
-          : effectiveTaskIDs;
-
-      const [summaryResult, criticalResult, deviceResult] = await Promise.all([
-        ListTaskVulnSummaryForReport(requestTaskIds),
-        ListCriticalForReport(requestTaskIds, 9999),
-        ListDeviceRiskForReport(),
-      ]);
-
-      if (!isMountedRef.current) return;
-
-      const summaryRows = Array.isArray(summaryResult)
-        ? (summaryResult as TaskVulnSummaryForReportResponse[])
-        : [];
-
-      const criticalRows = Array.isArray(criticalResult)
-        ? (criticalResult as CriticalForReportDTO[])
-        : [];
-
-      const allDevices = Array.isArray(deviceResult)
-        ? (deviceResult as DeviceRiskForReportDTO[])
-        : [];
-
-      const selectedTaskSet = new Set(
-        effectiveTaskIDs.map((id) => String(id).trim())
-      );
-
-      const filteredDevices =
-        effectiveTaskMode === "all" || effectiveTaskIDs.length === 0
-          ? allDevices
-          : allDevices.filter((item) =>
-              selectedTaskSet.has(String(item.task_id).trim())
-            );
-
-      setPrefetchedSummaryRows(summaryRows);
-      setPrefetchedHighlights(criticalRows);
-      setPrefetchedDevices(filteredDevices);
-    } catch (error) {
-      console.error("Pdf preload data error:", error);
-
-      if (!isMountedRef.current) return;
-
-      setPrefetchedSummaryRows([]);
-      setPrefetchedHighlights([]);
-      setPrefetchedDevices([]);
-      lastPrefetchKeyRef.current = "";
-    } finally {
-      if (isMountedRef.current) {
-        setPrefetchLoading(false);
-      }
-      isPrefetchingRef.current = false;
-    }
-  }, [effectiveTaskMode, effectiveTaskIDs, prefetchKey]);
-
   useEffect(() => {
-    void loadPrefetchData();
-  }, [loadPrefetchData]);
+    if (lastCompletedPrefetchKeyRef.current === prefetchKey) return;
+
+    const requestId = latestRequestIdRef.current + 1;
+    latestRequestIdRef.current = requestId;
+
+    const currentPrefetchKey = prefetchKey;
+    const currentTaskMode = effectiveTaskMode;
+    const currentTaskIDs = [...effectiveTaskIDs];
+
+    setPrefetchLoading(true);
+    setCurrentPage(1);
+
+    const timer = window.setTimeout(() => {
+      const run = async () => {
+        try {
+          const requestTaskIds =
+            currentTaskMode === "all" || currentTaskIDs.length === 0
+              ? undefined
+              : currentTaskIDs;
+
+          const [summaryResult, criticalResult, deviceResult] =
+            await Promise.all([
+              ListTaskVulnSummaryForReport(requestTaskIds),
+              ListCriticalForReport(requestTaskIds, 9999),
+              ListDeviceRiskForReport(),
+            ]);
+
+          if (!isMountedRef.current) return;
+          if (latestRequestIdRef.current !== requestId) return;
+
+          const summaryRows = Array.isArray(summaryResult)
+            ? (summaryResult as TaskVulnSummaryForReportResponse[])
+            : [];
+
+          const criticalRows = Array.isArray(criticalResult)
+            ? (criticalResult as CriticalForReportDTO[])
+            : [];
+
+          const allDevices = Array.isArray(deviceResult)
+            ? (deviceResult as DeviceRiskForReportDTO[])
+            : [];
+
+          const selectedTaskSet = new Set(
+            currentTaskIDs.map((id) => String(id).trim())
+          );
+
+          const filteredDevices =
+            currentTaskMode === "all" || currentTaskIDs.length === 0
+              ? allDevices
+              : allDevices.filter((item) =>
+                  selectedTaskSet.has(String(item.task_id).trim())
+                );
+
+          setPrefetchedSummaryRows(summaryRows);
+          setPrefetchedHighlights(criticalRows);
+          setPrefetchedDevices(filteredDevices);
+
+          lastCompletedPrefetchKeyRef.current = currentPrefetchKey;
+        } catch (error) {
+          console.error("Pdf preload data error:", error);
+
+          if (!isMountedRef.current) return;
+          if (latestRequestIdRef.current !== requestId) return;
+
+          setPrefetchedSummaryRows([]);
+          setPrefetchedHighlights([]);
+          setPrefetchedDevices([]);
+          lastCompletedPrefetchKeyRef.current = "";
+        } finally {
+          if (!isMountedRef.current) return;
+          if (latestRequestIdRef.current !== requestId) return;
+
+          setPrefetchLoading(false);
+        }
+      };
+
+      void run();
+    }, 180);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [prefetchKey, effectiveTaskMode, effectiveTaskIDs]);
 
   const highlightsCount = useMemo(() => {
     return prefetchedHighlights.length;
@@ -452,6 +493,7 @@ const Pdf: React.FC<PdfProps> = ({
   };
 
   const currentDescriptor = pageDescriptors[currentPage - 1];
+
   const visiblePageNumbers = useMemo(
     () => buildVisiblePageNumbers(currentPage, totalPages),
     [currentPage, totalPages]
@@ -491,17 +533,17 @@ const Pdf: React.FC<PdfProps> = ({
             <main className="flex-1 px-8 pt-6 pb-8">
               <section className="mt-0">
                 <div className="mb-3 border-b border-slate-200 pb-2.5">
-                  <p className={sectionLabelClass}>Section 1</p>
-                  <h2 className={sectionHeadingClass}>Total Severity</h2>
-                  <p className={sectionDescClass}>
-                    สรุปภาพรวมผลการสแกนล่าสุด โดยแสดงตัวชี้วัดสำคัญของการประเมิน
-                    พร้อมจำนวนช่องโหว่ในแต่ละระดับความรุนแรง
+                  <h1 className={HeadingClass}>Total Severity</h1>
+                  <p className={DescClass}>
+                    แสดงสรุปผลการสแกนล่าสุด พร้อมจำนวนช่องโหว่ที่พบ
+                    แยกตามระดับความรุนแรง
                   </p>
                 </div>
 
                 <ReportKPI
+                  key={`report-kpi-${prefetchKey}`}
                   onReady={noop}
-                  selectedTaskIDs={selectedTaskIDs}
+                  selectedTaskIDs={reportSelectedTaskIDs}
                   prefetchedRows={prefetchedSummaryRows}
                   prefetchedLoading={prefetchLoading}
                 />
@@ -509,19 +551,18 @@ const Pdf: React.FC<PdfProps> = ({
 
               <section className="mt-5">
                 <div className="mb-3 border-b border-slate-200 pb-2.5">
-                  <p className={sectionLabelClass}>Section 2</p>
-                  <h2 className={sectionHeadingClass}>
+                  <h1 className={HeadingClass}>
                     Severity Distribution Overview
-                  </h2>
-                  <p className={sectionDescClass}>
-                    แสดงภาพรวมการกระจายของช่องโหว่ตามระดับความรุนแรงในรูปแบบย่อ
-                    เพื่อให้เหมาะกับการจัดวางในรายงาน PDF แบบหน้าเดียว
+                  </h1>
+                  <p className={`${DescClass}`}>
+                    แสดงจำนวนช่องโหว่ในแต่ละระดับความรุนแรงในรูปแบบกราฟ
                   </p>
                 </div>
 
                 <SeveritySnapshot
+                  key={`severity-snapshot-${prefetchKey}`}
                   onReady={noop}
-                  selectedTaskIDs={selectedTaskIDs}
+                  selectedTaskIDs={reportSelectedTaskIDs}
                   prefetchedRows={prefetchedSummaryRows}
                   prefetchedLoading={prefetchLoading}
                 />
@@ -540,12 +581,10 @@ const Pdf: React.FC<PdfProps> = ({
                 <div className="mb-3 border-b border-slate-200 pb-2.5">
                   <div className="flex items-end justify-between gap-4">
                     <div>
-                      <p className={sectionLabelClass}>Section 3</p>
-                      <h2 className={sectionHeadingClass}>Critical Highlights</h2>
-                      <p className={sectionDescClass}>
-                        สรุปประเด็นสำคัญของช่องโหว่ระดับวิกฤตที่ควรได้รับการติดตามก่อน
-                        โดยแสดงชื่อช่องโหว่ , ผลกระทบ , รายละเอียด
-                        และข้อมูลเชิงลึกรวมถึงวิธีการแก้ไขเพื่อใช้ประกอบการตัดสินใจ
+                      <h1 className={HeadingClass}>Critical Highlights</h1>
+                      <p className={`${DescClass}`}>
+                        สรุปช่องโหว่ระดับวิกฤตที่ควรติดตามก่อน
+                        พร้อมผลกระทบ รายละเอียด และแนวทางแก้ไข
                       </p>
                     </div>
 
@@ -559,8 +598,9 @@ const Pdf: React.FC<PdfProps> = ({
                 </div>
 
                 <ExecutiveHighlights
+                  key={`executive-highlights-${prefetchKey}-${descriptor.pageIndex}`}
                   onReady={noop}
-                  selectedTaskIDs={selectedTaskIDs}
+                  selectedTaskIDs={reportSelectedTaskIDs}
                   pageIndex={descriptor.pageIndex}
                   pageSize={descriptor.pageSize}
                   showOuterHeader={true}
@@ -583,15 +623,11 @@ const Pdf: React.FC<PdfProps> = ({
                 <div className="mb-3 border-b border-slate-200 pb-2.5">
                   <div className="flex items-end justify-between gap-4">
                     <div>
-                      <p className={sectionLabelClass}>Section 4</p>
-                      <h2 className={sectionHeadingClass}>
-                        Top Device Risk Report
-                      </h2>
-                      <p className={sectionDescClass}>
+                      <h1 className={HeadingClass}>Top Device Risk Report</h1>
+                      <p className={`${DescClass}`}>
                         แสดงรายการอุปกรณ์ที่มีความเสี่ยงสูงจากผลการประเมินล่าสุด
                         โดยเรียงลำดับตามค่า Risk Score
                         เพื่อช่วยให้ติดตามอุปกรณ์ที่ควรได้รับการจัดการก่อน
-                        ในรูปแบบที่เหมาะกับการอ่านบนรายงาน PDF
                       </p>
                     </div>
 
@@ -605,8 +641,9 @@ const Pdf: React.FC<PdfProps> = ({
                 </div>
 
                 <TopDeviceRiskReport
+                  key={`top-device-risk-${prefetchKey}-${descriptor.pageIndex}`}
                   onReady={noop}
-                  selectedTaskIDs={selectedTaskIDs}
+                  selectedTaskIDs={reportSelectedTaskIDs}
                   pageIndex={descriptor.pageIndex}
                   pageSize={descriptor.pageSize}
                   showOuterHeader={true}
@@ -633,17 +670,19 @@ const Pdf: React.FC<PdfProps> = ({
                 }}
               >
                 <div className="mb-3 border-b border-slate-200 pb-2.5">
-                  <p className={sectionLabelClass}>Section 5</p>
-                  <h2 className={sectionHeadingClass}>Top 10 Risk Score Comparison</h2>
-                  <p className={sectionDescClass}>
+                  <h1 className={HeadingClass}>
+                    Top 10 Risk Score Comparison
+                  </h1>
+                  <p className={`${DescClass}`}>
                     เปรียบเทียบค่า Latest Risk และ Previous Risk ของแต่ละเป้าหมาย
                     เพื่อให้เห็นแนวโน้มความเสี่ยงล่าสุด
                   </p>
                 </div>
 
                 <ComparisonReport
+                  key={`comparison-report-${prefetchKey}`}
                   onReady={noop}
-                  selectedTaskIDs={selectedTaskIDs}
+                  selectedTaskIDs={reportSelectedTaskIDs}
                 />
               </section>
 
@@ -655,20 +694,19 @@ const Pdf: React.FC<PdfProps> = ({
                 }}
               >
                 <div className="mb-3 border-b border-slate-200 pb-2.5">
-                  <p className={sectionLabelClass}>Section 6</p>
-                  <h2 className={sectionHeadingClass}>
+                  <h1 className={HeadingClass}>
                     Monthly Risk Score Overview
-                  </h2>
-                  <p className={sectionDescClass}>
-                    This section presents mock monthly vulnerability counts and
-                    risk scores for the current year, together with a compact
-                    summary table for report review.
+                  </h1>
+                  <p className={`${DescClass}`}>
+                    แสดงจำนวนช่องโหว่และค่า Risk Score รายเดือนของปี
+                    พร้อมตารางสรุปสำหรับใช้ตรวจสอบรายงาน
                   </p>
                 </div>
 
                 <Section6MonthlyRiskReport
+                  key={`monthly-risk-report-${prefetchKey}`}
                   onReady={noop}
-                  selectedTaskIDs={selectedTaskIDs}
+                  selectedTaskIDs={reportSelectedTaskIDs}
                 />
               </section>
             </main>
@@ -689,18 +727,20 @@ const Pdf: React.FC<PdfProps> = ({
                 }}
               >
                 <div className="mb-3 border-b border-slate-200 pb-2.5">
-                  <p className={sectionLabelClass}>Section 7</p>
-                  <h2 className={sectionHeadingClass}>
+                  <h1 className={HeadingClass}>
                     Final Conclusion and Executive Summary
-                  </h2>
-                  <p className={sectionDescClass}>
-                    สรุปภาพรวมของรายงานทั้งหมดในหน้าเดียว
-                    โดยรวบรวมตัวเลขสำคัญ การกระจายความรุนแรง
-                    ความเสี่ยงของเป้าหมายหลัก และข้อสังเกตสำหรับการตัดสินใจเชิงปฏิบัติการ
+                  </h1>
+                  <p className={`${DescClass}`}>
+                    สรุปภาพรวมรายงานในหน้าเดียว พร้อมตัวเลขสำคัญ
+                    ระดับความรุนแรง ความเสี่ยงหลัก และข้อสังเกตเพื่อการตัดสินใจ
                   </p>
                 </div>
 
-                <Conclusion onReady={noop} selectedTaskIDs={selectedTaskIDs} />
+                <Conclusion
+                  key={`conclusion-${prefetchKey}`}
+                  onReady={noop}
+                  selectedTaskIDs={reportSelectedTaskIDs}
+                />
               </section>
             </main>
 
@@ -724,7 +764,9 @@ const Pdf: React.FC<PdfProps> = ({
             <div className="min-w-0">
               <div className="inline-flex items-center gap-2 border border-slate-200 px-3 py-1 text-slate-700 transition-colors dark:border-cyan-400/15 dark:bg-[#0d1628] dark:text-white/80">
                 <FiFileText className="text-[13px]" />
-                <span className="text-[11px] font-medium">PDF Preview Mode</span>
+                <span className="text-[11px] font-medium">
+                  PDF Preview Mode
+                </span>
               </div>
 
               <h1 className="mt-3 text-[16px] font-semibold text-slate-900 dark:text-white/92 sm:text-[20px]">
@@ -756,10 +798,14 @@ const Pdf: React.FC<PdfProps> = ({
 
                   <div className="flex min-w-0 flex-1 flex-col items-center justify-center rounded-xl border border-slate-200 bg-white px-2 py-1.5 text-center dark:border-cyan-400/12 dark:bg-[#111a2d]">
                     <div className="text-[11px] font-semibold text-slate-800 dark:text-white/85">
-                      {prefetchLoading ? "Loading..." : `Page ${currentPage} of ${totalPages}`}
+                      {prefetchLoading
+                        ? "Loading..."
+                        : `Page ${currentPage} of ${totalPages}`}
                     </div>
                     <div className="mt-0.5 max-w-full truncate text-[10px] text-slate-500 dark:text-white/45">
-                      {prefetchLoading ? "Preparing report..." : currentDescriptor?.title ?? "-"}
+                      {prefetchLoading
+                        ? "Preparing report..."
+                        : currentDescriptor?.title ?? "-"}
                     </div>
                   </div>
 
@@ -821,7 +867,10 @@ const Pdf: React.FC<PdfProps> = ({
                   <div className="-mx-0.5 flex-1 overflow-x-auto pb-1 xl:flex-none xl:overflow-visible xl:pb-0">
                     <div className="flex w-max items-center border border-slate-200 bg-white transition-colors dark:border-cyan-400/12 dark:bg-[#111a2d]">
                       {visiblePageNumbers.map((item, index) => {
-                        if (item === "ellipsis-left" || item === "ellipsis-right") {
+                        if (
+                          item === "ellipsis-left" ||
+                          item === "ellipsis-right"
+                        ) {
                           return (
                             <div
                               key={`${item}-${index}`}

@@ -1,6 +1,7 @@
 package diagram
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -28,6 +29,7 @@ type DiagramResponse struct {
 	Name        string      `json:"name"`
 	Description string      `json:"description"`
 	ImageBase64 string      `json:"image_base64"`
+	AppUserID   uint        `json:"app_user_id"`
 	CreatedAt   interface{} `json:"created_at"`
 	UpdatedAt   interface{} `json:"updated_at"`
 }
@@ -38,12 +40,63 @@ func mapDiagramResponse(diagram entity.AppDiagram) DiagramResponse {
 		Name:        diagram.Name,
 		Description: diagram.Description,
 		ImageBase64: diagram.ImageBase64,
+		AppUserID:   diagram.AppUserID,
 		CreatedAt:   diagram.CreatedAt,
 		UpdatedAt:   diagram.UpdatedAt,
 	}
 }
 
+func getLoginAppUserID(c *gin.Context) (uint, bool) {
+	userIDValue, exists := c.Get("user_id")
+	if !exists {
+		return 0, false
+	}
+
+	switch v := userIDValue.(type) {
+	case uint:
+		if v == 0 {
+			return 0, false
+		}
+		return v, true
+
+	case uint64:
+		if v == 0 {
+			return 0, false
+		}
+		return uint(v), true
+
+	case int:
+		if v <= 0 {
+			return 0, false
+		}
+		return uint(v), true
+
+	case int64:
+		if v <= 0 {
+			return 0, false
+		}
+		return uint(v), true
+
+	case float64:
+		if v <= 0 {
+			return 0, false
+		}
+		return uint(v), true
+
+	default:
+		return 0, false
+	}
+}
+
 func CreateDiagram(c *gin.Context) {
+	loginAppUserID, ok := getLoginAppUserID(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "unauthorized: user not found in context",
+		})
+		return
+	}
+
 	var input CreateDiagramInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -54,10 +107,19 @@ func CreateDiagram(c *gin.Context) {
 
 	db := config.DB()
 
+	var appUser entity.AppUser
+	if err := db.First(&appUser, loginAppUserID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "login app user not found",
+		})
+		return
+	}
+
 	diagram := entity.AppDiagram{
 		Name:        cleanString(input.Name),
 		Description: cleanString(input.Description),
 		ImageBase64: cleanString(input.ImageBase64),
+		AppUserID:   loginAppUserID,
 	}
 
 	ok, err := govalidator.ValidateStruct(diagram)
@@ -76,7 +138,7 @@ func CreateDiagram(c *gin.Context) {
 	}
 
 	var createdDiagram entity.AppDiagram
-	if err := db.First(&createdDiagram, diagram.ID).Error; err != nil {
+	if err := db.Preload("AppUser").First(&createdDiagram, diagram.ID).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "failed to reload created diagram",
 		})
@@ -93,7 +155,7 @@ func ListDiagrams(c *gin.Context) {
 	db := config.DB()
 
 	var diagrams []entity.AppDiagram
-	if err := db.Order("id ASC").Find(&diagrams).Error; err != nil {
+	if err := db.Preload("AppUser").Order("id ASC").Find(&diagrams).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "failed to list diagrams",
 		})
@@ -124,8 +186,8 @@ func ListDiagramByID(c *gin.Context) {
 	db := config.DB()
 
 	var diagram entity.AppDiagram
-	if err := db.First(&diagram, uint(did)).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
+	if err := db.Preload("AppUser").First(&diagram, uint(did)).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{
 				"error": "diagram not found",
 			})
@@ -144,6 +206,14 @@ func ListDiagramByID(c *gin.Context) {
 }
 
 func UpdateDiagramByID(c *gin.Context) {
+	loginAppUserID, ok := getLoginAppUserID(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "unauthorized: user not found in context",
+		})
+		return
+	}
+
 	id := c.Param("id")
 
 	did, err := strconv.ParseUint(id, 10, 64)
@@ -164,9 +234,17 @@ func UpdateDiagramByID(c *gin.Context) {
 
 	db := config.DB()
 
+	var appUser entity.AppUser
+	if err := db.First(&appUser, loginAppUserID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "login app user not found",
+		})
+		return
+	}
+
 	var diagram entity.AppDiagram
 	if err := db.First(&diagram, uint(did)).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{
 				"error": "diagram not found",
 			})
@@ -187,6 +265,7 @@ func UpdateDiagramByID(c *gin.Context) {
 	}
 
 	updatedDiagram := diagram
+	updatedDiagram.AppUserID = loginAppUserID
 
 	if input.Name != nil {
 		updatedDiagram.Name = cleanOptionalString(input.Name)
@@ -200,7 +279,7 @@ func UpdateDiagramByID(c *gin.Context) {
 		updatedDiagram.ImageBase64 = cleanOptionalString(input.ImageBase64)
 	}
 
-	ok, err := govalidator.ValidateStruct(updatedDiagram)
+	ok, err = govalidator.ValidateStruct(updatedDiagram)
 	if !ok || err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
@@ -208,7 +287,9 @@ func UpdateDiagramByID(c *gin.Context) {
 		return
 	}
 
-	updates := map[string]interface{}{}
+	updates := map[string]interface{}{
+		"app_user_id": loginAppUserID,
+	}
 
 	if input.Name != nil {
 		updates["name"] = updatedDiagram.Name
@@ -232,7 +313,7 @@ func UpdateDiagramByID(c *gin.Context) {
 	}
 
 	var reloadedDiagram entity.AppDiagram
-	if err := db.First(&reloadedDiagram, diagram.ID).Error; err != nil {
+	if err := db.Preload("AppUser").First(&reloadedDiagram, diagram.ID).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "failed to reload updated diagram",
 		})
@@ -260,7 +341,7 @@ func DeleteDiagramByID(c *gin.Context) {
 
 	var diagram entity.AppDiagram
 	if err := db.First(&diagram, uint(did)).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{
 				"error": "diagram not found",
 			})

@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-set -uo pipefail
+
+set -u
+set -o pipefail
 
 COMPOSE_DIR="${OPENVAS_COMPOSE_WORKDIR:-/workspace}"
 FORCE_UPDATE="${FEED_FORCE_UPDATE:-false}"
@@ -9,7 +11,6 @@ echo "[$(date -Iseconds)] START feed update automation"
 echo "Using compose dir: ${COMPOSE_DIR}"
 echo "Force update: ${FORCE_UPDATE}"
 
-# เช็ก compose file
 if [ ! -f "${COMPOSE_DIR}/docker-compose.yml" ] && [ ! -f "${COMPOSE_DIR}/compose.yml" ]; then
   echo "ERROR: docker-compose.yml or compose.yml not found in ${COMPOSE_DIR}"
   echo "UPDATED=false"
@@ -25,7 +26,6 @@ fi
 
 echo "Resolved compose file: ${COMPOSE_FILE}"
 
-# เช็ก docker daemon
 if ! docker info >/dev/null 2>&1; then
   echo "ERROR: docker daemon is not available"
   echo "UPDATED=false"
@@ -33,7 +33,6 @@ if ! docker info >/dev/null 2>&1; then
   exit 1
 fi
 
-# เช็ก compose syntax
 if ! docker compose -f "${COMPOSE_FILE}" config >/dev/null 2>&1; then
   echo "ERROR: docker compose config is invalid"
   echo "UPDATED=false"
@@ -49,9 +48,9 @@ FEED_SERVICES=(
   dfn-cert-data
   report-formats
   data-objects
+  gpg-data
 )
 
-# map image แบบชัดเจน เลิก parse YAML ด้วย awk
 declare -A SERVICE_IMAGE=(
   [vulnerability-tests]="registry.community.greenbone.net/community/vulnerability-tests"
   [notus-data]="registry.community.greenbone.net/community/notus-data"
@@ -60,6 +59,7 @@ declare -A SERVICE_IMAGE=(
   [dfn-cert-data]="registry.community.greenbone.net/community/dfn-cert-data"
   [report-formats]="registry.community.greenbone.net/community/report-formats"
   [data-objects]="registry.community.greenbone.net/community/data-objects"
+  [gpg-data]="registry.community.greenbone.net/community/gpg-data"
 )
 
 declare -A IMAGE_ID_BEFORE
@@ -75,16 +75,17 @@ retry_pull() {
   local attempt=1
   local rc=0
 
-  while [ $attempt -le $max_attempts ]; do
+  while [ "${attempt}" -le "${max_attempts}" ]; do
     echo "Pull attempt ${attempt}/${max_attempts} for ${image_ref}"
+
     docker pull "${image_ref}"
     rc=$?
 
-    if [ $rc -eq 0 ]; then
+    if [ "${rc}" -eq 0 ]; then
       return 0
     fi
 
-    if [ $attempt -lt $max_attempts ]; then
+    if [ "${attempt}" -lt "${max_attempts}" ]; then
       echo "WARN: pull failed for ${image_ref}, retrying in 15s..."
       sleep 15
     fi
@@ -92,14 +93,14 @@ retry_pull() {
     attempt=$((attempt + 1))
   done
 
-  return $rc
+  return "${rc}"
 }
 
 echo "Feed services: ${FEED_SERVICES[*]}"
 echo "Checking feed images one by one..."
 
 for svc in "${FEED_SERVICES[@]}"; do
-  img_ref="${SERVICE_IMAGE[$svc]}"
+  img_ref="${SERVICE_IMAGE[$svc]:-}"
 
   if [ -z "${img_ref}" ]; then
     echo "ERROR: image ref is empty for service '${svc}'"
@@ -169,7 +170,7 @@ echo "----- BEGIN docker compose up output -----"
 echo "${UP_OUTPUT}"
 echo "----- END docker compose up output -----"
 
-if [ $UP_EXIT -ne 0 ]; then
+if [ "${UP_EXIT}" -ne 0 ]; then
   echo "ERROR: docker compose up failed"
   echo "UPDATED=false"
   echo "RESULT_TYPE=failed"
@@ -179,6 +180,7 @@ if [ $UP_EXIT -ne 0 ]; then
 fi
 
 echo "Restarting dependent services to load refreshed feed..."
+
 docker compose -f "${COMPOSE_FILE}" restart gvmd ospd-openvas openvasd openvas || true
 
 echo "UPDATED=true"

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import logo from "../../../assets/argus-description.png";
 
@@ -7,42 +7,97 @@ type Props = {
   duration?: number;
 };
 
+const assetPreloadCache = new Map<string, Promise<void>>();
+
+const preloadAssetImage = (src: string): Promise<void> => {
+  if (!src || typeof window === "undefined") {
+    return Promise.resolve();
+  }
+
+  const cached = assetPreloadCache.get(src);
+  if (cached) {
+    return cached;
+  }
+
+  const promise = new Promise<void>((resolve) => {
+    const img = new Image();
+
+    const finish = () => {
+      if (typeof img.decode === "function") {
+        img.decode().catch(() => undefined).finally(resolve);
+        return;
+      }
+
+      resolve();
+    };
+
+    img.decoding = "async";
+    img.onload = finish;
+    img.onerror = () => resolve();
+    img.src = src;
+  });
+
+  assetPreloadCache.set(src, promise);
+  return promise;
+};
+
+export const preloadLoginSuccessAnimationAssets = (): Promise<void> => {
+  return preloadAssetImage(logo);
+};
+
 const Index: React.FC<Props> = ({ onFinished, duration = 1000 }) => {
   const [start, setStart] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const [logoReady, setLogoReady] = useState(false);
+
+  const onFinishedRef = useRef(onFinished);
+  const finishedRef = useRef(false);
+
+  const safeDuration = useMemo(() => Math.max(duration, 100), [duration]);
 
   useEffect(() => {
-    const raf = requestAnimationFrame(() => setStart(true));
-    return () => cancelAnimationFrame(raf);
+    onFinishedRef.current = onFinished;
+  }, [onFinished]);
+
+  useEffect(() => {
+    let cancelled = false;
+    let raf = 0;
+
+    preloadLoginSuccessAnimationAssets().finally(() => {
+      if (cancelled) {
+        return;
+      }
+
+      setLogoReady(true);
+
+      raf = requestAnimationFrame(() => {
+        if (!cancelled) {
+          setStart(true);
+        }
+      });
+    });
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(raf);
+    };
   }, []);
 
   useEffect(() => {
-    const totalDuration = Math.max(duration, 100);
-    const intervalMs = 24;
-    const totalSteps = Math.ceil(totalDuration / intervalMs);
-    let currentStep = 0;
+    if (!start) {
+      return;
+    }
 
-    const timer = setInterval(() => {
-      currentStep += 1;
-
-      const nextValue = Math.min(
-        100,
-        Math.round((currentStep / totalSteps) * 100)
-      );
-
-      setProgress(nextValue);
-
-      if (nextValue >= 100) {
-        clearInterval(timer);
-
-        if (onFinished) {
-          setTimeout(() => onFinished(), 420);
-        }
+    const timer = window.setTimeout(() => {
+      if (finishedRef.current) {
+        return;
       }
-    }, intervalMs);
 
-    return () => clearInterval(timer);
-  }, [duration, onFinished]);
+      finishedRef.current = true;
+      onFinishedRef.current?.();
+    }, safeDuration + 420);
+
+    return () => window.clearTimeout(timer);
+  }, [safeDuration, start]);
 
   const scanBars = useMemo(() => Array.from({ length: 12 }, (_, i) => i), []);
   const streamDots = useMemo(() => Array.from({ length: 10 }, (_, i) => i), []);
@@ -1102,6 +1157,7 @@ const Index: React.FC<Props> = ({ onFinished, duration = 1000 }) => {
           object-fit: contain;
           user-select: none;
           -webkit-user-drag: none;
+          opacity: 0;
           filter:
             contrast(1.2)
             saturate(1.1)
@@ -1111,6 +1167,13 @@ const Index: React.FC<Props> = ({ onFinished, duration = 1000 }) => {
             drop-shadow(0 0 18px rgba(103,232,249,0.3))
             drop-shadow(0 20px 34px rgba(37,99,235,0.18));
           animation: logoFloat 4.7s ease-in-out infinite;
+          transform: translateZ(0);
+          transition: opacity 280ms ease;
+          will-change: transform, opacity;
+        }
+
+        .logo-img.logo-img-ready {
+          opacity: 1;
         }
 
         .dark .logo-img {
@@ -1266,10 +1329,14 @@ const Index: React.FC<Props> = ({ onFinished, duration = 1000 }) => {
 
         .loader-progress {
           position: relative;
+          width: 100%;
           height: 100%;
           border-radius: inherit;
           overflow: hidden;
-          transition: width 0.03s linear;
+          transform: scaleX(0);
+          transform-origin: left center;
+          will-change: transform;
+          animation: loaderFill var(--loader-duration, 5000ms) linear forwards;
           background:
             linear-gradient(
               90deg,
@@ -1430,6 +1497,11 @@ const Index: React.FC<Props> = ({ onFinished, duration = 1000 }) => {
           12% { opacity: 1; }
           38% { opacity: 0.35; }
           100% { opacity: 0; }
+        }
+
+        @keyframes loaderFill {
+          0% { transform: scaleX(0); }
+          100% { transform: scaleX(1); }
         }
 
         @keyframes floorDrift {
@@ -2059,6 +2131,7 @@ const Index: React.FC<Props> = ({ onFinished, duration = 1000 }) => {
 
       <motion.div
         className="argus-login"
+        style={{ "--loader-duration": `${safeDuration}ms` } as React.CSSProperties}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.45, ease: "easeOut" }}
@@ -2411,7 +2484,14 @@ const Index: React.FC<Props> = ({ onFinished, duration = 1000 }) => {
             <div className="logo-shine" />
 
             <div className="logo-wrap">
-              <img src={logo} alt="ARGUS logo" className="logo-img" />
+              <img
+                src={logo}
+                alt="ARGUS logo"
+                className={`logo-img ${logoReady ? "logo-img-ready" : ""}`}
+                loading="eager"
+                decoding="async"
+                onLoad={() => setLogoReady(true)}
+              />
             </div>
           </div>
 
@@ -2422,7 +2502,7 @@ const Index: React.FC<Props> = ({ onFinished, duration = 1000 }) => {
               <div className="loader-rail">
                 <div className="loader-rail-grid" />
 
-                <div className="loader-progress" style={{ width: `${progress}%` }}>
+                <div className="loader-progress">
                   <div className="loader-scan-layer" />
 
                   <div className="loader-packets">

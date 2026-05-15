@@ -2,11 +2,15 @@ package report
 
 import (
 	"net/http"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/Tawunchai/openvas/config"
+	"github.com/Tawunchai/openvas/manage"
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type CriticalForReportDTO struct {
@@ -26,6 +30,188 @@ type CriticalForReportDTO struct {
 	SolutionType      string    `json:"solution_type"`
 }
 
+type ReportCriticalManageLimitTaskIDDTO struct {
+	TaskID string `gorm:"column:task_id"`
+}
+
+func normalizeReportCriticalTaskIDForManageLimit(taskID string) string {
+	taskID = strings.TrimSpace(taskID)
+
+	if taskID == "" {
+		return ""
+	}
+
+	taskIDNumber, err := strconv.ParseInt(taskID, 10, 64)
+	if err == nil {
+		return strconv.FormatInt(taskIDNumber, 10)
+	}
+
+	return taskID
+}
+
+func compareReportCriticalTaskIDForManageLimit(a string, b string) int {
+	a = normalizeReportCriticalTaskIDForManageLimit(a)
+	b = normalizeReportCriticalTaskIDForManageLimit(b)
+
+	if a == "" && b == "" {
+		return 0
+	}
+
+	if a == "" {
+		return 1
+	}
+
+	if b == "" {
+		return -1
+	}
+
+	aNumber, aErr := strconv.ParseInt(a, 10, 64)
+	bNumber, bErr := strconv.ParseInt(b, 10, 64)
+
+	if aErr == nil && bErr == nil {
+		if aNumber < bNumber {
+			return -1
+		}
+
+		if aNumber > bNumber {
+			return 1
+		}
+
+		return 0
+	}
+
+	return strings.Compare(a, b)
+}
+
+// FindReportCriticalManageLimitTaskIDs
+//
+// ใช้หา task_id กลุ่มแรกตามค่า TargetLimit ใน manage.go
+//
+// ตัวอย่าง:
+// manage.TargetLimit = 5
+// public.tasks มี task_id = 2, 3, 4, 5, 6, 7
+// function นี้จะคืนค่า = 2, 3, 4, 5, 6
+func FindReportCriticalManageLimitTaskIDs(db *gorm.DB) ([]string, error) {
+	targetLimit := manage.GetTargetLimit()
+
+	if targetLimit <= 0 {
+		return make([]string, 0), nil
+	}
+
+	query := `
+SELECT
+  t.id::text AS task_id
+FROM public.tasks t
+WHERE t.id IS NOT NULL
+ORDER BY
+  t.id ASC
+LIMIT ?;
+`
+
+	rows := make([]ReportCriticalManageLimitTaskIDDTO, 0)
+
+	if err := db.Raw(query, targetLimit).Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+
+	taskIDs := make([]string, 0, len(rows))
+	seen := make(map[string]bool)
+
+	for _, row := range rows {
+		taskID := normalizeReportCriticalTaskIDForManageLimit(row.TaskID)
+
+		if taskID == "" {
+			continue
+		}
+
+		if seen[taskID] {
+			continue
+		}
+
+		seen[taskID] = true
+		taskIDs = append(taskIDs, taskID)
+	}
+
+	sort.SliceStable(taskIDs, func(i int, j int) bool {
+		return compareReportCriticalTaskIDForManageLimit(taskIDs[i], taskIDs[j]) < 0
+	})
+
+	return taskIDs, nil
+}
+
+func BuildReportCriticalManageLimitTaskIDSet(db *gorm.DB) (map[string]bool, error) {
+	taskIDs, err := FindReportCriticalManageLimitTaskIDs(db)
+	if err != nil {
+		return nil, err
+	}
+
+	allowedTaskIDs := make(map[string]bool)
+
+	for _, taskID := range taskIDs {
+		cleanTaskID := normalizeReportCriticalTaskIDForManageLimit(taskID)
+
+		if cleanTaskID == "" {
+			continue
+		}
+
+		allowedTaskIDs[cleanTaskID] = true
+	}
+
+	return allowedTaskIDs, nil
+}
+
+func sortCriticalForReportByManageLogic(out []CriticalForReportDTO) {
+	sort.SliceStable(out, func(i int, j int) bool {
+		if out[i].Severity != out[j].Severity {
+			return out[i].Severity > out[j].Severity
+		}
+
+		taskCompare := compareReportCriticalTaskIDForManageLimit(out[i].TaskID, out[j].TaskID)
+		if taskCompare != 0 {
+			return taskCompare < 0
+		}
+
+		taskNameCompare := strings.Compare(out[i].TaskName, out[j].TaskName)
+		if taskNameCompare != 0 {
+			return taskNameCompare < 0
+		}
+
+		return strings.Compare(out[i].VulnerabilityName, out[j].VulnerabilityName) < 0
+	})
+}
+
+func sortTargetDifferForReportByManageLogic(out []TargetDifferResponse) {
+	sort.SliceStable(out, func(i int, j int) bool {
+		taskCompare := compareReportCriticalTaskIDForManageLimit(out[i].LatestTaskID, out[j].LatestTaskID)
+		if taskCompare != 0 {
+			return taskCompare < 0
+		}
+
+		hostCompare := strings.Compare(out[i].Host, out[j].Host)
+		if hostCompare != 0 {
+			return hostCompare < 0
+		}
+
+		return strings.Compare(out[i].TaskName, out[j].TaskName) < 0
+	})
+}
+
+func sortDeviceRiskForReportByManageLogic(out []DeviceRiskDTO) {
+	sort.SliceStable(out, func(i int, j int) bool {
+		taskCompare := compareReportCriticalTaskIDForManageLimit(out[i].TaskID, out[j].TaskID)
+		if taskCompare != 0 {
+			return taskCompare < 0
+		}
+
+		ipCompare := strings.Compare(out[i].IPAddress, out[j].IPAddress)
+		if ipCompare != 0 {
+			return ipCompare < 0
+		}
+
+		return strings.Compare(out[i].TaskName, out[j].TaskName) < 0
+	})
+}
+
 // GET /critical-report
 // Optional query:
 //   - task_id=3
@@ -37,10 +223,27 @@ func ListCriticalForReport(c *gin.Context) {
 	taskIDRaw := strings.TrimSpace(c.Query("task_id"))
 	limit := strings.TrimSpace(c.DefaultQuery("limit", "50"))
 
+	allowedTaskIDs, err := FindReportCriticalManageLimitTaskIDs(db)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "failed to find manage target limit task ids",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if len(allowedTaskIDs) == 0 {
+		c.JSON(http.StatusOK, gin.H{
+			"data":  make([]CriticalForReportDTO, 0),
+			"count": 0,
+		})
+		return
+	}
+
 	query := `
 WITH ParsedTaskIDs AS (
     SELECT DISTINCT BTRIM(value) AS task_id
-    FROM unnest(string_to_array($1, ',')) AS value
+    FROM unnest(string_to_array(?, ',')) AS value
     WHERE BTRIM(value) <> ''
 ),
 
@@ -49,10 +252,11 @@ FilteredTasks AS (
         t.id::text AS task_id,
         t.name AS task_name
     FROM public.tasks t
-    WHERE (
-        $1 = ''
+    WHERE t.id::text IN ?
+      AND (
+        ? = ''
         OR t.id::text IN (SELECT task_id FROM ParsedTaskIDs)
-    )
+      )
 ),
 
 LatestReportPerTask AS (
@@ -194,19 +398,27 @@ LEFT JOIN CVEListPerNVT ca
   ON ca.nvt_oid = tp.nvt_oid
 ORDER BY
     tp.severity DESC,
+    tp.task_id ASC,
     tp.task_name ASC,
     tp.vulnerability_name ASC
-LIMIT COALESCE(NULLIF($2, '')::int, 50);
+LIMIT COALESCE(NULLIF(?, '')::int, 50);
 `
 
-	var out []CriticalForReportDTO
-	if err := db.Raw(query, taskIDRaw, limit).Scan(&out).Error; err != nil {
+	out := make([]CriticalForReportDTO, 0)
+
+	if err := db.Raw(query, taskIDRaw, allowedTaskIDs, taskIDRaw, limit).Scan(&out).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":   "failed to load critical findings for report",
 			"details": err.Error(),
 		})
 		return
 	}
+
+	if out == nil {
+		out = make([]CriticalForReportDTO, 0)
+	}
+
+	sortCriticalForReportByManageLogic(out)
 
 	c.JSON(http.StatusOK, gin.H{
 		"data":  out,
@@ -253,10 +465,26 @@ func ListTargetDiffer(c *gin.Context) {
 	db := config.DB()
 	taskIDRaw := strings.TrimSpace(c.Query("task_id"))
 
+	allowedTaskIDs, err := FindReportCriticalManageLimitTaskIDs(db)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "failed to find manage target limit task ids",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if len(allowedTaskIDs) == 0 {
+		c.JSON(http.StatusOK, gin.H{
+			"data": make([]TargetDifferResponse, 0),
+		})
+		return
+	}
+
 	query := `
 WITH ParsedTaskIDs AS (
     SELECT DISTINCT BTRIM(value) AS task_id
-    FROM unnest(string_to_array($1, ',')) AS value
+    FROM unnest(string_to_array(?, ',')) AS value
     WHERE BTRIM(value) <> ''
 ),
 
@@ -265,10 +493,11 @@ FilteredTasks AS (
         t.id::text AS task_id,
         COALESCE(NULLIF(BTRIM(t.name), ''), 'N/A') AS task_name
     FROM public.tasks t
-    WHERE (
-        $1 = ''
+    WHERE t.id::text IN ?
+      AND (
+        ? = ''
         OR t.id::text IN (SELECT task_id FROM ParsedTaskIDs)
-    )
+      )
 ),
 
 BaseResult AS (
@@ -440,13 +669,13 @@ FROM LatestVersion lv
 LEFT JOIN PreviousVersion pv
   ON lv.host = pv.host
 ORDER BY
-    lv.creation_time DESC NULLS LAST,
+    lv.task_id ASC,
     lv.host ASC,
     lv.task_name ASC;
 `
 
 	var results []TargetDifferResponse
-	if err := db.Raw(query, taskIDRaw).Scan(&results).Error; err != nil {
+	if err := db.Raw(query, taskIDRaw, allowedTaskIDs, taskIDRaw).Scan(&results).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":  "failed to list target differ",
 			"detail": err.Error(),
@@ -457,6 +686,8 @@ ORDER BY
 	if results == nil {
 		results = make([]TargetDifferResponse, 0)
 	}
+
+	sortTargetDifferForReportByManageLogic(results)
 
 	c.JSON(http.StatusOK, gin.H{
 		"data": results,
@@ -477,8 +708,8 @@ type DeviceRiskDTO struct {
 // GET /devices/risk-report
 //
 // Logic:
-// - ถ้าไม่ส่ง task_id = แสดงทั้งหมด
-// - ถ้าส่ง task_id=1 หรือ 1,2,3 = กรองเฉพาะ task นั้น
+// - ถ้าไม่ส่ง task_id = แสดงเฉพาะ task ที่อยู่ใน manage limit
+// - ถ้าส่ง task_id=1 หรือ 1,2,3 = แสดงเฉพาะ task ที่อยู่ทั้งใน query และอยู่ใน manage limit
 // - ใช้ ip_host + task_name เป็น asset identity
 // - หา latest report ต่อ ip_host + task_name
 // - ใช้เฉพาะ results ของ host นั้นใน report นั้นจริง ๆ
@@ -490,11 +721,27 @@ func ListDeviceRiskForReport(c *gin.Context) {
 	db := config.DB()
 	taskIDRaw := strings.TrimSpace(c.Query("task_id"))
 
+	allowedTaskIDs, err := FindReportCriticalManageLimitTaskIDs(db)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "failed to find manage target limit task ids",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if len(allowedTaskIDs) == 0 {
+		c.JSON(http.StatusOK, gin.H{
+			"data": make([]DeviceRiskDTO, 0),
+		})
+		return
+	}
+
 	query := `
 WITH
 ParsedTaskIDs AS (
   SELECT DISTINCT BTRIM(value) AS task_id
-  FROM unnest(string_to_array($1, ',')) AS value
+  FROM unnest(string_to_array(?, ',')) AS value
   WHERE BTRIM(value) <> ''
 ),
 
@@ -503,10 +750,11 @@ FilteredTasks AS (
     t.id::text AS task_id,
     COALESCE(t.name, '') AS task_name
   FROM public.tasks t
-  WHERE (
-    $1 = ''
-    OR t.id::text IN (SELECT task_id FROM ParsedTaskIDs)
-  )
+  WHERE t.id::text IN ?
+    AND (
+      ? = ''
+      OR t.id::text IN (SELECT task_id FROM ParsedTaskIDs)
+    )
 ),
 
 -- =========================================================
@@ -651,15 +899,14 @@ LEFT JOIN RiskAgg ra
  AND ra.task_id = d.task_id
  AND ra.task_name = d.task_name
 ORDER BY
-  risk_score DESC,
-  vulnerability_total DESC,
-  task_name ASC,
-  ip_address ASC;
+  d.task_id ASC,
+  d.ip_address ASC,
+  d.task_name ASC;
 `
 
 	out := make([]DeviceRiskDTO, 0)
 
-	if err := db.Raw(query, taskIDRaw).Scan(&out).Error; err != nil {
+	if err := db.Raw(query, taskIDRaw, allowedTaskIDs, taskIDRaw).Scan(&out).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
 		})
@@ -669,6 +916,8 @@ ORDER BY
 	if out == nil {
 		out = make([]DeviceRiskDTO, 0)
 	}
+
+	sortDeviceRiskForReportByManageLogic(out)
 
 	c.JSON(http.StatusOK, gin.H{
 		"data": out,

@@ -1,665 +1,146 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Cell,
-  ReferenceLine,
-  LabelList,
+  RadialBarChart,
+  RadialBar,
+  PolarAngleAxis,
 } from "recharts";
-import { MdTrendingUp, MdTrendingDown } from "react-icons/md";
 import {
-  FiActivity,
-  FiAlertCircle,
   FiShield,
-  FiBarChart2,
   FiChevronDown,
-  FiCheck,
   FiSearch,
-  FiX,
-  FiArrowLeft,
+  FiCheck,
 } from "react-icons/fi";
-import {
-  ListTargetDiffer,
-  ListALLReportByTaskID,
-  type TargetDifferDTO,
-} from "../../../services";
+import { ListAssetRisk, type AssetRiskDTO } from "../../../services";
 
-type SortType = "Latest Updated" | "Highest Latest Risk" | "Biggest Change";
-
-type ChartRow = {
-  host: string;
-  task_name: string;
-  asset_label: string;
-  axis_key: string;
-  latest_task_id: string;
-
-  latest_risk_score: number;
-  previous_risk_score: number;
-  diff_risk_score: number;
-
-  latest_total: number;
-  previous_total: number;
-  previous_version_status: string;
-  latest_creation_time: number | null;
-  previous_creation_time: number | null;
-
-  has_previous_record: boolean;
-
-  previous_for_increase: number;
-  previous_for_nonincrease: number;
-  latest_overlay_equal_or_lower: number;
-  latest_positive_diff: number;
-  overlay_top_value: number;
-
-  latest_increase_label: number | null;
-  latest_equal_or_lower_label: number | null;
-};
-
-type FilterOption = {
+type TargetOption = {
   key: string;
   label: string;
-};
-
-type DetailRow = {
-  task_id: string;
   task_name: string;
-
-  detected_date_raw: string;
-  detected_timestamp: number;
-  detected_date_label: string;
-  detected_tick_date: string;
-  detected_tick_time: string;
-  detected_time?: string;
-
-  risk_score: number;
-  axis_key: string;
-  detail_color: string;
-
-  host_ip: string;
-  total: number;
-  critical: number;
-  high: number;
+  host: string;
 };
 
-const SORT_OPTIONS: SortType[] = [
-  "Latest Updated",
-  "Highest Latest Risk",
-  "Biggest Change",
-];
+const CARD_HEIGHT_CLASS = "min-h-[560px] xl:min-h-[620px]";
 
-const COLORS = {
-  previous: "#8B7CFF",
-  latestStable: "#39C6F4",
-  latestUp: "#FF6B88",
-  detail: "#39C6F4",
-  gridLight: "#E8ECF3",
-  gridDark: "rgba(255,255,255,0.10)",
-  axisLight: "#667085",
-  axisDark: "rgba(255,255,255,0.72)",
-  axisSubtleDark: "rgba(255,255,255,0.48)",
-  avgLineLight: "#94A3B8",
-  avgLineDark: "rgba(255,255,255,0.30)",
+const clamp = (v: number, min: number, max: number) =>
+  Math.max(min, Math.min(max, v));
+
+const formatNumber = (n: number) => {
+  if (!Number.isFinite(n)) return "0";
+  return n.toLocaleString();
 };
 
-const MOBILE_BREAKPOINT = 640;
-const IPAD_BREAKPOINT = 1280;
-const LARGE_DESKTOP_BREAKPOINT = 1680;
-
-const formatRisk = (value: number) => Number(value || 0).toFixed(2);
-
-const shortenTaskName = (taskName: string) => {
-  if (!taskName) return "-";
-  if (taskName.length <= 16) return taskName;
-  return `${taskName.slice(0, 16)}...`;
+const formatRisk = (n: number) => {
+  if (!Number.isFinite(n)) return "0.00";
+  return n.toFixed(2);
 };
 
-const formatUnixThai = (unix?: number | null) => {
-  if (!unix) return "-";
-  const date = new Date(unix * 1000);
-  return new Intl.DateTimeFormat("th-TH", {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
+const getTargetHost = (item: any) => {
+  const host =
+    item?.host ??
+    item?.host_ip ??
+    item?.ip ??
+    item?.target_ip ??
+    item?.ip_host ??
+    item?.asset_ip ??
+    item?.target_host ??
+    item?.target ??
+    "";
+
+  return String(host).trim() || "-";
 };
 
-const isDarkMode = () => {
-  if (typeof document === "undefined") return false;
-  return document.documentElement.classList.contains("dark");
+const getTargetName = (item: any) => {
+  return String(item?.task_name ?? "").trim() || "Unknown";
 };
 
-const toDate = (value: unknown): Date | null => {
-  if (value === null || value === undefined || value === "") return null;
+const getTargetKey = (taskName: string, host: string) => {
+  return `${String(taskName || "-").trim()}__${String(host || "-").trim()}`;
+};
 
-  if (value instanceof Date) {
-    return Number.isNaN(value.getTime()) ? null : value;
+const getTargetLabel = (taskName: string, host: string) => {
+  return `${String(taskName || "-").trim()} - ${String(host || "-").trim()}`;
+};
+
+const getItemTargetKey = (item: any) => {
+  const taskName = getTargetName(item);
+  const host = getTargetHost(item);
+  return getTargetKey(taskName, host);
+};
+
+const getRiskTone = (risk: number) => {
+  if (risk >= 8) {
+    return {
+      label: "Critical",
+      dot: "bg-red-500",
+      text: "text-red-600 dark:text-red-300",
+      chip:
+        "bg-red-50 border-red-200 text-red-600 dark:bg-red-500/10 dark:border-red-400/20 dark:text-red-300",
+      gauge: "#ef4444",
+      glow: "bg-red-400/10",
+    };
   }
 
-  if (typeof value === "number") {
-    if (!Number.isFinite(value)) return null;
-
-    if (value < 1e12) {
-      const d = new Date(value * 1000);
-      return Number.isNaN(d.getTime()) ? null : d;
-    }
-
-    const d = new Date(value);
-    return Number.isNaN(d.getTime()) ? null : d;
+  if (risk >= 6) {
+    return {
+      label: "High",
+      dot: "bg-orange-500",
+      text: "text-orange-600 dark:text-orange-300",
+      chip:
+        "bg-orange-50 border-orange-200 text-orange-600 dark:bg-orange-500/10 dark:border-orange-400/20 dark:text-orange-300",
+      gauge: "#f97316",
+      glow: "bg-orange-400/10",
+    };
   }
 
-  const str = String(value).trim();
-  if (!str) return null;
-
-  if (/^\d+$/.test(str)) {
-    const num = Number(str);
-    if (!Number.isFinite(num)) return null;
-
-    if (num < 1e12) {
-      const d = new Date(num * 1000);
-      return Number.isNaN(d.getTime()) ? null : d;
-    }
-
-    const d = new Date(num);
-    return Number.isNaN(d.getTime()) ? null : d;
+  if (risk >= 4) {
+    return {
+      label: "Medium",
+      dot: "bg-yellow-500",
+      text: "text-yellow-600 dark:text-yellow-300",
+      chip:
+        "bg-yellow-50 border-yellow-200 text-yellow-700 dark:bg-yellow-500/10 dark:border-yellow-400/20 dark:text-yellow-300",
+      gauge: "#eab308",
+      glow: "bg-yellow-400/10",
+    };
   }
 
-  const d = new Date(str);
-  return Number.isNaN(d.getTime()) ? null : d;
-};
-
-const formatDetectedDateLabel = (value: unknown) => {
-  const date = toDate(value);
-  if (!date) return "-";
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-};
-
-const formatDetectedTickDate = (value: unknown) => {
-  const date = toDate(value);
-  if (!date) return "-";
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "2-digit",
-    month: "short",
-  }).format(date);
-};
-
-const formatDetectedTimeLabel = (value: unknown) => {
-  const date = toDate(value);
-  if (!date) return "-";
-  return new Intl.DateTimeFormat("en-GB", {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-};
-
-const getDetectedDateValue = (item: any) => {
-  return (
-    item?.detected_date ??
-    item?.detected_at ??
-    item?.creation_time ??
-    item?.created_at ??
-    item?.date ??
-    item?.time ??
-    ""
-  );
-};
-
-const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-
-const rgbToHex = (r: number, g: number, b: number) => {
-  const toHex = (v: number) =>
-    Math.max(0, Math.min(255, Math.round(v)))
-      .toString(16)
-      .padStart(2, "0");
-  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-};
-
-const interpolateColor = (
-  c1: [number, number, number],
-  c2: [number, number, number],
-  t: number
-) => {
-  return rgbToHex(
-    lerp(c1[0], c2[0], t),
-    lerp(c1[1], c2[1], t),
-    lerp(c1[2], c2[2], t)
-  );
-};
-
-const getRiskHeatColor = (risk: number) => {
-  const clamped = Math.max(0, Math.min(10, Number(risk || 0)));
-
-  const green: [number, number, number] = [34, 197, 94];
-  const yellow: [number, number, number] = [250, 204, 21];
-  const orange: [number, number, number] = [249, 115, 22];
-  const red: [number, number, number] = [239, 68, 68];
-
-  if (clamped <= 5) {
-    const t = clamped / 5;
-    return interpolateColor(green, yellow, t);
+  if (risk > 0) {
+    return {
+      label: "Low",
+      dot: "bg-green-500",
+      text: "text-green-600 dark:text-green-300",
+      chip:
+        "bg-green-50 border-green-200 text-green-700 dark:bg-green-500/10 dark:border-green-400/20 dark:text-green-300",
+      gauge: "#22c55e",
+      glow: "bg-green-400/10",
+    };
   }
 
-  if (clamped <= 7.5) {
-    const t = (clamped - 5) / 2.5;
-    return interpolateColor(yellow, orange, t);
-  }
-
-  const t = (clamped - 7.5) / 2.5;
-  return interpolateColor(orange, red, t);
+  return {
+    label: "Info",
+    dot: "bg-blue-500",
+    text: "text-blue-600 dark:text-blue-300",
+    chip:
+      "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-500/10 dark:border-blue-400/20 dark:text-blue-300",
+    gauge: "#3b82f6",
+    glow: "bg-blue-400/10",
+  };
 };
 
-const getVisibleTickIndexSet = (
-  length: number,
-  maxLabels: number
-): Set<number> => {
-  if (length <= 0) return new Set<number>();
-  if (length <= maxLabels) {
-    return new Set(Array.from({ length }, (_, i) => i));
-  }
+const index: React.FC = () => {
+  const [data, setData] = useState<AssetRiskDTO[] | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const set = new Set<number>();
-  const lastIndex = length - 1;
+  const [openTargetQuery, setOpenTargetQuery] = useState(false);
+  const [targetQuerySearch, setTargetQuerySearch] = useState("");
+  const [selectedTargets, setSelectedTargets] = useState<string[]>([]);
 
-  for (let i = 0; i < maxLabels; i++) {
-    const index = Math.round((i * lastIndex) / (maxLabels - 1));
-    set.add(index);
-  }
-
-  return set;
-};
-
-const buildPageNumbers = (currentPage: number, totalPages: number): number[] => {
-  if (totalPages <= 1) return [1];
-  if (totalPages <= 5) {
-    return Array.from({ length: totalPages }, (_, i) => i + 1);
-  }
-
-  if (currentPage <= 3) return [1, 2, 3, 4, 5];
-  if (currentPage >= totalPages - 2) {
-    return [
-      totalPages - 4,
-      totalPages - 3,
-      totalPages - 2,
-      totalPages - 1,
-      totalPages,
-    ];
-  }
-
-  return [
-    currentPage - 2,
-    currentPage - 1,
-    currentPage,
-    currentPage + 1,
-    currentPage + 2,
-  ];
-};
-
-const CustomTooltip = ({
-  active,
-  payload,
-}: {
-  active?: boolean;
-  payload?: Array<{ payload: ChartRow }>;
-}) => {
-  if (!active || !payload || payload.length === 0) return null;
-
-  const item = payload[0]?.payload;
-  if (!item) return null;
-
-  const diff = item.diff_risk_score ?? 0;
-  const isUp = item.has_previous_record && diff > 0;
-  const isDown = item.has_previous_record && diff < 0;
-
-  return (
-    <div className="min-w-62.5 max-w-[320px] rounded-[18px] border border-gray-200/90 bg-white/96 px-3 py-2.5 shadow-[0_14px_32px_rgba(15,23,42,0.14)] backdrop-blur dark:border-white/10 dark:bg-[#0B1220]/96 dark:shadow-[0_14px_28px_rgba(0,0,0,0.32)]">
-      <div className="mb-2">
-        <p className="wrap-break-word text-[13px] font-semibold text-[#1f2240] dark:text-white/92">
-          {item.task_name || "Unknown Task"}
-        </p>
-        <p className="mt-0.5 break-all text-[11px] text-gray-500 dark:text-white/45">
-          Host: {item.host || "-"}
-        </p>
-      </div>
-
-      <div className="space-y-1.5 text-[11px]">
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-[#8B7CFF]">Previous Risk</span>
-          <span className="font-semibold text-[#1f2240] dark:text-white/92">
-            {item.has_previous_record ? formatRisk(item.previous_risk_score) : "-"}
-          </span>
-        </div>
-
-        <div className="flex items-center justify-between gap-3">
-          <span className={isUp ? "text-[#FF6B88]" : "text-[#39C6F4]"}>
-            Latest Risk
-          </span>
-          <span className="font-semibold text-[#1f2240] dark:text-white/92">
-            {formatRisk(item.latest_risk_score)}
-          </span>
-        </div>
-
-        <div className="h-px bg-gray-200 dark:bg-white/10" />
-
-        <div className="grid grid-cols-1 gap-1.5">
-          <div className="flex items-center justify-between gap-3 text-gray-600 dark:text-white/68">
-            <span>Target Name</span>
-            <span className="wrap-break-word text-right font-medium">
-              {item.task_name || "-"}
-            </span>
-          </div>
-
-          <div className="flex items-center justify-between gap-3 text-gray-600 dark:text-white/68">
-            <span>Host</span>
-            <span className="break-all text-right font-medium">
-              {item.host || "-"}
-            </span>
-          </div>
-
-          <div className="flex items-center justify-between gap-3 text-gray-600 dark:text-white/68">
-            <span>Latest Total</span>
-            <span className="text-right font-semibold text-[#1f2240] dark:text-white/90">
-              {item.latest_total ?? 0}
-            </span>
-          </div>
-
-          <div className="flex items-center justify-between gap-3 text-gray-600 dark:text-white/68">
-            <span>Previous Total</span>
-            <span className="text-right font-semibold text-[#1f2240] dark:text-white/90">
-              {item.has_previous_record ? item.previous_total ?? 0 : "-"}
-            </span>
-          </div>
-
-          <div className="flex items-center justify-between gap-3 text-gray-600 dark:text-white/68">
-            <span>Latest Time</span>
-            <span className="text-right font-medium">
-              {formatUnixThai(item.latest_creation_time)}
-            </span>
-          </div>
-
-          <div className="flex items-center justify-between gap-3 text-gray-600 dark:text-white/68">
-            <span>Previous Time</span>
-            <span className="text-right font-medium">
-              {item.has_previous_record
-                ? formatUnixThai(item.previous_creation_time)
-                : "-"}
-            </span>
-          </div>
-        </div>
-
-        <div className="pt-1">
-          <span
-            className={[
-              "inline-flex items-center gap-1 rounded-xl px-2 py-1 text-[10px] font-semibold",
-              isUp
-                ? "bg-rose-100 text-rose-700 dark:bg-rose-400/15 dark:text-rose-300"
-                : isDown
-                  ? "bg-cyan-100 text-cyan-700 dark:bg-cyan-400/15 dark:text-cyan-300"
-                  : "bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-white/70",
-            ].join(" ")}
-          >
-            {isUp ? (
-              <MdTrendingUp className="text-[13px]" />
-            ) : isDown ? (
-              <MdTrendingDown className="text-[13px]" />
-            ) : null}
-            Risk Change:{" "}
-            {item.has_previous_record
-              ? `${diff > 0 ? "+" : ""}${formatRisk(diff)}`
-              : "0.00"}
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const DetailTooltip = ({
-  active,
-  payload,
-}: {
-  active?: boolean;
-  payload?: Array<{ payload: DetailRow }>;
-}) => {
-  if (!active || !payload || payload.length === 0) return null;
-
-  const item = payload[0]?.payload;
-  if (!item) return null;
-
-  return (
-    <div className="min-w-62.5 max-w-85 rounded-[18px] border border-gray-200/90 bg-white/96 px-3 py-2.5 shadow-[0_14px_32px_rgba(15,23,42,0.14)] backdrop-blur dark:border-white/10 dark:bg-[#0B1220]/96 dark:shadow-[0_14px_28px_rgba(0,0,0,0.32)]">
-      <div className="mb-2">
-        <p className="wrap-break-word text-[13px] font-semibold text-[#1f2240] dark:text-white/92">
-          {item.task_name || "-"}
-        </p>
-        <p className="mt-0.5 text-[11px] text-gray-500 dark:text-white/45">
-          Date-Time: {item.detected_date_label || "-"}
-        </p>
-      </div>
-
-      <div className="space-y-1.5 text-[11px]">
-        <div className="flex items-center justify-between gap-3">
-          <span style={{ color: item.detail_color }}>Risk Score</span>
-          <span className="font-semibold text-[#1f2240] dark:text-white/92">
-            {formatRisk(item.risk_score)}
-          </span>
-        </div>
-
-        <div className="h-px bg-gray-200 dark:bg-white/10" />
-
-        <div className="grid grid-cols-1 gap-1.5">
-          <div className="flex items-center justify-between gap-3 text-gray-600 dark:text-white/68">
-            <span>Host IP</span>
-            <span className="break-all text-right font-medium">
-              {item.host_ip || "-"}
-            </span>
-          </div>
-
-          <div className="flex items-center justify-between gap-3 text-gray-600 dark:text-white/68">
-            <span>Vulnerability Total</span>
-            <span className="text-right font-semibold text-[#1f2240] dark:text-white/90">
-              {item.total ?? 0}
-            </span>
-          </div>
-
-          <div className="flex items-center justify-between gap-3 text-gray-600 dark:text-white/68">
-            <span>Critical</span>
-            <span className="text-right font-semibold text-[#1f2240] dark:text-white/90">
-              {item.critical ?? 0}
-            </span>
-          </div>
-
-          <div className="flex items-center justify-between gap-3 text-gray-600 dark:text-white/68">
-            <span>High</span>
-            <span className="text-right font-semibold text-[#1f2240] dark:text-white/90">
-              {item.high ?? 0}
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const CustomXAxisTick = (props: {
-  x?: number;
-  y?: number;
-  payload?: { value?: string; index?: number };
-  visibleIndexSet?: Set<number>;
-}) => {
-  const { x = 0, y = 0, payload, visibleIndexSet } = props;
-  const rawValue = String(payload?.value || "");
-  const tickIndex = Number(payload?.index ?? -1);
-  const dark = isDarkMode();
-
-  if (visibleIndexSet && !visibleIndexSet.has(tickIndex)) {
-    return null;
-  }
-
-  const label = rawValue.includes("__AXIS__")
-    ? rawValue.split("__AXIS__")[0]
-    : rawValue;
-
-  return (
-    <g transform={`translate(${x},${y})`}>
-      <text
-        x={0}
-        y={12}
-        textAnchor="middle"
-        fill={dark ? COLORS.axisSubtleDark : COLORS.axisLight}
-        fontSize={11}
-        fontWeight={600}
-      >
-        {label}
-      </text>
-    </g>
-  );
-};
-
-const DetailXAxisTick = (props: {
-  x?: number;
-  y?: number;
-  payload?: { value?: string; index?: number };
-  visibleIndexSet?: Set<number>;
-}) => {
-  const { x = 0, y = 0, payload, visibleIndexSet } = props;
-  const rawValue = String(payload?.value || "");
-  const tickIndex = Number(payload?.index ?? -1);
-  const dark = isDarkMode();
-
-  if (visibleIndexSet && !visibleIndexSet.has(tickIndex)) {
-    return null;
-  }
-
-  const pure = rawValue.includes("__AXIS__")
-    ? rawValue.split("__AXIS__")[0]
-    : rawValue;
-
-  const [datePart = "-", timePart = "-"] = pure.split("__TIME__");
-
-  return (
-    <g transform={`translate(${x},${y})`}>
-      <text
-        x={0}
-        y={12}
-        textAnchor="middle"
-        fill={dark ? COLORS.axisSubtleDark : COLORS.axisLight}
-        fontSize={10}
-        fontWeight={600}
-      >
-        <tspan x={0} dy="0">
-          {datePart}
-        </tspan>
-        <tspan
-          x={0}
-          dy="12"
-          fill={dark ? "rgba(255,255,255,0.38)" : "#98A2B3"}
-          fontSize={9}
-          fontWeight={500}
-        >
-          {timePart}
-        </tspan>
-      </text>
-    </g>
-  );
-};
-
-const CustomLegend = ({ detailMode = false }: { detailMode?: boolean }) => {
-  if (detailMode) {
-    return (
-      <div className="mb-3 flex flex-wrap items-center gap-2.5 sm:gap-3">
-        <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200/70 bg-emerald-50 px-2.5 py-1 dark:border-emerald-400/15 dark:bg-emerald-400/10">
-          <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
-          <span className="text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
-            Low Risk
-          </span>
-        </div>
-
-        <div className="inline-flex items-center gap-2 rounded-full border border-amber-200/70 bg-amber-50 px-2.5 py-1 dark:border-amber-400/15 dark:bg-amber-400/10">
-          <span className="inline-block h-2 w-2 rounded-full bg-amber-500" />
-          <span className="text-[11px] font-medium text-amber-700 dark:text-amber-300">
-            Medium Risk
-          </span>
-        </div>
-
-        <div className="inline-flex items-center gap-2 rounded-full border border-rose-200/70 bg-rose-50 px-2.5 py-1 dark:border-rose-400/15 dark:bg-rose-400/10">
-          <span className="inline-block h-2 w-2 rounded-full bg-rose-500" />
-          <span className="text-[11px] font-medium text-rose-700 dark:text-rose-300">
-            High Risk
-          </span>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="mb-3 flex flex-wrap items-center gap-2.5 sm:gap-3">
-      <div className="inline-flex items-center gap-2 rounded-full border border-violet-200/70 bg-violet-50 px-2.5 py-1 dark:border-violet-400/15 dark:bg-violet-400/10">
-        <span className="inline-block h-2 w-2 rounded-full bg-[#8B7CFF]" />
-        <span className="text-[11px] font-medium text-violet-700 dark:text-violet-300">
-          Previous Risk
-        </span>
-      </div>
-
-      <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200/70 bg-cyan-50 px-2.5 py-1 dark:border-cyan-400/15 dark:bg-cyan-400/10">
-        <span className="inline-block h-2 w-2 rounded-full bg-[#39C6F4]" />
-        <span className="text-[11px] font-medium text-cyan-700 dark:text-cyan-300">
-          Latest Risk
-        </span>
-      </div>
-
-      <div className="inline-flex items-center gap-2 rounded-full border border-rose-200/70 bg-rose-50 px-2.5 py-1 dark:border-rose-400/15 dark:bg-rose-400/10">
-        <span className="inline-block h-2 w-2 rounded-full bg-[#FF6B88]" />
-        <span className="text-[11px] font-medium text-rose-700 dark:text-rose-300">
-          Latest Risk Increased
-        </span>
-      </div>
-    </div>
-  );
-};
-
-const AverageEnrollment: React.FC = () => {
-  const [sortBy, setSortBy] = useState<SortType>("Latest Updated");
-  const [loading, setLoading] = useState<boolean>(true); //@ts-ignore
-  const [refreshing, setRefreshing] = useState<boolean>(false);
-  const [rows, setRows] = useState<TargetDifferDTO[]>([]);
-
-  const [detailLoading, setDetailLoading] = useState<boolean>(false);
-  const [detailRows, setDetailRows] = useState<DetailRow[]>([]);
-  const [detailTaskID, setDetailTaskID] = useState<string>("");
-  const [detailTaskName, setDetailTaskName] = useState<string>("");
-
-  const [open, setOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
-  const dropdownRef = useRef<HTMLDivElement | null>(null);
-
-  const [sortOpen, setSortOpen] = useState(false);
-  const sortDropdownRef = useRef<HTMLDivElement | null>(null);
-
-  const [screenWidth, setScreenWidth] = useState<number>(() => {
-    if (typeof window === "undefined") return 1440;
-    return window.innerWidth;
-  });
-
-  const [currentPage, setCurrentPage] = useState<number>(1);
+  const targetRef = useRef<HTMLDivElement | null>(null);
 
   const hasFetchedRef = useRef(false);
   const isFetchingRef = useRef(false);
   const isMountedRef = useRef(false);
-
-  const detailMode = detailTaskID !== "";
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -670,152 +151,48 @@ const AverageEnrollment: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const handleResize = () => {
-      setScreenWidth(window.innerWidth);
-    };
-
-    handleResize();
-    window.addEventListener("resize", handleResize);
-
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  const isMobile = screenWidth < MOBILE_BREAKPOINT;
-  const isIPad = screenWidth >= MOBILE_BREAKPOINT && screenWidth < IPAD_BREAKPOINT;
-  const isLargeDesktop = screenWidth >= LARGE_DESKTOP_BREAKPOINT;
-
-  const overviewPageSize = useMemo(() => {
-    if (isMobile) return 5;
-    if (isLargeDesktop) return 15;
-    return 10;
-  }, [isMobile, isLargeDesktop]);
-
-  const overviewMaxVisibleLabels = useMemo(() => {
-    if (isMobile) return 3;
-    if (isIPad) return 5;
-    return Number.MAX_SAFE_INTEGER;
-  }, [isMobile, isIPad]);
-
-  const detailMaxVisibleLabels = useMemo(() => {
-    if (isMobile) return 3;
-    if (isIPad) return 5;
-    return Number.MAX_SAFE_INTEGER;
-  }, [isMobile, isIPad]);
-
-  const fetchData = async (mode: "initial" | "refresh" = "initial") => {
-    if (isFetchingRef.current) return;
-
-    try {
-      isFetchingRef.current = true;
-
-      if (mode === "initial" && isMountedRef.current) setLoading(true);
-      if (mode === "refresh" && isMountedRef.current) setRefreshing(true);
-
-      const res = await ListTargetDiffer();
-
-      if (!isMountedRef.current) return;
-
-      setRows(Array.isArray(res) ? res : []);
-    } catch (error) {
-      console.error("fetch target differ error:", error);
-
-      if (!isMountedRef.current) return;
-
-      setRows([]);
-    } finally {
-      if (isMountedRef.current) {
-        if (mode === "initial") setLoading(false);
-        if (mode === "refresh") setRefreshing(false);
-      }
-      isFetchingRef.current = false;
-    }
-  };
-
-  const fetchDetailByTaskID = async (taskID: string, taskName?: string) => {
-    try {
-      setDetailLoading(true);
-      setDetailTaskID(taskID);
-      setDetailTaskName(taskName || "");
-
-      const res = await ListALLReportByTaskID(taskID);
-
-      const rawRows = Array.isArray(res)
-        ? res
-        : Array.isArray((res as any)?.data)
-          ? (res as any).data
-          : [];
-
-      const mapped: DetailRow[] = rawRows
-        .map((item: any, index: number) => {
-          const detectedRaw = getDetectedDateValue(item);
-          const detectedDate = toDate(detectedRaw);
-          const detectedTimestamp = detectedDate?.getTime() ?? index;
-          const detectedDateLabel = formatDetectedDateLabel(detectedRaw);
-          const detectedTickDate = formatDetectedTickDate(detectedRaw);
-          const detectedTickTime = formatDetectedTimeLabel(detectedRaw);
-          const riskScore = Number(item?.risk_score ?? 0);
-
-          return {
-            task_id: String(item?.task_id ?? taskID),
-            task_name: String(item?.task_name ?? taskName ?? "-"),
-            detected_date_raw: String(detectedRaw ?? ""),
-            detected_timestamp: detectedTimestamp,
-            detected_date_label: detectedDateLabel,
-            detected_tick_date: detectedTickDate,
-            detected_tick_time: detectedTickTime,
-            detected_time: detectedTickTime,
-            risk_score: riskScore,
-            axis_key: `${detectedTickDate}__TIME__${detectedTickTime}__AXIS__${index}`,
-            detail_color: getRiskHeatColor(riskScore),
-
-            host_ip: String(item?.host_ip ?? item?.ip ?? item?.host ?? "-"),
-            total: Number(item?.total ?? 0),
-            critical: Number(item?.critical ?? 0),
-            high: Number(item?.high ?? 0),
-          };
-        })
-        .sort(
-          (a: DetailRow, b: DetailRow) =>
-            a.detected_timestamp - b.detected_timestamp
-        );
-
-      setDetailRows(mapped);
-    } catch (error) {
-      console.error("fetch ListALLReportByTaskID error:", error);
-      setDetailRows([]);
-    } finally {
-      setDetailLoading(false);
-    }
-  };
-
-  const handleBackToOverview = () => {
-    setDetailTaskID("");
-    setDetailTaskName("");
-    setDetailRows([]);
-  };
-
-  useEffect(() => {
     if (hasFetchedRef.current) return;
     hasFetchedRef.current = true;
-    void fetchData("initial");
+
+    const fetchAssetRisk = async () => {
+      if (isFetchingRef.current) return;
+
+      try {
+        isFetchingRef.current = true;
+
+        if (isMountedRef.current) {
+          setLoading(true);
+        }
+
+        const res = await ListAssetRisk();
+
+        if (!isMountedRef.current) return;
+
+        setData(Array.isArray(res) ? res : []);
+      } catch (error) {
+        console.error("Failed to load asset risk:", error);
+
+        if (!isMountedRef.current) return;
+
+        setData([]);
+      } finally {
+        if (isMountedRef.current) {
+          setLoading(false);
+        }
+
+        isFetchingRef.current = false;
+      }
+    };
+
+    void fetchAssetRisk();
   }, []);
 
   useEffect(() => {
     const onClickOutside = (e: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(e.target as Node)
-      ) {
-        setOpen(false);
-      }
+      if (!targetRef.current) return;
 
-      if (
-        sortDropdownRef.current &&
-        !sortDropdownRef.current.contains(e.target as Node)
-      ) {
-        setSortOpen(false);
+      if (!targetRef.current.contains(e.target as Node)) {
+        setOpenTargetQuery(false);
       }
     };
 
@@ -823,880 +200,429 @@ const AverageEnrollment: React.FC = () => {
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, []);
 
-  const mappedRows = useMemo<ChartRow[]>(() => {
-    return rows.map((item, index) => {
-      const taskName = item.task_name || "-";
-      const host = (item as any).host || (item as any).host_ip || "-";
-
-      const previousRisk = Number((item as any).previous_risk_score ?? 0);
-      const latestRisk = Number((item as any).latest_risk_score ?? 0);
-
-      const rawPreviousCreationTime = (item as any).previous_creation_time;
-      const rawPreviousTotal = Number((item as any).previous_total ?? 0);
-
-      const hasPreviousRecord =
-        rawPreviousCreationTime !== null &&
-        rawPreviousCreationTime !== undefined &&
-        rawPreviousCreationTime !== "" &&
-        !Number.isNaN(Number(rawPreviousCreationTime));
-
-      const isSingleNonZero =
-        hasPreviousRecord &&
-        ((previousRisk > 0 && latestRisk === 0) ||
-          (latestRisk > 0 && previousRisk === 0));
-
-      const isIncrease =
-        hasPreviousRecord &&
-        latestRisk > previousRisk &&
-        !isSingleNonZero;
-
-      const isEqual = hasPreviousRecord && latestRisk === previousRisk;
-
-      const isEqualOrLower =
-        !hasPreviousRecord ||
-        latestRisk <= previousRisk ||
-        isSingleNonZero;
-
-      const diffRisk = hasPreviousRecord ? latestRisk - previousRisk : 0;
-
-      return {
-        host,
-        task_name: taskName,
-        asset_label: shortenTaskName(taskName),
-        axis_key: `${shortenTaskName(taskName)}__AXIS__${host}__${index}`,
-        latest_task_id:
-          (item as any).latest_task_id !== null &&
-            (item as any).latest_task_id !== undefined
-            ? String((item as any).latest_task_id)
-            : "-",
-
-        latest_risk_score: latestRisk,
-        previous_risk_score: hasPreviousRecord ? previousRisk : 0,
-        diff_risk_score: diffRisk,
-
-        latest_total: Number((item as any).latest_total ?? 0),
-        previous_total: hasPreviousRecord ? rawPreviousTotal : 0,
-        previous_version_status: (item as any).previous_version_status || "-",
-        latest_creation_time: (item as any).latest_creation_time ?? null,
-        previous_creation_time: hasPreviousRecord
-          ? Number(rawPreviousCreationTime)
-          : null,
-
-        has_previous_record: hasPreviousRecord,
-
-        previous_for_increase: isIncrease ? previousRisk : 0,
-
-        previous_for_nonincrease:
-          hasPreviousRecord && !isIncrease && !isEqual && !isSingleNonZero
-            ? previousRisk
-            : 0,
-
-        latest_overlay_equal_or_lower: isSingleNonZero
-          ? Math.max(previousRisk, latestRisk)
-          : isEqualOrLower
-            ? latestRisk
-            : 0,
-
-        latest_positive_diff: isIncrease ? latestRisk - previousRisk : 0,
-        overlay_top_value: Math.max(previousRisk, latestRisk),
-
-        latest_increase_label: isIncrease ? latestRisk : null,
-
-        latest_equal_or_lower_label:
-          isSingleNonZero
-            ? Math.max(previousRisk, latestRisk)
-            : isEqualOrLower
-              ? latestRisk
-              : null,
-      };
-    });
-  }, [rows]);
-
-  const filterOptions = useMemo<FilterOption[]>(() => {
+  const targetOptions = useMemo<TargetOption[]>(() => {
+    const list = Array.isArray(data) ? data : [];
     const seen = new Set<string>();
-    const options: FilterOption[] = [];
+    const options: TargetOption[] = [];
 
-    for (const row of mappedRows) {
-      const key = `${row.task_name}__${row.host}`;
-      if (seen.has(key)) continue;
+    for (const item of list) {
+      const taskName = getTargetName(item);
+      const host = getTargetHost(item);
+      const key = getTargetKey(taskName, host);
+
+      if (!key || seen.has(key)) continue;
+
       seen.add(key);
 
       options.push({
         key,
-        label: `${row.task_name || "-"} - ${row.host || "-"}`,
+        label: getTargetLabel(taskName, host),
+        task_name: taskName,
+        host,
       });
     }
 
-    options.sort((a: FilterOption, b: FilterOption) =>
-      a.label.localeCompare(b.label)
-    );
+    options.sort((a, b) => a.label.localeCompare(b.label));
+
     return options;
-  }, [mappedRows]);
+  }, [data]);
 
-  const filteredOptions = useMemo(() => {
-    const keyword = searchQuery.trim().toLowerCase();
-    if (!keyword) return filterOptions;
+  const filteredTargetOptions = useMemo(() => {
+    const keyword = targetQuerySearch.trim().toLowerCase();
+    if (!keyword) return targetOptions;
 
-    return filterOptions.filter((opt: FilterOption) =>
+    return targetOptions.filter((opt) =>
       opt.label.toLowerCase().includes(keyword)
     );
-  }, [filterOptions, searchQuery]);
+  }, [targetOptions, targetQuerySearch]);
 
-  const filteredMappedRows = useMemo(() => {
-    if (selectedKeys.length === 0) return mappedRows;
+  const filteredData = useMemo(() => {
+    const list = Array.isArray(data) ? data : [];
+    if (selectedTargets.length === 0) return list;
 
-    const selectedSet = new Set(selectedKeys);
-    return mappedRows.filter((row: ChartRow) =>
-      selectedSet.has(`${row.task_name}__${row.host}`)
-    );
-  }, [mappedRows, selectedKeys]);
+    const selectedSet = new Set(selectedTargets);
 
-  const sortedChartRows = useMemo<ChartRow[]>(() => {
-    const sorted = [...filteredMappedRows];
-
-    if (sortBy === "Highest Latest Risk") {
-      sorted.sort(
-        (a: ChartRow, b: ChartRow) => b.latest_risk_score - a.latest_risk_score
-      );
-    } else if (sortBy === "Biggest Change") {
-      sorted.sort(
-        (a: ChartRow, b: ChartRow) =>
-          Math.abs(b.diff_risk_score || 0) - Math.abs(a.diff_risk_score || 0)
-      );
-    } else {
-      sorted.sort(
-        (a: ChartRow, b: ChartRow) =>
-          (b.latest_creation_time || 0) - (a.latest_creation_time || 0)
-      );
-    }
-
-    return sorted;
-  }, [filteredMappedRows, sortBy]);
-
-  const totalPages = useMemo(() => {
-    const total = Math.ceil(sortedChartRows.length / overviewPageSize);
-    return Math.max(1, total);
-  }, [sortedChartRows.length, overviewPageSize]);
-
-  const paginatedChartData = useMemo<ChartRow[]>(() => {
-    const start = (currentPage - 1) * overviewPageSize;
-    const end = start + overviewPageSize;
-    return sortedChartRows.slice(start, end);
-  }, [sortedChartRows, currentPage, overviewPageSize]);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [sortBy, selectedKeys, overviewPageSize]);
-
-  useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages);
-    }
-  }, [currentPage, totalPages]);
+    return list.filter((item) => selectedSet.has(getItemTargetKey(item)));
+  }, [data, selectedTargets]);
 
   const summary = useMemo(() => {
-    const totalAssets = filteredMappedRows.length;
+    const list = filteredData;
 
-    const avgLatestRisk =
-      totalAssets > 0
-        ? filteredMappedRows.reduce(
-          (sum: number, item: ChartRow) =>
-            sum + Number(item.latest_risk_score || 0),
-          0
-        ) / totalAssets
+    const taskCount = list.length;
+
+    const avgRisk =
+      taskCount > 0
+        ? list.reduce((sum, item) => sum + (Number(item.risk_score) || 0), 0) /
+          taskCount
         : 0;
 
-    const increasedCount = filteredMappedRows.filter(
-      (item: ChartRow) => item.has_previous_record && item.diff_risk_score > 0
-    ).length;
-
-    const decreasedCount = filteredMappedRows.filter(
-      (item: ChartRow) => item.has_previous_record && item.diff_risk_score < 0
-    ).length;
+    const maxRisk = list.reduce(
+      (max, item) => Math.max(max, Number(item.risk_score) || 0),
+      0
+    );
 
     return {
-      totalAssets,
-      avgLatestRisk,
-      increasedCount,
-      decreasedCount,
+      taskCount,
+      avgRisk,
+      maxRisk,
     };
-  }, [filteredMappedRows]);
+  }, [filteredData]);
 
-  const detailAvgRisk = useMemo(() => {
-    if (detailRows.length === 0) return 0;
-    return (
-      detailRows.reduce(
-        (sum: number, item: DetailRow) => sum + Number(item.risk_score || 0),
-        0
-      ) / detailRows.length
-    );
-  }, [detailRows]);
+  const tone = useMemo(() => getRiskTone(summary.avgRisk), [summary.avgRisk]);
 
-  const maxRisk = useMemo(() => {
-    if (detailMode) {
-      return 10;
-    }
+  const gaugeData = useMemo(() => {
+    return [
+      {
+        name: "Average Risk",
+        value: clamp(summary.avgRisk, 0, 10),
+        fill: tone.gauge,
+      },
+    ];
+  }, [summary.avgRisk, tone.gauge]);
 
-    const values = paginatedChartData.map(
-      (item: ChartRow) => item.overlay_top_value || 0
-    );
-    const rawMax = Math.max(...values, 0);
-    return Math.max(6, Math.ceil(rawMax + 1));
-  }, [paginatedChartData, detailMode]);
+  const targetButtonLabel = useMemo(() => {
+    if (selectedTargets.length === 0) return "Target Query";
+    if (selectedTargets.length === 1) return "1 target selected";
+    return `${selectedTargets.length} targets selected`;
+  }, [selectedTargets.length]);
 
-  const yTicks = useMemo(() => {
-    if (detailMode) {
-      return [0, 2, 4, 6, 8, 10];
-    }
-
-    const step = maxRisk <= 6 ? 1 : Math.ceil(maxRisk / 5);
-    const ticks: number[] = [];
-
-    for (let i = 0; i <= maxRisk; i += step) {
-      ticks.push(i);
-    }
-
-    if (ticks[ticks.length - 1] !== maxRisk) ticks.push(maxRisk);
-    return ticks;
-  }, [maxRisk, detailMode]);
-
-  const overviewVisibleTickIndexSet = useMemo(() => {
-    return getVisibleTickIndexSet(
-      paginatedChartData.length,
-      overviewMaxVisibleLabels
-    );
-  }, [paginatedChartData.length, overviewMaxVisibleLabels]);
-
-  const detailVisibleTickIndexSet = useMemo(() => {
-    return getVisibleTickIndexSet(detailRows.length, detailMaxVisibleLabels);
-  }, [detailRows.length, detailMaxVisibleLabels]);
-
-  const selectedCount = selectedKeys.length;
-
-  const dropdownButtonLabel = useMemo(() => {
-    if (selectedCount === 0) return "Filter Device";
-    if (selectedCount === 1) {
-      const found = filterOptions.find(
-        (x: FilterOption) => x.key === selectedKeys[0]
-      );
-      return found?.label || "1 selected";
-    }
-    return `${selectedCount} selected`;
-  }, [selectedCount, filterOptions, selectedKeys]);
-
-  const pageNumbers = useMemo(() => {
-    return buildPageNumbers(currentPage, totalPages);
-  }, [currentPage, totalPages]);
-
-  const toggleSelect = (key: string) => {
-    setSelectedKeys((prev: string[]) =>
-      prev.includes(key)
-        ? prev.filter((item: string) => item !== key)
-        : [...prev, key]
+  const toggleTarget = (key: string) => {
+    setSelectedTargets((prev) =>
+      prev.includes(key) ? prev.filter((item) => item !== key) : [...prev, key]
     );
   };
 
-  const handleSelectAllVisible = () => {
-    const visibleKeys = filteredOptions.map((x: FilterOption) => x.key);
+  const handleSelectAllVisibleTargets = () => {
+    const visibleKeys = filteredTargetOptions.map((x) => x.key);
 
-    setSelectedKeys((prev: string[]) => {
+    setSelectedTargets((prev) => {
       const prevSet = new Set(prev);
-      const allVisibleSelected = visibleKeys.every((key: string) =>
-        prevSet.has(key)
-      );
+      const allVisibleSelected = visibleKeys.every((key) => prevSet.has(key));
 
       if (allVisibleSelected) {
-        return prev.filter((key: string) => !visibleKeys.includes(key));
+        return prev.filter((key) => !visibleKeys.includes(key));
       }
 
-      const merged = new Set([...prev, ...visibleKeys]);
-      return Array.from(merged);
+      return Array.from(new Set([...prev, ...visibleKeys]));
     });
   };
 
-  const clearAllSelections = () => {
-    setSelectedKeys([]);
+  const clearAllTargets = () => {
+    setSelectedTargets([]);
   };
 
-  const allVisibleSelected =
-    filteredOptions.length > 0 &&
-    filteredOptions.every((opt: FilterOption) => selectedKeys.includes(opt.key));
-
-  const sortButtonLabel = sortBy;
-
-  const handleOverviewBarClick = (row?: ChartRow) => {
-    if (!row?.latest_task_id || row.latest_task_id === "-") return;
-    void fetchDetailByTaskID(row.latest_task_id, row.task_name);
-  };
+  const allVisibleTargetsSelected =
+    filteredTargetOptions.length > 0 &&
+    filteredTargetOptions.every((opt) => selectedTargets.includes(opt.key));
 
   return (
     <section
       className={[
-        "relative flex h-full w-full flex-col overflow-hidden rounded-[22px] p-3 sm:p-4 md:p-4.5",
-        "border border-gray-200/80 bg-white shadow-[0_10px_24px_rgba(15,23,42,0.05)]",
-        "dark:border-white/10 dark:bg-[#081120] dark:ring-1 dark:ring-cyan-400/10 dark:shadow-[0_14px_40px_rgba(0,0,0,0.24)]",
+        "relative w-full overflow-hidden rounded-[18px] p-2.5 sm:p-3 md:p-3.5",
+        "bg-white border border-slate-200/80 shadow-[0_10px_26px_-20px_rgba(15,23,42,0.18)]",
+        "dark:bg-white/5 dark:border-white/10 dark:ring-1 dark:ring-white/10 dark:shadow-none",
+        "h-full flex flex-col",
+        CARD_HEIGHT_CLASS,
       ].join(" ")}
     >
-      <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[22px]">
-        <div className="absolute -top-14 right-0 h-32 w-32 rounded-full bg-cyan-400/10 blur-3xl" />
-        <div className="absolute bottom-0 left-0 h-28 w-28 rounded-full bg-violet-400/10 blur-3xl" />
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -top-12 -right-8 h-24 w-24 rounded-full bg-cyan-400/10 blur-3xl" />
+        <div className="absolute -bottom-12 -left-8 h-24 w-24 rounded-full bg-violet-500/10 blur-3xl" />
+        <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]">
+          <div
+            className="h-full w-full"
+            style={{
+              backgroundImage: `
+                linear-gradient(to right, currentColor 1px, transparent 1px),
+                linear-gradient(to bottom, currentColor 1px, transparent 1px)
+              `,
+              backgroundSize: "22px 22px",
+            }}
+          />
+        </div>
       </div>
 
-      <div className="relative z-10 flex h-full min-h-0 flex-col">
-        <div className="mb-4 flex flex-col gap-3">
-          <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-linear-to-br from-cyan-500 via-sky-500 to-violet-500 text-white shadow-sm">
-                  <FiBarChart2 className="text-[15px]" />
-                </div>
-
-                <div className="min-w-0">
-                  <h2 className="text-[17px] font-semibold tracking-tight text-[#1f2240] dark:text-white/92 sm:text-[19px]">
-                    {detailMode
-                      ? `Risk Score Timeline${detailTaskName ? ` • ${detailTaskName}` : ""
-                      }`
-                      : "Target Risk Comparison"}
-                  </h2>
-                  <p className="text-[11px] text-gray-500 dark:text-white/55 sm:text-[12px]">
-                    {detailMode
-                      ? "แสดง Risk Score ของ task ที่เลือกตาม Date-Time"
-                      : "เปรียบเทียบ Previous Risk Score กับ Latest Risk Score ของแต่ละ Targets"}
-                  </p>
-                </div>
+      <div className="relative z-10 flex h-full flex-col">
+        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0 flex-1">
+            <div className="mb-2 flex flex-wrap items-center gap-1.5">
+              <div
+                className={[
+                  "inline-flex items-center gap-1.5 rounded-full px-2 py-1",
+                  "bg-cyan-50 text-cyan-700 border border-cyan-200/80",
+                  "dark:bg-cyan-500/10 dark:text-cyan-300 dark:border-cyan-400/20",
+                ].join(" ")}
+              >
+                <FiShield className="text-[10px]" />
+                <span className="text-[9.5px] font-semibold tracking-wide">
+                  Risk Score
+                </span>
               </div>
             </div>
 
-            {!detailMode ? (
-              <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start xl:items-center">
-                <div
-                  className="relative min-w-full sm:min-w-72.5"
-                  ref={dropdownRef}
-                >
-                  <button
-                    type="button"
-                    onClick={() => setOpen((prev: boolean) => !prev)}
-                    className={[
-                      "inline-flex min-h-9 w-full items-center justify-between gap-3 rounded-2xl px-3.5 text-left transition",
-                      "border border-gray-200/80 bg-white text-[12px] font-medium text-gray-600 hover:bg-gray-50",
-                      "dark:border-white/10 dark:bg-white/6 dark:text-white/75 dark:hover:bg-white/10",
-                    ].join(" ")}
-                  >
-                    <span className="truncate">{dropdownButtonLabel}</span>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <h3 className="whitespace-nowrap text-[14px] font-semibold text-[#1f2240] dark:text-white/90 sm:text-[15px]">
+                Average Risk Overview
+              </h3>
+              <p className="whitespace-nowrap text-[10px] text-slate-500 dark:text-white/55 sm:text-[10.5px]">
+                Live risk summary from imported asset results
+              </p>
+            </div>
+          </div>
 
-                    <div className="flex shrink-0 items-center gap-2">
-                      {selectedCount > 0 && (
-                        <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full border border-cyan-200 bg-cyan-50 px-1.5 text-[10px] font-semibold text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-400/10 dark:text-cyan-300">
-                          {selectedCount}
-                        </span>
-                      )}
-                      <FiChevronDown
-                        className={`text-[14px] transition-transform ${open ? "rotate-180" : ""
-                          }`}
+          <div className="flex shrink-0 items-start gap-1">
+            <div className="relative" ref={targetRef}>
+              <button
+                type="button"
+                onClick={() => setOpenTargetQuery((prev) => !prev)}
+                className={[
+                  "h-9 rounded-xl px-3 flex items-center gap-2 border transition min-w-27.5 sm:min-w-32.5",
+                  "bg-white border-gray-200 text-slate-700 hover:border-cyan-200 hover:bg-cyan-50/60",
+                  "dark:bg-white/5 dark:border-white/10 dark:text-white/75 dark:hover:bg-white/10",
+                ].join(" ")}
+              >
+                <FiShield className="shrink-0 text-[12px]" />
+                <span className="max-w-52 overflow-hidden text-ellipsis whitespace-nowrap text-[10.5px] font-medium">
+                  {targetButtonLabel}
+                </span>
+                <FiChevronDown
+                  className={`ml-auto shrink-0 text-[12px] transition-transform ${
+                    openTargetQuery ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+
+              {openTargetQuery && (
+                <div
+                  className={[
+                    "absolute right-0 z-30 mt-2 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-2xl",
+                    "border border-gray-200 bg-white shadow-xl",
+                    "dark:border-white/10 dark:bg-[#0B1220] dark:shadow-none",
+                  ].join(" ")}
+                >
+                  <div className="border-b border-gray-100 p-2.5 dark:border-white/10">
+                    <div
+                      className={[
+                        "flex items-center gap-2 rounded-xl border px-2.5",
+                        "border-gray-200/80 bg-gray-50",
+                        "dark:border-white/10 dark:bg-white/5",
+                      ].join(" ")}
+                    >
+                      <FiSearch className="shrink-0 text-[11px] text-gray-400 dark:text-white/40" />
+                      <input
+                        value={targetQuerySearch}
+                        onChange={(e) => setTargetQuerySearch(e.target.value)}
+                        placeholder="Search target"
+                        className="h-8 w-full bg-transparent text-[11px] text-gray-700 outline-none placeholder:text-gray-400 dark:text-white/80 dark:placeholder:text-white/35"
                       />
                     </div>
-                  </button>
 
-                  {open && (
-                    <div className="absolute right-0 z-30 mt-2 w-full overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.12)] dark:border-white/10 dark:bg-[#0B1220]">
-                      <div className="border-b border-gray-100 p-3 dark:border-white/10">
-                        <div className="relative">
-                          <FiSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-gray-400 dark:text-white/35" />
-                          <input
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="Search device..."
-                            className="h-10 w-full rounded-xl border border-gray-200 bg-white pl-9 pr-9 text-[12px] text-gray-700 outline-none focus:border-cyan-300 dark:border-white/10 dark:bg-white/5 dark:text-white/85"
-                          />
-                          {searchQuery && (
-                            <button
-                              type="button"
-                              onClick={() => setSearchQuery("")}
-                              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-white/35 dark:hover:text-white/70"
-                            >
-                              <FiX className="text-[13px]" />
-                            </button>
-                          )}
-                        </div>
+                    <div className="mt-2 flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={handleSelectAllVisibleTargets}
+                        className="text-[10.5px] font-medium text-cyan-600 hover:text-cyan-700 dark:text-cyan-300 dark:hover:text-cyan-200"
+                      >
+                        {allVisibleTargetsSelected
+                          ? "Unselect visible"
+                          : "Select visible"}
+                      </button>
 
-                        <div className="mt-3 flex items-center justify-between gap-2">
-                          <button
-                            type="button"
-                            onClick={handleSelectAllVisible}
-                            className="rounded-xl bg-gray-100 px-3 py-1.5 text-[11px] font-medium text-gray-700 hover:bg-gray-200 dark:bg-white/8 dark:text-white/80 dark:hover:bg-white/12"
-                          >
-                            {allVisibleSelected
-                              ? "Unselect visible"
-                              : "Select visible"}
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={clearAllSelections}
-                            className="rounded-xl bg-rose-50 px-3 py-1.5 text-[11px] font-medium text-rose-600 hover:bg-rose-100 dark:bg-rose-400/10 dark:text-rose-300 dark:hover:bg-rose-400/15"
-                          >
-                            Clear
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="max-h-70 overflow-y-auto p-2">
-                        {filteredOptions.length === 0 ? (
-                          <div className="px-3 py-6 text-center text-[12px] text-gray-500 dark:text-white/45">
-                            No device found
-                          </div>
-                        ) : (
-                          filteredOptions.map((option: FilterOption) => {
-                            const checked = selectedKeys.includes(option.key);
-
-                            return (
-                              <button
-                                key={option.key}
-                                type="button"
-                                onClick={() => toggleSelect(option.key)}
-                                className="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-white/6"
-                              >
-                                <div className="min-w-0">
-                                  <div className="truncate text-[12px] font-medium text-gray-700 dark:text-white/85">
-                                    {option.label}
-                                  </div>
-                                </div>
-
-                                <div
-                                  className={[
-                                    "flex h-5 w-5 items-center justify-center rounded-md border",
-                                    checked
-                                      ? "border-cyan-400 bg-cyan-500 text-white"
-                                      : "border-gray-300 bg-white text-transparent dark:border-white/15 dark:bg-white/5",
-                                  ].join(" ")}
-                                >
-                                  <FiCheck className="text-[11px]" />
-                                </div>
-                              </button>
-                            );
-                          })
-                        )}
-                      </div>
+                      <button
+                        type="button"
+                        onClick={clearAllTargets}
+                        className="text-[10.5px] font-medium text-gray-500 hover:text-gray-700 dark:text-white/50 dark:hover:text-white/75"
+                      >
+                        Clear all
+                      </button>
                     </div>
-                  )}
-                </div>
+                  </div>
 
-                <div
-                  className="relative min-w-full sm:min-w-55"
-                  ref={sortDropdownRef}
-                >
-                  <button
-                    type="button"
-                    onClick={() => setSortOpen((prev) => !prev)}
-                    className={[
-                      "inline-flex min-h-9 w-full items-center justify-between gap-3 rounded-2xl px-3.5 text-left transition",
-                      "border border-gray-200/80 bg-white text-[12px] font-medium text-gray-600 hover:bg-gray-50",
-                      "dark:border-white/10 dark:bg-white/6 dark:text-white/75 dark:hover:bg-white/10",
-                    ].join(" ")}
-                  >
-                    <span className="truncate">{sortButtonLabel}</span>
-                    <FiChevronDown
-                      className={`text-[14px] transition-transform ${sortOpen ? "rotate-180" : ""
-                        }`}
-                    />
-                  </button>
+                  <div className="max-h-56 overflow-y-auto p-2">
+                    {filteredTargetOptions.length === 0 ? (
+                      <div className="px-3 py-6 text-center text-[11px] text-gray-500 dark:text-white/50">
+                        No matching target
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        {filteredTargetOptions.map((opt) => {
+                          const checked = selectedTargets.includes(opt.key);
 
-                  {sortOpen && (
-                    <div className="absolute right-0 z-30 mt-2 w-full overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.12)] dark:border-white/10 dark:bg-[#0B1220]">
-                      <div className="p-2">
-                        {SORT_OPTIONS.map((option) => {
-                          const checked = sortBy === option;
                           return (
                             <button
-                              key={option}
+                              key={opt.key}
                               type="button"
-                              onClick={() => {
-                                setSortBy(option);
-                                setSortOpen(false);
-                              }}
-                              className="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-white/6"
+                              onClick={() => toggleTarget(opt.key)}
+                              className={[
+                                "w-full flex items-start gap-2.5 rounded-xl px-2.5 py-2 text-left transition",
+                                checked
+                                  ? "bg-cyan-50 border border-cyan-200 dark:bg-cyan-500/10 dark:border-cyan-400/20"
+                                  : "border border-transparent hover:bg-gray-50 dark:hover:bg-white/5",
+                              ].join(" ")}
                             >
-                              <span className="text-[12px] font-medium text-gray-700 dark:text-white/85">
-                                {option}
-                              </span>
-
-                              <div
+                              <span
                                 className={[
-                                  "flex h-5 w-5 items-center justify-center rounded-md border",
+                                  "mt-0.5 h-4 w-4 rounded-md border flex items-center justify-center shrink-0 transition",
                                   checked
-                                    ? "border-cyan-400 bg-cyan-500 text-white"
-                                    : "border-gray-300 bg-white text-transparent dark:border-white/15 dark:bg-white/5",
+                                    ? "bg-cyan-500 border-cyan-500 text-white"
+                                    : "bg-white border-gray-300 text-transparent dark:bg-white/5 dark:border-white/20",
                                 ].join(" ")}
                               >
-                                <FiCheck className="text-[11px]" />
+                                <FiCheck className="text-[10px]" />
+                              </span>
+
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="h-2 w-2 shrink-0 rounded-full bg-cyan-500" />
+                                  <span className="truncate text-[11px] font-medium text-gray-700 dark:text-white/80">
+                                    {opt.label}
+                                  </span>
+                                </div>
                               </div>
                             </button>
                           );
                         })}
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  onClick={handleBackToOverview}
-                  className="inline-flex min-h-9 items-center justify-center gap-2 rounded-2xl border border-gray-200/80 bg-white px-4 text-[12px] font-medium text-gray-700 hover:bg-gray-50 dark:border-white/10 dark:bg-white/6 dark:text-white/80 dark:hover:bg-white/10"
-                >
-                  <FiArrowLeft className="text-[13px]" />
-                  Back
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
-            <div className="rounded-[22px] border border-gray-200/80 bg-white px-4 py-3 shadow-sm dark:border-white/10 dark:bg-white/6">
-              <div className="mb-2 flex items-center gap-2 text-[12px] font-medium text-gray-500 dark:text-white/55">
-                <FiShield className="text-[13px] text-cyan-500" />
-                {detailMode ? "Data Points" : "Total Assets"}
-              </div>
-              <div className="text-[20px] font-semibold text-[#1f2240] dark:text-white/92">
-                {detailMode ? detailRows.length : summary.totalAssets}
-              </div>
-            </div>
-
-            <div className="rounded-[22px] border border-gray-200/80 bg-white px-4 py-3 shadow-sm dark:border-white/10 dark:bg-white/6">
-              <div className="mb-2 flex items-center gap-2 text-[12px] font-medium text-gray-500 dark:text-white/55">
-                <FiActivity className="text-[13px] text-violet-500" />
-                Average Risk
-              </div>
-              <div className="text-[20px] font-semibold text-[#1f2240] dark:text-white/92">
-                {formatRisk(detailMode ? detailAvgRisk : summary.avgLatestRisk)} / 10.00
-              </div>
-            </div>
-
-            <div className="rounded-[22px] border border-gray-200/80 bg-white px-4 py-3 shadow-sm dark:border-white/10 dark:bg-white/6">
-              <div className="mb-2 flex items-center gap-2 text-[12px] font-medium text-gray-500 dark:text-white/55">
-                <FiAlertCircle className="text-[13px] text-rose-500" />
-                {detailMode ? "Risk Range" : "Increased / Decreased"}
-              </div>
-              <div className="text-[20px] font-semibold text-[#1f2240] dark:text-white/92">
-                {detailMode
-                  ? "0.00 - 10.00"
-                  : `${summary.increasedCount} / ${summary.decreasedCount}`}
-              </div>
+              )}
             </div>
           </div>
         </div>
 
-        <CustomLegend detailMode={detailMode} />
+        <div
+          className={[
+            "mt-3 rounded-2xl px-3 py-2 flex flex-wrap items-center gap-2",
+            "bg-slate-50 border border-slate-200/80",
+            "dark:bg-white/4 dark:border-white/10",
+          ].join(" ")}
+        >
+          <div className="inline-flex items-center gap-1.5">
+            <span className={`h-2 w-2 rounded-full ${tone.dot}`} />
+            <span className="text-[10px] font-medium text-slate-700 dark:text-white/75">
+              Current Average Severity
+            </span>
+          </div>
 
-        <div className="min-h-105 flex flex-1 flex-col">
-          {loading ? (
-            <div className="flex h-105 items-center justify-center text-[13px] text-gray-500 dark:text-white/55">
-              Loading...
-            </div>
-          ) : detailLoading ? (
-            <div className="flex h-105 items-center justify-center text-[13px] text-gray-500 dark:text-white/55">
-              Loading detail...
-            </div>
-          ) : detailMode ? (
-            detailRows.length === 0 ? (
-              <div className="flex h-105 items-center justify-center text-[13px] text-gray-500 dark:text-white/55">
-                No Data
+          <div className="hidden h-3 w-px bg-slate-200 dark:bg-white/10 sm:block" />
+
+          <div className="text-[10px] text-slate-500 dark:text-white/50">
+            {selectedTargets.length === 0
+              ? "Risk distribution across all imported targets"
+              : `Risk distribution for ${selectedTargets.length} selected target${
+                  selectedTargets.length > 1 ? "s" : ""
+                }`}
+          </div>
+        </div>
+
+        <div className="mt-2.5 flex flex-1 flex-col">
+          <div
+            className={[
+              "flex-1 rounded-2xl px-3 py-3",
+              "bg-white border border-gray-200/80",
+              "dark:bg-white/5 dark:border-white/10",
+            ].join(" ")}
+          >
+            <div className="flex h-full flex-col">
+              <div className="mb-2 flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 dark:text-white/40">
+                    Range
+                  </p>
+                  <p className="mt-1 text-[11px] text-slate-500 dark:text-white/50">
+                    Min 0.00 • Max 10.00
+                  </p>
+                </div>
+
+                <span
+                  className={[
+                    "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold border",
+                    tone.chip,
+                  ].join(" ")}
+                >
+                  <span className={`h-1.5 w-1.5 rounded-full ${tone.dot}`} />
+                  {tone.label}
+                </span>
               </div>
-            ) : (
-              <ResponsiveContainer width="100%" height={420} minWidth={0}>
-                <BarChart
-                  data={detailRows}
-                  margin={{ top: 18, right: 8, left: -12, bottom: 6 }}
-                  barCategoryGap="22%"
-                >
-                  <CartesianGrid
-                    stroke={isDarkMode() ? COLORS.gridDark : COLORS.gridLight}
-                    strokeDasharray="3 3"
-                    vertical={false}
-                  />
 
-                  <XAxis
-                    dataKey="axis_key"
-                    tick={
-                      <DetailXAxisTick visibleIndexSet={detailVisibleTickIndexSet} />
-                    }
-                    axisLine={false}
-                    tickLine={false}
-                    interval={0}
-                    height={72}
-                  />
-
-                  <YAxis
-                    tick={{
-                      fill: isDarkMode() ? COLORS.axisDark : COLORS.axisLight,
-                      fontSize: 11,
-                    }}
-                    axisLine={false}
-                    tickLine={false}
-                    width={38}
-                    domain={[0, 10]}
-                    ticks={[0, 2, 4, 6, 8, 10]}
-                  />
-
-                  <Tooltip
-                    content={<DetailTooltip />}
-                    cursor={{
-                      fill: isDarkMode()
-                        ? "rgba(255,255,255,0.04)"
-                        : "rgba(148,163,184,0.08)",
-                    }}
-                  />
-
-                  <ReferenceLine
-                    y={Number(detailAvgRisk.toFixed(2))}
-                    stroke={isDarkMode() ? COLORS.avgLineDark : COLORS.avgLineLight}
-                    strokeDasharray="5 5"
-                    ifOverflow="extendDomain"
-                  />
-
-                  <Bar
-                    dataKey="risk_score"
-                    name="Risk Score"
-                    radius={[8, 8, 0, 0]}
-                    maxBarSize={42}
+              <div className="relative min-h-65 flex-1 sm:min-h-72.5 md:min-h-77.5">
+                <div className="pointer-events-none absolute left-1/2 top-[52%] z-10 -translate-x-1/2 -translate-y-1/2 text-center">
+                  <div
+                    className={`text-[32px] font-semibold leading-none ${tone.text} sm:text-[38px]`}
                   >
-                    {detailRows.map((entry: DetailRow, index: number) => (
-                      <Cell
-                        key={`detail-cell-${entry.axis_key}-${index}`}
-                        fill={entry.detail_color}
-                      />
-                    ))}
-
-                    <LabelList
-                      dataKey="risk_score"
-                      position="top"
-                      formatter={(value: any) => formatRisk(Number(value ?? 0))}
-                      style={{
-                        fill: isDarkMode() ? "rgba(255,255,255,0.86)" : "#475467",
-                        fontSize: 10,
-                        fontWeight: 700,
-                      }}
-                    />
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            )
-          ) : paginatedChartData.length === 0 ? (
-            <div className="flex h-105 items-center justify-center text-[13px] text-gray-500 dark:text-white/55">
-              No Data
-            </div>
-          ) : (
-            <>
-              <ResponsiveContainer width="100%" height={420} minWidth={0}>
-                <BarChart
-                  data={paginatedChartData}
-                  margin={{ top: 18, right: 8, left: -12, bottom: 6 }}
-                  barCategoryGap="14%"
-                  barGap="-100%"
-                >
-                  <CartesianGrid
-                    stroke={isDarkMode() ? COLORS.gridDark : COLORS.gridLight}
-                    strokeDasharray="3 3"
-                    vertical={false}
-                  />
-
-                  <XAxis
-                    dataKey="axis_key"
-                    tick={
-                      <CustomXAxisTick visibleIndexSet={overviewVisibleTickIndexSet} />
-                    }
-                    axisLine={false}
-                    tickLine={false}
-                    interval={0}
-                    height={42}
-                  />
-
-                  <YAxis
-                    tick={{
-                      fill: isDarkMode() ? COLORS.axisDark : COLORS.axisLight,
-                      fontSize: 11,
-                    }}
-                    axisLine={false}
-                    tickLine={false}
-                    width={38}
-                    domain={[0, maxRisk]}
-                    ticks={yTicks}
-                  />
-
-                  <Tooltip
-                    content={<CustomTooltip />}
-                    cursor={{
-                      fill: isDarkMode()
-                        ? "rgba(255,255,255,0.04)"
-                        : "rgba(148,163,184,0.08)",
-                    }}
-                  />
-
-                  <ReferenceLine
-                    y={Number(summary.avgLatestRisk.toFixed(2))}
-                    stroke={isDarkMode() ? COLORS.avgLineDark : COLORS.avgLineLight}
-                    strokeDasharray="5 5"
-                    ifOverflow="extendDomain"
-                  />
-
-                  <Bar
-                    dataKey="previous_for_nonincrease"
-                    name="Previous Risk"
-                    fill={COLORS.previous}
-                    radius={[8, 8, 0, 0]}
-                    maxBarSize={34}
-                    onClick={(payload) =>
-                      handleOverviewBarClick(payload as unknown as ChartRow)
-                    }
-                    style={{ cursor: "pointer" }}
-                  >
-                    <LabelList
-                      dataKey="previous_for_nonincrease"
-                      position="top"
-                      formatter={(value: any) =>
-                        Number(value ?? 0) > 0 ? formatRisk(Number(value ?? 0)) : ""
-                      }
-                      style={{
-                        fill: isDarkMode() ? "rgba(255,255,255,0.78)" : "#667085",
-                        fontSize: 10,
-                        fontWeight: 700,
-                      }}
-                    />
-                  </Bar>
-
-                  <Bar
-                    dataKey="previous_for_increase"
-                    name="Previous Risk"
-                    stackId="riskUp"
-                    fill={COLORS.previous}
-                    radius={[0, 0, 0, 0]}
-                    maxBarSize={34}
-                    onClick={(payload) =>
-                      handleOverviewBarClick(payload as unknown as ChartRow)
-                    }
-                    style={{ cursor: "pointer" }}
-                  />
-
-                  <Bar
-                    dataKey="latest_positive_diff"
-                    name="Latest Risk Increased"
-                    stackId="riskUp"
-                    fill={COLORS.latestUp}
-                    radius={[8, 8, 0, 0]}
-                    maxBarSize={34}
-                    onClick={(payload) =>
-                      handleOverviewBarClick(payload as unknown as ChartRow)
-                    }
-                    style={{ cursor: "pointer" }}
-                  >
-                    <LabelList
-                      dataKey="latest_increase_label"
-                      position="top"
-                      formatter={(value: any) =>
-                        value !== null && value !== undefined && Number(value) > 0
-                          ? formatRisk(Number(value))
-                          : ""
-                      }
-                      style={{
-                        fill: isDarkMode() ? "rgba(255,255,255,0.86)" : "#475467",
-                        fontSize: 10,
-                        fontWeight: 700,
-                      }}
-                    />
-                  </Bar>
-
-                  <Bar
-                    dataKey="latest_overlay_equal_or_lower"
-                    name="Latest Risk"
-                    fill={COLORS.latestStable}
-                    radius={[8, 8, 0, 0]}
-                    maxBarSize={34}
-                    onClick={(payload) =>
-                      handleOverviewBarClick(payload as unknown as ChartRow)
-                    }
-                    style={{ cursor: "pointer" }}
-                  >
-                    <LabelList
-                      dataKey="latest_equal_or_lower_label"
-                      position="top"
-                      formatter={(value: any) =>
-                        value !== null && value !== undefined && Number(value) >= 0
-                          ? formatRisk(Number(value))
-                          : ""
-                      }
-                      style={{
-                        fill: isDarkMode() ? "rgba(255,255,255,0.86)" : "#475467",
-                        fontSize: 10,
-                        fontWeight: 700,
-                      }}
-                    />
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-
-              {totalPages > 1 && (
-                <div className="mt-3 flex justify-end">
-                  <div className="flex flex-wrap items-center justify-end gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setCurrentPage((prev) => Math.max(1, prev - 1))
-                      }
-                      disabled={currentPage === 1}
-                      className={[
-                        "inline-flex h-8 min-w-8 items-center justify-center rounded-xl border px-2 text-[11px] font-medium transition",
-                        currentPage === 1
-                          ? "cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400 dark:border-white/10 dark:bg-white/5 dark:text-white/25"
-                          : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-white/10 dark:bg-white/6 dark:text-white/80 dark:hover:bg-white/10",
-                      ].join(" ")}
-                    >
-                      Prev
-                    </button>
-
-                    {pageNumbers.map((page) => {
-                      const active = page === currentPage;
-                      return (
-                        <button
-                          key={page}
-                          type="button"
-                          onClick={() => setCurrentPage(page)}
-                          className={[
-                            "inline-flex h-8 min-w-8 items-center justify-center rounded-xl border px-2 text-[11px] font-semibold transition",
-                            active
-                              ? "border-cyan-400 bg-cyan-500 text-white shadow-sm"
-                              : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-white/10 dark:bg-white/6 dark:text-white/80 dark:hover:bg-white/10",
-                          ].join(" ")}
-                        >
-                          {page}
-                        </button>
-                      );
-                    })}
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setCurrentPage((prev) => Math.min(totalPages, prev + 1))
-                      }
-                      disabled={currentPage === totalPages}
-                      className={[
-                        "inline-flex h-8 min-w-8 items-center justify-center rounded-xl border px-2 text-[11px] font-medium transition",
-                        currentPage === totalPages
-                          ? "cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400 dark:border-white/10 dark:bg-white/5 dark:text-white/25"
-                          : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-white/10 dark:bg-white/6 dark:text-white/80 dark:hover:bg-white/10",
-                      ].join(" ")}
-                    >
-                      Next
-                    </button>
+                    {loading ? "." : formatRisk(summary.avgRisk)}
+                  </div>
+                  <div className="mt-2 text-[11px] text-gray-500 dark:text-white/50 sm:text-[12px]">
+                    Average Risk Score
                   </div>
                 </div>
-              )}
-            </>
-          )}
+
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadialBarChart
+                    data={gaugeData}
+                    startAngle={205}
+                    endAngle={-25}
+                    innerRadius="68%"
+                    outerRadius="100%"
+                    barSize={18}
+                  >
+                    <PolarAngleAxis
+                      type="number"
+                      domain={[0, 10]}
+                      tick={false}
+                    />
+                    <RadialBar
+                      background={{ fill: "rgba(148,163,184,0.12)" }}
+                      dataKey="value"
+                      cornerRadius={999}
+                    />
+                  </RadialBarChart>
+                </ResponsiveContainer>
+
+                <div className="pointer-events-none absolute inset-x-3 bottom-3 flex items-center justify-between text-[10px] text-gray-400 dark:text-white/40 sm:text-[11px]">
+                  <span>0</span>
+                  <span>10</span>
+                </div>
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                <div
+                  className={[
+                    "rounded-2xl px-4 py-3",
+                    "bg-slate-50 border border-slate-200/80",
+                    "dark:bg-white/4 dark:border-white/10",
+                  ].join(" ")}
+                >
+                  <p className="text-[10px] text-gray-400 dark:text-white/40">
+                    Targets
+                  </p>
+                  <p className="mt-1 text-[14px] font-semibold text-[#1f2240] dark:text-white/85 sm:text-[15px]">
+                    {loading ? "..." : formatNumber(summary.taskCount)}
+                  </p>
+                </div>
+
+                <div
+                  className={[
+                    "rounded-2xl px-4 py-3",
+                    "bg-slate-50 border border-slate-200/80",
+                    "dark:bg-white/4 dark:border-white/10",
+                  ].join(" ")}
+                >
+                  <p className="text-[10px] text-gray-400 dark:text-white/40">
+                    Highest Risk
+                  </p>
+                  <p className="mt-1 text-[14px] font-semibold text-[#1f2240] dark:text-white/85 sm:text-[15px]">
+                    {loading ? "..." : formatRisk(summary.maxRisk)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
   );
 };
 
-export default AverageEnrollment;
+export default index;

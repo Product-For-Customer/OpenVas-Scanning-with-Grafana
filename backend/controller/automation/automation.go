@@ -41,6 +41,9 @@ type FeedUpdateStatus struct {
 var feedUpdateMu sync.Mutex
 var isFeedUpdating bool
 
+var feedSchedulerMu sync.Mutex
+var feedSchedulerStarted bool
+
 var feedStatus = FeedUpdateStatus{
 	IsRunning:   false,
 	LastStatus:  "idle",
@@ -136,6 +139,7 @@ func sendLinePushToAllNotifications(message string) error {
 
 	var failed []string
 	successCount := 0
+	sentMap := map[string]struct{}{}
 
 	for _, notify := range notifications {
 		sendID := strings.TrimSpace(notify.SendID)
@@ -158,6 +162,13 @@ func sendLinePushToAllNotifications(message string) error {
 			continue
 		}
 
+		dedupKey := token + "::" + sendID
+		if _, exists := sentMap[dedupKey]; exists {
+			log.Printf("ℹ️ skip duplicated LINE destination id=%d send_id=%s\n", notify.ID, sendID)
+			continue
+		}
+		sentMap[dedupKey] = struct{}{}
+
 		if err := sendLinePushTo(token, sendID, message); err != nil {
 			log.Printf("❌ sendLinePushTo failed id=%d send_id=%s error=%v\n", notify.ID, sendID, err)
 			failed = append(failed, fmt.Sprintf("id=%d send_id=%s err=%v", notify.ID, sendID, err))
@@ -176,55 +187,69 @@ func sendLinePushToAllNotifications(message string) error {
 	return nil
 }
 
-func buildFeedLineMessage(resultType, triggeredBy, source string, force bool, message string, output string) string {
-	statusText := humanizeFeedResultType(resultType)
+func buildFeedLineMessage(resultType string, message string, output string) string {
+	title, emoji := getFeedLineTitle(resultType)
+	statusText := humanizeFeedLineStatus(resultType)
 	summary := summarizeFeedOutput(resultType, message, output)
 
-	title := "OpenVAS Feed Update"
-	emoji := "ℹ️"
-
-	switch resultType {
-	case "server_error":
-		title = "OpenVAS Feed Update - Server Error"
-		emoji = "⚠️"
-	case "unauthorized":
-		title = "OpenVAS Feed Update - Unauthorized"
-		emoji = "⛔"
-	case "already_running":
-		title = "OpenVAS Feed Update - Already Running"
-		emoji = "⏳"
-	case "timeout":
-		title = "OpenVAS Feed Update - Timeout"
-		emoji = "⌛"
-	case "updated":
-		title = "OpenVAS Feed Update - Updated"
-		emoji = "✅"
-	case "no_update":
-		title = "OpenVAS Feed Update - No Update"
-		emoji = "📭"
-	case "failed":
-		title = "OpenVAS Feed Update - Failed"
-		emoji = "❌"
+	if strings.TrimSpace(summary) == "" {
+		summary = "ระบบดำเนินการอัปเดต Feed เรียบร้อยแล้ว"
 	}
 
 	var b strings.Builder
 	b.WriteString(fmt.Sprintf("%s %s", emoji, title))
 	b.WriteString("\n")
-	b.WriteString("Status: " + statusText)
+	b.WriteString("สถานะ: " + statusText)
 	b.WriteString("\n")
-	b.WriteString("Triggered By: " + safeString(triggeredBy))
-	b.WriteString("\n")
-	b.WriteString("Source: " + safeString(source))
-	b.WriteString("\n")
-	b.WriteString(fmt.Sprintf("Force: %t", force))
-	b.WriteString("\n")
-	b.WriteString("Summary: " + summary)
+	b.WriteString("รายละเอียด: " + summary)
 
 	return b.String()
 }
 
-func notifyFeedUpdateToAllNotifications(resultType, triggeredBy, source string, force bool, message string, output string) {
-	lineMessage := buildFeedLineMessage(resultType, triggeredBy, source, force, message, output)
+func getFeedLineTitle(resultType string) (string, string) {
+	switch resultType {
+	case "server_error":
+		return "ระบบอัปเดต Feed ยังไม่พร้อมใช้งานครับ", "⚠️"
+	case "unauthorized":
+		return "ไม่สามารถอัปเดต Feed ได้ครับ", "⛔"
+	case "already_running":
+		return "ระบบกำลังอัปเดต Feed อยู่ครับ", "⏳"
+	case "timeout":
+		return "การอัปเดต Feed ใช้เวลานานเกินไปครับ", "⌛"
+	case "updated":
+		return "อัปเดต Feed ของ OpenVAS สำเร็จแล้วครับ", "✅"
+	case "no_update":
+		return "ตรวจสอบ Feed ของ OpenVAS แล้วครับ", "📭"
+	case "failed":
+		return "อัปเดต Feed ของ OpenVAS ไม่สำเร็จครับ", "❌"
+	default:
+		return "แจ้งเตือนสถานะ Feed ของ OpenVAS ครับ", "ℹ️"
+	}
+}
+
+func humanizeFeedLineStatus(resultType string) string {
+	switch resultType {
+	case "server_error":
+		return "ตั้งค่าระบบไม่สมบูรณ์"
+	case "unauthorized":
+		return "ไม่ได้รับอนุญาต"
+	case "already_running":
+		return "กำลังทำงาน"
+	case "timeout":
+		return "หมดเวลา"
+	case "updated":
+		return "อัปเดตแล้ว"
+	case "no_update":
+		return "ไม่มีข้อมูลใหม่"
+	case "failed":
+		return "ไม่สำเร็จ"
+	default:
+		return "ไม่ทราบสถานะ"
+	}
+}
+
+func notifyFeedUpdateToAllNotifications(resultType string, message string, output string) {
+	lineMessage := buildFeedLineMessage(resultType, message, output)
 
 	if err := sendLinePushToAllNotifications(lineMessage); err != nil {
 		log.Println("⚠️ sendLinePushToAllNotifications error:", err)
@@ -251,9 +276,6 @@ func TriggerFeedUpdateHandler(c *gin.Context) {
 		req.Source = "unknown"
 	}
 
-	// =========================
-	// SERVER ERROR
-	// =========================
 	if requiredToken == "" {
 		now := time.Now()
 		errMsg := "AUTOMATION_TOKEN is not configured in backend environment"
@@ -283,9 +305,6 @@ func TriggerFeedUpdateHandler(c *gin.Context) {
 
 		notifyFeedUpdateToAllNotifications(
 			"server_error",
-			req.TriggeredBy,
-			req.Source,
-			req.Force,
 			errMsg,
 			"",
 		)
@@ -304,9 +323,6 @@ func TriggerFeedUpdateHandler(c *gin.Context) {
 		return
 	}
 
-	// =========================
-	// UNAUTHORIZED
-	// =========================
 	if gotToken == "" || gotToken != requiredToken {
 		now := time.Now()
 		errMsg := "invalid automation token"
@@ -336,9 +352,6 @@ func TriggerFeedUpdateHandler(c *gin.Context) {
 
 		notifyFeedUpdateToAllNotifications(
 			"unauthorized",
-			req.TriggeredBy,
-			req.Source,
-			req.Force,
 			errMsg,
 			"",
 		)
@@ -357,9 +370,6 @@ func TriggerFeedUpdateHandler(c *gin.Context) {
 		return
 	}
 
-	// =========================
-	// ALREADY RUNNING
-	// =========================
 	feedUpdateMu.Lock()
 	if isFeedUpdating {
 		now := time.Now()
@@ -388,9 +398,6 @@ func TriggerFeedUpdateHandler(c *gin.Context) {
 
 		notifyFeedUpdateToAllNotifications(
 			"already_running",
-			req.TriggeredBy,
-			req.Source,
-			req.Force,
 			errMsg,
 			"",
 		)
@@ -429,15 +436,62 @@ func TriggerFeedUpdateHandler(c *gin.Context) {
 		feedUpdateMu.Unlock()
 	}()
 
-	// =========================
-	// RUN SCRIPT
-	// =========================
 	scriptPath := "/app/scripts/update-feed.sh"
 
-	ctx, cancel := context.WithTimeout(context.Background(), 65*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 125*time.Minute)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "bash", scriptPath)
+	normalizedScript, normalizeErr := readAndNormalizeBashScript(scriptPath)
+	if normalizeErr != nil {
+		now := time.Now()
+		errMsg := normalizeErr.Error()
+		combinedOutput := errMsg
+
+		feedUpdateMu.Lock()
+		feedStatus.LastStatus = "failed"
+		feedStatus.LastMessage = errMsg
+		feedStatus.LastOutput = combinedOutput
+		feedStatus.ResultType = "failed"
+		feedStatus.Updated = false
+		feedStatus.UpdatedAt = now
+		feedUpdateMu.Unlock()
+
+		saveFeedUpdateHistory(
+			"Update Failed",
+			"Feed Update - Failed",
+			buildFeedHistoryDescription(
+				"failed",
+				req.TriggeredBy,
+				req.Source,
+				req.Force,
+				errMsg,
+				combinedOutput,
+			),
+		)
+
+		notifyFeedUpdateToAllNotifications(
+			"failed",
+			errMsg,
+			combinedOutput,
+		)
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success":      false,
+			"updated":      false,
+			"result_type":  "failed",
+			"message":      "feed update failed",
+			"error":        errMsg,
+			"triggered_by": req.TriggeredBy,
+			"source":       req.Source,
+			"force":        req.Force,
+			"at":           now.Format(time.RFC3339),
+			"output":       combinedOutput,
+		})
+		return
+	}
+
+	cmd := exec.CommandContext(ctx, "bash", "-s")
+	cmd.Stdin = bytes.NewReader(normalizedScript)
 	cmd.Env = append(
 		os.Environ(),
 		"OPENVAS_COMPOSE_WORKDIR="+getEnv("OPENVAS_COMPOSE_WORKDIR", "/workspace"),
@@ -466,22 +520,18 @@ func TriggerFeedUpdateHandler(c *gin.Context) {
 
 	parsedResultType, parsedUpdated := parseFeedUpdateResult(combinedOutput)
 
-	feedUpdateMu.Lock()
-	defer feedUpdateMu.Unlock()
-
-	// =========================
-	// TIMEOUT
-	// =========================
 	if ctx.Err() == context.DeadlineExceeded {
 		now := time.Now()
 		errMsg := "feed update timeout"
 
+		feedUpdateMu.Lock()
 		feedStatus.LastStatus = "timeout"
 		feedStatus.LastMessage = errMsg
 		feedStatus.LastOutput = combinedOutput
 		feedStatus.ResultType = "timeout"
 		feedStatus.Updated = false
 		feedStatus.UpdatedAt = now
+		feedUpdateMu.Unlock()
 
 		saveFeedUpdateHistory(
 			"Timeout",
@@ -498,9 +548,6 @@ func TriggerFeedUpdateHandler(c *gin.Context) {
 
 		notifyFeedUpdateToAllNotifications(
 			"timeout",
-			req.TriggeredBy,
-			req.Source,
-			req.Force,
 			errMsg,
 			combinedOutput,
 		)
@@ -520,53 +567,52 @@ func TriggerFeedUpdateHandler(c *gin.Context) {
 		return
 	}
 
-	// =========================
-	// FAILED
-	// =========================
 	if err != nil {
 		now := time.Now()
 		errMsg := "feed update failed"
+		resultType := parsedResultType
 
-		if parsedResultType == "" {
-			parsedResultType = "failed"
+		if resultType == "" || resultType == "no_update" || resultType == "updated" {
+			resultType = "failed"
 		}
 
+		detail := err.Error()
+
+		feedUpdateMu.Lock()
 		feedStatus.LastStatus = "failed"
-		feedStatus.LastMessage = errMsg + ": " + err.Error()
+		feedStatus.LastMessage = errMsg + ": " + detail
 		feedStatus.LastOutput = combinedOutput
-		feedStatus.ResultType = parsedResultType
+		feedStatus.ResultType = resultType
 		feedStatus.Updated = false
 		feedStatus.UpdatedAt = now
+		feedUpdateMu.Unlock()
 
 		saveFeedUpdateHistory(
 			"Update Failed",
 			"Feed Update - Failed",
 			buildFeedHistoryDescription(
-				parsedResultType,
+				resultType,
 				req.TriggeredBy,
 				req.Source,
 				req.Force,
-				err.Error(),
+				detail,
 				combinedOutput,
 			),
 		)
 
 		notifyFeedUpdateToAllNotifications(
-			parsedResultType,
-			req.TriggeredBy,
-			req.Source,
-			req.Force,
-			err.Error(),
+			resultType,
+			detail,
 			combinedOutput,
 		)
 
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success":      false,
 			"updated":      false,
-			"result_type":  parsedResultType,
+			"result_type":  resultType,
 			"message":      errMsg,
 			"error":        errMsg,
-			"detail":       err.Error(),
+			"detail":       detail,
 			"triggered_by": req.TriggeredBy,
 			"source":       req.Source,
 			"force":        req.Force,
@@ -576,21 +622,27 @@ func TriggerFeedUpdateHandler(c *gin.Context) {
 		return
 	}
 
-	// =========================
-	// SUCCESS PATH
-	// =========================
 	now = time.Now()
+	if parsedResultType == "" {
+		parsedResultType = "no_update"
+		parsedUpdated = false
+	}
+
+	feedUpdateMu.Lock()
 	feedStatus.LastStatus = "success"
 	feedStatus.LastOutput = combinedOutput
 	feedStatus.ResultType = parsedResultType
 	feedStatus.Updated = parsedUpdated
 	feedStatus.UpdatedAt = now
+	feedUpdateMu.Unlock()
 
 	switch parsedResultType {
 	case "no_update":
 		successMsg := "no new feed updates found"
 
+		feedUpdateMu.Lock()
 		feedStatus.LastMessage = successMsg
+		feedUpdateMu.Unlock()
 
 		saveFeedUpdateHistory(
 			"No Update",
@@ -621,7 +673,9 @@ func TriggerFeedUpdateHandler(c *gin.Context) {
 	case "updated":
 		successMsg := "feed update completed successfully"
 
+		feedUpdateMu.Lock()
 		feedStatus.LastMessage = successMsg
+		feedUpdateMu.Unlock()
 
 		saveFeedUpdateHistory(
 			"Update Completed",
@@ -638,9 +692,6 @@ func TriggerFeedUpdateHandler(c *gin.Context) {
 
 		notifyFeedUpdateToAllNotifications(
 			"updated",
-			req.TriggeredBy,
-			req.Source,
-			req.Force,
 			successMsg,
 			combinedOutput,
 		)
@@ -659,9 +710,11 @@ func TriggerFeedUpdateHandler(c *gin.Context) {
 		return
 
 	default:
-		successMsg := "no new feed updates found"
+		successMsg := "feed update completed"
 
-		feedStatus.LastMessage = "feed update finished with unknown result"
+		feedUpdateMu.Lock()
+		feedStatus.LastMessage = successMsg
+		feedUpdateMu.Unlock()
 
 		saveFeedUpdateHistory(
 			"No Update",
@@ -680,7 +733,7 @@ func TriggerFeedUpdateHandler(c *gin.Context) {
 			"success":      true,
 			"updated":      false,
 			"result_type":  "no_update",
-			"message":      successMsg,
+			"message":      "no new feed updates found",
 			"triggered_by": req.TriggeredBy,
 			"source":       req.Source,
 			"force":        req.Force,
@@ -689,6 +742,26 @@ func TriggerFeedUpdateHandler(c *gin.Context) {
 		})
 		return
 	}
+}
+
+func readAndNormalizeBashScript(scriptPath string) ([]byte, error) {
+	raw, err := os.ReadFile(scriptPath)
+	if err != nil {
+		return nil, fmt.Errorf("cannot read feed update script %s: %w", scriptPath, err)
+	}
+
+	if len(raw) == 0 {
+		return nil, fmt.Errorf("feed update script is empty: %s", scriptPath)
+	}
+
+	normalized := bytes.ReplaceAll(raw, []byte("\r\n"), []byte("\n"))
+	normalized = bytes.ReplaceAll(normalized, []byte("\r"), []byte("\n"))
+
+	if !bytes.HasSuffix(normalized, []byte("\n")) {
+		normalized = append(normalized, '\n')
+	}
+
+	return normalized, nil
 }
 
 func parseFeedUpdateResult(output string) (resultType string, updated bool) {
@@ -707,7 +780,10 @@ func parseFeedUpdateResult(output string) (resultType string, updated bool) {
 	if strings.Contains(lower, "error:") ||
 		strings.Contains(lower, "failed to pull") ||
 		strings.Contains(lower, "docker compose up failed") ||
-		strings.Contains(lower, "failed to recreate feed/data services") {
+		strings.Contains(lower, "failed to recreate feed/data services") ||
+		strings.Contains(lower, "syntax error") ||
+		strings.Contains(lower, "invalid option name") ||
+		strings.Contains(lower, "command not found") {
 		return "failed", false
 	}
 
@@ -721,7 +797,7 @@ func parseFeedUpdateResult(output string) (resultType string, updated bool) {
 		return "no_update", false
 	}
 
-	return "no_update", false
+	return "", false
 }
 
 func saveFeedUpdateHistory(statusName string, subject string, description string) {
@@ -777,40 +853,36 @@ func summarizeFeedOutput(resultType, message, output string) string {
 
 	switch resultType {
 	case "server_error":
-		if msg != "" {
-			return msg
-		}
-		return "backend configuration error"
+		return "ระบบยังไม่ได้ตั้งค่า AUTOMATION_TOKEN สำหรับ Automation"
 
 	case "unauthorized":
-		return "request rejected because automation token is invalid"
+		return "Token สำหรับ Automation ไม่ถูกต้อง ระบบจึงไม่ดำเนินการต่อ"
 
 	case "already_running":
-		return "feed update request was ignored because another update is already running"
+		return "มีการอัปเดต Feed กำลังทำงานอยู่ กรุณารอให้เสร็จก่อน"
 
 	case "timeout":
 		services := extractFailedServices(output)
 		if len(services) > 0 {
 			return fmt.Sprintf(
-				"feed update timed out while processing services: %s",
+				"ใช้เวลานานเกินไปขณะอัปเดตบริการ: %s",
 				strings.Join(services, ", "),
 			)
 		}
-		return "feed update exceeded the allowed execution time"
+		return "การอัปเดต Feed ใช้เวลานานเกินกว่าที่กำหนด"
 
 	case "updated":
 		images := extractUpdatedImages(output)
 		if len(images) > 0 {
 			return fmt.Sprintf(
-				"feed data updated successfully (%d image(s) updated: %s)",
+				"อัปเดตข้อมูล Feed เรียบร้อยแล้ว (%d รายการ)",
 				len(images),
-				strings.Join(images, ", "),
 			)
 		}
-		return "feed update completed successfully"
+		return "อัปเดตข้อมูล Feed เรียบร้อยแล้ว"
 
 	case "no_update":
-		return "system checked feed images and found no new updates"
+		return "ตรวจสอบแล้ว ไม่มีข้อมูล Feed ใหม่"
 
 	case "failed":
 		failure := detectFailureReason(lower, msg)
@@ -818,7 +890,7 @@ func summarizeFeedOutput(resultType, message, output string) string {
 
 		if len(services) > 0 && failure != "" {
 			return fmt.Sprintf(
-				"feed update failed for service(s): %s. Reason: %s",
+				"ไม่สามารถอัปเดตบริการ %s ได้: %s",
 				strings.Join(services, ", "),
 				failure,
 			)
@@ -826,26 +898,26 @@ func summarizeFeedOutput(resultType, message, output string) string {
 
 		if len(services) > 0 {
 			return fmt.Sprintf(
-				"feed update failed for service(s): %s",
+				"ไม่สามารถอัปเดตบริการ %s ได้",
 				strings.Join(services, ", "),
 			)
 		}
 
 		if failure != "" {
-			return "feed update failed. Reason: " + failure
+			return failure
 		}
 
 		if msg != "" {
-			return "feed update failed. Reason: " + cleanSentence(msg)
+			return cleanSentence(msg)
 		}
 
-		return "feed update failed during script execution"
+		return "ระบบไม่สามารถอัปเดต Feed ได้ในขณะนี้"
 
 	default:
 		if msg != "" {
 			return cleanSentence(msg)
 		}
-		return "feed update finished"
+		return "ระบบดำเนินการอัปเดต Feed เรียบร้อยแล้ว"
 	}
 }
 
@@ -873,23 +945,29 @@ func humanizeFeedResultType(resultType string) string {
 func detectFailureReason(lowerOutput, message string) string {
 	switch {
 	case strings.Contains(lowerOutput, "502 bad gateway"):
-		return "registry.community.greenbone.net returned 502 Bad Gateway"
+		return "Registry ของ Greenbone ตอบกลับเป็น 502 Bad Gateway"
 	case strings.Contains(lowerOutput, "401 unauthorized"):
-		return "registry authentication failed"
+		return "ยืนยันตัวตนกับ Registry ไม่สำเร็จ"
 	case strings.Contains(lowerOutput, "403 forbidden"):
-		return "registry access was forbidden"
+		return "ไม่มีสิทธิ์เข้าถึง Registry"
 	case strings.Contains(lowerOutput, "context deadline exceeded"):
-		return "operation exceeded timeout"
+		return "การทำงานใช้เวลานานเกินกำหนด"
 	case strings.Contains(lowerOutput, "failed to resolve reference"):
-		return "failed to resolve image reference from registry"
+		return "ไม่สามารถตรวจสอบ Image จาก Registry ได้"
 	case strings.Contains(lowerOutput, "failed to pull image"):
-		return "failed to pull image from registry"
+		return "ไม่สามารถดาวน์โหลด Image จาก Registry ได้"
 	case strings.Contains(lowerOutput, "docker compose up failed"):
-		return "docker compose up failed"
+		return "สั่งงาน Docker Compose ไม่สำเร็จ"
 	case strings.Contains(lowerOutput, "network is unreachable"):
-		return "network is unreachable"
+		return "ไม่สามารถเชื่อมต่อเครือข่ายได้"
 	case strings.Contains(lowerOutput, "no such host"):
-		return "registry host could not be resolved"
+		return "ไม่สามารถค้นหา Host ของ Registry ได้"
+	case strings.Contains(lowerOutput, "docker daemon is not available"):
+		return "Docker daemon ไม่พร้อมใช้งาน"
+	case strings.Contains(lowerOutput, "docker compose config is invalid"):
+		return "ไฟล์ Docker Compose มีรูปแบบไม่ถูกต้อง"
+	case strings.Contains(lowerOutput, "compose.yml not found") || strings.Contains(lowerOutput, "docker-compose.yml"):
+		return "ไม่พบไฟล์ Docker Compose สำหรับอัปเดต Feed"
 	}
 
 	if strings.TrimSpace(message) != "" {
@@ -1010,4 +1088,133 @@ func getEnv(key, fallback string) string {
 		return fallback
 	}
 	return v
+}
+
+func StartDailyFeedUpdateScheduler() {
+	feedSchedulerMu.Lock()
+	if feedSchedulerStarted {
+		feedSchedulerMu.Unlock()
+		log.Println("ℹ️ Daily feed update scheduler already started, skip duplicate start")
+		return
+	}
+	feedSchedulerStarted = true
+	feedSchedulerMu.Unlock()
+
+	tzName := strings.TrimSpace(os.Getenv("TZ"))
+	if tzName == "" {
+		tzName = "Asia/Bangkok"
+	}
+
+	location, err := time.LoadLocation(tzName)
+	if err != nil {
+		log.Printf("⚠️ cannot load TZ=%s, fallback to Asia/Bangkok: %v\n", tzName, err)
+		location = time.FixedZone("Asia/Bangkok", 7*60*60)
+	}
+
+	log.Printf("🕑 Daily feed update scheduler started with TZ=%s\n", tzName)
+
+	nextRun := calculateNextDailyFeedRun(time.Now().In(location), location)
+
+	for {
+		waitDuration := time.Until(nextRun)
+
+		if waitDuration < 0 {
+			waitDuration = 0
+		}
+
+		log.Printf(
+			"🕑 Next daily feed update: %s, wait=%s\n",
+			nextRun.Format("2006-01-02 15:04:05 MST"),
+			waitDuration.String(),
+		)
+
+		timer := time.NewTimer(waitDuration)
+		<-timer.C
+
+		scheduledRunAt := nextRun
+		runDailyFeedUpdateRequest()
+
+		nextRun = scheduledRunAt.Add(24 * time.Hour)
+	}
+}
+
+func calculateNextDailyFeedRun(now time.Time, location *time.Location) time.Time {
+	nextRun := time.Date(
+		now.Year(),
+		now.Month(),
+		now.Day(),
+		2,
+		0,
+		0,
+		0,
+		location,
+	)
+
+	if !nextRun.After(now) {
+		nextRun = nextRun.Add(24 * time.Hour)
+	}
+
+	return nextRun
+}
+
+func runDailyFeedUpdateRequest() {
+	requiredToken := strings.TrimSpace(os.Getenv("AUTOMATION_TOKEN"))
+	if requiredToken == "" {
+		log.Println("⚠️ daily feed update skipped: AUTOMATION_TOKEN is empty")
+		return
+	}
+
+	port := getEnv("PORT", "9000")
+	updateURL := fmt.Sprintf("http://127.0.0.1:%s/automation/feed/update", port)
+
+	payload := FeedUpdateRequest{
+		TriggeredBy: "system",
+		Source:      "daily_2am_scheduler",
+		Force:       false,
+	}
+
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		log.Println("❌ daily feed update marshal error:", err)
+		return
+	}
+
+	req, err := http.NewRequest(http.MethodPost, updateURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		log.Println("❌ daily feed update request create error:", err)
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Automation-Token", requiredToken)
+
+	client := &http.Client{
+		Timeout: 130 * time.Minute,
+	}
+
+	log.Println("🕑 daily feed update started by scheduler:", updateURL)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Println("❌ daily feed update request error:", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		log.Printf(
+			"❌ daily feed update failed: status=%s response=%s\n",
+			resp.Status,
+			string(body),
+		)
+		return
+	}
+
+	log.Printf(
+		"✅ daily feed update finished: status=%s response=%s\n",
+		resp.Status,
+		string(body),
+	)
 }

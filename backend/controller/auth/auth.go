@@ -10,11 +10,28 @@ import (
 	"time"
 
 	"github.com/Tawunchai/openvas/config"
-	"github.com/Tawunchai/openvas/dto"
 	"github.com/Tawunchai/openvas/entity"
+	"github.com/Tawunchai/openvas/services"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
+
+type LoginInput struct {
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required,min=8"`
+}
+
+type MeResponse struct {
+	ID        uint   `json:"id"`
+	Email     string `json:"email"`
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+	Profile   string `json:"profile"`
+	Phone     string `json:"phone_number"`
+	Location  string `json:"location"`
+	Position  string `json:"position"`
+	Role      string `json:"role"`
+}
 
 type SignUpInput struct {
 	Email       string `json:"email" binding:"required,email"`
@@ -25,6 +42,7 @@ type SignUpInput struct {
 	Location    string `json:"location" binding:"required"`
 	Position    string `json:"position" binding:"required"`
 }
+
 type UserResponse struct {
 	ID          uint   `json:"id"`
 	Email       string `json:"email"`
@@ -93,7 +111,7 @@ func clearAuthCookie(c *gin.Context) {
 }
 
 func Login(c *gin.Context) {
-	var input dto.LoginInput
+	var input LoginInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
@@ -114,7 +132,7 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	if !config.CheckPasswordHash(input.Password, user.Password) {
+	if !services.CheckPasswordHash(input.Password, user.Password) {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "invalid email or password",
 		})
@@ -126,7 +144,7 @@ func Login(c *gin.Context) {
 		roleName = user.AppRole.Role
 	}
 
-	token, err := config.GenerateJWT(user.ID, user.Email, roleName)
+	token, err := services.GenerateJWT(user.ID, user.Email, roleName)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "failed to generate token",
@@ -175,7 +193,7 @@ func Me(c *gin.Context) {
 		roleName = user.AppRole.Role
 	}
 
-	response := dto.MeResponse{
+	response := MeResponse{
 		ID:        user.ID,
 		Email:     user.Email,
 		FirstName: user.FirstName,
@@ -286,19 +304,23 @@ func VerifyOTPSignUp(c *gin.Context) {
 	// 1) ตรวจสอบ email ซ้ำก่อน
 	var existing entity.AppUser
 	err := db.Where("email = ?", req.Email).First(&existing).Error
-	if err == nil {
+
+	switch {
+	case err == nil:
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "email already exists",
 		})
 		return
-	}
-	if err != nil {
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "failed to check existing email",
-			})
-			return
-		}
+
+	case errors.Is(err, gorm.ErrRecordNotFound):
+		// ไม่พบ email นี้ในระบบ = สมัครต่อได้
+		// ไม่ต้อง return
+
+	default:
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to check existing email",
+		})
+		return
 	}
 
 	// 2) หา OTP ตาม email และ code
@@ -326,7 +348,7 @@ func VerifyOTPSignUp(c *gin.Context) {
 	}
 
 	// 5) hash password
-	hashedPassword, err := config.HashPassword(req.Password)
+	hashedPassword, err := services.HashPassword(req.Password)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "failed to hash password",

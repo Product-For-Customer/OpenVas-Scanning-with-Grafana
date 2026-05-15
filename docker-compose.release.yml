@@ -314,7 +314,21 @@ services:
       - .env
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - reports_data:/app/tmp/reports
+      - ./backend/scripts:/app/scripts:ro
+      - .:/workspace:ro
+      - ./backend/tmp/reports:/app/tmp/reports
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - PORT=${PORT}
+      - AUTOMATION_TOKEN=${AUTOMATION_TOKEN}
+      - JWT_SECRET=${JWT_SECRET}
+      - FRONTEND_CAPTURE_URL=${FRONTEND_CAPTURE_URL}
+      - REPORT_OUTPUT_DIR=${REPORT_OUTPUT_DIR}
+      - REPORT_PUBLIC_BASE_URL=${REPORT_PUBLIC_BASE_URL}
+      - CHROME_PATH=${CHROME_PATH}
+      - PATH_API_URL=${PATH_API_URL}
+      - TZ=${TZ}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
     depends_on:
       - pg-gvm
 
@@ -329,22 +343,6 @@ services:
     environment:
       - VITE_BACKEND_URL=${VITE_BACKEND_URL}
       - VITE_OPENVAS_URL=${VITE_OPENVAS_URL}
-    depends_on:
-      - backend
-
-  n8n:
-    image: n8nio/n8n:latest
-    container_name: n8n
-    restart: unless-stopped
-    ports:
-      - "5678:5678"
-    env_file:
-      - .env
-    environment:
-      - N8N_BASIC_AUTH_ACTIVE=true
-      - GENERIC_TIMEZONE=${TZ}
-    volumes:
-      - n8n_data:/home/node/.n8n
     depends_on:
       - backend
 
@@ -363,5 +361,3 @@ volumes:
   redis_socket_vol:
   openvas_data_vol:
   openvas_log_data_vol:
-  n8n_data:
-  reports_data:
