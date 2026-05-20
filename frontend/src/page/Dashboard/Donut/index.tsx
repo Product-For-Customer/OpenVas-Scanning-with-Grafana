@@ -366,7 +366,7 @@ const index: React.FC<DeliveryAnalysisProps> = ({
       className={[
         "relative w-full overflow-hidden rounded-[18px] p-2.5 sm:p-3 md:p-3.5",
         "bg-white border border-slate-200/80 shadow-[0_10px_26px_-20px_rgba(15,23,42,0.18)]",
-        "dark:bg-[#08111f]/95 dark:border-white/10 dark:shadow-none",
+        "dark:bg-white/5 dark:border-white/10 dark:ring-1 dark:ring-white/10 dark:shadow-none",
         "h-full flex flex-col",
         CARD_HEIGHT_CLASS,
       ].join(" ")}
