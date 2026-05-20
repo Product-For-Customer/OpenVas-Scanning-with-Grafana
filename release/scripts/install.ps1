@@ -63,6 +63,16 @@ if (Test-Path $EnvFile) {
         exit 1
     }
 
+    Write-Host ""
+    Write-Host "Enter the public API URL for LINE PDF links." -ForegroundColor Yellow
+    Write-Host "  (Press Enter to use default: http://${ServerIP}:9000)" -ForegroundColor DarkGray
+    Write-Host "  Example: https://your-tunnel.trycloudflare.com" -ForegroundColor DarkGray
+    $PathApiUrl = Read-Host "  Public API URL"
+
+    if (-not $PathApiUrl) {
+        $PathApiUrl = "http://${ServerIP}:9000"
+    }
+
     $JwtSecret       = New-RandomSecret -Bytes 32
     $AutomationToken = New-RandomSecret -Bytes 24
     $DbPassword      = New-RandomSecret -Bytes 16
@@ -75,8 +85,7 @@ AUTOMATION_TOKEN=$AutomationToken
 JWT_SECRET=$JwtSecret
 FRONTEND_CAPTURE_URL=http://frontend/capture
 REPORT_OUTPUT_DIR=/app/tmp/reports
-REPORT_PUBLIC_BASE_URL=http://${ServerIP}:9000
-PATH_API_URL=http://${ServerIP}:9000
+PATH_API_URL=$PathApiUrl
 CHROME_PATH=/usr/bin/chromium
 TZ=Asia/Bangkok
 CORS_ALLOWED_ORIGINS=http://${ServerIP}:5173,http://frontend
