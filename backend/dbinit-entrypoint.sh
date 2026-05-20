@@ -1,13 +1,6 @@
 #!/bin/sh
 set -e
 
-if [ -z "$DB_PASSWORD" ]; then
-  echo "ERROR: DB_PASSWORD environment variable is not set."
-  exit 1
-fi
-
-sed "s/__DB_PASSWORD__/$DB_PASSWORD/g" /db_init_template.sql > /tmp/init.sql
-
 echo "Waiting for PostgreSQL gvmd database..."
 until psql -h /var/run/postgresql -U postgres -d gvmd -c "SELECT 1" >/dev/null 2>&1; do
   echo "pg-gvm is not ready yet..."
@@ -27,5 +20,5 @@ until psql -h /var/run/postgresql -U postgres -d gvmd -Atc "SELECT COALESCE(to_r
 done
 
 echo "Running db_init..."
-psql -h /var/run/postgresql -U postgres -d gvmd -f /tmp/init.sql
+psql -h /var/run/postgresql -U postgres -d gvmd -f /db_init_template.sql
 echo "db-init completed."
