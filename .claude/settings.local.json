@@ -5,7 +5,11 @@
       "Bash(Select-Object Name, FullName)",
       "Bash(Get-ChildItem -Path \"c:\\\\OpenVas-Scanning-with-Web-Application\" -Depth 0 -Force)",
       "Bash(Select-Object Name, PSIsContainer)",
-      "Bash(Format-Table -AutoSize)"
+      "Bash(Format-Table -AutoSize)",
+      "Bash(git config *)",
+      "Bash(git rm *)",
+      "Bash(git add *)",
+      "Bash(go build *)"
     ]
   }
 }
