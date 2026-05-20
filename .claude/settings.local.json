@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"c:\\\\OpenVas-Scanning-with-Web-Application\" -Force)",
+      "Bash(Select-Object Name, FullName)"
+    ]
+  }
+}

@@ -1,1 +1,31 @@
+# ===== Release =====
+release/
+
+# ===== Frontend =====
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# ===== Backend =====
+backend/tmp/
+backend/app
+backend/*.exe
+
+# ===== Docker images =====
+*.tar
+*.tar.gz
 *.gz
+
+# ===== Logs =====
+*.log
+logs/
+
+# ===== OS =====
+.DS_Store
+Thumbs.db
+
+# ===== IDE =====
+.vscode/
+.idea/
+*.swp
+*.swo

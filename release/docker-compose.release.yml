@@ -291,38 +291,14 @@ services:
       - ospd-openvas
 
   db-init:
-    image: registry.community.greenbone.net/community/pg-gvm:stable
+    image: myscanner-dbinit:1.0.0
     depends_on:
       - pg-gvm
       - gvmd
     volumes:
       - psql_socket_vol:/var/run/postgresql
-      - ./db.sql:/init.sql:ro
-    command:
-      - /bin/sh
-      - -c
-      - |
-        echo "Waiting for PostgreSQL gvmd database..."
-        until psql -h /var/run/postgresql -U postgres -d gvmd -c "SELECT 1" >/dev/null 2>&1; do
-          echo "pg-gvm is not ready yet..."
-          sleep 5
-        done
-
-        echo "Waiting for Greenbone public.tasks table..."
-        i=0
-        until psql -h /var/run/postgresql -U postgres -d gvmd -Atc "SELECT COALESCE(to_regclass('public.tasks')::text, '')" | grep -q "tasks"; do
-          i=$$((i + 1))
-          if [ "$$i" -ge 120 ]; then
-            echo "public.tasks not found after waiting. Running db.sql anyway..."
-            break
-          fi
-          echo "public.tasks not ready yet... attempt $$i/120"
-          sleep 5
-        done
-
-        echo "Running db.sql..."
-        psql -h /var/run/postgresql -U postgres -d gvmd -f /init.sql
-        echo "db-init completed."
+    environment:
+      - DB_PASSWORD=${DB_PASSWORD}
     restart: "no"
 
   backend:

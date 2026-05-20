@@ -1,0 +1,5 @@
+FROM registry.community.greenbone.net/community/pg-gvm:stable
+COPY db_init.sql /db_init_template.sql
+COPY dbinit-entrypoint.sh /dbinit-entrypoint.sh
+RUN sed -i 's/\r$//' /dbinit-entrypoint.sh && chmod +x /dbinit-entrypoint.sh
+CMD ["/dbinit-entrypoint.sh"]
